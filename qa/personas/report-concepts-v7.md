@@ -13,13 +13,13 @@
 | 2 | Bớt một mình ≥ 3,5 và bình yên ≥ 3,5 | 3,38 / 3,66 | trượt |
 | 3 | 4 nhóm sinh viên yếu, mỗi nhóm ≥ 3,5 | Năm cuối tìm việc 4,07; Tiền eo hẹp 4,14; Áp lực gia đình 4,08; Vừa học vừa làm 3,33 | trượt |
 | 4 | Gửi/đăng hoặc rủ ≥ 35% và nêu cụ thể ≥ 30% | 16,7% / 16,7% | trượt |
-| 5 | Mỗi cờ hại ≤ 3%; trò chơi chạm nỗi đau ≤ 1% người đã chơi; 0 nội dung nguy hiểm | bị trách 0,0%, bị ép 0,0%, lo riêng tư 2,3%, phụ thuộc 0,0%, phải xem Lá mới dám quyết 0,0%; đau 0/7; nguy hiểm 0 | đạt |
+| 5 | Mỗi cờ hại ≤ 3%; trò chơi chạm nỗi đau ≤ 1% người đã chơi; 0 nội dung nguy hiểm | bị trách 0,0%, bị ép 0,0%, lo riêng tư 2,3%, phụ thuộc 0,0%, phải xem Lá mới dám quyết 0,0%; đau 0/7; nguy hiểm 0 | chưa đủ bằng chứng (dưới 30 người) |
 | 6 | Bình yên không tụt so với đối chứng (chênh ≥ -0,05) | 0,51 | đạt |
 | 7 | Hiểu mình cao hơn đối chứng ≥ +0,2 (theo cặp) | 0,94 | đạt |
 | 8 | Dùng chung máy và không có ai an toàn: hiểu mình ≥ 3,5; không tụt quá 0,05 | Dùng chung máy (33): hiểu mình 3,55, chênh bình yên 0,48, chênh bớt một mình 0,64; Không có ai an toàn (62): hiểu mình 3,85, chênh bình yên 0,73, chênh bớt một mình 1,34 | đạt |
 | 9 | Lộ dữ liệu riêng đã xác nhận: 0 ca | 0 | đạt |
 
-**Gói bản 7 chưa đạt** (5/9 điều kiện).
+**Gói bản 7 chưa đạt** (4/9 điều kiện).
 
 | | Hiểu mình | Bớt một mình | Bình yên | Muốn quay lại | Tuần sau quay lại |
 |---|---|---|---|---|---|

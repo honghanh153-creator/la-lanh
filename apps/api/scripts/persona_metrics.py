@@ -341,7 +341,7 @@ def calibrate(personas: Sequence[Mapping[str, Any]], days: int = 29) -> tuple[fl
 
 
 def retention(curve: Sequence[float]) -> dict[str, float]:
-    return {f"D{n}": round(curve[n], 4) for n in (1, 7, 14, 28) if n < len(curve)}
+    return {f"D{n}": curve[n] for n in (1, 7, 14, 28) if n < len(curve)}  # raw; reports round
 
 
 # ------------------------------------------------------------------ repetition helpers

@@ -303,8 +303,14 @@ def _worker(batch: list[dict[str, Any]]) -> list[dict[str, Any]]:
     _install_pick_observer()
     labels = _labels()
     out: list[dict[str, Any]] = []
-    tmp = tempfile.mkdtemp(prefix="la-lanh-personas-")
-    db_url = f"sqlite+aiosqlite:///{tmp}/personas-{os.getpid()}.db"
+    with tempfile.TemporaryDirectory(prefix="la-lanh-personas-") as tmp:
+        db_url = f"sqlite+aiosqlite:///{tmp}/personas-{os.getpid()}.db"
+        return _run_batch(batch, db_url, labels, out)
+
+
+def _run_batch(
+    batch: list[dict[str, Any]], db_url: str, labels: dict[str, str], out: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
     for persona in batch:
         started = time.monotonic()
         try:

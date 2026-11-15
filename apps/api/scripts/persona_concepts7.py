@@ -28,9 +28,11 @@ from typing import Any
 from scripts.persona_concepts import (
     ADDONS,
     FLAGS,
+    MIN_REACHED,
     PACKAGE,
     QA,
     SEED,
+    TOO_FEW,
     _fmt,
     _gain,
     _mean,
@@ -205,14 +207,11 @@ def _rate(rows: Sequence[Mapping[str, Any]], side: str) -> str:
     return _pct(round(_send_rate(rows, side) * len(rows)), len(rows))
 
 
-MIN_REACHED = 30
-
-
 def _verdict(reached: int, passed: bool) -> str:
     """Codex round 7: fewer than 30 personas reaching a feature is not enough to conclude."""
 
     if reached < MIN_REACHED:
-        return f"chưa đủ bằng chứng (dưới {MIN_REACHED} người)"
+        return TOO_FEW
     return "đạt" if passed else "trượt"
 
 

@@ -13,6 +13,7 @@ uses 3.0 (neutral) for unscored days and says so.
 from __future__ import annotations
 
 import argparse
+import gzip
 import hashlib
 import json
 import statistics
@@ -59,9 +60,15 @@ JUDGE_PROFILE_KEYS = (
 
 
 def load_jsonl(path: Path) -> list[dict[str, Any]]:
-    return [
-        json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()
-    ]
+    """Read a JSON Lines file, or its gzip copy when only ``<path>.gz`` exists (committed runs)."""
+
+    packed = path.with_name(path.name + ".gz")
+    text = (
+        path.read_text(encoding="utf-8")
+        if path.exists() or not packed.exists()
+        else gzip.decompress(packed.read_bytes()).decode("utf-8")
+    )
+    return [json.loads(line) for line in text.splitlines() if line.strip()]
 
 
 def item_id(row: Mapping[str, Any]) -> str:
@@ -92,11 +99,19 @@ def judge_packet(persona: Mapping[str, Any], row: Mapping[str, Any]) -> dict[str
 
 
 def pct(numerator: float, denominator: float) -> float | None:
-    return round(100.0 * numerator / denominator, 1) if denominator else None
+    """Raw percentage: verdicts compare this, only fmt() rounds it for display."""
+
+    return 100.0 * numerator / denominator if denominator else None
 
 
 def fmt(value: float | None, suffix: str = "%") -> str:
-    return "—" if value is None else f"{value:g}{suffix}"
+    return "—" if value is None else f"{round(value, 1):g}{suffix}"
+
+
+def num(value: float | None) -> float | None:
+    """A mean shown in the report, rounded to 2 decimals."""
+
+    return None if value is None else round(value, 2)
 
 
 def verdict(ok: bool | None) -> str:
@@ -210,7 +225,7 @@ def main() -> None:
         "personas"
     ]
     by_id = {p["id"]: p for p in personas}
-    rows = load_jsonl(run / "transcript.jsonl")
+    rows = load_jsonl(run / "transcript.jsonl")  # or the committed .gz copy
     meta = json.loads((run / "meta.json").read_text(encoding="utf-8"))
     rows_by_p: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for row in rows:
@@ -300,9 +315,9 @@ def main() -> None:
             {
                 "segment": seg,
                 "n": len(ids),
-                "D7": round(statistics.fmean(c[7] for c in curves), 4),
-                "D28": round(statistics.fmean(c[28] for c in curves), 4),
-                "understood": round(statistics.fmean(means), 2) if means else None,
+                "D7": statistics.fmean(c[7] for c in curves),
+                "D28": statistics.fmean(c[28] for c in curves),
+                "understood": statistics.fmean(means) if means else None,
                 "precision": dict(Counter(by_id[i]["birth"]["precision"] for i in ids)),
                 "situations_14d_median": rep_seg(rows_by_p, ids),
             }
@@ -349,7 +364,7 @@ def main() -> None:
         "understood": {
             "items_needed": len(judge_needed),
             "items_scored": len(judged),
-            "mean": round(statistics.fmean(judged), 2) if judged else None,
+            "mean": statistics.fmean(judged) if judged else None,
             "personas_scored": len(persona_means),
             "personas_ge3_pct": pct(sum(1 for m in persona_means if m >= 3.0), len(persona_means)),
             "distribution": dict(sorted(Counter(int(s) for s in judged).items())),
@@ -421,7 +436,7 @@ def render(m: Mapping[str, Any], title: str) -> str:
             "Lặp lại",
             "Số chuyện khác nhau mỗi 14 ngày ≥ 5 (mọi người, mọi khung)",
             f"{fmt(a['windows_ge5_pct'])} khung đạt; trung vị {a['situations_per_14d_median']}",
-            a["windows_ge5_pct"] == 100.0,
+            a["windows_ge5"] == a["windows"] and a["windows"] > 0,
         ),
         (
             "Lặp lại",
@@ -463,7 +478,7 @@ def render(m: Mapping[str, Any], title: str) -> str:
         (
             "Hiểu mình",
             "Điểm trung bình ≥ 3,5",
-            f"{u['mean']} ({u['items_scored']}/{u['items_needed']} mục đã chấm)",
+            f"{num(u['mean'])} ({u['items_scored']}/{u['items_needed']} mục đã chấm)",
             None if not full_judge else (u["mean"] or 0) >= 3.5,
         ),
         (
@@ -475,13 +490,13 @@ def render(m: Mapping[str, Any], title: str) -> str:
         (
             "Quay lại (mô hình)",
             "D7 ≥ 35%",
-            fmt(round(100 * ret["D7"], 1)),
+            fmt(100 * ret["D7"]),
             None if not full_judge else ret["D7"] >= 0.35,
         ),
         (
             "Quay lại (mô hình)",
             "D28 ≥ 15%",
-            fmt(round(100 * ret["D28"], 1)),
+            fmt(100 * ret["D28"]),
             None if not full_judge else ret["D28"] >= 0.15,
         ),
     ]
@@ -552,7 +567,7 @@ def render(m: Mapping[str, Any], title: str) -> str:
         "",
         "## Hiểu mình (giám khảo mù)",
         "",
-        f"- Đã chấm {u['items_scored']}/{u['items_needed']} mục; trung bình {u['mean']}; "
+        f"- Đã chấm {u['items_scored']}/{u['items_needed']} mục; trung bình {num(u['mean'])}; "
         f"phân bố {u['distribution']}.",
         f"- Người giả có trung bình ≥ 3: {fmt(u['personas_ge3_pct'])} "
         f"trên {u['personas_scored']} người.",
@@ -560,7 +575,7 @@ def render(m: Mapping[str, Any], title: str) -> str:
         "## Quay lại (mô hình theo luật, không phải số thật)",
         "",
         "- Tham chiếu 'app lối sống trung bình' (đã hiệu chỉnh): "
-        f"D7 {fmt(round(100 * ref['D7'], 1))}, D28 {fmt(round(100 * ref['D28'], 1))} "
+        f"D7 {fmt(100 * ref['D7'])}, D28 {fmt(100 * ref['D28'])} "
         f"(số công bố: khoảng {round(100 * BENCHMARK_D7)}% sau 7 ngày, "
         "khoảng 4-6% sau 30 ngày).",
         "",
@@ -573,7 +588,7 @@ def render(m: Mapping[str, Any], title: str) -> str:
             or PRECISION_VI.get(key.split(":")[-1])
             or GROUP_VI.get(key.split(":")[-1], key)
         )
-        cells = (fmt(round(100 * val[d], 1)) for d in ("D1", "D7", "D14", "D28"))
+        cells = (fmt(100 * val[d]) for d in ("D1", "D7", "D14", "D28"))
         lines.append(table_row(name, *cells))
     lines += [
         "",
@@ -590,9 +605,9 @@ def render(m: Mapping[str, Any], title: str) -> str:
             table_row(
                 s["segment"],
                 s["n"],
-                fmt(round(100 * s["D7"], 1)),
-                fmt(round(100 * s["D28"], 1)),
-                s["understood"],
+                fmt(100 * s["D7"]),
+                fmt(100 * s["D28"]),
+                num(s["understood"]),
                 s["situations_14d_median"],
                 entered,
             )

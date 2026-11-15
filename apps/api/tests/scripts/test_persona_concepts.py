@@ -3,6 +3,7 @@
 import json
 from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -80,3 +81,33 @@ def test_committed_concept_reports_rebuild_from_the_judged_files(
     out = tmp_path / report
     build(out)
     assert out.read_text(encoding="utf-8") == (QA / report).read_text(encoding="utf-8")
+
+
+def _row(pid: str, understood: int) -> dict[str, Any]:
+    side = {
+        "understood": understood,
+        "less_alone": 4,
+        "peaceful": 4,
+        "want_return": 4,
+        "send_or_post": False,
+        "invite": False,
+    }
+    return {"persona": pid, "treat": dict(side), "control": dict(side)}
+
+
+def test_condition_one_compares_the_unrounded_mean() -> None:
+    """697 fours and 303 threes average 3.697: rounds to 3,70 but must not pass ≥ 3,7."""
+
+    rows = [_row(f"P{i}", 4 if i < 697 else 3) for i in range(1000)]
+    people = {r["persona"]: {"segment": "other"} for r in rows}
+    sit = {r["persona"]: "normal" for r in rows}
+    table, ok = pc.condition_table(rows, people, sit)
+    assert "3,70" in table[0] and table[0].endswith("| trượt |")
+    assert ok[0] is False
+
+
+def test_game_harm_needs_30_players_but_a_hurt_player_still_fails() -> None:
+    assert pc.game_and_flags(True, 0, 7) is None
+    assert pc.game_and_flags(True, 0, 30) is True
+    assert pc.game_and_flags(True, 1, 7) is False
+    assert pc.game_and_flags(False, 0, 100) is False

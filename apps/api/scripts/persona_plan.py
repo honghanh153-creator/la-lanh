@@ -188,7 +188,7 @@ def load_rows(paths: Iterable[str]) -> list[dict[str, Any]]:
 
 def mean(values: Iterable[float]) -> float | None:
     items = list(values)
-    return round(statistics.fmean(items), 2) if items else None
+    return statistics.fmean(items) if items else None  # raw; fmt() rounds for display
 
 
 def fmt(value: float | None) -> str:

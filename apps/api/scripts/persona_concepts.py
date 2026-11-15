@@ -336,8 +336,14 @@ WEAK = {
 }
 
 
+# Registered rule (thresholds-1000.md §6, bản 4): a feature needs at least this many personas who
+# reached it before any verdict; fewer is reported as not enough evidence.
+MIN_REACHED = 30
+TOO_FEW = f"chưa đủ bằng chứng (dưới {MIN_REACHED} người)"
+
+
 def _mean(values: Sequence[float]) -> float | None:
-    return round(sum(values) / len(values), 2) if values else None
+    return sum(values) / len(values) if values else None  # raw; _fmt() rounds for display
 
 
 def _fmt(value: float | None) -> str:
@@ -385,6 +391,15 @@ def paired_rows(judged: Path, manifest: Mapping[str, Any], prefix: str) -> list[
     return rows
 
 
+def game_and_flags(flags_ok: bool, hurt: int, players: int) -> bool | None:
+    """Condition 5: a flag or unsafe-content failure fails it outright; the game part needs
+    MIN_REACHED players before it can pass (``None`` = not enough evidence)."""
+
+    if not flags_ok or (players and hurt > 0.01 * players):
+        return False
+    return None if players < MIN_REACHED else True
+
+
 def condition_table(
     rows: Sequence[Mapping[str, Any]],
     people: Mapping[str, Mapping[str, Any]],
@@ -400,9 +415,12 @@ def condition_table(
     out: list[str] = []
     ok: list[bool] = []
 
-    def line(no: str, text: str, value: str, passed: bool) -> None:
-        out.append(f"| {no} | {text} | {value} | {'đạt' if passed else 'trượt'} |")
-        ok.append(passed)
+    def line(no: str, text: str, value: str, passed: bool | None) -> None:
+        """passed None: not enough personas reached the feature; counts as not met."""
+
+        word = TOO_FEW if passed is None else ("đạt" if passed else "trượt")
+        out.append(f"| {no} | {text} | {value} | {word} |")
+        ok.append(bool(passed))
 
     und = m("treat", "understood")
     line("1", "Hiểu mình của gói ≥ 3,7", _fmt(und), (und or 0) >= 3.7)
@@ -440,9 +458,9 @@ def condition_table(
         "Mỗi cờ hại ≤ 3%; trò chơi chạm nỗi đau ≤ 1% người đã chơi; 0 nội dung nguy hiểm",
         ", ".join(f"{FLAG_VI[f]} {_pct(v, n)}" for f, v in flag_n.items())
         + f"; đau {hurt}/{len(players)}; nguy hiểm {unsafe}",
-        all(v <= 0.03 * n for v in flag_n.values())
-        and hurt <= 0.01 * max(len(players), 1)
-        and unsafe == 0,
+        game_and_flags(
+            all(v <= 0.03 * n for v in flag_n.values()) and unsafe == 0, hurt, len(players)
+        ),
     )
     dpe = diff("peaceful")
     line("6", "Bình yên không tụt so với đối chứng (chênh ≥ -0,05)", _fmt(dpe), (dpe or 0) >= -0.05)
@@ -585,9 +603,7 @@ def cmd_report(personas_path: Path, judged: Path, out: Path, summary: str | None
         d_und = _mean([r["treat"]["understood"] - r["control"]["understood"] for r in srows])
 
         d_share = (
-            round(100 * (_send_rate(srows, "treat") - _send_rate(srows, "control")), 1)
-            if srows
-            else None
+            100 * (_send_rate(srows, "treat") - _send_rate(srows, "control")) if srows else None
         )
         harm = sum(1 for r in srows if any(r["treat"].get(f) for f in FLAGS))
         keep = (

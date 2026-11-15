@@ -238,6 +238,7 @@ def share(rows: Sequence[Mapping[str, Any]], check: str, wanted: bool) -> tuple[
 
 def mean(values: Iterable[float]) -> float | None:
     items = list(values)
+    # Display only: every verdict in this report is a count ratio, never a mean.
     return round(statistics.fmean(items), 2) if items else None
 
 

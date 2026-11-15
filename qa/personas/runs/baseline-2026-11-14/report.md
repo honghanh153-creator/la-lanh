@@ -51,10 +51,10 @@ Ngưỡng: `persona-thresholds-v1-2026-11-14` (qa/personas/thresholds.md). Code:
 | --- | --- | --- | --- | --- |
 | tất cả | 13.3% | 2.3% | 1% | 0.3% |
 | chỉ ngày sinh | 15.7% | 2.8% | 1.1% | 0.3% |
-| giờ khoảng | 8.2% | 1% | 0.5% | 0.3% |
+| giờ khoảng | 8.3% | 1% | 0.5% | 0.3% |
 | giờ + nơi chính xác | 13.9% | 2.5% | 1.1% | 0.4% |
 | sinh viên | 13.4% | 2.3% | 1% | 0.3% |
-| người đi làm trẻ | 12.9% | 2.1% | 0.8% | 0.2% |
+| người đi làm trẻ | 12.9% | 2.1% | 0.8% | 0.3% |
 | nhóm khác | 13.8% | 2.5% | 1.2% | 0.5% |
 
 ## Nhóm người giả, xếp từ yếu nhất (theo D7 mô hình)

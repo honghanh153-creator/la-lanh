@@ -51,7 +51,7 @@ Ngưỡng: `persona-thresholds-v1-2026-11-14` (qa/personas/thresholds.md). Code:
 | --- | --- | --- | --- | --- |
 | tất cả | 12% | 2% | 0.9% | 0.4% |
 | chỉ ngày sinh | 11.4% | 1.4% | 0.5% | 0.1% |
-| giờ khoảng | 8.8% | 0.7% | 0.2% | 0.1% |
+| giờ khoảng | 8.9% | 0.7% | 0.2% | 0.1% |
 | giờ + nơi chính xác | 13.5% | 2.8% | 1.4% | 0.7% |
 | sinh viên | 11.8% | 1.8% | 0.8% | 0.4% |
 | người đi làm trẻ | 13.3% | 2.5% | 1.1% | 0.4% |
@@ -72,12 +72,12 @@ Ngưỡng: `persona-thresholds-v1-2026-11-14` (qa/personas/thresholds.md). Code:
 | Làm tự do / buôn bán nhỏ | 25 | 1.2% | 0.1% | 2.04 | 2.0 | giờ + nơi chính xác 13, chỉ ngày sinh 8, giờ khoảng 4 |
 | Áp lực gia đình | 41 | 1.4% | 0.2% | 2.2 | 1.0 | giờ khoảng 8, giờ + nơi chính xác 16, chỉ ngày sinh 17 |
 | Đang mùa thi | 53 | 1.5% | 0.1% | 2.14 | 1.0 | giờ khoảng 15, giờ + nơi chính xác 25, chỉ ngày sinh 13 |
-| Bán hàng online / làm tự do (trẻ) | 26 | 1.7% | 0.1% | 2.08 | 1.0 | giờ khoảng 8, chỉ ngày sinh 7, giờ + nơi chính xác 11 |
+| Bán hàng online / làm tự do (trẻ) | 26 | 1.7% | 0.2% | 2.08 | 1.0 | giờ khoảng 8, chỉ ngày sinh 7, giờ + nơi chính xác 11 |
 | Ở ký túc xá / phòng trọ | 42 | 1.8% | 0.3% | 2.1 | 1.0 | giờ khoảng 11, giờ + nơi chính xác 17, chỉ ngày sinh 14 |
 | Người LGBTQ+ | 25 | 2.1% | 0.3% | 2.08 | 1.5 | giờ + nơi chính xác 13, giờ khoảng 6, chỉ ngày sinh 6 |
 | Tiền eo hẹp | 46 | 2.7% | 0.8% | 2.27 | 3.0 | giờ + nơi chính xác 30, giờ khoảng 7, chỉ ngày sinh 9 |
 | Đi làm tuổi trung niên | 34 | 2.7% | 0.8% | 2.09 | 1.5 | giờ + nơi chính xác 17, chỉ ngày sinh 10, giờ khoảng 7 |
-| Sinh viên năm nhất xa nhà | 53 | 2.9% | 0.5% | 2.15 | 2.0 | chỉ ngày sinh 15, giờ + nơi chính xác 30, giờ khoảng 8 |
+| Sinh viên năm nhất xa nhà | 53 | 2.9% | 0.6% | 2.15 | 2.0 | chỉ ngày sinh 15, giờ + nơi chính xác 30, giờ khoảng 8 |
 | Công việc đầu tiên | 46 | 3.1% | 0.6% | 2.33 | 2.0 | giờ khoảng 5, chỉ ngày sinh 16, giờ + nơi chính xác 25 |
 | Cha mẹ có con nhỏ | 75 | 3.2% | 0.5% | 2.26 | 2.0 | giờ + nơi chính xác 41, chỉ ngày sinh 24, giờ khoảng 10 |
 | Deadline dày | 57 | 3.8% | 0.6% | 2.47 | 2.0 | chỉ ngày sinh 13, giờ + nơi chính xác 33, giờ khoảng 11 |
