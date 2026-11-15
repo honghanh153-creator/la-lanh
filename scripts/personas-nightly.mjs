@@ -240,6 +240,10 @@ async function withHeavyLock(fn, { waitMs = 30 * 60000, stepMs = 60000 } = {}) {
 // ---------------------------------------------------------------- commands
 
 const writeState = (date, state) => writeJson(join(dayDir(date), 'state.json'), state);
+// One Codex call per night survives a re-run of prepare, which resets the date directory.
+const attemptsPath = () => join(nightlyDir(), 'codex-attempts.json');
+export const codexAttempted = date => Boolean(readJson(attemptsPath(), {})[date]);
+const recordAttempt = (date, entry) => writeJson(attemptsPath(), { ...readJson(attemptsPath(), {}), [date]: entry });
 const readState = date => {
   const state = readJson(join(dayDir(date), 'state.json'), null);
   if (!state) throw new Error(`no prepared run for ${date}; run prepare first`);
@@ -278,6 +282,9 @@ export async function prepare({ date = vnNow().date, anyTime = false, alerting =
     const limitMs = () => (anyTime ? 30 * 60000 : Math.min(30 * 60000, cutoffMs(date) - Date.now()));
     const endClone = prepareClone('end', end, end);
     const startClone = prepareClone('start', start, end);
+    // Both simulations read the same cached action labels (the sim uses them to decide keeps).
+    pushLabels(endClone);
+    pushLabels(startClone);
     const all = JSON.parse(readFileSync(join(endClone, 'qa', 'personas', 'personas-1000.json'), 'utf8')).personas;
     const ids = pickIds(date, all.map(p => p.id));
     const personasPath = join(dir, 'personas-200.json');
@@ -343,8 +350,8 @@ export function codex(date, { run = execFileSync, now = vnNow, nowMs = Date.now 
   const state = readState(date);
   const dir = dayDir(date);
   if (!state.codexItems?.length) return { status: 'skipped', reason: 'không có nội dung mới để Codex chấm đối chiếu' };
-  if (state.codexAttempt) return { status: 'skipped', reason: 'đêm nay đã gọi Codex một lần' };
-  const leftMs = cutoffMs(now().date) - nowMs();
+  // The prepared night's own 23:59, so a run that slips past midnight does not start a call.
+  const leftMs = cutoffMs(date) - nowMs();
   if (leftMs <= 60000) return { status: 'refused', reason: 'hết giờ trong ngày' };
   // Same lock as codex-review, copy review and the night audit: admission, the call and the
   // counter update are one critical section, so two callers cannot both pass the cap check.
@@ -352,12 +359,14 @@ export function codex(date, { run = execFileSync, now = vnNow, nowMs = Date.now 
   const release = acquireLock(join(stateDir, 'review.lock'), { staleMs: 45 * 60000 });
   if (!release) return { status: 'busy', reason: 'một review Codex khác đang chạy' };
   try {
+    if (codexAttempted(date)) return { status: 'skipped', reason: 'đêm nay đã gọi Codex một lần' };
     const dayPath = dayStatePath(now().date);
     const day = readJson(dayPath, { codexRuns: 0, failures: 0 });
     if ((day.codexRuns ?? 0) >= dayCap(day) - auditReserve) return { status: 'skipped', reason: 'hết lượt Codex trong ngày' };
     // Count the call before it starts: a timeout or crash still spent it.
     writeJson(dayPath, { ...day, codexRuns: (day.codexRuns ?? 0) + 1, personasNightlyRuns: (day.personasNightlyRuns ?? 0) + 1 });
     state.codexAttempt = { startedAt: new Date(nowMs()).toISOString() };
+    recordAttempt(date, state.codexAttempt);
     writeState(date, state);
     const outPath = join(dir, 'codex-out.txt');
     try {
@@ -365,6 +374,7 @@ export function codex(date, { run = execFileSync, now = vnNow, nowMs = Date.now 
         '-C', dir, '-o', outPath, '--color', 'never', '-'], { input: codexPrompt, encoding: 'utf8', timeout: Math.min(20 * 60000, leftMs), maxBuffer: 16 * 1024 * 1024 });
     } catch (error) {
       state.codexAttempt.error = String(error?.message ?? error).slice(0, 300);
+      recordAttempt(date, state.codexAttempt);
       writeState(date, state);
       return { status: 'failed', reason: state.codexAttempt.error };
     }

@@ -3,7 +3,7 @@
 import './collab-test-home.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { acquireLock } from './collab-lock.mjs';
 import { dayStatePath, readJson, stateDir, writeJson } from './collab-trust.mjs';
@@ -123,17 +123,29 @@ test('the nightly Codex call is counted before it runs, even when it fails, and 
   assert.equal(failed.status, 'failed');
   assert.equal(readJson(dayStatePath(codexDay), {}).codexRuns, 4);
   assert.equal(codex(codexDay, { run: () => { throw new Error('should not run'); }, now, nowMs }).status, 'skipped');
+  seedState(); // a re-run of prepare rewrites the date directory without the marker
+  assert.equal(codex(codexDay, { run: () => { throw new Error('should not run'); }, now, nowMs }).reason, 'đêm nay đã gọi Codex một lần');
   assert.equal(readJson(dayStatePath(codexDay), {}).codexRuns, 4);
 });
 
+test('a prepared night cannot start its Codex call after that night\'s 23:59', () => {
+  const day = '2026-11-20';
+  mkdirSync(dayDir(day), { recursive: true });
+  writeJson(join(dayDir(day), 'state.json'), { date: day, start: 'a'.repeat(40), end: 'b'.repeat(40), codexItems: ['x'] });
+  const after = codex(day, { run: () => { throw new Error('no'); }, now: () => ({ date: '2026-11-21', hour: 0, minute: 5 }), nowMs: () => Date.parse('2026-11-21T00:05:00+07:00') });
+  assert.equal(after.status, 'refused');
+});
+
 test('the nightly Codex call waits for the shared review lock and respects the cap and the cutoff', () => {
-  seedState();
+  const day = '2026-11-18';
+  const at = hhmm => ({ now: () => ({ date: day, hour: 23, minute: 10 }), nowMs: () => Date.parse(`${day}T${hhmm}:00+07:00`) });
+  mkdirSync(dayDir(day), { recursive: true });
+  writeJson(join(dayDir(day), 'state.json'), { date: day, start: 'a'.repeat(40), end: 'b'.repeat(40), codexItems: ['x'] });
   const release = acquireLock(join(stateDir, 'review.lock'), { staleMs: 60000 });
-  try { assert.equal(codex(codexDay, { run: () => { throw new Error('no'); }, now, nowMs }).status, 'busy'); }
+  try { assert.equal(codex(day, { run: () => { throw new Error('no'); }, ...at('23:10') }).status, 'busy'); }
   finally { release(); }
-  writeJson(dayStatePath(codexDay), { codexRuns: 59, failures: 0 });
-  assert.equal(codex(codexDay, { run: () => { throw new Error('no'); }, now, nowMs }).reason, 'hết lượt Codex trong ngày');
-  assert.equal(readJson(dayStatePath(codexDay), {}).codexRuns, 59);
-  writeFileSync(join(dayDir(codexDay), 'unused'), '');
-  assert.equal(codex(codexDay, { run: () => { throw new Error('no'); }, now, nowMs: () => Date.parse(`${codexDay}T23:59:30+07:00`) }).status, 'refused');
+  writeJson(dayStatePath(day), { codexRuns: 59, failures: 0 });
+  assert.equal(codex(day, { run: () => { throw new Error('no'); }, ...at('23:10') }).reason, 'hết lượt Codex trong ngày');
+  assert.equal(readJson(dayStatePath(day), {}).codexRuns, 59);
+  assert.equal(codex(day, { run: () => { throw new Error('no'); }, ...at('23:59') }).status, 'refused');
 });
