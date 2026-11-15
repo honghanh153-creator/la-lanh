@@ -21,7 +21,7 @@ import { fileURLToPath } from 'node:url';
 import { acquireLock } from './collab-lock.mjs';
 import { groupExec } from './collab-heal.mjs';
 import { auditReserve, collectFacts, keepDayM4, dayRange, experimentDir, logsStart, readOutputs, receipt, unmeasured, withJudgement } from './collab-audit.mjs';
-import { agentMarker, assertAgentBody, clean, codexDailyCap, dayStatePath, integration, makeGh, readJson, repo, reviewState, stateDir, vnNow, writeJson } from './collab-trust.mjs';
+import { agentMarker, assertAgentBody, clean, codexDailyCap, dayCap, dayStatePath, integration, makeGh, readJson, repo, reviewState, stateDir, vnNow, writeJson } from './collab-trust.mjs';
 import { isMain } from './is-main.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -383,7 +383,8 @@ export function runNightAudit({ gh = makeGh(), now = new Date(), window = auditW
         const countDay = vnNow(clock()).date;
         const counts = readJson(dayStatePath(countDay), { codexRuns: 0, failures: 0 });
         if (!usable) judgement = { final, retry: true, inputDigest: digest, judgedAt: clock().toISOString(), missing: 'không đọc được nguồn nào trên GitHub' };
-        else if ((counts.codexRuns ?? 0) >= cap) judgement = { final, retry: true, inputDigest: digest, judgedAt: clock().toISOString(), missing: `hết lượt Codex (${counts.codexRuns ?? 0}/${codexDailyCap}${cap < codexDailyCap ? `, ${codexDailyCap - cap} lượt giữ cho soát đêm` : ''})` };
+        // An owner grant for the day raises every cap by the same amount (the reserve stays).
+        else if ((counts.codexRuns ?? 0) >= cap + dayCap(counts) - codexDailyCap) judgement = { final, retry: true, inputDigest: digest, judgedAt: clock().toISOString(), missing: `hết lượt Codex (${counts.codexRuns ?? 0}/${dayCap(counts)}${cap < codexDailyCap ? `, ${codexDailyCap - cap} lượt giữ cho soát đêm` : ''})` };
         else {
           const result = codex(buildPrompt(evidence));
           if (result?.status === 'limit') return { status: 'limit', date };

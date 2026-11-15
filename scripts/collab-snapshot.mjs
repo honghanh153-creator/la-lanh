@@ -16,7 +16,7 @@ import { createHash } from 'node:crypto';
 import { linkSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { lessonsLine, prFields } from './collab-lessons.mjs';
-import { clean, codexDailyCap, dayStatePath, integration, makeGh, repo, stateDir, vnNow } from './collab-trust.mjs';
+import { clean, codexDailyCap, dayCap, dayStatePath, integration, makeGh, repo, stateDir, vnNow } from './collab-trust.mjs';
 import { ghFetch, renderProgress, workProgress } from './collab-work.mjs';
 import { isMain } from './is-main.mjs';
 
@@ -49,7 +49,7 @@ export function collect({ date, slot, gh, clock = () => new Date(), base, merged
   snap.alerts = read(sources, 'alerts', () => alerts().map(i => ({ number: i.number, title: clean(i.title ?? '', 120), createdAt: i.createdAt })));
   snap.day = read(sources, 'day', () => {
     const d = day();
-    return { codexRuns: count(d.codexRuns), failures: count(d.failures), plannedItems: Array.isArray(d.plannedItems) ? d.plannedItems : null };
+    return { codexRuns: count(d.codexRuns), cap: dayCap(d), failures: count(d.failures), plannedItems: Array.isArray(d.plannedItems) ? d.plannedItems : null };
   });
   snap.lessons = read(sources, 'lessons', lessons);
   // The picked items come from the day state; without it there is no list to count, which is not
@@ -131,7 +131,7 @@ export function renderSnapshot(s) {
     `- ${s.work === null ? `Việc đạt tiêu chí: ${or(null, null, src.work)}.` : renderProgress(s.work)}`,
     `- PR đang mở: ${or(s.open, o => `${o.count}${o.needsOwner.length ? ` (chờ owner: ${o.needsOwner.map(n => `#${n}`).join(', ')})` : ''}`, src.open)}.`,
     `- Sự cố đang mở: ${or(s.alerts, a => (a.length ? incidentLines(a).join('; ') : 'không có'), src.alerts)}.`,
-    `- Lượt Codex hôm nay: ${or(s.day, d => `${d.codexRuns}/${codexDailyCap}; lỗi liên tiếp: ${d.failures}`, src.day)}.`,
+    `- Lượt Codex hôm nay: ${or(s.day, d => `${d.codexRuns}/${d.cap ?? codexDailyCap}; lỗi liên tiếp: ${d.failures}`, src.day)}.`,
     `- ${s.lessons ?? `Lời hứa sửa quy trình: ${or(null, null, src.lessons)}.`}`,
     `Nguồn: bản chụp ${s.date} khung ${s.slot}, lấy lúc ${s.takenVn}${s.base ? `, integration ${String(s.base).slice(0, 7)}` : ''} · snapshot ${s.digest}`,
   ];

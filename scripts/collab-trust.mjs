@@ -14,6 +14,9 @@ export const stateDir = process.env.LA_LANH_COLLAB_HOME || join(homedir(), '.cac
 // Automatic Codex runs per day, one constant for the tick, the review script and the board.
 // Owner 03.11.2026: 32; owner 14.11.2026: 60.
 export const codexDailyCap = 60;
+// The day's cap: the base cap plus runs the owner granted for that day (day state
+// `ownerExtraCodex.granted`, owner 15.11.2026 "thêm 20 lượt nữa cho codex nhé").
+export const dayCap = day => codexDailyCap + Math.max(0, Math.floor(Number(day?.ownerExtraCodex?.granted) || 0));
 // Loop hours, Vietnam time, in minutes after midnight (owner 14.11.2026: start the day's PRs at 08:00
 // instead of 10:00 and end at 23:59; the earlier steps moved up with it). The one place to change them:
 // plan gate, tick, author check, Codex review, board and plan text all read these.
