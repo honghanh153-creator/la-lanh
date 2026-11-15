@@ -9,7 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.db.rewrite_scope import rewrite_session
-from app.domains.astro.models import TimePrecision, Tradition
+from app.domains.astro.models import Tradition
 from app.domains.birth.errors import BirthProfileChanged
 from app.domains.birth.tables import BirthProfileRow, ChartSnapshotRow
 from app.domains.guest.models import GuestState
@@ -25,7 +25,6 @@ from app.domains.readings.models import (
     GenerationAttemptResult,
     GenerationAttemptStatus,
     LeasedGenerationAttempt,
-    PlanMode,
     ReadingPlan,
     ReadingPlanRecord,
     ReadingProjectionRecord,
@@ -407,15 +406,10 @@ class PostgresReadingRepository:
                 or expected_chart_snapshot_id != plan_row.chart_snapshot_id
             ):
                 return None
-            if expected_chart_snapshot_id is not None:
-                # Exact and approximate-time synthesis (#143 E1) both upgrade a stored
-                # limited reading; the snapshot pin above still rejects stale charts.
-                plan = _plan_record(plan_row, self._envelope).plan
-                if (
-                    plan.mode is not PlanMode.FULL_SYNTHESIS
-                    or plan.precision is TimePrecision.UNKNOWN
-                ):
-                    return None
+            # Every update this projection offers was planned for the current chart snapshot,
+            # and the pin above rejects a stale one. A mode or precision allowlist here made a
+            # date-only re-read or an approximate-time ("limited") update an offer that could
+            # never open: the activation answered 409 on every try, reload included.
             result = await session.execute(
                 update(ReadingProjectionRow)
                 .where(
