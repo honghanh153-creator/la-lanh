@@ -5,7 +5,15 @@ operator or Codex session should be able to use it without relying on chat histo
 status checklist is
 `docs/plans/2026-09-26-hetzner-supabase-public-beta-deployment-plan.md`.
 
-## Current production — 2026-11-13
+## Current production — 2026-11-15 (hotfix)
+
+Release `56523ccb7de5` is live (`main` = `56523ccb7de5a18df7e5aa9510e27a48e77d2794`, #549: only the #546 fix on top
+of `f6246ed2fb7a`; image `sha256:f42a945ee43e…`; Alembic head unchanged at `20261111_0042`). "Đọc bản mới" opens
+the offered reading for every profile type. Staging runs the same image. Rollback anchor: `la-lanh:f6246ed2fb7a`
+(same schema; restores the bug). Receipt:
+[production-release-2026-11-15](../reviews/production-release-2026-11-15/receipt.md).
+
+## Previous production — 2026-11-13
 
 Release `f6246ed2fb7a` is live (`main` = `f6246ed2fb7a5033247ad6b41af33f35022cab12`, #472: full `collab/integration`
 merged with `main`; image `sha256:b9e860240f01…`; Alembic head `20261111_0042`). It went out in two steps the same
