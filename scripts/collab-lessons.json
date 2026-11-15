@@ -206,7 +206,18 @@
    "from": "Autopilot v2 P0; Codex rà soát 13.11, đề xuất 3",
    "who": "claude",
    "due": "2026-11-16",
-   "status": "open"
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-merge-gate.test.mjs",
+    "name": "runMerge reads the live integration tip and the base-file diff through gh"
+   },
+   "caller": {
+    "file": "scripts/collab-merge.mjs",
+    "contains": "mergeGate(pr, { baseFiles: gh.compareFiles })"
+   },
+   "closedBy": {
+    "pr": 456
+   }
   },
   {
    "id": "L14",
