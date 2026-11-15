@@ -124,7 +124,10 @@ export function WelcomePage() {
           : "Đọc lá số để hiểu mình, rút Tarot cho chuyện đang vướng, hoặc xem mình và người ấy hợp nhau ở đâu."}</p>
       </section>
       {routeState?.expired ? (
-        <p className="welcome-intro__notice" role="status">Phiên trên máy này đã hết hạn. Nếu đã liên kết tài khoản, đăng nhập lại để mở hồ sơ; chưa cần nhập lại ngày sinh.</p>
+        <p className="welcome-intro__notice" role="status">{login.googleLoginEnabled
+          ? "Phiên trên máy này đã hết hạn. Nếu đã liên kết tài khoản, đăng nhập lại để mở hồ sơ; chưa cần nhập lại ngày sinh."
+          // Sign-in is off on this build: no invite to a door that is locked.
+          : "Phiên trên máy này đã hết hạn."}</p>
       ) : null}
       {routeState?.sessionChanged ? (
         <p className="welcome-intro__notice" role="status">Phiên trên trình duyệt này đã đổi. Lá đã ẩn nội dung cũ. Bấm bắt đầu để tiếp tục hồ sơ hiện có trên máy này; nếu dùng chung máy, hãy dùng cửa sổ riêng.</p>

@@ -107,7 +107,7 @@ export function RevealPage() {
         <p className="signal-reveal-card__source">
           {isDateOnly ? "Bản tóm tắt từ ngày sinh · chưa đủ dữ liệu để đọc toàn bộ lá số" : hasExactChart ? "Đã thêm giờ & nơi sinh · bản đọc tổng quan đã mở" : "Đã thêm giờ gần đúng · những phần cần giờ chính xác vẫn có giới hạn"}
         </p>
-        {noteQuery.isError ? <p className="signal-station__notice" role="status">Vibe đang dùng lớp Mặt Trời đã tính; Note hôm nay sẽ tải lại ở Home.</p> : null}
+        {noteQuery.isError ? <p className="signal-station__notice" role="status">Đang dùng lớp Mặt Trời đã tính; Note hôm nay sẽ tải lại ở Home.</p> : null}
       </section>
     </SignalStationFrame>
   );

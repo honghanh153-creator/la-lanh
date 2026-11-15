@@ -22,7 +22,7 @@ function accountStatus(overrides: Partial<AccountStatus> = {}): AccountStatus {
   return { login_enabled: true, google_login_enabled: true, signed_in: false, masked_email: null, profile_expires_at: null, guest_inactivity_days: 30, history_days: 30, daily_note_hours: 24, account_inactivity_days: 365, guest_storage_note: null, ...overrides };
 }
 
-function renderPage(entry = "/welcome") {
+function renderPage(entry: string | { pathname: string; state: unknown } = "/welcome") {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const view = render(
     <StrictMode><QueryClientProvider client={client}>
@@ -247,6 +247,20 @@ describe("WelcomePage", () => {
     renderPage();
     expect(await screen.findByText(note)).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Đăng nhập" })).not.toBeInTheDocument();
+  });
+
+  it("says an expired session ended without pointing to sign-in while it is off", async () => {
+    vi.mocked(getAccountStatus).mockResolvedValue(accountStatus({ google_login_enabled: false }));
+    renderPage({ pathname: "/welcome", state: { expired: true } });
+    await vi.waitFor(() => expect(getAccountStatus).toHaveBeenCalled());
+    await act(async () => { await Promise.resolve(); });
+    expect(screen.getByRole("status")).toHaveTextContent(/^Phiên trên máy này đã hết hạn\.$/);
+    expect(screen.queryByText(/đăng nhập/i)).not.toBeInTheDocument();
+  });
+
+  it("keeps the sign-in hint in an expired notice while sign-in is on", async () => {
+    renderPage({ pathname: "/welcome", state: { expired: true } });
+    expect(await screen.findByText(/đăng nhập lại để mở hồ sơ/)).toBeInTheDocument();
   });
 
   it("keeps the sign-in link hidden while availability is unknown", () => {

@@ -157,7 +157,7 @@ test("guest can reveal, save mood, and create a share card", async ({ page }) =>
   await page.getByRole("textbox", { name: "Năm" }).fill("1990");
   await page.getByRole("button", { name: "Khớp tín hiệu" }).click();
 
-  await expect(page.getByRole("heading", { name: "Vibe · Mềm" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Mềm", exact: true })).toBeVisible();
   await expect(page.getByText("Mặt Trời Ma Kết", { exact: false })).toBeVisible();
   expect(birthProfileCreates).toBe(1);
   expect(birthProfileReads).toBe(0);

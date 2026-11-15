@@ -9147,7 +9147,7 @@
   {
    "id": "account.guest-storage-note",
    "category": "privacy",
-   "text": "Hồ sơ của bạn đang lưu trên trình duyệt này. Đổi máy hoặc xoá dữ liệu trình duyệt thì hồ sơ sẽ mất.",
+   "text": "Hồ sơ của bạn được lưu trên máy chủ của Lá Lành, trình duyệt này chỉ giữ mã để mở nó. Đổi máy hoặc xoá dữ liệu trình duyệt thì bạn không mở lại được hồ sơ này. Hồ sơ tự xoá sau 30 ngày không dùng, hoặc khi bạn xoá trong Mình.",
    "status": "pending"
   }
  ],
