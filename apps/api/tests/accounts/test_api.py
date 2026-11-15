@@ -33,6 +33,12 @@ from tests.accounts.support import (
 )
 
 ORIGIN = "http://127.0.0.1:5173"
+# Owner-approved text, character for character (15.11.2026).
+APPROVED_GUEST_STORAGE_NOTE = (
+    "Hồ sơ của bạn lưu trên Lá Lành và chỉ mở được trên trình duyệt này. "
+    "Đổi máy hoặc xoá dữ liệu trình duyệt là mất hồ sơ. "
+    "Không dùng 30 ngày, hồ sơ tự xoá. Bạn cũng tự xoá được trong Mình."
+)
 
 
 def test_account_validation_contract_matches_private_problem_runtime(tmp_path: Path) -> None:
@@ -186,8 +192,8 @@ def test_disabled_status_is_honest_and_code_never_creates_guest(tmp_path: Path) 
             "history_days": 30,
             "daily_note_hours": 24,
             "account_inactivity_days": 365,
-            # Pending privacy copy never reaches users (owner approval only).
-            "guest_storage_note": None,
+            # Owner approved this privacy sentence on 15.11.2026 ("C-duyệt").
+            "guest_storage_note": APPROVED_GUEST_STORAGE_NOTE,
         }
         denied = client.post(
             "/v1/account/login/code",
@@ -234,12 +240,15 @@ def test_guest_storage_note_is_served_only_once_the_owner_approves_it(
         assert client.get("/v1/account").json()["guest_storage_note"] == text
 
 
-def test_guest_storage_note_is_registered_as_pending_privacy_copy() -> None:
-    from app.domains.content.copy_approval import load_registry
+def test_guest_storage_note_is_the_owner_approved_privacy_copy() -> None:
+    from app.domains.content.copy_approval import copy_digest, load_registry
 
     entry = load_registry()[GUEST_STORAGE_NOTE_ID]
     assert entry.category == "privacy"
-    assert entry.status == "pending"
+    assert entry.text == APPROVED_GUEST_STORAGE_NOTE
+    assert (entry.status, entry.approver, entry.date) == ("approved", "owner", "2026-11-15")
+    assert entry.digest == copy_digest(APPROVED_GUEST_STORAGE_NOTE)
+    assert entry.servable
 
 
 def rows(path: Path, table: str) -> list[tuple[object, ...]]:

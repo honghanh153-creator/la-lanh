@@ -9147,8 +9147,11 @@
   {
    "id": "account.guest-storage-note",
    "category": "privacy",
-   "text": "Hồ sơ của bạn được lưu trên máy chủ của Lá Lành, trình duyệt này chỉ giữ mã để mở nó. Đổi máy hoặc xoá dữ liệu trình duyệt thì bạn không mở lại được hồ sơ này. Hồ sơ tự xoá sau 30 ngày không dùng, hoặc khi bạn xoá trong Mình.",
-   "status": "pending"
+   "text": "Hồ sơ của bạn lưu trên Lá Lành và chỉ mở được trên trình duyệt này. Đổi máy hoặc xoá dữ liệu trình duyệt là mất hồ sơ. Không dùng 30 ngày, hồ sơ tự xoá. Bạn cũng tự xoá được trong Mình.",
+   "status": "approved",
+   "approver": "owner",
+   "date": "2026-11-15",
+   "digest": "67f2839f0d3e3129087080f476848829bbfe1734085b3abc23e6995694a75f7e"
   }
  ],
  "version": "copy-registry/v1"
