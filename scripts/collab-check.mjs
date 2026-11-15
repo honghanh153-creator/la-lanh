@@ -3,6 +3,7 @@
 //        node scripts/collab-check.mjs --pr N --clone   (dedicated clone ~/.cache/la-lanh-collab/author)
 //        node scripts/collab-check.mjs --guard          (private-data scan of this branch, for pre-push)
 // One check on the machine at a time: two checks share the API and e2e ports and give false receipts.
+import { guardListState } from './collab-hooks.mjs';
 import { spawnSync, execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -416,7 +417,9 @@ if (isMain(import.meta.url)) {
     const input = process.stdin.isTTY ? '' : readFileSync(0, 'utf8');
     const ranges = input.trim() ? prePushRanges(input) : [['HEAD', '--not', '--remotes=origin']];
     const hits = privateHits({}, run, readGuardTerms, ranges);
-    process.stdout.write(hits.length ? `private-guard: chặn, dữ liệu riêng tư ở ${hits.join(', ')}\n` : 'private-guard: ok\n');
+    // L30: no list is not "ok". The push is not blocked (owner's call); the line says nothing was scanned.
+    const listMissing = !hits.length && guardListState(guardPath()) === 'missing';
+    process.stdout.write(hits.length ? `private-guard: chặn, dữ liệu riêng tư ở ${hits.join(', ')}\n` : listMissing ? 'private-guard: list missing (không có danh sách mục cấm, không quét gì)\n' : 'private-guard: ok\n');
     process.exit(hits.length ? 1 : 0);
   }
   const number = Number(args[args.indexOf('--pr') + 1]);
