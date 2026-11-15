@@ -136,6 +136,49 @@ describe("BirthSupplementPage Aura handoff", () => {
     expect(screen.queryByRole("heading", { name: "Một lớp Lá mới đã mở." })).not.toBeInTheDocument();
   });
 
+  it.each([
+    ["invite", "/radar/invite"],
+    ["private", "/radar/start"],
+    ["1", "/radar/start"],
+  ])("returns a Radar owner saved as %s to %s after completing the chart", async (stored, path) => {
+    sessionStorage.clear();
+    sessionStorage.setItem("la-lanh-radar-owner-start", stored);
+    const user = userEvent.setup();
+    vi.mocked(searchBirthPlaces).mockResolvedValue([
+      { place_id: "vn-hue", display_name: "Huế, Việt Nam", country_code: "VN", timezone_id: "Asia/Ho_Chi_Minh", confidence: "province-centroid" },
+    ]);
+    vi.mocked(addBirthSupplement).mockResolvedValue({
+      profile_id: "00000000-0000-4000-8000-000000000020",
+      profile_level: 3,
+      chart: null,
+      place_display_name: null,
+      snapshot_id: null,
+      time_precision: "exact",
+      timezone_id: null,
+    });
+
+    render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <MemoryRouter>
+        <BirthSupplementPage />
+        <LocationProbe />
+      </MemoryRouter>
+    </QueryClientProvider>);
+
+    await user.click(await screen.findByRole("button", { name: "Thêm để mở lớp mới" }));
+    await user.selectOptions(screen.getByLabelText("Giờ (0–23)"), "08");
+    await user.selectOptions(screen.getByLabelText("Phút (0–59)"), "15");
+    await user.click(screen.getByRole("button", { name: "Tiếp tục" }));
+    await user.type(screen.getByLabelText("Thành phố / tỉnh"), "Huế");
+    await user.click(await screen.findByRole("button", { name: /Huế, Việt Nam/ }));
+    await user.click(screen.getByRole("button", { name: "Dùng nơi đã chọn" }));
+    await user.click(screen.getByRole("checkbox"));
+    await user.click(screen.getByRole("button", { name: "Mở lớp Moon / House" }));
+
+    await waitFor(() => expect(screen.getByTestId("location")).toHaveTextContent(path));
+    expect(sessionStorage.getItem("la-lanh-radar-owner-start")).toBeNull();
+    sessionStorage.clear();
+  });
+
   it("lets users browse the complete current Vietnam birthplace catalog", async () => {
     const user = userEvent.setup();
     vi.mocked(searchBirthPlaces).mockResolvedValue([]);

@@ -1,0 +1,9 @@
+**CHỐT NẾU SỬA.** Tầng giá trị phải chi phối chọn việc, nghiệm thu và dừng việc; khai loại chưa đủ.
+
+1. Tỷ lệ B tại nhánh 7–9 vẫn bị bỏ đói nếu nhánh trước luôn bận. Bảo đảm suất theo tuần, tính bằng thời gian/chi phí, không số task; ghi nợ khi ưu tiên an toàn lấn. Chặn đổi nhãn, chia nhỏ và gia hạn cược vô hạn. Mỗi cược cần người hưởng lợi, đối chứng, điều kiện bác bỏ, trần và quyết định dừng. Hàng cược tự sinh không được ép máy luôn bận. Điểm owner 1–5 dễ thưởng cách kể thành tích. Không bỏ bình yên/an toàn chỉ vì chưa dự báo D7. Đổi “thang” thành ma trận: gu, hiểu, an toàn, hành vi trả lời những câu hỏi khác nhau.
+
+2. Pairwise đo gu owner hợp lý, chưa đại diện người dùng. “Đáng tin nhất” quá mạnh. Mười cặp/phiên là nhịp thu thập, chưa đủ kết luận; Elo không tạo thêm bằng chứng. Che nguồn, đảo vị trí, cho hòa/cả hai kém; lấy cả mẫu ngoài top-2. Giám khảo khác model vẫn có [thiên lệch vị trí, độ dài](https://arxiv.org/abs/2306.05685). Tách tập hiệu chỉnh/kiểm định theo tình huống, tránh rò biến thể. Chốt ngưỡng cùng khoảng tin cậy: đề xuất 100 cặp độc lập ban đầu, chưa phải bảo đảm. Nếu 0 lỗi/100, cận trên lỗi 95% vẫn khoảng 3%. Mẫu 5% cần số tối thiểu tuyệt đối, phân tầng rủi ro; khóa model/prompt/rubric, kiểm drift định kỳ, hiệu chỉnh lại khi đổi phiên bản.
+
+3. Bỏ “codemod cả kho”: thử lô nhỏ, kiểm nghĩa và note ghép, rồi mở rộng/rollback. [Content gate](docs/operations/content-matrix-release-gate.md) đòi cải thiện có căn cứ; [variety spec](docs/foundation/la-lanh-variety-measurement-spec.md) đo output phục vụ, từng nhóm, cả fallback. [Plan C3b](docs/plans/2026-11-02-daily-v2-content-quality-plan.md:224) yêu cầu chấm 100% mảnh. Thắng gu không thay quyền duyệt: [copy registry runtime](apps/api/app/domains/content/copy_approval.py:1) chỉ phục vụ approved đúng digest; privacy/consent/crisis/safety chỉ owner duyệt.
+
+Đã đối chiếu read-only; chưa có bằng chứng hiệu lực thực tế. Inbox không chạy được vì thiếu node.

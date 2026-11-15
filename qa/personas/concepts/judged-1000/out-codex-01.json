@@ -1,0 +1,2150 @@
+[
+ {
+  "persona": "P317",
+  "path_X": "Trước khi ra chợ, Thương chọn Bình thường, bấm Gỡ một chuyện rồi chọn Việc học, việc làm. Cảnh cuối ca chưa sát chuyện đóng hàng. Cô mở lý do, thấy bài được chọn theo vòng xoay rồi tắt; không chơi, giữ việc, lưu ảnh hay gửi gì.",
+  "path_Y": "Thương để ba lô lại sau, chạm lá Việc rồi đọc lý do dành cho giờ sinh khoảng. Câu về góc vuông khiến cô lo mình nói vội khi live; cô định xem Lá ngày mai rồi mới chốt giờ live. Cô không chơi, lưu ảnh hay chia sẻ.",
+  "X": {
+   "understood": 2,
+   "less_alone": 3,
+   "peaceful": 3,
+   "want_return": 2,
+   "return_next_week": 2,
+   "save_image": false,
+   "send_or_post": false,
+   "invite": false,
+   "share_specific": "",
+   "share_score": 1,
+   "blame": false,
+   "pressure": false,
+   "privacy": false,
+   "dependence": false,
+   "must_check_la": false,
+   "privacy_exposure": false,
+   "unsafe_content": false,
+   "game_played": false,
+   "game_understood": null,
+   "game_could_stop": null,
+   "game_hurt": null,
+   "quotes": {}
+  },
+  "Y": {
+   "understood": 3,
+   "less_alone": 3,
+   "peaceful": 2,
+   "want_return": 4,
+   "return_next_week": 4,
+   "save_image": false,
+   "send_or_post": false,
+   "invite": false,
+   "share_specific": "",
+   "share_score": 1,
+   "blame": false,
+   "pressure": false,
+   "privacy": false,
+   "dependence": false,
+   "must_check_la": true,
+   "privacy_exposure": false,
+   "unsafe_content": false,
+   "game_played": false,
+   "game_understood": null,
+   "game_could_stop": null,
+   "game_hurt": null,
+   "quotes": {
+    "must_check_la": "Hôm nay Sao Hỏa tạo góc vuông với Sao Thủy trong lá số của bạn."
+   }
+  },
+  "concepts": {
+   "S1": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S3": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S4": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S5": {
+    "used": true,
+    "understood": 3,
+    "shared": false
+   },
+   "S6": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S7": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S8": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S9": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S10": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S13": {
+    "used": true,
+    "understood": 3,
+    "shared": false
+   }
+  },
+  "complaint": "Chuyện công việc còn xa việc bán hàng, còn lý do chiêm tinh ở Y làm mình lăn tăn trước buổi live.",
+  "still_missing": "Một lời ngắn sát chuyện chốt đơn, đóng hàng và khách bom hàng."
+ },
+ {
+  "persona": "P557",
+  "path_X": "Trưa mở lại sau hai tuần, Chi thấy không bị hỏi vì sao vắng. Cô chọn Bình thường, vào Gỡ một chuyện và góc Người thân, bạn bè, tìm chỗ ghi chuyện nhà nhưng chỉ có bài đọc. Cô đóng app; không giữ việc, chơi, lưu hay gửi gì.",
+  "path_Y": "Chi mở ba lô, tìm thêm món rồi chọn Nhà: trong nhà đang căng, mức Nặng và Chỉ cần được nghe. Cô đọc lời công nhận, không bấm nhờ ai nghe. Ngại mẹ chồng có thể nhìn thấy màn hình, cô dùng Che nhanh rồi tắt; không chơi, lưu hay gửi.",
+  "X": {
+   "understood": 2,
+   "less_alone": 3,
+   "peaceful": 3,
+   "want_return": 3,
+   "return_next_week": 2,
+   "save_image": false,
+   "send_or_post": false,
+   "invite": false,
+   "share_specific": "",
+   "share_score": 1,
+   "blame": false,
+   "pressure": false,
+   "privacy": false,
+   "dependence": false,
+   "must_check_la": false,
+   "privacy_exposure": false,
+   "unsafe_content": false,
+   "game_played": false,
+   "game_understood": null,
+   "game_could_stop": null,
+   "game_hurt": null,
+   "quotes": {}
+  },
+  "Y": {
+   "understood": 4,
+   "less_alone": 4,
+   "peaceful": 4,
+   "want_return": 4,
+   "return_next_week": 3,
+   "save_image": false,
+   "send_or_post": false,
+   "invite": false,
+   "share_specific": "",
+   "share_score": 1,
+   "blame": false,
+   "pressure": false,
+   "privacy": true,
+   "dependence": false,
+   "must_check_la": false,
+   "privacy_exposure": false,
+   "unsafe_content": false,
+   "game_played": false,
+   "game_understood": null,
+   "game_could_stop": null,
+   "game_hurt": null,
+   "quotes": {
+    "privacy": "Nhà: trong nhà đang căng"
+   }
+  },
+  "concepts": {
+   "S1": {
+    "used": true,
+    "understood": 4,
+    "shared": false
+   },
+   "S3": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S4": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S5": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S6": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S7": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S8": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S9": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S10": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S13": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   }
+  },
+  "complaint": "X không cho kể, còn Y chỉ cho chọn nhãn rồi lần sau phải chọn lại.",
+  "still_missing": "Một chỗ kín đáo để tự viết chuyện nhà chồng và chủ động giữ lại."
+ },
+ {
+  "persona": "P897",
+  "path_X": "Khi con ngủ, Tâm chọn Bình thường, đọc note rồi bấm Không giống mình và Việc nặng quá vì không muốn thêm việc. Anh vào Chơi một chút, chọn một kết thúc chuyện cả nhà đi ăn, đọc câu vui rồi bấm Dừng. Không giữ việc, lưu hay gửi gì.",
+  "path_Y": "Tâm đọc câu đầu rồi mở ba lô vì tưởng chọn được chuyện con nhỏ. Anh xem danh sách và Thêm món nhưng không thấy chuyện đưa đón, con ốm hay lịch khách sửa máy, nên quay về. Anh mở note thu gọn rồi tắt khi hết vài phút; không chơi hay chia sẻ.",
+  "X": {
+   "understood": 3,
+   "less_alone": 3,
+   "peaceful": 4,
+   "want_return": 3,
+   "return_next_week": 3,
+   "save_image": false,
+   "send_or_post": false,
+   "invite": false,
+   "share_specific": "",
+   "share_score": 1,
+   "blame": false,
+   "pressure": false,
+   "privacy": false,
+   "dependence": false,
+   "must_check_la": false,
+   "privacy_exposure": false,
+   "unsafe_content": false,
+   "game_played": true,
+   "game_understood": true,
+   "game_could_stop": true,
+   "game_hurt": false,
+   "quotes": {}
+  },
+  "Y": {
+   "understood": 2,
+   "less_alone": 3,
+   "peaceful": 3,
+   "want_return": 2,
+   "return_next_week": 2,
+   "save_image": false,
+   "send_or_post": false,
+   "invite": false,
+   "share_specific": "",
+   "share_score": 1,
+   "blame": false,
+   "pressure": false,
+   "privacy": false,
+   "dependence": false,
+   "must_check_la": false,
+   "privacy_exposure": false,
+   "unsafe_content": false,
+   "game_played": false,
+   "game_understood": null,
+   "game_could_stop": null,
+   "game_hurt": null,
+   "quotes": {}
+  },
+  "concepts": {
+   "S1": {
+    "used": true,
+    "understood": 2,
+    "shared": false
+   },
+   "S3": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S4": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S5": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S6": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S7": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S8": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S9": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S10": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S13": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   }
+  },
+  "complaint": "Ba lô bắt mình tìm khá lâu mà vẫn không có chuyện con nhỏ.",
+  "still_missing": "Một cảnh gần chuyện chạy đơn sửa máy và lo cho con."
+ },
+ {
+  "persona": "P189",
+  "path_X": "Dọn tiệm xong và con đã ngủ, Mai chọn Mệt, đọc câu được nghỉ và việc uống nước. Chị bấm Nghỉ một chút, đọc vài dòng rồi đặt máy xuống nằm. Chị bỏ Tarot, chuyện ngắn và trò chơi; không giữ việc, lưu ảnh hay gửi gì.",
+  "path_Y": "Mai đọc câu theo mood Mệt, để ba lô lại sau rồi chạm lá Nghỉ. Chị đọc phần nghỉ, không đi sang tuần hay trò chơi và đặt điện thoại xuống. Không giữ việc, lưu ảnh, gửi hay rủ ai.",
+  "X": {
+   "understood": 4,
+   "less_alone": 3,
+   "peaceful": 5,
+   "want_return": 4,
+   "return_next_week": 4,
+   "save_image": false,
+   "send_or_post": false,
+   "invite": false,
+   "share_specific": "",
+   "share_score": 1,
+   "blame": false,
+   "pressure": false,
+   "privacy": false,
+   "dependence": false,
+   "must_check_la": false,
+   "privacy_exposure": false,
+   "unsafe_content": false,
+   "game_played": false,
+   "game_understood": null,
+   "game_could_stop": null,
+   "game_hurt": null,
+   "quotes": {}
+  },
+  "Y": {
+   "understood": 4,
+   "less_alone": 3,
+   "peaceful": 5,
+   "want_return": 4,
+   "return_next_week": 4,
+   "save_image": false,
+   "send_or_post": false,
+   "invite": false,
+   "share_specific": "",
+   "share_score": 1,
+   "blame": false,
+   "pressure": false,
+   "privacy": false,
+   "dependence": false,
+   "must_check_la": false,
+   "privacy_exposure": false,
+   "unsafe_content": false,
+   "game_played": false,
+   "game_understood": null,
+   "game_could_stop": null,
+   "game_hurt": null,
+   "quotes": {}
+  },
+  "concepts": {
+   "S1": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S3": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S4": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S5": {
+    "used": true,
+    "understood": 4,
+    "shared": false
+   },
+   "S6": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S7": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S8": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S9": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S10": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S13": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   }
+  },
+  "complaint": "Lúc kiệt sức mình chỉ muốn tới chỗ nghỉ, không muốn lựa thêm chuyện.",
+  "still_missing": "Một lời thật gần với cảnh một mình vừa trông tiệm vừa lo hai con."
+ },
+ {
+  "persona": "P096",
+  "path_X": "22 giờ 30 trên giường, Trang chọn Mệt, đọc note đã nhẹ đi và câu không cần làm thêm để được nghỉ. Cô uống nước có sẵn cạnh giường rồi đóng app. Không mở góc khác, chơi, giữ việc, lưu ảnh hay nhắn ai.",
+  "path_Y": "Trang đọc câu Mệt rồi thử mở ba lô, tìm Cơ thể mệt qua danh sách. Tới bước hỏi mức nặng, cô thấy phải chọn tiếp nên quay ra, chạm lá Nghỉ và đọc phần nghỉ. Cô tắt máy; không chơi, giữ việc hay chia sẻ.",
+  "X": {
+   "understood": 4,
+   "less_alone": 3,
+   "peaceful": 5,
+   "want_return": 4,
+   "return_next_week": 4,
+   "save_image": false,
+   "send_or_post": false,
+   "invite": false,
+   "share_specific": "",
+   "share_score": 1,
+   "blame": false,
+   "pressure": false,
+   "privacy": false,
+   "dependence": false,
+   "must_check_la": false,
+   "privacy_exposure": false,
+   "unsafe_content": false,
+   "game_played": false,
+   "game_understood": null,
+   "game_could_stop": null,
+   "game_hurt": null,
+   "quotes": {}
+  },
+  "Y": {
+   "understood": 4,
+   "less_alone": 3,
+   "peaceful": 4,
+   "want_return": 3,
+   "return_next_week": 3,
+   "save_image": false,
+   "send_or_post": false,
+   "invite": false,
+   "share_specific": "",
+   "share_score": 1,
+   "blame": false,
+   "pressure": false,
+   "privacy": false,
+   "dependence": false,
+   "must_check_la": false,
+   "privacy_exposure": false,
+   "unsafe_content": false,
+   "game_played": false,
+   "game_understood": null,
+   "game_could_stop": null,
+   "game_hurt": null,
+   "quotes": {}
+  },
+  "concepts": {
+   "S1": {
+    "used": true,
+    "understood": 2,
+    "shared": false
+   },
+   "S3": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S4": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S5": {
+    "used": true,
+    "understood": 4,
+    "shared": false
+   },
+   "S6": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S7": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S8": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S9": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S10": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S13": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   }
+  },
+  "complaint": "Ba lô hỏi tiếp đúng lúc mình không còn sức lựa chọn.",
+  "still_missing": "Một câu nhận ra cả ngày làm báo cáo rồi về lo con, không chỉ nhận ra mình mệt."
+ },
+ {
+  "persona": "P355",
+  "path_X": "Tối phụ quán xong, Vy chọn Bình thường và đọc note nền. Câu về việc treo lâu khiến cô nghĩ mình lại chậm chuyện xin việc, thấy như bị trách. Cô không viết ra giấy, đóng note rồi tắt; không chơi, giữ việc, lưu hay gửi gì.",
+  "path_Y": "Vy chọn Tìm việc, phỏng vấn và So mình với người khác trong ba lô, mức Nặng, Chỉ cần được nghe. Cô đọc lời công nhận rồi xem Tuần này và truyện Tự làm một mình, Chuyện sinh viên. Cảnh đại học làm cô thấy lệch đời mình nên bỏ qua; không chơi, lưu hay gửi.",
+  "X": {
+   "understood": 2,
+   "less_alone": 2,
+   "peaceful": 2,
+   "want_return": 2,
+   "return_next_week": 2,
+   "save_image": false,
+   "send_or_post": false,
+   "invite": false,
+   "share_specific": "",
+   "share_score": 1,
+   "blame": true,
+   "pressure": false,
+   "privacy": false,
+   "dependence": false,
+   "must_check_la": false,
+   "privacy_exposure": false,
+   "unsafe_content": false,
+   "game_played": false,
+   "game_understood": null,
+   "game_could_stop": null,
+   "game_hurt": null,
+   "quotes": {
+    "blame": "Việc treo lâu thường nặng hơn khi nghĩ tới so với khi làm."
+   }
+  },
+  "Y": {
+   "understood": 4,
+   "less_alone": 4,
+   "peaceful": 4,
+   "want_return": 4,
+   "return_next_week": 2,
+   "save_image": false,
+   "send_or_post": false,
+   "invite": false,
+   "share_specific": "",
+   "share_score": 1,
+   "blame": false,
+   "pressure": false,
+   "privacy": false,
+   "dependence": false,
+   "must_check_la": false,
+   "privacy_exposure": false,
+   "unsafe_content": false,
+   "game_played": false,
+   "game_understood": null,
+   "game_could_stop": null,
+   "game_hurt": null,
+   "quotes": {}
+  },
+  "concepts": {
+   "S1": {
+    "used": true,
+    "understood": 5,
+    "shared": false
+   },
+   "S3": {
+    "used": true,
+    "understood": 3,
+    "shared": false
+   },
+   "S4": {
+    "used": true,
+    "understood": 2,
+    "shared": false
+   },
+   "S5": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S6": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S7": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S8": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S9": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S10": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S13": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   }
+  },
+  "complaint": "Mình chưa học tiếp mà truyện vẫn chỉ cho chọn sinh viên hoặc người đã đi làm.",
+  "still_missing": "Lá nhớ chuyện xin việc mình đã chọn hôm trước, nếu mình đồng ý."
+ },
+ {
+  "persona": "P495",
+  "path_X": "Nghỉ giữa ca, Ánh chọn Vui, có sức, đổi góc sang Việc học, việc làm và giữ việc ghi lại một việc cho ca sau. Cô chơi một chuyện chọn kết thúc, đọc câu vui rồi bấm Dừng. Không lưu ảnh, gửi hay rủ ai.",
+  "path_Y": "Ánh chạm lá Việc, đọc cảnh và việc nhỏ, bỏ phần giải thích lá số. Cô xem Tuần này, chọn Làm ca rồi mở giới thiệu Phụ đề khác nhau. Chưa chơi vì bạn còn làm; cô nhắn Zalo rủ bạn đứng máy cạnh mình thử vào giờ nghỉ sau. Không lưu ảnh.",
+  "X": {
+   "understood": 3,
+   "less_alone": 3,
+   "peaceful": 4,
+   "want_return": 4,
+   "return_next_week": 3,
+   "save_image": false,
+   "send_or_post": false,
+   "invite": false,
+   "share_specific": "",
+   "share_score": 2,
+   "blame": false,
+   "pressure": false,
+   "privacy": false,
+   "dependence": false,
+   "must_check_la": false,
+   "privacy_exposure": false,
+   "unsafe_content": false,
+   "game_played": true,
+   "game_understood": true,
+   "game_could_stop": true,
+   "game_hurt": false,
+   "quotes": {}
+  },
+  "Y": {
+   "understood": 4,
+   "less_alone": 4,
+   "peaceful": 4,
+   "want_return": 4,
+   "return_next_week": 4,
+   "save_image": false,
+   "send_or_post": true,
+   "invite": true,
+   "share_specific": "Nhắn Zalo rủ bạn đứng máy cạnh mình thử Phụ đề khác nhau vào giờ nghỉ sau vì hai người có thể chơi ngắn trên một máy.",
+   "share_score": 4,
+   "blame": false,
+   "pressure": false,
+   "privacy": false,
+   "dependence": false,
+   "must_check_la": false,
+   "privacy_exposure": false,
+   "unsafe_content": false,
+   "game_played": false,
+   "game_understood": null,
+   "game_could_stop": null,
+   "game_hurt": null,
+   "quotes": {}
+  },
+  "concepts": {
+   "S1": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S3": {
+    "used": true,
+    "understood": 4,
+    "shared": false
+   },
+   "S4": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S5": {
+    "used": true,
+    "understood": 3,
+    "shared": false
+   },
+   "S6": {
+    "used": true,
+    "understood": 3,
+    "shared": true
+   },
+   "S7": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S8": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S9": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S10": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S13": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   }
+  },
+  "complaint": "Chọn Làm ca rồi Lá vẫn chưa biết hôm nay mình làm ca sáng hay chiều.",
+  "still_missing": "Ghi nhớ lịch ca do mình nhập để lần sau khỏi chọn lại."
+ },
+ {
+  "persona": "P287",
+  "path_X": "Đang vui trong giờ nghỉ, Phúc chọn Vui, có sức, đọc note nền rồi viết việc học lý thuyết lái xe ra giấy và bấm Giữ việc này. Anh chơi một chuyện chọn kết thúc rồi Dừng để về ca. Không lưu ảnh hay chia sẻ.",
+  "path_Y": "Phúc bỏ qua ba lô, vào Tuần này, chọn Làm ca và xếp tuần từ ngày đi ca đầu tiên. Anh tìm góc Tiền bạc nhưng các tình huống không có chuyện để dành học bằng lái nên đóng lại. Anh không chơi, giữ việc, lưu ảnh hay gửi gì.",
+  "X": {
+   "understood": 3,
+   "less_alone": 3,
+   "peaceful": 4,
+   "want_return": 4,
+   "return_next_week": 3,
+   "save_image": false,
+   "send_or_post": false,
+   "invite": false,
+   "share_specific": "",
+   "share_score": 2,
+   "blame": false,
+   "pressure": false,
+   "privacy": false,
+   "dependence": false,
+   "must_check_la": false,
+   "privacy_exposure": false,
+   "unsafe_content": false,
+   "game_played": true,
+   "game_understood": true,
+   "game_could_stop": true,
+   "game_hurt": false,
+   "quotes": {}
+  },
+  "Y": {
+   "understood": 3,
+   "less_alone": 3,
+   "peaceful": 3,
+   "want_return": 3,
+   "return_next_week": 3,
+   "save_image": false,
+   "send_or_post": false,
+   "invite": false,
+   "share_specific": "",
+   "share_score": 1,
+   "blame": false,
+   "pressure": false,
+   "privacy": false,
+   "dependence": false,
+   "must_check_la": false,
+   "privacy_exposure": false,
+   "unsafe_content": false,
+   "game_played": false,
+   "game_understood": null,
+   "game_could_stop": null,
+   "game_hurt": null,
+   "quotes": {}
+  },
+  "concepts": {
+   "S1": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S3": {
+    "used": true,
+    "understood": 4,
+    "shared": false
+   },
+   "S4": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S5": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S6": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S7": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S8": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S9": {
+    "used": true,
+    "understood": 2,
+    "shared": false
+   },
+   "S10": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S13": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   }
+  },
+  "complaint": "Mục tiền có nhiều lựa chọn mà thiếu đúng chuyện mình đang để dành cho một mục tiêu.",
+  "still_missing": "Một bước nhỏ vừa sức để duy trì việc học lái xe và dành tiền học."
+ },
+ {
+  "persona": "P804",
+  "path_X": "Trên xe buýt về, Dung chọn Bình thường, vào góc Việc học, việc làm. Đọc cảnh cuối ca còn việc chưa xong, cô thấy giống bị nhắc tiếp việc sau giờ làm. Cô đóng note, vào Nghỉ một chút rồi tắt; không chơi, giữ việc, lưu hay gửi gì.",
+  "path_Y": "Dung mở ba lô, chọn Ca làm, mức Nặng và Chỉ cần được nghe. Sau lời công nhận, cô bấm Muốn nhờ ai đó nghe, gửi sticker Nghe thôi, không cần khuyên qua Messenger cho một người bạn thường nhắn. Cô không lưu ảnh, rủ chơi hay mở thêm mục khác.",
+  "X": {
+   "understood": 2,
+   "less_alone": 3,
+   "peaceful": 3,
+   "want_return": 2,
+   "return_next_week": 2,
+   "save_image": false,
+   "send_or_post": false,
+   "invite": false,
+   "share_specific": "",
+   "share_score": 1,
+   "blame": false,
+   "pressure": true,
+   "privacy": false,
+   "dependence": false,
+   "must_check_la": false,
+   "privacy_exposure": false,
+   "unsafe_content": false,
+   "game_played": false,
+   "game_understood": null,
+   "game_could_stop": null,
+   "game_hurt": null,
+   "quotes": {
+    "pressure": "Cuối ca còn một việc chưa xong."
+   }
+  },
+  "Y": {
+   "understood": 4,
+   "less_alone": 4,
+   "peaceful": 4,
+   "want_return": 4,
+   "return_next_week": 4,
+   "save_image": false,
+   "send_or_post": true,
+   "invite": false,
+   "share_specific": "Gửi sticker Nghe thôi, không cần khuyên cho người bạn thường nhắn trên Messenger vì muốn kể chuyện khách cáu gắt mà chưa muốn nhận lời khuyên.",
+   "share_score": 4,
+   "blame": false,
+   "pressure": false,
+   "privacy": false,
+   "dependence": false,
+   "must_check_la": false,
+   "privacy_exposure": false,
+   "unsafe_content": false,
+   "game_played": false,
+   "game_understood": null,
+   "game_could_stop": null,
+   "game_hurt": null,
+   "quotes": {}
+  },
+  "concepts": {
+   "S1": {
+    "used": true,
+    "understood": 4,
+    "shared": true
+   },
+   "S3": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S4": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S5": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S6": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S7": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S8": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S9": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S10": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S13": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   }
+  },
+  "complaint": "Cảnh cuối ca còn việc khiến mình cảm giác vẫn chưa được tan làm.",
+  "still_missing": "Một chỗ tự viết ngắn về cuộc gọi khó chịu để khỏi mang nó về nhà."
+ },
+ {
+  "persona": "P073",
+  "path_X": "Mở lại sau hai tuần, Duyên chọn Bình thường và thấy không có việc cũ đòi làm tiếp. Cô đổi sang góc Việc học, việc làm, đọc việc ghi lại đầu việc cho ngày mai rồi bấm Giữ việc này. Cô tắt sau vài phút, không chơi, lưu ảnh hay gửi gì.",
+  "path_Y": "Duyên bỏ ba lô, chạm lá Việc, đọc note rồi xem chương Tuần này. Cô thử truyện Tự làm một mình, Chuyện người đi làm, thấy nhân vật làm ca ở xưởng nên bỏ qua sớm. Hết khoảng ba phút, cô đóng app; không chơi, giữ việc, lưu hay gửi.",
+  "X": {
+   "understood": 4,
+   "less_alone": 3,
+   "peaceful": 4,
+   "want_return": 4,
+   "return_next_week": 3,
+   "save_image": false,
+   "send_or_post": false,
+   "invite": false,
+   "share_specific": "",
+   "share_score": 1,
+   "blame": false,
+   "pressure": false,
+   "privacy": false,
+   "dependence": false,
+   "must_check_la": false,
+   "privacy_exposure": false,
+   "unsafe_content": false,
+   "game_played": false,
+   "game_understood": null,
+   "game_could_stop": null,
+   "game_hurt": null,
+   "quotes": {}
+  },
+  "Y": {
+   "understood": 3,
+   "less_alone": 3,
+   "peaceful": 3,
+   "want_return": 3,
+   "return_next_week": 3,
+   "save_image": false,
+   "send_or_post": false,
+   "invite": false,
+   "share_specific": "",
+   "share_score": 1,
+   "blame": false,
+   "pressure": false,
+   "privacy": false,
+   "dependence": false,
+   "must_check_la": false,
+   "privacy_exposure": false,
+   "unsafe_content": false,
+   "game_played": false,
+   "game_understood": null,
+   "game_could_stop": null,
+   "game_hurt": null,
+   "quotes": {}
+  },
+  "concepts": {
+   "S1": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S3": {
+    "used": true,
+    "understood": 4,
+    "shared": false
+   },
+   "S4": {
+    "used": true,
+    "understood": 2,
+    "shared": false
+   },
+   "S5": {
+    "used": true,
+    "understood": 4,
+    "shared": false
+   },
+   "S6": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S7": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S8": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S9": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S10": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S13": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   }
+  },
+  "complaint": "Đi thêm qua tuần và truyện mà chuyện người đi làm vẫn chưa gần công việc của mình.",
+  "still_missing": "Những cảnh khác nhau về người mới làm kiểm toán, ngại hỏi và phải nộp giấy tờ."
+ },
+ {
+  "persona": "P329",
+  "path_X": "Nghỉ trưa mà chỉ muốn nằm, Phước chọn Mệt, đọc việc uống nước rồi vào Nghỉ một chút. Anh đọc nhanh và đặt điện thoại xuống, không tìm Tarot dù thường xem video chọn tụ với vợ. Không chơi, giữ việc, lưu ảnh hay gửi gì.",
+  "path_Y": "Phước đọc câu theo mood Mệt, bỏ qua ba lô và chạm lá Nghỉ. Anh đọc phần nghỉ rồi tắt máy để nằm, không mở tuần, lý do lá số hoặc trò chơi. Không giữ việc, lưu ảnh, gửi hay rủ vợ.",
+  "X": {
+   "understood": 4,
+   "less_alone": 3,
+   "peaceful": 5,
+   "want_return": 4,
+   "return_next_week": 4,
+   "save_image": false,
+   "send_or_post": false,
+   "invite": false,
+   "share_specific": "",
+   "share_score": 1,
+   "blame": false,
+   "pressure": false,
+   "privacy": false,
+   "dependence": false,
+   "must_check_la": false,
+   "privacy_exposure": false,
+   "unsafe_content": false,
+   "game_played": false,
+   "game_understood": null,
+   "game_could_stop": null,
+   "game_hurt": null,
+   "quotes": {}
+  },
+  "Y": {
+   "understood": 4,
+   "less_alone": 3,
+   "peaceful": 5,
+   "want_return": 4,
+   "return_next_week": 4,
+   "save_image": false,
+   "send_or_post": false,
+   "invite": false,
+   "share_specific": "",
+   "share_score": 1,
+   "blame": false,
+   "pressure": false,
+   "privacy": false,
+   "dependence": false,
+   "must_check_la": false,
+   "privacy_exposure": false,
+   "unsafe_content": false,
+   "game_played": false,
+   "game_understood": null,
+   "game_could_stop": null,
+   "game_hurt": null,
+   "quotes": {}
+  },
+  "concepts": {
+   "S1": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S3": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S4": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S5": {
+    "used": true,
+    "understood": 4,
+    "shared": false
+   },
+   "S6": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S7": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S8": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S9": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S10": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S13": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   }
+  },
+  "complaint": "Lời nghỉ hợp lúc này nhưng vẫn chưa cho thấy Lá hiểu chuyện chạy báo cáo.",
+  "still_missing": "Một câu ngắn sát cảnh sếp đổi yêu cầu lúc gần hạn."
+ },
+ {
+  "persona": "P155",
+  "path_X": "Buổi sáng kiệt sức, Tâm chọn Mệt, đọc câu cho nghỉ và việc uống nước. Anh bấm Giữ việc này để khỏi nghĩ thêm việc khác rồi đóng app. Anh bỏ phần chiêm tinh, chuyện ngắn, trò chơi và không lưu ảnh hay gửi gì.",
+  "path_Y": "Tâm mở ba lô để tìm chuyện khách hối kế hoạch giao hàng, xem thêm món nhưng không thấy lựa chọn sát việc nên quay ra. Anh chạm lá Việc, chỉ đọc note đã nhẹ theo mood Mệt rồi tắt. Không bật đồng hồ, chơi, giữ việc, lưu ảnh hay chia sẻ.",
+  "X": {
+   "understood": 4,
+   "less_alone": 3,
+   "peaceful": 4,
+   "want_return": 4,
+   "return_next_week": 4,
+   "save_image": false,
+   "send_or_post": false,
+   "invite": false,
+   "share_specific": "",
+   "share_score": 1,
+   "blame": false,
+   "pressure": false,
+   "privacy": false,
+   "dependence": false,
+   "must_check_la": false,
+   "privacy_exposure": false,
+   "unsafe_content": false,
+   "game_played": false,
+   "game_understood": null,
+   "game_could_stop": null,
+   "game_hurt": null,
+   "quotes": {}
+  },
+  "Y": {
+   "understood": 3,
+   "less_alone": 3,
+   "peaceful": 3,
+   "want_return": 3,
+   "return_next_week": 2,
+   "save_image": false,
+   "send_or_post": false,
+   "invite": false,
+   "share_specific": "",
+   "share_score": 1,
+   "blame": false,
+   "pressure": false,
+   "privacy": false,
+   "dependence": false,
+   "must_check_la": false,
+   "privacy_exposure": false,
+   "unsafe_content": false,
+   "game_played": false,
+   "game_understood": null,
+   "game_could_stop": null,
+   "game_hurt": null,
+   "quotes": {}
+  },
+  "concepts": {
+   "S1": {
+    "used": true,
+    "understood": 2,
+    "shared": false
+   },
+   "S3": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S4": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S5": {
+    "used": true,
+    "understood": 4,
+    "shared": false
+   },
+   "S6": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S7": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S8": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S9": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S10": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S13": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   }
+  },
+  "complaint": "Phải dò danh sách trong lúc mệt mà vẫn chưa tìm được chuyện công việc mình.",
+  "still_missing": "Một gợi ý cụ thể cho lúc khách đổi kế hoạch giao hàng sát hạn."
+ },
+ {
+  "persona": "P328",
+  "path_X": "Trước ngủ, Hiền mở lại sau hai tuần, chọn Bình thường rồi góc Việc học, việc làm. Cảnh bài nhóm không giống thực tập nên cô bấm Không giống mình, Không phải chuyện của mình. Cô xem lý do theo vòng xoay rồi đóng; không chơi, giữ việc, lưu hay gửi.",
+  "path_Y": "Hiền chọn Ca làm và Thi trong ba lô, mức Nặng, Chỉ cần được nghe. Cô đọc lời đáp rồi về mở note và lý do dành cho người chỉ có ngày sinh; cô đọc cả giới hạn không có giờ sinh. Cô tắt để ngủ, không chơi, lưu hay chia sẻ.",
+  "X": {
+   "understood": 2,
+   "less_alone": 3,
+   "peaceful": 3,
+   "want_return": 3,
+   "return_next_week": 2,
+   "save_image": false,
+   "send_or_post": false,
+   "invite": false,
+   "share_specific": "",
+   "share_score": 1,
+   "blame": false,
+   "pressure": false,
+   "privacy": false,
+   "dependence": false,
+   "must_check_la": false,
+   "privacy_exposure": false,
+   "unsafe_content": false,
+   "game_played": false,
+   "game_understood": null,
+   "game_could_stop": null,
+   "game_hurt": null,
+   "quotes": {}
+  },
+  "Y": {
+   "understood": 4,
+   "less_alone": 4,
+   "peaceful": 4,
+   "want_return": 4,
+   "return_next_week": 3,
+   "save_image": false,
+   "send_or_post": false,
+   "invite": false,
+   "share_specific": "",
+   "share_score": 2,
+   "blame": false,
+   "pressure": false,
+   "privacy": false,
+   "dependence": false,
+   "must_check_la": false,
+   "privacy_exposure": false,
+   "unsafe_content": false,
+   "game_played": false,
+   "game_understood": null,
+   "game_could_stop": null,
+   "game_hurt": null,
+   "quotes": {}
+  },
+  "concepts": {
+   "S1": {
+    "used": true,
+    "understood": 4,
+    "shared": false
+   },
+   "S3": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S4": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S5": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S6": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S7": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S8": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S9": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S10": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S13": {
+    "used": true,
+    "understood": 3,
+    "shared": false
+   }
+  },
+  "complaint": "Chuyện sinh viên vẫn dễ thành bài nhóm, chưa gần ngày thực tập ở viện.",
+  "still_missing": "Lá nhớ mình đang thực tập điều dưỡng để không phải giải thích lại mỗi tối."
+ },
+ {
+  "persona": "P390",
+  "path_X": "Tối nhận đơn sửa đồ xong, Linh mở lại sau hai tuần, chọn Bình thường và đọc note nền. Cô viết tên việc chuẩn bị thi áo vest ra giấy, bấm Giữ việc này rồi đóng. Cô không tìm chuyện gia đình, chơi, lưu ảnh hay gửi ai.",
+  "path_Y": "Linh mở ba lô, chọn Thi và Không gọi tên được, mức Nặng, Chỉ cần được nghe, không chọn món về nhà. Cô vào Lời mở, chọn Không có ai để gửi lúc này và đọc lối hỗ trợ cho sinh viên. Cô đóng app, không chơi, giữ việc, lưu hay gửi.",
+  "X": {
+   "understood": 3,
+   "less_alone": 3,
+   "peaceful": 4,
+   "want_return": 3,
+   "return_next_week": 3,
+   "save_image": false,
+   "send_or_post": false,
+   "invite": false,
+   "share_specific": "",
+   "share_score": 1,
+   "blame": false,
+   "pressure": false,
+   "privacy": false,
+   "dependence": false,
+   "must_check_la": false,
+   "privacy_exposure": false,
+   "unsafe_content": false,
+   "game_played": false,
+   "game_understood": null,
+   "game_could_stop": null,
+   "game_hurt": null,
+   "quotes": {}
+  },
+  "Y": {
+   "understood": 4,
+   "less_alone": 4,
+   "peaceful": 4,
+   "want_return": 4,
+   "return_next_week": 3,
+   "save_image": false,
+   "send_or_post": false,
+   "invite": false,
+   "share_specific": "",
+   "share_score": 1,
+   "blame": false,
+   "pressure": false,
+   "privacy": false,
+   "dependence": false,
+   "must_check_la": false,
+   "privacy_exposure": false,
+   "unsafe_content": false,
+   "game_played": false,
+   "game_understood": null,
+   "game_could_stop": null,
+   "game_hurt": null,
+   "quotes": {}
+  },
+  "concepts": {
+   "S1": {
+    "used": true,
+    "understood": 4,
+    "shared": false
+   },
+   "S3": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S4": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S5": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S6": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S7": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S8": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S9": {
+    "used": true,
+    "understood": 3,
+    "shared": false
+   },
+   "S10": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S13": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   }
+  },
+  "complaint": "Chọn Thi vẫn chưa nói được mình đang lo đúng phần thực hành nào.",
+  "still_missing": "Một cách tự viết ngắn chuyện thi may mà không phải kể chuyện gia đình."
+ },
+ {
+  "persona": "P079",
+  "path_X": "Sau ca, Phúc nằm nghỉ và mở theo thói quen bạn gái nhắc. Anh chọn Mệt, đọc câu cho phép nghỉ rồi bấm Nghỉ một chút. Chưa tới hai phút anh tắt máy, bỏ các phần khác; không chơi, giữ việc, lưu ảnh hay gửi bạn gái.",
+  "path_Y": "Phúc đọc câu Mệt, không mở ba lô, chạm lá Nghỉ và đọc vài dòng. Anh đặt máy xuống vì quá mỏi, không xem tuần hay trò chơi và không mở lý do lá số. Không giữ việc, lưu, gửi hay rủ ai.",
+  "X": {
+   "understood": 4,
+   "less_alone": 3,
+   "peaceful": 5,
+   "want_return": 3,
+   "return_next_week": 3,
+   "save_image": false,
+   "send_or_post": false,
+   "invite": false,
+   "share_specific": "",
+   "share_score": 1,
+   "blame": false,
+   "pressure": false,
+   "privacy": false,
+   "dependence": false,
+   "must_check_la": false,
+   "privacy_exposure": false,
+   "unsafe_content": false,
+   "game_played": false,
+   "game_understood": null,
+   "game_could_stop": null,
+   "game_hurt": null,
+   "quotes": {}
+  },
+  "Y": {
+   "understood": 4,
+   "less_alone": 3,
+   "peaceful": 5,
+   "want_return": 3,
+   "return_next_week": 3,
+   "save_image": false,
+   "send_or_post": false,
+   "invite": false,
+   "share_specific": "",
+   "share_score": 1,
+   "blame": false,
+   "pressure": false,
+   "privacy": false,
+   "dependence": false,
+   "must_check_la": false,
+   "privacy_exposure": false,
+   "unsafe_content": false,
+   "game_played": false,
+   "game_understood": null,
+   "game_could_stop": null,
+   "game_hurt": null,
+   "quotes": {}
+  },
+  "concepts": {
+   "S1": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S3": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S4": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S5": {
+    "used": true,
+    "understood": 4,
+    "shared": false
+   },
+   "S6": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S7": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S8": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S9": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S10": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S13": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   }
+  },
+  "complaint": "Lời nghỉ dễ đọc nhưng chưa gần cái mỏi sau ca trong xưởng lạnh.",
+  "still_missing": "Một câu ngắn sát người làm ca đảo giờ và yêu xa."
+ },
+ {
+  "persona": "P516",
+  "path_X": "Nghỉ giữa ca, Thoa chọn Mệt, đọc việc uống nước và bấm Giữ việc này. Cô uống vài ngụm rồi để điện thoại xuống nghỉ chân. Cô không mở thêm góc, chuyện ngắn, Tarot hay trò chơi; không lưu ảnh hay gửi chị.",
+  "path_Y": "Thoa để ba lô lại sau, mở note Mệt rồi bấm Thở cùng Lá, thở ba nhịp và Dừng. Cô xem Tuần này, chọn Làm ca và xếp tuần theo ngày đi ca đầu tiên, sau đó tắt để nghỉ chân. Không chơi, giữ việc, lưu ảnh hay chia sẻ.",
+  "X": {
+   "understood": 4,
+   "less_alone": 3,
+   "peaceful": 4,
+   "want_return": 4,
+   "return_next_week": 3,
+   "save_image": false,
+   "send_or_post": false,
+   "invite": false,
+   "share_specific": "",
+   "share_score": 1,
+   "blame": false,
+   "pressure": false,
+   "privacy": false,
+   "dependence": false,
+   "must_check_la": false,
+   "privacy_exposure": false,
+   "unsafe_content": false,
+   "game_played": false,
+   "game_understood": null,
+   "game_could_stop": null,
+   "game_hurt": null,
+   "quotes": {}
+  },
+  "Y": {
+   "understood": 4,
+   "less_alone": 3,
+   "peaceful": 5,
+   "want_return": 4,
+   "return_next_week": 4,
+   "save_image": false,
+   "send_or_post": false,
+   "invite": false,
+   "share_specific": "",
+   "share_score": 1,
+   "blame": false,
+   "pressure": false,
+   "privacy": false,
+   "dependence": false,
+   "must_check_la": false,
+   "privacy_exposure": false,
+   "unsafe_content": false,
+   "game_played": false,
+   "game_understood": null,
+   "game_could_stop": null,
+   "game_hurt": null,
+   "quotes": {}
+  },
+  "concepts": {
+   "S1": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S3": {
+    "used": true,
+    "understood": 4,
+    "shared": false
+   },
+   "S4": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S5": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S6": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S7": {
+    "used": true,
+    "understood": 4,
+    "shared": false
+   },
+   "S8": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S9": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S10": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S13": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   }
+  },
+  "complaint": "X chỉ tới uống nước, còn Y phải tự xếp lại tuần ca mà không giữ được.",
+  "still_missing": "Một gợi ý nghỉ chân thật ngắn phù hợp giờ nghỉ giữa ca thu ngân."
+ },
+ {
+  "persona": "P755",
+  "path_X": "Sau khi dựng phim, Phước chọn Căng thẳng dù hôm nay không có biến cố riêng. Anh vào Gỡ một chuyện để tìm chỗ kể, thấy chỉ chọn góc nên thử Việc học, việc làm rồi đóng. Anh không thấy chỗ nói chuyện khách trả chậm; không chơi, giữ việc, lưu hay gửi.",
+  "path_Y": "Phước mở ba lô, chọn Không gọi tên được, mức Nặng và Chỉ cần được nghe. Anh đọc lời đáp rồi vào Lời mở, chọn Không có ai để gửi lúc này. Các đầu mối cho người đi làm chưa gần nghề tự do của anh; anh đóng, không chơi, lưu hay gửi.",
+  "X": {
+   "understood": 2,
+   "less_alone": 3,
+   "peaceful": 3,
+   "want_return": 2,
+   "return_next_week": 2,
+   "save_image": false,
+   "send_or_post": false,
+   "invite": false,
+   "share_specific": "",
+   "share_score": 1,
+   "blame": false,
+   "pressure": false,
+   "privacy": false,
+   "dependence": false,
+   "must_check_la": false,
+   "privacy_exposure": false,
+   "unsafe_content": false,
+   "game_played": false,
+   "game_understood": null,
+   "game_could_stop": null,
+   "game_hurt": null,
+   "quotes": {}
+  },
+  "Y": {
+   "understood": 3,
+   "less_alone": 4,
+   "peaceful": 4,
+   "want_return": 3,
+   "return_next_week": 2,
+   "save_image": false,
+   "send_or_post": false,
+   "invite": false,
+   "share_specific": "",
+   "share_score": 1,
+   "blame": false,
+   "pressure": false,
+   "privacy": false,
+   "dependence": false,
+   "must_check_la": false,
+   "privacy_exposure": false,
+   "unsafe_content": false,
+   "game_played": false,
+   "game_understood": null,
+   "game_could_stop": null,
+   "game_hurt": null,
+   "quotes": {}
+  },
+  "concepts": {
+   "S1": {
+    "used": true,
+    "understood": 4,
+    "shared": false
+   },
+   "S3": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S4": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S5": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S6": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S7": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S8": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S9": {
+    "used": true,
+    "understood": 2,
+    "shared": false
+   },
+   "S10": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S13": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   }
+  },
+  "complaint": "Có câu công nhận nhưng mình vẫn không kể được chuyện, còn nhân sự hay công đoàn không gần nghề mình.",
+  "still_missing": "Một chỗ viết riêng cho người làm tự do không có ai thân để tâm sự."
+ },
+ {
+  "persona": "P082",
+  "path_X": "Buổi tối, Huy chọn Căng thẳng, bấm Gỡ một chuyện rồi Người thân, bạn bè. Anh không thấy chỗ ghi điều đang giấu gia đình, bấm Không giống mình rồi vào Nghỉ một chút. Hôm nay không có ai an toàn nên anh không nhắn Tuấn hay ai khác; không chơi, giữ hay lưu.",
+  "path_Y": "Huy chọn Nhà: có chuyện chưa dám nói và Một người làm mình nghĩ nhiều, mức Nặng, Chỉ cần được nghe. Anh bỏ nút nhờ ai nghe, vào Lời mở và chọn Không có ai để gửi lúc này. Đọc xong anh dùng Che nhanh; không chơi, giữ việc, lưu ảnh hay gửi ai.",
+  "X": {
+   "understood": 2,
+   "less_alone": 3,
+   "peaceful": 3,
+   "want_return": 2,
+   "return_next_week": 2,
+   "save_image": false,
+   "send_or_post": false,
+   "invite": false,
+   "share_specific": "",
+   "share_score": 1,
+   "blame": false,
+   "pressure": false,
+   "privacy": false,
+   "dependence": false,
+   "must_check_la": false,
+   "privacy_exposure": false,
+   "unsafe_content": false,
+   "game_played": false,
+   "game_understood": null,
+   "game_could_stop": null,
+   "game_hurt": null,
+   "quotes": {}
+  },
+  "Y": {
+   "understood": 4,
+   "less_alone": 4,
+   "peaceful": 4,
+   "want_return": 4,
+   "return_next_week": 3,
+   "save_image": false,
+   "send_or_post": false,
+   "invite": false,
+   "share_specific": "",
+   "share_score": 1,
+   "blame": false,
+   "pressure": false,
+   "privacy": false,
+   "dependence": false,
+   "must_check_la": false,
+   "privacy_exposure": false,
+   "unsafe_content": false,
+   "game_played": false,
+   "game_understood": null,
+   "game_could_stop": null,
+   "game_hurt": null,
+   "quotes": {}
+  },
+  "concepts": {
+   "S1": {
+    "used": true,
+    "understood": 4,
+    "shared": false
+   },
+   "S3": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S4": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S5": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S6": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S7": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S8": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S9": {
+    "used": true,
+    "understood": 4,
+    "shared": false
+   },
+   "S10": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S13": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   }
+  },
+  "complaint": "Bấm nhãn chuyện nhà vẫn chưa đủ nói được điều mình đang phải giấu.",
+  "still_missing": "Một chỗ tự ghi tâm trạng riêng về người yêu và gia đình mà không bị phán xét."
+ },
+ {
+  "persona": "P092",
+  "path_X": "Trưa cháu ngủ, cô Hạnh chọn Bình thường, vào góc Người thân, bạn bè, đọc cảnh con cháu bận và việc pha trà. Cô xem lý do, thấy theo vòng xoay nên chưa thấy riêng cho mình. Cô đóng app, không chơi, giữ việc, lưu hay gửi trên máy người nhà hay dùng.",
+  "path_Y": "Cô Hạnh chạm lá Người và đọc note, rồi thử góc Tiền bạc nhưng không thấy chuyện giá nguyên liệu bán bún nên quay ra. Cô xem sticker, lưu Ổn không đó? và gửi Zalo cho con gái hỏi thăm. Ảnh chỉ có câu chung; cô không chơi hay rủ dùng app.",
+  "X": {
+   "understood": 3,
+   "less_alone": 3,
+   "peaceful": 4,
+   "want_return": 3,
+   "return_next_week": 3,
+   "save_image": false,
+   "send_or_post": false,
+   "invite": false,
+   "share_specific": "",
+   "share_score": 1,
+   "blame": false,
+   "pressure": false,
+   "privacy": false,
+   "dependence": false,
+   "must_check_la": false,
+   "privacy_exposure": false,
+   "unsafe_content": false,
+   "game_played": false,
+   "game_understood": null,
+   "game_could_stop": null,
+   "game_hurt": null,
+   "quotes": {}
+  },
+  "Y": {
+   "understood": 3,
+   "less_alone": 4,
+   "peaceful": 4,
+   "want_return": 4,
+   "return_next_week": 3,
+   "save_image": true,
+   "send_or_post": true,
+   "invite": false,
+   "share_specific": "Lưu sticker Ổn không đó? rồi gửi Zalo cho con gái đang làm ở Cần Thơ để hỏi thăm mà không cần viết dài.",
+   "share_score": 3,
+   "blame": false,
+   "pressure": false,
+   "privacy": false,
+   "dependence": false,
+   "must_check_la": false,
+   "privacy_exposure": false,
+   "unsafe_content": false,
+   "game_played": false,
+   "game_understood": null,
+   "game_could_stop": null,
+   "game_hurt": null,
+   "quotes": {}
+  },
+  "concepts": {
+   "S1": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S3": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S4": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S5": {
+    "used": true,
+    "understood": 3,
+    "shared": false
+   },
+   "S6": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S7": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S8": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S9": {
+    "used": true,
+    "understood": 2,
+    "shared": false
+   },
+   "S10": {
+    "used": true,
+    "understood": 4,
+    "shared": true
+   },
+   "S13": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   }
+  },
+  "complaint": "Góc tiền không có chuyện thịt cá tăng giá mà mình ngại tăng giá bán.",
+  "still_missing": "Nội dung riêng cho người vừa buôn bán vừa trông cháu."
+ },
+ {
+  "persona": "P619",
+  "path_X": "Trưa cháu ngủ, bà Lan mở lại sau hai tuần, không bị hỏi chuyện vắng. Bà đọc tiêu đề và cảnh của note nền ở mood Bình thường rồi tắt như thói quen, không bấm đổi góc vì ngại nhầm. Bà không chơi, giữ việc, lưu ảnh hay gửi gì.",
+  "path_Y": "Bà Lan mở app, đọc câu ngắn theo mood Bình thường. Thấy ba lô và nhiều lá, bà ngại bấm; note lại đang thu gọn nên bà không mở tiếp. Bà tắt máy, không vào tuần, Tarot hay trò chơi, không giữ việc, lưu hay gửi.",
+  "X": {
+   "understood": 2,
+   "less_alone": 3,
+   "peaceful": 3,
+   "want_return": 3,
+   "return_next_week": 3,
+   "save_image": false,
+   "send_or_post": false,
+   "invite": false,
+   "share_specific": "",
+   "share_score": 1,
+   "blame": false,
+   "pressure": false,
+   "privacy": false,
+   "dependence": false,
+   "must_check_la": false,
+   "privacy_exposure": false,
+   "unsafe_content": false,
+   "game_played": false,
+   "game_understood": null,
+   "game_could_stop": null,
+   "game_hurt": null,
+   "quotes": {}
+  },
+  "Y": {
+   "understood": 2,
+   "less_alone": 3,
+   "peaceful": 3,
+   "want_return": 2,
+   "return_next_week": 2,
+   "save_image": false,
+   "send_or_post": false,
+   "invite": false,
+   "share_specific": "",
+   "share_score": 1,
+   "blame": false,
+   "pressure": false,
+   "privacy": false,
+   "dependence": false,
+   "must_check_la": false,
+   "privacy_exposure": false,
+   "unsafe_content": false,
+   "game_played": false,
+   "game_understood": null,
+   "game_could_stop": null,
+   "game_hurt": null,
+   "quotes": {}
+  },
+  "concepts": {
+   "S1": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S3": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S4": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S5": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S6": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S7": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S8": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S9": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S10": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   },
+   "S13": {
+    "used": false,
+    "understood": null,
+    "shared": false
+   }
+  },
+  "complaint": "Y có nhiều chỗ để bấm mà bài đọc lại phải mở thêm, bà sợ bấm nhầm.",
+  "still_missing": "Một câu gần chuyện mới xuống thành phố sống với con, hiện ngay khi mở."
+ }
+]

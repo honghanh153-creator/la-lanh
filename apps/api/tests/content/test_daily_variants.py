@@ -300,7 +300,8 @@ def test_changed_plan_lines_fit_one_rescheduling_situation() -> None:
     registry = [
         entry.text for key, entry in DAILY.items() if key.split(".")[2:3] == ["changed-plan"]
     ]
-    assert len(registry) == 68
+    # 68 rotation lines plus 12 pending bundles of 3 parts; bundles must fit the frame too.
+    assert len(registry) == 68 + 12 * 3
     pool = (*issue.headlines, *issue.scenes, *issue.advice, *issue.relationship_advice)
     texts = (*pool, *registry)
     off_frame = [text for text in texts if _CHANGED_PLAN_OFF_FRAME.search(text.lower())]

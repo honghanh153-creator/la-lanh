@@ -40,6 +40,25 @@ def test_spa_deep_link_is_served_with_browser_security_headers(
     assert "frame-ancestors 'none'" in response.headers["content-security-policy"]
 
 
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/share/sample-share-token",
+        "/radar/i/sample-invite-token",
+        "/la-chung/i/sample-invite-token",
+    ],
+)
+def test_share_and_invite_pages_are_never_cached_indexed_or_referred(
+    cloud_client: TestClient, path: str
+) -> None:
+    response = cloud_client.get(path, headers={"Accept": "text/html"})
+
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["referrer-policy"] == "no-referrer"
+    assert response.headers["x-robots-tag"] == "noindex, nofollow, noarchive"
+
+
 def test_hashed_asset_can_be_cached_immutably(cloud_client: TestClient) -> None:
     response = cloud_client.get("/assets/app-test.js")
 

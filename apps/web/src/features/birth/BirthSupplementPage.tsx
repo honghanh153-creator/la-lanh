@@ -19,6 +19,7 @@ import { NightSky } from "../../shared/ui/NightSky";
 import { BirthTimeInput } from "../../shared/ui/BirthTimeInput";
 import { birthTimeWindows as windows } from "../../shared/ui/birthTimeOptions";
 import { RADAR_PENDING_REQUEST_KEY } from "../radar/radarOptions";
+import { clearRadarOwnerReturn, radarOwnerReturnPath, readRadarOwnerReturn } from "../radar/radarOwnerReturn";
 
 function validTime(value: string): boolean {
   return /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
@@ -40,8 +41,8 @@ export function BirthSupplementPage() {
   const [error, setError] = useState<string | null>(null);
   const [awakenedNote, setAwakenedNote] = useState<DailyNote | null>(null);
   const radarPending = Boolean(sessionStorage.getItem(RADAR_PENDING_REQUEST_KEY));
-  const radarOwnerStart = sessionStorage.getItem("la-lanh-radar-owner-start") === "1";
-  const radarFlow = radarPending || radarOwnerStart;
+  const radarOwnerMode = readRadarOwnerReturn();
+  const radarFlow = radarPending || radarOwnerMode !== null;
 
   const editorQuery = useQuery({
     queryKey: ["birth-supplement-edit"],
@@ -91,8 +92,8 @@ export function BirthSupplementPage() {
       }
       await clearChartDerivedData(queryClient);
       if (radarFlow && payload.profile_level === 3) {
-        if (radarOwnerStart) sessionStorage.removeItem("la-lanh-radar-owner-start");
-        await navigate(radarPending ? "/radar/continue" : "/radar/start", { replace: true });
+        if (radarOwnerMode) clearRadarOwnerReturn();
+        await navigate(radarPending ? "/radar/continue" : radarOwnerReturnPath(radarOwnerMode ?? "private"), { replace: true });
         return;
       }
       try {

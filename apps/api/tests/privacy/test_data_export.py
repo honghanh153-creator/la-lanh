@@ -6,6 +6,7 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any, cast
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.domains.data_export.models import DataExport
@@ -239,6 +240,7 @@ def test_export_is_a_fresh_read_after_deletion(tmp_path: Path) -> None:
         assert second["birth_profile"]["birth_time_mode"] == "unknown"
 
 
+@pytest.mark.usefixtures("frozen_admission_window")
 def test_export_is_rate_limited_per_peer(tmp_path: Path) -> None:
     with _client(tmp_path / "export-limit.db") as owner:
         csrf = _full_profile(owner, "export-limit-guest-1234567890", "1994-03-12", "08:15")

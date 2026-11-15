@@ -14,7 +14,7 @@ const H = 3600000;
 
 // A body that passes the preflight, so these checks reach the clone (#307 holds bodies that fail it).
 const VALID_BODY = ['- Mức: S', ...['G1 Tài liệu: plan §3', 'G2 UI/UX: không đụng giao diện', 'G3 Câu chữ: không có câu mới', 'G4 BE: không đổi', 'G5 FE: không đổi',
-  'G6 QC: node --test', 'G7 Bảo mật: không đụng phiên, quyền, dữ liệu cá nhân hay log', 'G8 Data privacy: không thu dữ liệu', 'G9 Release: không áp dụng cho PR vào integration', 'G10 Chi phí / license: không'].map(l => `- ${l}`)].join('\n');
+  'G6 QC: node --test', 'G7 Bảo mật: không đụng phiên, quyền, dữ liệu cá nhân hay log', 'G8 Data privacy: không thu dữ liệu', 'G9 Release: không áp dụng cho PR vào integration', 'G10 Chi phí / license: không'].map(l => `- ${l}`), 'Người dùng thấy gì: không trực tiếp (vận hành)'].join('\n');
 
 test('a run that started and never finished is reported as waiting on a prompt', () => {
   const beats = { 'la-lanh-autopilot': { doneAt: '2026-10-31T11:00:00Z', startedAt: '2026-10-31T12:48:00Z' }, 'la-lanh-ops-watch': { doneAt: '2026-11-03T01:00:00Z' }, 'la-lanh-retro': { doneAt: '2026-11-02T16:40:00Z' } };
@@ -24,11 +24,11 @@ test('a run that started and never finished is reported as waiting on a prompt',
   assert.match(describeStale(stale[0]), /31\.10 19:48 chưa xong: thường là đang chờ bấm "cho phép"/);
 });
 
-test('autopilot is not stale overnight or before 11:00, other tasks are watched all day', () => {
+test('autopilot is not stale overnight or before 09:00 (owner 14.11; was 11:00), other tasks are watched all day', () => {
   const beats = { 'la-lanh-autopilot': { doneAt: '2026-11-02T16:40:00Z' }, 'la-lanh-ops-watch': { doneAt: '2026-11-02T14:00:00Z' }, 'la-lanh-retro': { doneAt: '2026-11-02T16:40:00Z' } };
   assert.deepEqual(staleTasks(beats, ms('2026-11-02T22:00:00Z'), vn(5)).map(s => s.task), ['la-lanh-ops-watch']);
-  assert.deepEqual(staleTasks(beats, ms('2026-11-03T03:30:00Z'), vn(10, 30)).map(s => s.task), ['la-lanh-ops-watch']);
-  assert.deepEqual(staleTasks(beats, ms('2026-11-03T04:10:00Z'), vn(11, 10)).map(s => s.task), ['la-lanh-autopilot', 'la-lanh-ops-watch']);
+  assert.deepEqual(staleTasks(beats, ms('2026-11-03T01:30:00Z'), vn(8, 30)).map(s => s.task), ['la-lanh-ops-watch']);
+  assert.deepEqual(staleTasks(beats, ms('2026-11-03T02:10:00Z'), vn(9, 10)).map(s => s.task), ['la-lanh-autopilot', 'la-lanh-ops-watch']);
 });
 
 test('the retro is stale only after a missed 23:35 run (26 hours)', () => {
@@ -365,7 +365,7 @@ test('deadline: git after the author clone follows the same deadline', async () 
   // Each git call takes 2 minutes of the fake clock.
   const run = (cmd, args, opts) => { seen.push({ args: args.join(' '), timeout: opts.timeout, left: deadline - cleanupReserveMs - clock }); clock += 2 * 60000; return args[0] === "rev-parse" ? SHA : ''; };
   const fakePr = { number: 505, author: { login: 'honghanh153-creator' }, isCrossRepository: false, headRefName: 'feat/x', headRefOid: SHA, body: VALID_BODY, comments: [], files: [] };
-  runCheckInClone(505, { gh: { pr: () => fakePr, comment: () => {} }, run, auto: true, clock: () => ({ date: 'd', hour: 23, minute: 29 }), nowMs: () => clock, group: () => ({ status: 0 }), busy: () => null, terms: () => [], preflight: () => ({ status: 'PASS' }), spawn: () => ({ status: 0 }) });
+  runCheckInClone(505, { gh: { pr: () => fakePr, comment: () => {} }, run, auto: true, clock: () => ({ date: 'd', hour: 23, minute: 33 }), nowMs: () => clock, group: () => ({ status: 0 }), busy: () => null, terms: () => [], preflight: () => ({ status: 'PASS' }), spawn: () => ({ status: 0 }) });
   const after = seen.slice(seen.findIndex(s => s.args === 'rev-parse HEAD') + 1);
   assert.ok(after.length >= 1, 'git ran after the clone');
   assert.ok(after.every(s => s.timeout <= s.left), `post-clone git past the deadline: ${JSON.stringify(after)}`);

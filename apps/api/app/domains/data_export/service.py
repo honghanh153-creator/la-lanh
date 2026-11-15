@@ -68,6 +68,7 @@ from app.domains.matching.tables import (
     MatchingProfileRow,
     MatchingVerificationRow,
 )
+from app.domains.mood.postgres import mood_value
 from app.domains.mood.tables import MoodCheckInRow
 from app.domains.radar.models import RadarStatus
 from app.domains.radar.service import RECEIPT_TTL
@@ -415,7 +416,7 @@ class DataExportService:
                     persona_mode=row.persona_mode,
                     persona_label=row.persona_label,
                     created_at=row.created_at,
-                    mood=mood.mood if mood is not None else None,
+                    mood=mood_value(mood, self._envelope).value if mood is not None else None,
                     mood_checked_in_at=mood.checked_in_at if mood is not None else None,
                     readings=readings.get(row.note_date, []),
                 )

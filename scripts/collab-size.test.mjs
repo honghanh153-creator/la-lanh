@@ -27,7 +27,7 @@ test('more than 400 code lines fails unless the body has Size-exception', () => 
   assert.notEqual(sizeProblem({ files: big, body: 'Size-exception:\n' }), null);
 });
 
-const body = ['G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9', 'G10'].map(g => `- ${g}: ${g === 'G7' ? 'không đụng phiên, dữ liệu, log' : 'ok'}`).join('\n') + '\nMức: S\n';
+const body = ['G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9', 'G10'].map(g => `- ${g}: ${g === 'G7' ? 'không đụng phiên, dữ liệu, log' : 'ok'}`).join('\n') + '\nMức: S\nNgười dùng thấy gì: không trực tiếp (vận hành)\n';
 test('preflight reports the size cap', () => {
   const big = [{ path: 'scripts/b.mjs', additions: 401, deletions: 0 }];
   assert.deepEqual(runPreflight({ body, files: big }).reasons, ['PR quá lớn (401 dòng mã) — tách nhỏ hoặc ghi `Size-exception: <lý do>` trong body']);
@@ -58,11 +58,15 @@ test('#254: an oversized PR with an existing author check goes back to Claude, n
   const { renderCheck } = await import('./collab-check.mjs');
   const { prTurn } = await import('./collab-turn.mjs');
   const head = 'c'.repeat(40);
-  const owner = b => ({ authorAssociation: 'OWNER', createdAt: '2026-11-07T01:00:00Z', body: b });
-  const checked = owner(renderCheck({ head, status: 'PASS', exitCode: 0, seconds: 1, date: 'x' }));
-  const approved = { ...owner(`Review verdict: APPROVE @ ${head}\nReviewer: Codex`), createdAt: '2026-11-07T02:00:00Z' };
+  const trust = await import('./collab-trust.mjs');
+  const { asPosted } = await import('./collab-test-post.mjs');
+  const owner = b => asPosted(trust, { authorAssociation: 'OWNER', createdAt: '2026-11-07T01:00:00Z', body: b });
+  // Signed for PR 11 on the live base, as the scripted check and review paths post them (P1-A/P1-B).
+  const base = 'e'.repeat(40);
+  const checked = owner(renderCheck({ head, base, receipt: trust.signReceipt({ kind: 'check', pr: 11, head, base, result: 'PASS' }), status: 'PASS', exitCode: 0, seconds: 1, date: 'x' }));
+  const approved = { ...owner(`Review verdict: APPROVE @ ${head}\nReviewer: Codex\n${trust.verdictSeal({ head, p2: 0, base, receipt: trust.signReceipt({ kind: 'verdict', pr: 11, head, base, result: 'APPROVE' }) })}`), createdAt: '2026-11-07T02:00:00Z' };
   const big = [{ path: 'scripts/b.mjs', additions: 401, deletions: 0 }];
-  const pr = extra => ({ number: 11, title: 'ops(collab): x', author: { login: 'honghanh153-creator' }, isCrossRepository: false, isDraft: false, baseRefName: 'collab/integration', headRefOid: head, mergeable: 'MERGEABLE', labels: [], createdAt: '2026-11-07T00:00:00Z', body, files: big, ...extra });
+  const pr = extra => ({ number: 11, title: 'ops(collab): x', author: { login: 'honghanh153-creator' }, isCrossRepository: false, isDraft: false, baseRefName: 'collab/integration', headRefOid: head, baseTipOid: base, mergeable: 'MERGEABLE', labels: [], createdAt: '2026-11-07T00:00:00Z', body, files: big, ...extra });
   for (const comments of [[checked], [checked, approved]]) {
     const t = prTurn(pr({ comments }));
     assert.equal(t.turn, 'claude-fix');

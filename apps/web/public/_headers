@@ -10,6 +10,11 @@
   Referrer-Policy: no-referrer
   X-Robots-Tag: noindex, nofollow, noarchive
 
+/radar/i/*
+  Cache-Control: no-store, max-age=0
+  Referrer-Policy: no-referrer
+  X-Robots-Tag: noindex, nofollow, noarchive
+
 /share/*
   Cache-Control: no-store, max-age=0
   Referrer-Policy: no-referrer

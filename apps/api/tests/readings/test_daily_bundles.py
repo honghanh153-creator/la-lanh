@@ -5,6 +5,7 @@ Synthetic sentences only; no personal data.
 
 from __future__ import annotations
 
+from copy import deepcopy
 from datetime import timedelta
 from typing import Any
 
@@ -18,13 +19,18 @@ from app.domains.content.copy_approval import (
     load_registry,
     parse_registry,
 )
+from app.domains.content_rewrite.gates import evaluate_daily_rewrite
 from app.domains.readings import renderers
+from app.domains.readings.companion import COMPANION_ISSUE_LINES
 from app.domains.readings.daily_psychology import (
+    _ARENA_LEADS,
     DAILY_ISSUES,
     apply_daily_psychology,
     daily_content_fingerprint,
+    lead_scene,
 )
 from app.domains.readings.knowledge import full_frame
+from app.domains.readings.models import DailyMeaningBrief, SemanticArena
 from tests.readings.test_application import MemoryReadingRepository, _date_only_snapshot
 from tests.readings.test_daily_rotation import (
     GUEST,
@@ -233,6 +239,8 @@ async def test_persisted_note_survives_a_bundle_approval_restart(
     before = _stored(repository)
     assert len(before) == 1
     assert ":bundle-" not in _scene_key(opened, repository)
+    original_id = (GUEST, OWNER_A, opened.active.revision_id)
+    original = deepcopy(repository.revisions[original_id])
 
     bundle = _gate_passing_bundle()
     _restart(monkeypatch, bundle)
@@ -244,9 +252,74 @@ async def test_persisted_note_survives_a_bundle_approval_restart(
     assert after[new_key] != next(iter(before.values()))
     assert served.active.revision_id != opened.active.revision_id
     assert ":bundle-" in _scene_key(served, repository)
+    # #420: the old revision is still there under its own id, content unchanged.
+    assert repository.revisions[original_id] == original
 
     _restart(monkeypatch, bundle)
     replayed = await _open(_service(repository, START), snapshot, START, hour=12)
     assert replayed.active.revision_id == served.active.revision_id
     assert replayed.active.sections == served.active.sections
     assert _stored(repository) == after
+
+
+def _registry_bundles() -> list[tuple[str, str, dict[str, str]]]:
+    """Every complete bundle in the checked-in registry, approved or pending."""
+
+    grouped: dict[tuple[str, str], dict[str, str]] = {}
+    for key, entry in load_registry().items():
+        if key.startswith(copy_approval.BUNDLE_PREFIX):
+            _, _, situation, number, part = key.split(".")
+            grouped.setdefault((situation, number), {})[part] = entry.text
+    return [
+        (situation, number, parts)
+        for (situation, number), parts in sorted(grouped.items())
+        if set(parts) == set(BUNDLE_PARTS)
+    ]
+
+
+@pytest.mark.parametrize(
+    ("situation", "number", "parts"),
+    [pytest.param(*bundle, id=f"{bundle[0]}.{bundle[1]}") for bundle in _registry_bundles()],
+)
+def test_registry_bundle_passes_the_daily_gate_in_every_arena(
+    situation: str, number: str, parts: dict[str, str]
+) -> None:
+    """A served bundle replaces the authored rotation, so it must clear the same Daily
+    gate the authored combinations clear (test_daily_psychology). Otherwise approving it
+    turns that day's note into ReadingContentRejected. Pending bundles are checked too,
+    so a bad bundle is caught before anyone approves it."""
+
+    assert _bundle_gate_failures(situation, parts) == [], (situation, number)
+
+
+def test_bundle_gate_check_rejects_a_bundle_without_its_anchors() -> None:
+    # The check above must bite: synthetic lines carry none of the issue's anchors.
+    situation = ISSUES[0]
+    parts = {part: _line(situation, "01", part)["text"] for part in BUNDLE_PARTS}
+    assert _bundle_gate_failures(situation, parts)
+
+
+def _bundle_gate_failures(situation: str, parts: dict[str, str]) -> list[tuple[str, Any]]:
+    issue = next(issue for issue in DAILY_ISSUES if issue.key == situation)
+    brief = DailyMeaningBrief(
+        core_meaning=issue.meaning,
+        reader_takeaway=issue.takeaway,
+        scene_anchors=issue.scene_anchors,
+        action_anchors=issue.action_anchors,
+    )
+    failures: list[tuple[str, Any]] = []
+    for arena in (SemanticArena.GENERAL, *issue.arenas):
+        lead = _ARENA_LEADS.get(arena)
+        scene = lead_scene(lead, parts["scene"]) if lead else parts["scene"]
+        report = evaluate_daily_rewrite(
+            {
+                "title": parts["headline"],
+                "scene": scene,
+                "action": parts["action"],
+                "companion": COMPANION_ISSUE_LINES[issue.key].line.direct,
+            },
+            meaning_brief=brief,
+        )
+        if not report.passed:
+            failures.append((arena.value, report.failure_codes))
+    return failures
