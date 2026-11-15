@@ -3,11 +3,11 @@
 import './collab-test-home.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { acquireLock } from './collab-lock.mjs';
 import { dayStatePath, readJson, stateDir, writeJson } from './collab-trust.mjs';
-import { checkJudgeOutput, checkLabelOutput, classifyChanges, codex, compareRuns, crossLeaks, dayDir, nextDay, pickCodexItems, pickIds, raiseNew, renderNightly, safetyReasons, seedOf, unionLabels } from './personas-nightly.mjs';
+import { checkJudgeOutput, checkLabelOutput, classifyChanges, codex, compareRuns, crossLeaks, dayDir, nextDay, pickCodexItems, pickIds, raiseNew, renderNightly, safetyReasons, seedOf, startRun, unionLabels } from './personas-nightly.mjs';
 
 test('only app-facing or unknown changes trigger a run', () => {
   assert.equal(classifyChanges(['docs/a.md', 'scripts/x.mjs', 'qa/personas/r.md', 'apps/api/tests/t.py']).run, false);
@@ -148,4 +148,21 @@ test('the nightly Codex call waits for the shared review lock and respects the c
   assert.equal(codex(day, { run: () => { throw new Error('no'); }, ...at('23:10') }).reason, 'hết lượt Codex trong ngày');
   assert.equal(readJson(dayStatePath(day), {}).codexRuns, 59);
   assert.equal(codex(day, { run: () => { throw new Error('no'); }, ...at('23:59') }).status, 'refused');
+});
+
+test('a second prepare for the same date waits for the lock and leaves a running night\'s files alone (#565)', async () => {
+  const day = '2026-11-19';
+  mkdirSync(dayDir(day), { recursive: true });
+  writeFileSync(join(dayDir(day), 'personas-200.json'), '{}');
+  const release = acquireLock(join(stateDir, 'check.lock'), { staleMs: 60000 });
+  let ran = false;
+  try {
+    const second = await startRun(day, async () => { ran = true; }, { waitMs: 0, stepMs: 1 });
+    assert.equal(second.status, 'busy');
+    assert.equal(ran, false);
+    assert.ok(existsSync(join(dayDir(day), 'personas-200.json')), 'the running night keeps its files');
+  } finally { release(); }
+  let seen = null;
+  const fresh = await startRun(day, async dir => { seen = existsSync(join(dir, 'personas-200.json')); return { status: 'ok' }; }, { waitMs: 0, stepMs: 1 });
+  if (fresh.status === 'ok') assert.equal(seen, false, 'the lock holder starts from an empty folder');
 });
