@@ -1,8 +1,9 @@
 // Whose turn is it on each open PR? `--report` replaces the registry PRs; `--tick` is the launchd safety net.
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { areaOrder, classifyArea, clean, codexDailyCap, dayStatePath, integration, isOwnPr, makeGh, readJson, repo, reviewState, sortByPriority, stateDir, trustedComments, vnNow, writeJson } from './collab-trust.mjs';
-import { autoStartAt, committedTurns, lastStartAt, makePlan, readPlanStatus } from './collab-plan.mjs';
+import { agentMarker, areaOrder, classifyArea, clean, codexDailyCap, dayStatePath, integration, isOwnPr, makeGh, readJson, repo, reviewState, sortByPriority, stateDir, trustedComments, vnNow, writeJson } from './collab-trust.mjs';
+import { autoStartAt, committedTurns, lastStartAt, makePlan, planIssue, readPlanStatus } from './collab-plan.mjs';
+import { dayList, pickPlan, plannedEntry, quotaIssues, workUnits } from './collab-quota.mjs';
 import { auditReserve } from './collab-audit.mjs';
 import { ownerNotes } from './collab-status.mjs';
 import { bodyHash } from './collab-heal.mjs';
@@ -75,6 +76,46 @@ export function prTurn(pr, { dropped = [], open = [], preflight = {}, baseFiles,
   if (last.verdict === 'REQUEST_CHANGES') return out('claude-fix', 'REQUEST_CHANGES @ head');
   if (state.stale) return out('codex-review', `review lại: ${clean(state.stale, 200)}`);
   return out('merge', 'APPROVE @ head');
+}
+
+// The day's list (collab-quota.mjs). A failed label read leaves the quota unknown and says so; the
+// machine then picks as before, never as if there were no 7-week items.
+export function planList({ gh, turns, prs, comments, date, issues = () => quotaIssues(gh) }) {
+  try {
+    return dayList({ units: workUnits({ turns, prs, issues: issues() }), comments, date });
+  } catch (error) {
+    const units = workUnits({ turns, prs, issues: [] });
+    return { source: 'machine', unknown: true, note: `Chưa xác định được chỗ cho kế hoạch 7 tuần (${clean(error.message, 120)}); máy chọn theo thứ tự cũ.`, ...pickPlan(units, { need: 0 }) };
+  }
+}
+export function recordList(list) {
+  const all = [...(list.incidents ?? []), ...list.items];
+  return {
+    planned: all.flatMap(u => u.prs), plannedItems: all.map(plannedEntry), plannedKeys: list.items.map(u => u.key),
+    planned7w: list.items.filter(u => u.plan7w).flatMap(u => u.prs), planSource: list.source, planNote: list.note,
+    quota7w: list.unknown ? null : { want: list.want, picked: list.items.filter(u => u.plan7w).length, available: list.available7w },
+  };
+}
+
+// Replacement after `Bỏ #N`: the dropped units leave, the rest stay fixed, pickPlan fills the seats
+// (7-week first while short). One agent note per drop set; the plan comment and the owner's
+// commands stay where they are (planState reads replies after the plan comment).
+export function replan({ gh, plan, dayPath, day, date, issues = () => quotaIssues(gh) }) {
+  const d = readJson(dayPath, day);
+  const dropped = (plan.dropped ?? []).filter(n => (d.planned ?? []).includes(n));
+  const keyOfDrop = dropped.join(',');
+  if (!dropped.length || d.replannedFor === keyOfDrop || !Array.isArray(d.plannedKeys)) return null;
+  const prs = gh.openPrs();
+  const turns = turnsFor(prs, { dropped: plan.dropped, baseFiles: gh.compareFiles });
+  const units = workUnits({ turns, prs, issues: issues() });
+  const fixed = d.plannedKeys.filter(k => units.some(u => u.key === k && u.ready));
+  const list = { source: 'replan', note: `Chọn bù sau khi bỏ ${dropped.map(n => `#${n}`).join(', ')}.`, ...pickPlan(units, { fixed }) };
+  const added = list.items.filter(u => !d.plannedKeys.includes(u.key));
+  writeJson(dayPath, { ...d, ...recordList(list), replannedFor: keyOfDrop, planVersion: (d.planVersion ?? 1) + 1 });
+  const lines = added.map(u => `- ${u.prs.length ? u.prs.map(n => `#${n}`).join(', ') : `việc #${u.item} (chưa có PR)`} ${clean(u.title, 80)}${u.plan7w ? ' [Kế hoạch 7 tuần]' : ''}`);
+  gh.comment('issue', planIssue(gh), [`Cập nhật plan ${date}: ${list.note}`, ...(lines.length ? ['Việc thêm vào:', ...lines] : ['Không còn việc sẵn sàng để chọn bù.']),
+    `Kế hoạch 7 tuần: ${list.items.filter(u => u.plan7w).length} việc (cần ${list.want}).`, '', `${agentMarker} replan date=${date} drop=${keyOfDrop} -->`].join('\n'));
+  return { added: added.map(u => u.key) };
 }
 
 export function turnsFor(prs, options = {}) {
@@ -209,12 +250,16 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
         measure(prs, turns);
         // Progress is items done / items picked (owner 12.11.2026): remember what was picked.
         // L11: the items picked are recorded now, so a PR body edited later cannot change the count.
-        writeJson(dayPath, { ...readJson(dayPath, day), planned: committedTurns(turns).map(t => t.number), plannedItems: plannedWork(committedTurns(turns)) });
-        makePlan(gh, now, turns, { codexLeft: Math.max(0, codexDailyCap - day.codexRuns), gap: tickGap(readJson(join(stateDir, 'heartbeat.json'), null)), health: readHealth() });
+        // Owner 15.11: one list a day, with at least 2 seats kept for the 7-week plan (collab-quota.mjs).
+        const list = planList({ gh, turns, prs, comments: plan.comments, date: now.date });
+        writeJson(dayPath, { ...readJson(dayPath, day), ...recordList(list) });
+        makePlan(gh, now, turns, { codexLeft: Math.max(0, codexDailyCap - day.codexRuns), gap: tickGap(readJson(join(stateDir, 'heartbeat.json'), null)), health: readHealth(), list });
         heartbeat('plan-made');
         show({ status: 'plan-made', turns });
         return { status: 'plan-made' };
       }
+      // Owner `Bỏ #N` on a picked item: pick a replacement with the same rules, once per drop set.
+      if (plan.state !== 'closed') { try { replan({ gh, plan, dayPath, day, date: now.date }); } catch (error) { log(`replan failed, retry next run: ${clean(error.message, 200)}`); } }
       if (plan.state !== 'open') {
         heartbeat(plan.state);
         if (plan.state === 'closed') { show({ status: plan.state, turns: [] }); return { status: plan.state }; }
@@ -234,7 +279,10 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       const { queue: startBuffer } = bufferStatus(prs, turns);
       measure(prs, turns);
       const area = activeArea(turns);
-      const work = turns.filter(t => t.area === area);
+      // Owner 15.11: the kept 7-week items are worked first, whatever area is active, or the seats
+      // are empty words; the active area follows in its usual order.
+      const kept = new Set(readJson(dayPath, day).planned7w ?? []);
+      const work = [...turns.filter(t => kept.has(t.number)), ...turns.filter(t => t.area === area && !kept.has(t.number))];
       const done = [];
       const late = () => { const t = time(); return t.hour * 60 + t.minute >= lastStartAt; };
       for (const t of work.filter(t => t.turn === 'merge').slice(0, 2)) {

@@ -83,6 +83,15 @@ Session mà owner đang trực tiếp trò chuyện không bị lịch này ch�
 - PR đang giữ và lý do (`needs-owner`, xếp chồng, draft).
 - Hạn mức: lượt Codex còn trong ngày.
 - **3–5 việc, không đếm PR** (owner 12.11.2026, thay mức 16–20 PR của 03.11). Plan chọn 3–5 việc không bị giữ theo thứ tự ưu tiên trên; mỗi việc ghi nguồn / AC (dòng G1 của PR) và dòng "Người dùng thấy gì". Tiến độ trong ngày = việc xong / việc đã chọn (xong là đã merge vào integration). Mọi PR body phải có dòng bắt đầu bằng `Người dùng thấy gì:`; PR docs hoặc vận hành ghi `Người dùng thấy gì: không trực tiếp (vận hành)` (preflight chặn nếu thiếu). Trần Codex 60 lượt/ngày (owner 14.11.2026).
+- **Ít nhất 2 việc của kế hoạch 7 tuần mỗi ngày, một danh sách mỗi ngày** (owner 15.11.2026, "Bắt đầu"; `scripts/collab-quota.mjs`, Codex phản biện kế hoạch 15.11):
+  - Việc thuộc kế hoạch 7 tuần khi PR hoặc issue việc (`Việc: #N`) có nhãn `ke-hoach-7-tuan`. Nhãn do vòng tự đọc trên GitHub; danh sách nào tự khai cũng không được tính. Issue tổng hợp tuần (không có mục `## Tiêu chí đạt`) không phải một việc.
+  - Chỗ được tính theo việc: hai PR cùng `Việc: #N` chỉ chiếm một chỗ. Ứng viên gồm PR làm được (không draft, không `needs-owner`, không bị giữ) và issue việc 7 tuần chưa có PR. Với issue chưa có PR, Claude mở PR khi còn chỗ.
+  - Plan 06:50 giữ `min(2, số việc 7 tuần sẵn sàng)` chỗ. Hai là mức sàn: còn chỗ thì nhận thêm. Không đủ việc sẵn sàng thì plan ghi thiếu bao nhiêu chỗ. Đọc nhãn lỗi thì plan ghi "chưa xác định được", không coi như không có việc.
+  - Sự cố nghiêm trọng (issue `incident` + `severity:P0|P1`, hoặc PR làm issue đó) đứng đầu, nằm ngoài 3–5 việc và không chiếm chỗ đã giữ. Tổng vượt 5 thì plan báo quá tải để owner quyết.
+  - Danh sách buổi sáng của Claude có dòng máy đọc được trong marker: `morning-prep date=D items=pr:N,item:M`. Vòng kiểm danh sách đó bằng đúng luật trên: không đạt thì máy chọn lại và ghi lý do. Comment plan và `plannedItems` lấy từ cùng một kết quả.
+  - Trong ngày, owner `Bỏ #N` một việc đã chọn thì vòng chọn bù một lần bằng cùng luật. Bản chọn bù là một comment cập nhật, không phải plan mới, nên lệnh `Giữ`/`Bỏ` trước đó vẫn có hiệu lực.
+  - Khi plan mở, vòng làm các PR 7 tuần đã chọn trước, rồi mới tới nhóm ưu tiên đang chạy.
+  - Báo cáo có thêm dòng `Việc kế hoạch 7 tuần: đã chọn N, đạt M`, theo cách phân loại lúc lập plan.
 
 ## 4. Thành phần
 

@@ -65,15 +65,35 @@ function copyLines(committed) {
   return rows.length ? ['', '**Câu chữ cần duyệt cùng plan** (`Duyệt` là duyệt luôn các câu này; `Bỏ #N` nếu chưa muốn):', ...rows, ''] : [];
 }
 
-export function renderPlan(now, turns, { codexLeft, gap = null, health = [] }) {
+// One unit of the day's list (collab-quota.mjs): its PRs, or the task issue Claude still has to open.
+const unitLines = (u, i) => {
+  const t = u.turns?.find(x => x.turn !== 'hold') ?? u.turns?.[0];
+  const head = u.prs.length ? u.prs.map(n => `#${n}`).join(', ') : `việc #${u.item} (chưa có PR, Claude mở khi còn chỗ)`;
+  return [
+    `${i + 1}. ${head} ${clean(t?.title ?? u.title, 90)}${u.plan7w ? ' **[Kế hoạch 7 tuần]**' : ''}`,
+    `   - Nguồn / AC: ${clean(t?.source ?? (u.item ? `issue #${u.item}` : 'chưa ghi'), 160)}`,
+    `   - Người dùng thấy gì: ${clean(t?.userSees ?? 'chưa ghi', 160)}`,
+  ].join('\n');
+};
+
+export function renderPlan(now, turns, { codexLeft, gap = null, health = [], list = null }) {
   const label = { 'claude-check': 'Claude chạy author check', 'codex-review': 'Codex review', 'claude-fix': 'Claude sửa', merge: 'Merge integration', hold: 'Giữ' };
-  const committed = committedTurns(turns);
-  const short = planMin - committed.length;
-  const items = committed.map((t, i) => [
+  const committed = list ? list.items.flatMap(u => u.turns) : committedTurns(turns);
+  const short = planMin - (list ? list.items.length : committed.length);
+  const items = list ? list.items.map(unitLines) : committed.map((t, i) => [
     `${i + 1}. #${t.number} ${clean(t.title, 90)}`,
     `   - Nguồn / AC: ${clean(t.source ?? 'chưa ghi', 160)}`,
     `   - Người dùng thấy gì: ${clean(t.userSees ?? 'chưa ghi', 160)}`,
   ].join('\n'));
+  const have7w = list ? list.items.filter(u => u.plan7w).length : 0;
+  const quota = !list ? [] : [
+    list.note,
+    list.unknown ? '**Kế hoạch 7 tuần:** chưa xác định được (không đọc được nhãn), cần xem lại.'
+      : `**Kế hoạch 7 tuần:** ${have7w} việc trong plan (giữ tối thiểu ${list.want}; đang sẵn sàng ${list.available7w}).${list.short7w ? ` Thiếu ${list.short7w} chỗ vì không đủ việc sẵn sàng.` : ''}`,
+    ...(list.incidents?.length ? ['', '**Sự cố nghiêm trọng chen trước** (ngoài 3–5 việc, không chiếm chỗ của kế hoạch 7 tuần):', ...list.incidents.map((u, i) => unitLines(u, i))] : []),
+    ...(list.incidents?.length && list.incidents.length + list.items.length > planMax ? [`Quá tải: ${list.incidents.length} sự cố cộng ${list.items.length} việc vượt ${planMax}. Owner xem có cần bỏ bớt việc không.`] : []),
+    '',
+  ];
   const rows = turns.map(t => `| #${t.number} | ${t.area} | ${label[t.turn] ?? t.turn} | ${clean(t.reason, 120).replace(/\\/g, '\\\\').replace(/\|/g, '\\|')} | ${clean(t.title, 90).replace(/\\/g, '\\\\').replace(/\|/g, '\\|')} |`);
   return [
     `## Plan ${now.date}`,
@@ -85,6 +105,7 @@ export function renderPlan(now, turns, { codexLeft, gap = null, health = [] }) {
     // Health of the unattended Claude runs (watchdog, owner 03.11.2026): a stall shows every morning.
     ...(health.length ? ['', '**Tác vụ hẹn giờ:**', ...health] : []),
     '',
+    ...quota,
     `**Việc chọn hôm nay (${planMin}–${planMax} việc):**`,
     ...(items.length ? items : ['Chưa có việc nào sẵn sàng.']),
     ...(short > 0 ? [`Còn thiếu ${short} việc so với mức ${planMin}: Claude chọn tiếp từ backlog \`auto: yes\` khi có chỗ (mỗi lúc 1 việc đang làm + 1 việc đang review), và ghi nguồn / AC cùng dòng "Người dùng thấy gì" vào issue này.`] : []),
@@ -131,9 +152,9 @@ export function readPlanStatus(gh, now = vnNow()) {
   return { issue: number, comments: issue.comments ?? [], ...planState(now, issue.comments ?? []) };
 }
 
-export function makePlan(gh, now, turns, { codexLeft, gap = null, health = [] }) {
+export function makePlan(gh, now, turns, { codexLeft, gap = null, health = [], list = null }) {
   const number = planIssue(gh);
-  gh.comment('issue', number, renderPlan(now, turns, { codexLeft, gap, health }));
+  gh.comment('issue', number, renderPlan(now, turns, { codexLeft, gap, health, list }));
   return number;
 }
 

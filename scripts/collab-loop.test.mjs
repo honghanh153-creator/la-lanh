@@ -289,10 +289,10 @@ test('the plan records the picked items once; a later body edit changes nothing'
   const open = [pr({ number: 81, body: `${goodBody}\nViệc: #12` }), pr({ number: 82, body: `${goodBody}\nViệc: #12` }), pr({ number: 83 })];
   assert.equal(tick({ gh: ghFor(open), now: { date, hour: 8, minute: 52 }, merge: () => ({}), review: () => ({}) }).status, 'plan-made');
   const day = () => trust.readJson(trust.dayStatePath(date), {});
-  assert.deepEqual(day().plannedItems, [{ item: 12 }, { pr: 83 }]);
+  assert.deepEqual(day().plannedItems, [{ item: 12, plan7w: false }, { pr: 83, plan7w: false }]);
   const edited = open.map(p => p.number === 83 ? { ...p, body: `${goodBody}\nViệc: #99` } : p);
   tick({ gh: ghFor(edited), now: { date, hour: 9, minute: 20 }, merge: () => ({}), review: () => ({}) });
-  assert.deepEqual(day().plannedItems, [{ item: 12 }, { pr: 83 }]);
+  assert.deepEqual(day().plannedItems, [{ item: 12, plan7w: false }, { pr: 83, plan7w: false }]);
 });
 
 // Codex r1 on #482 (P2): health reached only the morning plan, so a hook removed later in the day
@@ -1427,4 +1427,89 @@ test('L25: after a timeout and a new PASS at the same head, the review command t
     rmSync(L25.disputePath, { force: true });
     rmSync(L25.logPath, { force: true });
   }
+});
+
+// Owner 15.11.2026 ("Bắt đầu"): at least 2 of the day's items come from the 7-week plan, one list a
+// day. These go through the production tick, not only collab-quota.mjs.
+const w7Label = [{ name: 'ke-hoach-7-tuan' }];
+const w7Issue = { number: 300, title: 'việc tuần 1', labels: w7Label, body: '## Tiêu chí đạt\n- AC1 làm được\n' };
+function w7Gh({ comments, open, issues = [w7Issue], failLabels = false }) {
+  return { ...fakeGh({ pr: open[0], open }),
+    json: args => {
+      if (args[0] === 'issue' && args[1] === 'list') {
+        if (args.includes('ke-hoach-7-tuan')) { if (failLabels) throw new Error('api down'); return issues; }
+        if (args.includes('incident')) return [];
+        return [{ number: 50, title: 'Kế hoạch chạy tự động hằng ngày' }];
+      }
+      return { comments };
+    },
+    comment: (kind, number, body) => { trust.assertAgentBody(body); comments.push({ authorAssociation: 'OWNER', createdAt: `${comments.date}T01:5${comments.length}:00Z`, body }); } };
+}
+const w7Open = () => [21, 22, 23, 24, 25].map(n => pr({ number: n, title: `ops(collab): việc ${n}` }))
+  .concat([pr({ number: 31, title: 'feat(web): làm việc 300', body: `${goodBody}\nViệc: #300` }), pr({ number: 32, title: 'feat(web): nhãn', labels: w7Label })]);
+
+test('7-week: the production tick keeps 2 seats, records the class and tags the plan', () => {
+  const comments = Object.assign([], { date: '2026-12-20' });
+  const r = tick({ gh: w7Gh({ comments, open: w7Open() }), now: { date: '2026-12-20', hour: 6, minute: 52 }, merge: () => ({}), review: () => ({}) });
+  assert.equal(r.status, 'plan-made');
+  const d = trust.readJson(trust.dayStatePath('2026-12-20'), {});
+  assert.deepEqual(d.plannedItems.filter(p => p.plan7w), [{ item: 300, plan7w: true }, { pr: 32, plan7w: true }]);
+  assert.deepEqual(d.planned7w, [31, 32]);
+  assert.deepEqual(d.quota7w, { want: 2, picked: 2, available: 2 });
+  const plan = comments.at(-1).body;
+  assert.equal(plan.match(/\[Kế hoạch 7 tuần\]/g).length, 2);
+  assert.match(plan, /Chưa có danh sách buổi sáng/);
+});
+
+test('7-week: the tick uses the morning list when it passes and re-picks when it is short', () => {
+  const prep = (date, items) => ({ authorAssociation: 'OWNER', createdAt: `${date}T00:00:00Z`, body: `Kế hoạch: ...\n\n${trust.agentMarker} morning-prep date=${date} items=${items} -->` });
+  const ok = Object.assign([prep('2026-12-21', 'pr:21,pr:31,pr:32')], { date: '2026-12-21' });
+  tick({ gh: w7Gh({ comments: ok, open: w7Open() }), now: { date: '2026-12-21', hour: 6, minute: 52 }, merge: () => ({}), review: () => ({}) });
+  const d1 = trust.readJson(trust.dayStatePath('2026-12-21'), {});
+  assert.equal(d1.planSource, 'prep');
+  assert.deepEqual(d1.planned, [21, 31, 32]);
+  const short = Object.assign([prep('2026-12-22', 'pr:21,pr:22,pr:23,pr:32')], { date: '2026-12-22' });
+  tick({ gh: w7Gh({ comments: short, open: w7Open() }), now: { date: '2026-12-22', hour: 6, minute: 52 }, merge: () => ({}), review: () => ({}) });
+  const d2 = trust.readJson(trust.dayStatePath('2026-12-22'), {});
+  assert.equal(d2.planSource, 'machine');
+  assert.equal(d2.plannedItems.filter(p => p.plan7w).length, 2);
+  assert.match(short.at(-1).body, /Máy chọn lại vì danh sách buổi sáng chưa đạt: chỉ có 1 việc kế hoạch 7 tuần, cần 2/);
+});
+
+test('7-week: a failed label read says the quota is unknown instead of "no 7-week work"', () => {
+  const comments = Object.assign([], { date: '2026-12-23' });
+  tick({ gh: w7Gh({ comments, open: w7Open(), failLabels: true }), now: { date: '2026-12-23', hour: 6, minute: 52 }, merge: () => ({}), review: () => ({}) });
+  const d = trust.readJson(trust.dayStatePath('2026-12-23'), {});
+  assert.equal(d.quota7w, null);
+  assert.match(comments.at(-1).body, /Kế hoạch 7 tuần:\*\* chưa xác định được/);
+});
+
+test('7-week: "Bỏ #N" on a picked item re-picks once with the same rules; owner commands stay on the plan', () => {
+  const date = '2026-12-24';
+  const comments = Object.assign([], { date });
+  const gh = w7Gh({ comments, open: w7Open() });
+  tick({ gh, now: { date, hour: 6, minute: 52 }, merge: () => ({}), review: () => ({}) });
+  comments.push({ authorAssociation: 'OWNER', createdAt: `${date}T01:59:30Z`, body: 'Bỏ #21' });
+  const before = comments.length;
+  tick({ gh, now: { date, hour: 7, minute: 10 }, merge: () => ({}), review: () => ({}) });
+  const d = trust.readJson(trust.dayStatePath(date), {});
+  assert.equal(d.replannedFor, '21');
+  assert.ok(!d.planned.includes(21));
+  assert.equal(d.plannedItems.filter(p => p.plan7w).length, 2, 'the kept seats survive the re-pick');
+  assert.equal(comments.length, before + 1);
+  assert.match(comments.at(-1).body, /Cập nhật plan 2026-12-24: Chọn bù sau khi bỏ #21/);
+  assert.doesNotMatch(comments.at(-1).body, /daily-plan date=/, 'the update is not a new plan: earlier owner commands keep counting');
+  tick({ gh, now: { date, hour: 7, minute: 20 }, merge: () => ({}), review: () => ({}) });
+  assert.equal(comments.length, before + 1, 'once per drop set');
+});
+
+test('7-week: in the open plan the kept 7-week PRs are checked first, before the active area', () => {
+  const date = '2026-12-25';
+  const comments = Object.assign([], { date });
+  const gh = w7Gh({ comments, open: w7Open() });
+  tick({ gh, now: { date, hour: 6, minute: 52 }, merge: () => ({}), review: () => ({}) });
+  comments.push({ authorAssociation: 'OWNER', createdAt: `${date}T01:59:30Z`, body: 'Duyệt' });
+  const checked = [];
+  tick({ gh, now: { date, hour: 8, minute: 10 }, prPreflight: () => ({ status: 'PASS' }), heavyFree: () => true, check: n => { checked.push(n); return { status: 'FAIL' }; }, merge: () => ({}), review: () => ({}) });
+  assert.deepEqual(checked.slice(0, 2), [31, 32], `checked ${checked.join(',')}`);
 });
