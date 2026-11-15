@@ -1663,3 +1663,18 @@ test('7-week: a dropped item neither returns to the fix queue nor holds a PR on 
   const queue = trust.readJson(join(trust.stateDir, 'claude-queue.json'), {});
   assert.ok(!(queue.items ?? []).some(t => t.number === 71), `fix queue ${JSON.stringify((queue.items ?? []).map(t => t.number))}`);
 });
+
+// Codex r5 on #544: an incident opened after the plan is worked first too.
+test('7-week: a serious incident opened after the plan is worked before ops and the kept seats', () => {
+  const date = '2027-01-03';
+  const comments = Object.assign([], { date });
+  const open = w7Open();
+  tick({ gh: w7Gh({ comments, open }), now: { date, hour: 6, minute: 52 }, merge: () => ({}), review: () => ({}) });
+  comments.push({ authorAssociation: 'OWNER', createdAt: `${date}T01:59:30Z`, body: 'Duyệt' });
+  const incident = { number: 901, title: 'sự cố mới', labels: [{ name: 'incident' }, { name: 'severity:P1' }], body: '## Tiêu chí đạt\n- AC1 x\n' };
+  const later = [...open, pr({ number: 81, title: 'feat(web): sửa sự cố mới', body: `${goodBody}\nViệc: #901` })];
+  const gh = { ...w7Gh({ comments, open: later }), json: args => (args[0] === 'issue' && args[1] === 'list' ? (args.includes('incident') ? [incident] : args.includes('ke-hoach-7-tuan') ? [w7Issue] : [{ number: 50, title: 'Kế hoạch chạy tự động hằng ngày' }]) : { comments }) };
+  const checked = [];
+  tick({ gh, now: { date, hour: 8, minute: 10 }, prPreflight: () => ({ status: 'PASS' }), heavyFree: () => true, check: n => { checked.push(n); return { status: 'FAIL' }; }, merge: () => ({}), review: () => ({}) });
+  assert.equal(checked[0], 81, `checked ${checked.join(',')}`);
+});

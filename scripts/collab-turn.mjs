@@ -342,7 +342,12 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       // Codex r1 on #544: by stable key, so a PR opened later for a picked item counts; serious
       // incidents first, then the kept 7-week items, then the active area.
       const dayNow = readJson(dayPath, day);
-      const incidentKeys = new Set(dayNow.incidentKeys ?? []);
+      // Codex r5 on #544: a serious incident opened after the plan also goes first; the day's
+      // selections and drops stay as they are. A failed read keeps the planned incidents only.
+      let liveIncidents = [];
+      try { liveIncidents = workUnits({ turns, prs, issues: quotaIssues(gh) }).filter(u => u.ready && u.incident).map(u => u.key); }
+      catch (error) { log(`incident refresh failed, planned incidents only: ${clean(error.message, 200)}`); }
+      const incidentKeys = new Set([...(dayNow.incidentKeys ?? []), ...liveIncidents]);
       const kept = new Set(dayNow.planned7wKeys ?? []);
       // A dropped item is not worked, even through another PR that names it (Codex r2 on #544).
       const live = turns.filter(t => !gone.has(unitKey(t)));
