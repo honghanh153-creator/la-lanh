@@ -83,6 +83,7 @@ function renderFlow() {
           <Route path="/birth" element={<BirthDatePage />} />
           <Route path="/reveal" element={<RevealPage />} />
           <Route path="/radar/start" element={<h1>Radar tiếp tục</h1>} />
+          <Route path="/radar/invite" element={<h1>Radar mời tiếp</h1>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -205,6 +206,18 @@ describe("BirthDatePage", () => {
     await user.click(screen.getByRole("button", { name: "Khớp tín hiệu" }));
     expect(await screen.findByRole("heading", { name: "Radar tiếp tục" })).toBeInTheDocument();
     expect(updateOnboardingStatus).toHaveBeenCalledWith("completed");
+    expect(sessionStorage.getItem("la-lanh-radar-owner-start")).toBeNull();
+  });
+
+  it("returns an invite-mode owner to the invite page, not the private check", async () => {
+    sessionStorage.setItem("la-lanh-radar-owner-start", "invite");
+    const user = userEvent.setup();
+    renderFlow();
+    await fillDate(user);
+    await fillDetails(user);
+    await user.click(screen.getByRole("checkbox"));
+    await user.click(screen.getByRole("button", { name: "Khớp tín hiệu" }));
+    expect(await screen.findByRole("heading", { name: "Radar mời tiếp" })).toBeInTheDocument();
     expect(sessionStorage.getItem("la-lanh-radar-owner-start")).toBeNull();
   });
 
