@@ -58,7 +58,7 @@ Claude xong việc trên branch, push (hook trước push: quét dữ liệu ri�
   → node scripts/codex-review.mjs --pr N        (Claude chờ, cùng session)
       ├─ APPROVE @ SHA   → node scripts/collab-merge.mjs --pr N → merge integration
       └─ REQUEST_CHANGES → Claude sửa → author check → push → review lại (chỉ phần đổi)
-           vòng REQUEST_CHANGES tự động thứ 2 → nhãn needs-owner, dừng
+           vòng REQUEST_CHANGES tự động thứ 2 → nhãn needs-owner; từ vòng 3 Claude quyết theo §4.1 mục 11
 ```
 
 ### 3.1 Lịch ngày (giờ Việt Nam)
@@ -103,6 +103,15 @@ Session mà owner đang trực tiếp trò chuyện không bị lịch này ch�
 - PR đang giữ và lý do (`needs-owner`, xếp chồng, draft).
 - Hạn mức: lượt Codex còn trong ngày.
 - **3–5 việc, không đếm PR** (owner 12.11.2026, thay mức 16–20 PR của 03.11). Plan chọn 3–5 việc không bị giữ theo thứ tự ưu tiên trên; mỗi việc ghi nguồn / AC (dòng G1 của PR) và dòng "Người dùng thấy gì". Tiến độ trong ngày = việc xong / việc đã chọn (xong là đã merge vào integration). Mọi PR body phải có dòng bắt đầu bằng `Người dùng thấy gì:`; PR docs hoặc vận hành ghi `Người dùng thấy gì: không trực tiếp (vận hành)` (preflight chặn nếu thiếu). Trần Codex 60 lượt/ngày (owner 14.11.2026).
+- **Ít nhất 2 việc của kế hoạch 7 tuần mỗi ngày, một danh sách mỗi ngày** (owner 15.11.2026, "Bắt đầu"; `scripts/collab-quota.mjs`, Codex phản biện kế hoạch 15.11):
+  - Việc thuộc kế hoạch 7 tuần khi PR hoặc issue việc (`Việc: #N`) có nhãn `ke-hoach-7-tuan`. Nhãn do vòng tự đọc trên GitHub; danh sách nào tự khai cũng không được tính. Issue tổng hợp tuần (không có mục `## Tiêu chí đạt`) không phải một việc.
+  - Chỗ được tính theo việc: hai PR cùng `Việc: #N` chỉ chiếm một chỗ. Ứng viên gồm PR làm được (không draft, không `needs-owner`, không bị giữ) và issue việc 7 tuần chưa có PR. Với issue chưa có PR, Claude mở PR khi còn chỗ.
+  - Plan 06:50 giữ `min(2, số việc 7 tuần sẵn sàng)` chỗ. Hai là mức sàn: còn chỗ thì nhận thêm. Không đủ việc sẵn sàng thì plan ghi thiếu bao nhiêu chỗ. Đọc nhãn lỗi thì plan ghi "chưa xác định được", không coi như không có việc.
+  - Sự cố nghiêm trọng (issue `incident` + `severity:P0|P1`, hoặc PR làm issue đó) đứng đầu, nằm ngoài 3–5 việc và không chiếm chỗ đã giữ. Tổng vượt 5 thì plan báo quá tải để owner quyết.
+  - Danh sách buổi sáng của Claude có dòng máy đọc được trong marker: `morning-prep date=D items=pr:N,item:M`. Vòng kiểm danh sách đó bằng đúng luật trên: không đạt thì máy chọn lại và ghi lý do. Comment plan và `plannedItems` lấy từ cùng một kết quả.
+  - Trong ngày, owner `Bỏ #N` một việc đã chọn thì vòng chọn bù một lần bằng cùng luật. Bản chọn bù là một comment cập nhật, không phải plan mới, nên lệnh `Giữ`/`Bỏ` trước đó vẫn có hiệu lực.
+  - Khi plan mở, vòng làm các PR 7 tuần đã chọn trước, rồi mới tới nhóm ưu tiên đang chạy.
+  - Báo cáo có thêm dòng `Việc kế hoạch 7 tuần: đã chọn N, đạt M`, theo cách phân loại lúc lập plan.
 
 ## 4. Thành phần
 
@@ -137,7 +146,11 @@ Session mà owner đang trực tiếp trò chuyện không bị lịch này ch�
 8. Áp chính sách; script **chỉ nâng** verdict, không hạ.
 9. Đăng comment PR: dòng đầu `Review verdict: … @ <SHA>`, `Reviewer: Codex (auto)`, bảng finding, SHA-256 của JSON, số vòng, đánh dấu ẩn `<!-- la-lanh-agent codex-auto-review sha=… p2=… base=… receipt=… -->` (dòng cuối; biên nhận cục bộ ghi trước khi đăng, §4.2).
 10. P2 không chặn → mở issue `fix-forward`, gắn link vào comment.
-11. REQUEST_CHANGES tự động thứ 2 trên PR → gắn `needs-owner`. Từ 15.11.2026, owner không còn là bước duyệt bắt buộc (§2), nên nhãn này chỉ có nghĩa "đã qua 2 vòng tự động": Claude quyết theo quy tắc vòng ≥3 (owner 31.10.2026: lỗi nghiêm trọng hoặc ảnh hưởng người dùng thì sửa và gỡ nhãn; còn lại theo checklist Q1–Q5), trừ khi PR thuộc 4 loại việc chỉ owner quyết.
+11. REQUEST_CHANGES tự động thứ 2 trên PR → gắn `needs-owner`. **Từ vòng thứ 3, Claude quyết** (owner 31.10.2026: "kể cả có ping pong qua lại nếu bạn đánh giá rất critical thì có thể sửa, và ảnh hưởng tới người dùng. còn không thì cứ dựa trên check list để quyết định cho việc review lần >=3. ko cần chờ tôi"):
+    - phát hiện nghiêm trọng hoặc ảnh hưởng người dùng → Claude sửa, gỡ `needs-owner`, review lại, bao nhiêu vòng cũng được;
+    - còn lại thì đi qua checklist Q1–Q5 (`decision-checklist.md`): cả năm câu "không" thì sửa và đi tiếp; có câu "có" (câu chữ mới, dữ liệu cá nhân, hướng sản phẩm) thì vẫn chờ owner;
+    - quyết định ghi trên PR, kèm lý do gỡ nhãn.
+    Nhãn `needs-owner` sau vòng 2 vì thế không có nghĩa là luôn chờ owner. Từ 15.11.2026 owner cũng không còn là bước duyệt bắt buộc (§2): nhãn chỉ giữ ý nghĩa "chờ owner" khi PR thuộc 4 loại việc chỉ owner quyết.
 12. JSON và log lưu ở `~/.cache/la-lanh-collab/logs/`, không vào repo.
 
 ### 4.2 `collab-merge.mjs` — điều kiện merge (tất cả phải đúng)
