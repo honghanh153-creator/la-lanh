@@ -225,7 +225,7 @@ function report(clone, run, personasPath, title) {
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 // The heavy-job lock the author check uses, plus no other heavy test process on the machine.
-async function withHeavyLock(fn, { waitMs = 30 * 60000, stepMs = 60000 } = {}) {
+export async function withHeavyLock(fn, { waitMs = 30 * 60000, stepMs = 60000 } = {}) {
   const until = Date.now() + waitMs;
   for (;;) {
     if (!machineBusy()) {
@@ -260,11 +260,20 @@ function writeSkip(date, reason, extra = {}) {
 const pastStart = (date, now = vnNow()) => date === now.date && now.hour * 60 + now.minute >= lastStartAt;
 const refusedLate = { status: 'refused', reason: `quá ${hhmmOf(lastStartAt)}, không bắt đầu việc mới` };
 
+// The date folder is shared by every step of a night. It is reset only by the holder of the
+// heavy-job lock, so a second prepare for the same date waits instead of deleting a running
+// night's files (#565).
+export function startRun(date, fn, lockOptions) {
+  return withHeavyLock(async () => {
+    const dir = dayDir(date);
+    rmSync(dir, { recursive: true, force: true });
+    mkdirSync(dir, { recursive: true });
+    return fn(dir);
+  }, lockOptions);
+}
+
 export async function prepare({ date = vnNow().date, anyTime = false, alerting = {} } = {}) {
   if (!anyTime && pastStart(date)) return refusedLate;
-  const dir = dayDir(date);
-  rmSync(dir, { recursive: true, force: true });
-  mkdirSync(dir, { recursive: true });
   const work = join(nightlyDir(), 'clone-end');
   mkdirSync(nightlyDir(), { recursive: true });
   if (!existsSync(join(work, '.git'))) git(['clone', '--quiet', '--no-checkout', `https://github.com/${repo}.git`, work]);
@@ -277,7 +286,7 @@ export async function prepare({ date = vnNow().date, anyTime = false, alerting =
   const base = { date, start, end, appChanges: kinds.app, unknownChanges: kinds.unknown };
   if (!kinds.run) return writeSkip(date, start === end ? 'hôm nay không có commit mới trên nhánh chung' : 'hôm nay không có thay đổi chạm tới app', base);
 
-  return withHeavyLock(async () => {
+  return startRun(date, async dir => {
     if (!anyTime && pastStart(date)) return refusedLate;
     const limitMs = () => (anyTime ? 30 * 60000 : Math.min(30 * 60000, cutoffMs(date) - Date.now()));
     const endClone = prepareClone('end', end, end);
