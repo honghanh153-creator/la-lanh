@@ -79,8 +79,19 @@
    "from": "thỏa thuận 12.11 mục D",
    "who": "claude",
    "due": "2026-11-17",
-   "status": "open",
-   "note": "gate merged 71a3673 (#542); installed by the owner 15.11, verify ok; real sub-agent probe 15.11: blocked write denied, allowed write also denied (guard-list-empty: ~/.cache/la-lanh-collab/private-guard.txt missing); removed 15.11 16:01 by owner choice until private-guard.txt exists; reinstall with --install-agent-gate, rerun the probe, then close"
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-agent-gate.test.mjs",
+    "name": "L06 gate: writes into a shared clone, onto a protected branch or a parent checkout on another branch are denied"
+   },
+   "caller": {
+    "file": "scripts/collab-ops-wrapper.mjs",
+    "contains": "collab-agent-gate.mjs"
+   },
+   "closedBy": {
+    "pr": 542
+   },
+   "note": "gate merged 71a3673 (#542); removed 15.11 16:01 until the guard list existed; guard list created by the owner 15.11; reinstalled with --install-agent-gate, --verify: \"ops-run.sh ok / agent gate ok\"; real sub-agent probe 15.11 22:14 (VN): Write on branch probe/* denied (branch-not-allowed, file absent), Write in a clean agent/claude/* worktree allowed (CLAIM, released on SubagentStop, 0 claims left)"
   },
   {
    "id": "L07",
