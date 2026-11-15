@@ -5,7 +5,7 @@
 // - fixtures, source files and walk steps are valid.
 // Usage: node scripts/verify/feature-map-check.mjs   (exit 1 when there are problems)
 import { readFileSync } from "node:fs";
-import { pathToFileURL } from "node:url";
+import { isMain } from "../is-main.mjs";
 
 import { checkMap, FIXTURES_PATH, loadAppSource, loadMap, parseRouterRoutes, ROUTER_PATH } from "./feature-map.mjs";
 
@@ -20,7 +20,7 @@ export function runCheck() {
   return { problems, routes: routes.length, features: map.features.length };
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
+if (isMain(import.meta.url)) {
   const { problems, routes, features } = runCheck();
   if (problems.length) {
     console.error(`feature-map: ${problems.length} problem(s)`);

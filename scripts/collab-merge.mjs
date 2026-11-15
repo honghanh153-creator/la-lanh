@@ -1,10 +1,11 @@
 // Merge one PR into collab/integration only when every condition in the auto-loop plan §4.2 holds.
 // Usage: node scripts/collab-merge.mjs --pr N [--dry-run]
 import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
 import { agentMarker, clean, dayStatePath, fixForwardIssue, integration, isOwnPr, isSha, makeGh, readJson, repo, reviewState, stateDir, vnNow, writeJson } from './collab-trust.mjs';
+import { afterDecision, disputeView } from './collab-disagree.mjs';
+import { isMain } from './is-main.mjs';
 
-export function mergeGate(pr) {
+export function mergeGate(pr, { disputes = disputeView() } = {}) {
   const reasons = [];
   const head = pr.headRefOid;
   const labels = (pr.labels ?? []).map(l => l.name ?? l);
@@ -15,7 +16,9 @@ export function mergeGate(pr) {
   if (pr.isDraft) reasons.push('draft');
   if (labels.includes('needs-owner')) reasons.push('needs-owner');
   if (pr.mergeable !== 'MERGEABLE') reasons.push(`GitHub báo mergeable=${pr.mergeable}`);
-  const { check, last } = reviewState(pr);
+  // L25: no merge while a dispute is open; after a decision only a newer check and review count.
+  if (disputes[pr.number]?.hold) reasons.push(disputes[pr.number].hold);
+  const { check, last } = reviewState(afterDecision(pr, disputes[pr.number]));
   if (!last || last.verdict.verdict !== 'APPROVE' || last.verdict.sha !== head) reasons.push('verdict mới nhất (sau lần đổi base gần nhất) không phải APPROVE @ head');
   // The newest author check for the head decides; an older PASS does not outvote a later FAIL.
   if (check?.status !== 'PASS') reasons.push('Author check mới nhất @ head không phải PASS');
@@ -51,7 +54,7 @@ export function runMerge(number, { gh = makeGh(), dryRun = false, date } = {}) {
   return { status: 'merged', head: gate.head, retargeted };
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (isMain(import.meta.url)) {
   const args = process.argv.slice(2);
   const number = Number(args[args.indexOf('--pr') + 1]);
   if (!args.includes('--pr') || !Number.isInteger(number) || number <= 0) {

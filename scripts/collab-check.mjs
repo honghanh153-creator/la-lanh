@@ -6,12 +6,12 @@
 import { spawnSync, execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
-import { agentMarker, boundedTimeout, clean, integration, isOwnPr, isSha, makeGh, repo, stateDir, vnNow } from './collab-trust.mjs';
+import { agentMarker, boundedTimeout, clean, cutoffAt, cutoffMs, hhmmOf, integration, isOwnPr, isSha, lastStartAt, makeGh, planOpensAt, repo, stateDir, vnNow } from './collab-trust.mjs';
 import { withFileLock } from './collab-lock.mjs';
 import { preflightFailure, readPreflight, recordPreflight, runPreflight } from './collab-preflight.mjs';
 import { runGroup, syncWithIntegration } from './collab-heal.mjs';
 import { checkSteps, failDetails, guardWaitMs, openCheckLog, waitForGuard } from './collab-check-log.mjs';
+import { isMain } from './is-main.mjs';
 
 // A heavy test process anywhere on the machine, matched on the program actually running.
 // `pgrep -f` matched any command line that merely mentioned these words, including the agent
@@ -41,8 +41,8 @@ export function machineBusy(run = execFileSync) {
 // Process-group runner (kills the whole tree at the deadline, stuck beat after 30 min): collab-heal.mjs.
 export { runGroup };
 
-// Automatic checks start nothing after 23:30 and end by 23:55 (plan §3.1); direct runs get 90 minutes.
-// The budget ends at the exact 23:55:00 instant minus the cleanup reserve, so SIGTERM, the grace
+// Automatic checks start nothing from lastStartAt and end by cutoffAt (plan §3.1, hours in collab-trust.mjs);
+// direct runs get 90 minutes. The budget ends at the exact cutoff instant minus the cleanup reserve, so SIGTERM, the grace
 // period and SIGKILL all finish before the cutoff (#140).
 export const cleanupReserveMs = 15000;
 // After pnpm check: two git calls and one gh comment (fixed 60 s) must still fit before the Git/GitHub
@@ -52,9 +52,9 @@ export function checkBudgetMs({ auto, clock = vnNow, nowMs = Date.now }) {
   if (!auto) return 90 * 60000;
   const t = clock();
   const minute = t.hour * 60 + t.minute;
-  if (minute < 8 * 60 + 50 || minute >= 23 * 60 + 30) return 0;
-  const byMinute = Math.min(90, 23 * 60 + 55 - minute) * 60000;
-  const cutoff = Date.parse(`${t.date}T23:55:00+07:00`);
+  if (minute < planOpensAt || minute >= lastStartAt) return 0;
+  const byMinute = Math.min(90, cutoffAt - minute) * 60000;
+  const cutoff = cutoffMs(t.date);
   const exact = Number.isFinite(cutoff) ? cutoff - nowMs() : byMinute;
   return Math.max(0, Math.min(byMinute, exact) - cleanupReserveMs);
 }
@@ -150,7 +150,9 @@ export function ciCheck(gh, head) {
   const job = jobs[0];
   if (!job) return { state: 'FAIL', conclusion: 'missing', url: run.html_url ?? '' };
   if (job.status !== 'completed') return { state: 'pending', url: job.html_url ?? '' };
-  return { state: job.conclusion === 'success' ? 'PASS' : 'FAIL', conclusion: String(job.conclusion ?? 'unknown'), url: job.html_url ?? '' };
+  // #508: the run id, attempt and the job's own end time let the tick spot a green re-run.
+  return { state: job.conclusion === 'success' ? 'PASS' : 'FAIL', conclusion: String(job.conclusion ?? 'unknown'), url: job.html_url ?? '',
+    runId: Number(run.id), attempt: Number(run.run_attempt ?? 1), completedAt: String(job.completed_at ?? '') };
 }
 
 // CI mode keeps only the metadata preflight (body, level, size). ruff and mypy read config and
@@ -230,7 +232,7 @@ function checkOnce(number, { gh, cwd, git, spawn, now, busy, budget, terms = rea
   const other = source === 'ci' ? null : busy();
   if (other) return { status: 'busy', reason: `máy đang chạy check khác: ${clean(other, 120)}` };
   const timeoutMs = budget();
-  if (timeoutMs <= 0) return { status: 'refused', reason: 'ngoài giờ chạy tự động (sau 23:30)' };
+  if (timeoutMs <= 0) return { status: 'refused', reason: `ngoài giờ chạy tự động (sau ${hhmmOf(lastStartAt)})` };
   const started = now();
   const guard = privateHits(pr, git, terms);
   if (guard.length) {
@@ -239,9 +241,9 @@ function checkOnce(number, { gh, cwd, git, spawn, now, busy, budget, terms = rea
   }
   // Fix A (04.11.2026): template and changed-Python lint first. Nothing is posted; the tick
   // records the reasons and the PR goes to claude-fix without spending the 15-minute check.
-  // The lint is bounded by the same deadline, and the budget is read again before pnpm (K: 23:55).
+  // The lint is bounded by the same deadline, and the budget is read again before pnpm (K: cutoffAt).
   const pre = preflight?.(pr, cwd, budget);
-  if (budget() <= 0) return { status: 'refused', reason: 'hết giờ sau preflight (sau 23:30)' };
+  if (budget() <= 0) return { status: 'refused', reason: `hết giờ sau preflight (sau ${hhmmOf(lastStartAt)})` };
   if (pre?.status === 'FAIL') return { status: 'preflight', reasons: pre.reasons, ...(pre.bodyHash ? { bodyHash: pre.bodyHash } : {}) };
   if (source === 'ci') {
     const result = ci(gh, head);
@@ -254,7 +256,7 @@ function checkOnce(number, { gh, cwd, git, spawn, now, busy, budget, terms = rea
   const guarded = waitGuard({ limitMs: Math.min(guardWaitMs, budget()) });
   if (guarded) return { status: 'busy', reason: `test của agent đang chạy qua collab-test-guard (pid ${guarded})` };
   const left = budget();
-  if (left <= 0) return { status: 'refused', reason: 'hết giờ khi chờ test của agent (sau 23:30)' };
+  if (left <= 0) return { status: 'refused', reason: `hết giờ khi chờ test của agent (sau ${hhmmOf(lastStartAt)})` };
   const out = openCheckLog(pr.number, head);
   // CI=1: Playwright starts its own preview server instead of reusing one left by another checkout.
   let result;
@@ -320,7 +322,7 @@ export function runCheckInClone(number, { gh = makeGh(), run = execFileSync, aut
   if (!isSha(pr.headRefOid)) throw new Error('PR head SHA unavailable.');
   // Never fetch, build or run a PR that is not the owner's own branch (fork or outside author).
   if (!isOwnPr(pr)) return { status: 'refused', reason: 'PR không phải của owner hoặc từ fork: không chạy code của nó' };
-  if (checkBudgetMs({ auto, clock }) <= 0) return { status: 'refused', reason: 'ngoài giờ chạy tự động (sau 23:30)' };
+  if (checkBudgetMs({ auto, clock }) <= 0) return { status: 'refused', reason: `ngoài giờ chạy tự động (sau ${hhmmOf(lastStartAt)})` };
   const held = heldPreflight({ ...pr, number: pr.number ?? number }, rest.held);
   if (held) return held;
   const source = rest.source ?? checkSource();
@@ -339,7 +341,9 @@ export function runCheckInClone(number, { gh = makeGh(), run = execFileSync, aut
     // Every gh and git call after the clone is bounded by the same deadline (05.11.2026).
     const ghD = gh.withDeadline?.(leftMs) ?? gh;
     const gitD = args => git(args, cwd, run, boundedTimeout(600000, leftMs));
-    const synced = syncWithIntegration(pr, { git: (args, ms) => git(args, cwd, run, ms), gh: ghD, left: leftMs });
+    // L14: the tick passes sync=false for every PR except the front of its area queue; a manual
+    // `--clone` run keeps the old behaviour.
+    const synced = rest.sync === false ? null : syncWithIntegration(pr, { git: (args, ms) => git(args, cwd, run, ms), gh: ghD, left: leftMs });
     if (synced) return synced;
     // The clock is read again after the clone and install, which can take minutes.
     // pnpm stops early enough that the receipt still fits inside leftMs (#243).
@@ -351,7 +355,7 @@ export function runCheckInClone(number, { gh = makeGh(), run = execFileSync, aut
   });
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (isMain(import.meta.url)) {
   const args = process.argv.slice(2);
   // `--busy`: the one shared answer to "is a heavy check running?" for agents and schedules.
   if (args.includes('--busy')) {

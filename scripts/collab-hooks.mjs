@@ -9,7 +9,7 @@ import { execFileSync } from 'node:child_process';
 import { chmodSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { isMain } from './is-main.mjs';
 
 export const claudeClone = process.env.LA_LANH_CLAUDE_CLONE || join(homedir(), 'Documents', 'New project', 'la-lanh-claude');
 export const hookMarker = '# la-lanh pre-push';
@@ -78,7 +78,7 @@ export function hookHealth(clone = claudeClone, opts) {
   } catch (error) { return [`- ⚠️ Hook trước push ở clone Claude: chưa kiểm được (${error.message})`]; }
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (isMain(import.meta.url)) {
   const args = process.argv.slice(2);
   const clone = args.find(a => !a.startsWith('--')) ?? claudeClone;
   if (args.includes('--install')) {
