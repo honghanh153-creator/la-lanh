@@ -457,6 +457,25 @@
    "closedBy": {
     "pr": 531
    }
+  },
+  {
+   "id": "L29",
+   "title": "Một ngày chỉ một danh sách việc: danh sách buổi sáng được máy kiểm bằng cùng luật, không đạt thì máy chọn lại; giữ 2 chỗ cho kế hoạch 7 tuần (sự cố 15.11: hai danh sách khác nhau)",
+   "from": "báo cáo 08:00 15.11; owner 15.11 \"Bắt đầu\"; Codex r1 trên #544",
+   "who": "claude",
+   "due": "2026-11-16",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-loop.test.mjs",
+    "name": "7-week: the tick uses the morning list when it passes and re-picks when it is short"
+   },
+   "caller": {
+    "file": "scripts/collab-turn.mjs",
+    "contains": "dayList({ units: workUnits({ turns, prs, issues: issues() }), comments, date })"
+   },
+   "closedBy": {
+    "pr": 544
+   }
   }
  ]
 }

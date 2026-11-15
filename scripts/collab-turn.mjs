@@ -101,6 +101,14 @@ export function recordList(list, carried = []) {
   };
 }
 const entryKey = e => (e.item ? `item:${e.item}` : `pr:${e.pr}`);
+// The day's dropped work, as keys: `Bỏ #N` names a PR or an item; a PR dropped by number also
+// drops the item it works on.
+export function droppedKeysOf(plan, turns) {
+  const dropped = plan?.dropped ?? [];
+  const keys = new Set(dropped.flatMap(n => [`pr:${n}`, `item:${n}`]));
+  for (const t of turns) if (dropped.includes(t.number)) keys.add(unitKey(t));
+  return keys;
+}
 
 // Replacement after `Bỏ #N` (a PR or an item number): dropped selections leave; the rest stay,
 // finished ones included; pickPlan fills the freed seats (7-week first while short). The note is
@@ -113,20 +121,23 @@ export function replan({ gh, plan, dayPath, day, date, issues = () => quotaIssue
     return { delivered: true };
   }
   if (!Array.isArray(d.plannedKeys)) return null;
-  const droppedKeys = d.plannedKeys.filter(k => (plan.dropped ?? []).some(n => k === `item:${n}` || k === `pr:${n}`)).concat(
-    (plan.dropped ?? []).filter(n => (d.planned ?? []).includes(n)).map(n => `pr:${n}`).filter(k => !d.plannedKeys.includes(k)));
-  // A PR dropped by number whose item is planned drops that item.
   const prs = gh.openPrs();
   const turns = turnsFor(prs, { dropped: plan.dropped, baseFiles: gh.compareFiles });
-  for (const t of turns) if ((plan.dropped ?? []).includes(t.number) && d.plannedKeys.includes(unitKey(t))) droppedKeys.push(unitKey(t));
-  const dropKey = [...new Set(droppedKeys)].sort().join(',');
+  // Codex r2 on #544: every drop of the day (by PR or item number) stays dropped, for selection
+  // and execution alike.
+  const all = droppedKeysOf(plan, turns);
+  const droppedKeys = d.plannedKeys.filter(k => all.has(k));
+  const dropKey = droppedKeys.sort().join(',');
   if (!dropKey || d.replannedFor === dropKey) return null;
-  const units = workUnits({ turns, prs, issues: issues() }).filter(u => !droppedKeys.includes(u.key));
-  const keep = d.plannedKeys.filter(k => !droppedKeys.includes(k));
-  const carried = keep.filter(k => !units.some(u => u.key === k)).map(k => ({ key: k, entry: (d.plannedItems ?? []).find(e => entryKey(e) === k) ?? { [k.split(':')[0]]: Number(k.split(':')[1]), plan7w: (d.planned7wKeys ?? []).includes(k) } }));
+  const units = workUnits({ turns, prs, issues: issues() }).filter(u => !all.has(u.key));
+  const keep = d.plannedKeys.filter(k => !all.has(k));
+  // A kept selection that is gone (finished) or held now keeps its entry; readiness only affects
+  // execution (Codex r2 on #544).
+  const carried = keep.filter(k => !units.some(u => u.key === k && u.ready)).map(k => ({ key: k, entry: (d.plannedItems ?? []).find(e => entryKey(e) === k) ?? { [k.split(':')[0]]: Number(k.split(':')[1]), plan7w: (d.planned7wKeys ?? []).includes(k) } }));
   const carried7w = carried.filter(c => c.entry.plan7w).length;
   const list = { source: 'replan', note: `Chọn bù sau khi bỏ ${droppedKeys.map(k => `#${k.split(':')[1]}`).join(', ')}.`,
-    ...pickPlan(units, { fixed: keep, cap: planCap - carried.length, need: Math.max(0, min7w - carried7w) }) };
+    // Only the dropped seats are refilled: the day keeps its original size (Codex r2 on #544).
+    ...pickPlan(units, { fixed: keep, cap: Math.min(planCap, d.plannedKeys.length) - carried.length, need: Math.max(0, min7w - carried7w) }) };
   const added = list.items.filter(u => !d.plannedKeys.includes(u.key));
   const lines = added.map(u => `- ${u.prs.length ? u.prs.map(n => `#${n}`).join(', ') : `việc #${u.item} (chưa có PR)`} ${clean(u.title, 80)}${u.plan7w ? ' [Kế hoạch 7 tuần]' : ''}`);
   const record = recordList(list, carried);
@@ -306,9 +317,12 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       const dayNow = readJson(dayPath, day);
       const incidentKeys = new Set(dayNow.incidentKeys ?? []);
       const kept = new Set(dayNow.planned7wKeys ?? []);
-      const first = turns.filter(t => incidentKeys.has(unitKey(t)));
-      const second = turns.filter(t => !incidentKeys.has(unitKey(t)) && kept.has(unitKey(t)));
-      const work = [...first, ...second, ...turns.filter(t => t.area === area && !first.includes(t) && !second.includes(t))];
+      // A dropped item is not worked, even through another PR that names it (Codex r2 on #544).
+      const gone = droppedKeysOf(plan, turns);
+      const live = turns.filter(t => !gone.has(unitKey(t)));
+      const first = live.filter(t => incidentKeys.has(unitKey(t)));
+      const second = live.filter(t => !incidentKeys.has(unitKey(t)) && kept.has(unitKey(t)));
+      const work = [...first, ...second, ...live.filter(t => t.area === area && !first.includes(t) && !second.includes(t))];
       const done = [];
       const late = () => { const t = time(); return t.hour * 60 + t.minute >= lastStartAt; };
       for (const t of work.filter(t => t.turn === 'merge').slice(0, 2)) {

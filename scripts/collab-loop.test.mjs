@@ -1572,3 +1572,40 @@ test('7-week: a re-pick keeps a finished item, replaces only the dropped one, an
   assert.match(comments.at(-1).body, /Chọn bù sau khi bỏ #22/);
   assert.equal(trust.readJson(trust.dayStatePath(date), {}).replanNote, null);
 });
+
+// Codex r2 on #544: drops by item number hold across execution and later re-picks; held
+// selections are kept; re-picks refill only the dropped seats.
+test('7-week: an item dropped by number is not worked through its PR and never comes back', () => {
+  const date = '2026-12-29';
+  const issues = [w7Issue, { number: 301, title: 'việc 301', labels: w7Label, body: '## Tiêu chí đạt\n- AC1 x\n' }];
+  const comments = Object.assign([], { date });
+  const gh = w7Gh({ comments, open: w7Open(), issues });
+  tick({ gh, now: { date, hour: 6, minute: 52 }, merge: () => ({}), review: () => ({}) });
+  comments.push({ authorAssociation: 'OWNER', createdAt: `${date}T01:59:30Z`, body: 'Duyệt\nBỏ #300' });
+  const checked = [];
+  tick({ gh, now: { date, hour: 8, minute: 10 }, prPreflight: () => ({ status: 'PASS' }), heavyFree: () => true, check: n => { checked.push(n); return { status: 'FAIL' }; }, merge: () => ({}), review: () => ({}) });
+  assert.ok(!checked.includes(31), `PR #31 does item #300: checked ${checked.join(',')}`);
+  const d = trust.readJson(trust.dayStatePath(date), {});
+  assert.ok(!d.plannedKeys.includes('item:300'));
+  comments.push({ authorAssociation: 'OWNER', createdAt: `${date}T02:30:00Z`, body: 'Bỏ #32' });
+  tick({ gh, now: { date, hour: 8, minute: 40 }, prPreflight: () => ({ status: 'PASS' }), heavyFree: () => true, check: () => ({ status: 'FAIL' }), merge: () => ({}), review: () => ({}) });
+  const d2 = trust.readJson(trust.dayStatePath(date), {});
+  assert.ok(!d2.plannedKeys.includes('item:300'), 'an earlier drop is not re-picked');
+  assert.ok(!d2.plannedKeys.includes('pr:32'));
+});
+
+test('7-week: a re-pick keeps a held selection and refills only the dropped seat of a 3-item day', () => {
+  const date = '2026-12-30';
+  const prep = { authorAssociation: 'OWNER', createdAt: `${date}T00:00:00Z`, body: `x\n\n${trust.agentMarker} morning-prep date=${date} items=pr:21,pr:31,pr:32 -->` };
+  const comments = Object.assign([prep], { date });
+  tick({ gh: w7Gh({ comments, open: w7Open() }), now: { date, hour: 6, minute: 52 }, merge: () => ({}), review: () => ({}) });
+  assert.deepEqual(trust.readJson(trust.dayStatePath(date), {}).plannedKeys.length, 3);
+  // #31 (item 300) is held by needs-owner now; the owner drops #21.
+  const open = w7Open().map(p => (p.number === 31 ? { ...p, labels: [{ name: 'needs-owner' }] } : p));
+  comments.push({ authorAssociation: 'OWNER', createdAt: `${date}T01:59:30Z`, body: 'Bỏ #21' });
+  tick({ gh: w7Gh({ comments, open }), now: { date, hour: 7, minute: 10 }, merge: () => ({}), review: () => ({}) });
+  const d = trust.readJson(trust.dayStatePath(date), {});
+  assert.equal(d.plannedKeys.length, 3, `keys ${d.plannedKeys.join(',')}`);
+  assert.ok(d.plannedKeys.includes('item:300'), 'the held selection stays');
+  assert.ok(!d.plannedKeys.includes('pr:21'));
+});
