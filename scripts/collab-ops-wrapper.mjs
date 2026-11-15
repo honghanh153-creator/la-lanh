@@ -7,6 +7,7 @@
 // Usage: node scripts/collab-ops-wrapper.mjs --install | --verify
 import { execFileSync } from 'node:child_process';
 import { chmodSync, existsSync, readFileSync, realpathSync, renameSync, statSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { integration, stateDir } from './collab-trust.mjs';
@@ -55,9 +56,26 @@ export function verifyWrapper({ root = repoRoot, home = stateDir } = {}) {
   return [];
 }
 
-export function wrapperHealth(opts) {
+// L19 (Codex auto-1 on #552): the two scheduled reports must read the shared slot snapshot through
+// the wrapper. Their prompts live outside the repo, so the tick checks them every run and shows a
+// warning when either no longer calls its snapshot step.
+export const reportConsumers = [
+  { task: 'la-lanh-owner-report', label: 'báo cáo owner 08/14/22', step: /ops-run\.sh snapshot 08\b/ },
+  { task: 'la-lanh-retro-2026-11-02', label: 'retro 23:35', step: /ops-run\.sh snapshot retro\b/ },
+];
+export function verifyReportPrompts({ dir = join(homedir(), '.claude', 'scheduled-tasks') } = {}) {
+  const bad = [];
+  for (const c of reportConsumers) {
+    let text = '';
+    try { text = readFileSync(join(dir, c.task, 'SKILL.md'), 'utf8'); } catch { bad.push(`không đọc được prompt ${c.label}`); continue; }
+    if (!c.step.test(text)) bad.push(`${c.label} không gọi bước bản chụp chung`);
+  }
+  return bad;
+}
+
+export function wrapperHealth(opts = {}) {
   try {
-    const bad = verifyWrapper(opts);
+    const bad = [...verifyWrapper(opts), ...verifyReportPrompts(opts.prompts ? { dir: opts.prompts } : {})];
     return bad.length ? [`- ⚠️ ops-run.sh của tác vụ hẹn giờ: ${bad.join('; ')}`] : ['- ✅ ops-run.sh của tác vụ hẹn giờ: khớp bản đã review'];
   } catch (error) { return [`- ⚠️ ops-run.sh của tác vụ hẹn giờ: chưa kiểm được (${error.message})`]; }
 }

@@ -6,9 +6,19 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { installWrapper, installedPath, verifyWrapper, wrapperHealth } from './collab-ops-wrapper.mjs';
+import { installWrapper, installedPath, reportConsumers, verifyReportPrompts, verifyWrapper, wrapperHealth } from './collab-ops-wrapper.mjs';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
+// Scheduled-task prompts as the owner's machine has them since 15.11 (both call their snapshot step).
+function prompts({ owner = 'Run `/x/ops-run.sh snapshot 08` (or `14`, `22`).', retro = 'First run `/x/ops-run.sh snapshot retro`.' } = {}) {
+  const dir = realpathSync(mkdtempSync(join(tmpdir(), 'prompts-')));
+  for (const [task, text] of [['la-lanh-owner-report', owner], ['la-lanh-retro-2026-11-02', retro]]) {
+    if (text === null) continue;
+    mkdirSync(join(dir, task));
+    writeFileSync(join(dir, task, 'SKILL.md'), `${text}\n`);
+  }
+  return dir;
+}
 const git = (cwd, ...args) => execFileSync('/usr/bin/git', ['-c', 'user.name=t', '-c', 'user.email=t@example.invalid', ...args], { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
 
 // A home with a real ops clone of a fake origin, a fake `node` that records its argv and cwd, and
@@ -111,7 +121,20 @@ test('the wrapper installs only from the ops clone, atomically, and drift is rep
   assert.match(verifyWrapper({ root: join(w.home, 'ops'), home: w.home }).join(), /chưa cài/);
   assert.equal(installWrapper({ root: join(w.home, 'ops'), home: w.home }), installedPath(w.home));
   assert.deepEqual(verifyWrapper({ root: join(w.home, 'ops'), home: w.home }), []);
-  assert.match(wrapperHealth({ root: join(w.home, 'ops'), home: w.home })[0], /✅/);
+  assert.match(wrapperHealth({ root: join(w.home, 'ops'), home: w.home, prompts: prompts() })[0], /✅/);
   writeFileSync(installedPath(w.home), '#!/bin/zsh\necho old\n');
-  assert.match(wrapperHealth({ root: join(w.home, 'ops'), home: w.home })[0], /⚠️.*khác bản đã review/);
+  assert.match(wrapperHealth({ root: join(w.home, 'ops'), home: w.home, prompts: prompts() })[0], /⚠️.*khác bản đã review/);
+});
+
+// Codex auto-1 on #552: the consumers themselves are checked. A report prompt that stops calling the
+// snapshot step (or is missing) turns the tick's health line into a warning.
+test('L19: both scheduled reports must call their snapshot step; a disconnected one is reported', () => {
+  assert.deepEqual(verifyReportPrompts({ dir: prompts() }), []);
+  assert.deepEqual(reportConsumers.map(c => c.task), ['la-lanh-owner-report', 'la-lanh-retro-2026-11-02']);
+  assert.match(verifyReportPrompts({ dir: prompts({ owner: 'Count merged PRs with gh pr list.' }) }).join(), /báo cáo owner 08\/14\/22 không gọi bước bản chụp chung/);
+  assert.match(verifyReportPrompts({ dir: prompts({ retro: 'Facts from tick logs.' }) }).join(), /retro 23:35 không gọi bước bản chụp chung/);
+  assert.match(verifyReportPrompts({ dir: prompts({ retro: null }) }).join(), /không đọc được prompt retro/);
+  const w = world();
+  installWrapper({ root: join(w.home, 'ops'), home: w.home });
+  assert.match(wrapperHealth({ root: join(w.home, 'ops'), home: w.home, prompts: prompts({ owner: 'no snapshot' }) })[0], /⚠️.*báo cáo owner/);
 });
