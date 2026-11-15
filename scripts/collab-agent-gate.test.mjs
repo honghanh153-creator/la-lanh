@@ -277,12 +277,16 @@ test('L06 gate: exemption matrix — each read-only form next to the forms that 
   const matrix = {
     git: [['git log --oneline', 'git -C /x status', 'git branch --show-current', 'git branch -a', 'git config --get remote.origin.url', 'git diff HEAD~1'],
       ['git branch -C main', 'git branch -D x', 'git branch -m a b', 'git branch new', 'git -cdiff.external=/tmp/w diff', 'git -c core.pager=sh log', 'git --exec-path=/tmp log',
-        'git -p log', 'git diff --output=/tmp/x', 'git log --output /tmp/x', 'git grep -Ox', 'git diff --ext-diff', 'git config user.name x', 'git config --get', 'git commit -m x', 'git -C']],
+        'git -p log', 'git diff --output=/tmp/x', 'git log --output /tmp/x', 'git grep -Ox', 'git diff --ext-diff', 'git config user.name x', 'git config --get', 'git commit -m x', 'git -C',
+        // auto-3: abbreviations and converters
+        'git grep --open-files-in=/tmp/w x', 'git grep --open x', 'git log --textconv -p', 'git show --textconv HEAD', 'git cat-file --filters HEAD:a', 'git cat-file --textconv HEAD:a', 'git diff --ext', 'git log --outp=/tmp/x']],
     env: [[], ['GIT_EXTERNAL_DIFF=/tmp/w git diff', 'PAGER=/tmp/w git log', 'X=1 cat f']],
     sort: [['sort -n f', 'sort -u f'], ['sort -o /tmp/x f', 'sort -no/tmp/x f', 'sort --output=/tmp/x f', 'sort --compress-program=/tmp/w f']],
     sed: [["sed -n '1,5p' f", "sed -n '$p' f"], ["sed -n 'w /tmp/x' f", "sed -n '1p;w /tmp/x' f", "sed -n -i '1p' f", "sed '1p' f", "sed -n 'e /tmp/w' f"]],
     find: [['find . -name x'], ['find . -delete', 'find . -exec rm {} ;', 'find . -fprint /tmp/x', 'find . -fls /tmp/x']],
-    rg: [['rg -n x'], ['rg --pre /tmp/w x', 'rg --pre=/tmp/w x']],
+    rg: [['rg -n x', 'rg -g *.mjs x .', 'rg --files'], ['rg --pre /tmp/w x', 'rg --pre=/tmp/w x', 'rg --hostname-bin=/tmp/w --hyperlink-format=default x .', 'rg --search-zip x', 'rg --unknown x']],
+    // auto-3: every exemption is an allowlist, so an option nobody listed is a write.
+    unknown: [['head -n5 f', 'tail -n +3 f', 'grep -rn --include=*.mjs x .', 'wc -l f'], ['cat --show-all f', 'ls --color=always', 'head --bytes=1 f', 'grep --pre x', 'jq --rawfile a b .', 'diff --to-file=x a', 'stat --printf=x f', 'wc --files0-from=f', 'tr --unknown a b']],
     date: [['date +%F'], ['date -s 2020-01-01', 'date --set=x']],
     other: [['cat a', 'ls -la', 'head -5 f', 'wc -l f', 'grep -rn x .', 'jq . f', 'cut -d, -f1 f', 'echo x', 'stat f', 'diff a b'],
       ['uniq a b', 'tee x', 'cat a | tee b', 'echo x > f', 'cat <<EOF', 'echo $(rm x)', 'touch f', 'node x.mjs', 'cp a b']],

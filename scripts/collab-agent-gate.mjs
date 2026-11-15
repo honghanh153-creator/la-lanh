@@ -119,15 +119,64 @@ const segmentsOf = words => {
   return segs.filter(s => s.length);
 };
 
-// Bash that only reads. Anything not on this list, and any option that writes a file or runs a
-// program (sort -o, sed w/e, git --output, rg --pre, git -c), is treated as a write (fail closed).
-const readers = new Set(['cat', 'ls', 'head', 'tail', 'wc', 'grep', 'rg', 'jq', 'sort', 'cut', 'tr', 'echo', 'printf', 'pwd', 'stat', 'diff', 'which', 'date', 'cd', 'true', 'basename', 'dirname', 'realpath', 'test', '[']);
-const gitReaders = new Set(['log', 'show', 'diff', 'status', 'grep', 'rev-parse', 'ls-files', 'ls-tree', 'blame', 'cat-file', 'merge-base', 'describe', 'shortlog', 'rev-list']);
-const writingOption = {
-  sort: w => /^(-[a-zA-Z]*o|--output|--compress-program)/.test(w),
-  rg: w => /^--pre/.test(w),
-  date: w => /^(-[a-zA-Z]*s|--set)/.test(w),
+// Bash that only reads (Codex auto-1..3 on #542). An allowlist, not a blocklist: each command
+// accepts only the exact options listed here (no abbreviations, no `--opt=value` unless listed), and
+// any other option, any redirection, substitution or environment prefix makes the call a write that
+// the workspace check sees. Options that take a value consume the next word.
+const spec = (flags = [], takes = [], { patterns = [], anyArgs = false } = {}) => ({ flags: new Set(flags), takes: new Set(takes), patterns, anyArgs });
+const num = /^-\d+$/;
+const readers = {
+  cat: spec(['-n']),
+  ls: spec([], [], { patterns: [/^-[lahtrRS1dF]+$/] }),
+  head: spec([], ['-n', '-c'], { patterns: [num, /^-n\d+$/] }),
+  tail: spec([], ['-n', '-c'], { patterns: [num, /^-n\+?\d+$/] }),
+  wc: spec([], [], { patterns: [/^-[lwcm]+$/] }),
+  grep: spec([], ['-e', '-A', '-B', '-C', '-m'], { patterns: [/^-[rRnilvcHhwEFoqsx]+$/, /^--(include|exclude|exclude-dir)=[^=]+$/] }),
+  rg: spec(['--files', '--hidden'], ['-e', '-g', '-t', '-A', '-B', '-C', '-m'], { patterns: [/^-[nilwvcSFo]+$/] }),
+  jq: spec([], [], { patterns: [/^-[rcSe]+$/] }),
+  sort: spec([], ['-k', '-t'], { patterns: [/^-[nrubfV]+$/] }),
+  cut: spec([], ['-d', '-f', '-c'], { patterns: [/^-[fc][\d,-]+$/, /^-d.$/] }),
+  tr: spec(['-d', '-s']),
+  echo: spec([], [], { anyArgs: true }),
+  printf: spec([], [], { anyArgs: true }),
+  pwd: spec(), true: spec(), cd: spec(), basename: spec(), dirname: spec(), realpath: spec(), which: spec(),
+  test: spec([], [], { anyArgs: true }), '[': spec([], [], { anyArgs: true }),
+  stat: spec(['-L']),
+  diff: spec(['-u', '-q', '-r', '--brief']),
+  date: spec(['-u'], [], { patterns: [/^\+/] }),
 };
+const gitSubs = {
+  log: spec(['--oneline', '--stat', '--name-only', '--name-status', '--graph', '--decorate', '--no-decorate', '--all', '--reverse', '--first-parent', '--no-merges', '--merges', '--no-color', '-p'], ['-n'], { patterns: [num, /^--(format|pretty|since|until|author|grep|max-count)=[^=]*$/] }),
+  show: spec(['--stat', '--name-only', '--name-status', '--oneline', '-s', '--no-patch', '--no-color'], [], { patterns: [/^--(format|pretty)=[^=]*$/] }),
+  diff: spec(['--stat', '--name-only', '--name-status', '--cached', '--staged', '--shortstat', '--numstat', '--no-color', '--check'], [], { patterns: [/^-U\d+$/] }),
+  status: spec(['--porcelain', '-s', '-b', '--short', '--branch', '-uno', '-unormal', '-uall'], [], { patterns: [/^--untracked-files=(no|normal|all)$/] }),
+  grep: spec(['-n', '-i', '-l', '-c', '-w', '-E', '-F', '-h', '-I', '--count', '--name-only'], ['-e']),
+  'rev-parse': spec(['--show-toplevel', '--abbrev-ref', '--short', '--verify', '--git-dir', '--git-common-dir', '--is-inside-work-tree', '-q']),
+  'ls-files': spec(['-m', '-o', '--others', '--exclude-standard', '--modified', '--deleted']),
+  'ls-tree': spec(['-r', '--name-only', '-l']),
+  blame: spec(['-w', '-s', '-e'], ['-L']),
+  'cat-file': spec(['-p', '-t', '-s', '-e']),
+  'merge-base': spec(['--is-ancestor']),
+  describe: spec(['--tags', '--always'], [], { patterns: [/^--abbrev=\d+$/] }),
+  shortlog: spec([], [], { patterns: [/^-[sne]+$/] }),
+  'rev-list': spec(['--count', '--all'], ['-n'], { patterns: [/^--max-count=\d+$/] }),
+  branch: spec(['--show-current', '-a', '-r', '--list', '-v', '-vv']),
+};
+// True when every word after the command fits its spec.
+export function argsFit(sp, args) {
+  if (!sp) return false;
+  if (sp.anyArgs) return true;
+  for (let i = 0; i < args.length; i += 1) {
+    const w = args[i];
+    if (w === '--') return true;
+    if (!w.startsWith('-') || w === '-') continue;
+    if (sp.takes.has(w)) { i += 1; if (i >= args.length) return false; continue; }
+    if (sp.flags.has(w) || sp.patterns.some(re => re.test(w))) continue;
+    return false;
+  }
+  return true;
+}
+
 export function readOnlyBash(command) {
   const raw = String(command ?? '');
   if (/`|\$\(|<\(|>\(/.test(raw)) return false;
@@ -140,22 +189,20 @@ export function readOnlyBash(command) {
     if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(segment[0] ?? '')) return false;
     const [cmd, ...rest] = segment;
     if (!cmd) return true;
-    if (readers.has(cmd)) return !rest.some(w => writingOption[cmd]?.(w));
     if (cmd === 'sed') {
       // Only print-by-line-number scripts: no w/W/e/r commands, no in-place.
       const flags = rest.filter(w => w.startsWith('-'));
       const args = rest.filter(w => !w.startsWith('-'));
       return flags.length > 0 && flags.every(f => f === '-n') && args.length >= 1 && /^(\d+|\$)(,(\d+|\$))?p$/.test(args[0]);
     }
-    if (cmd === 'find') return !rest.some(w => /^-(delete|exec|execdir|ok|okdir|fprint|fprint0|fprintf|fls)$/.test(w));
+    if (cmd === 'find') return rest.every((w, i) => !w.startsWith('-') || ['-name', '-iname', '-path', '-type', '-maxdepth', '-mindepth', '-newer', '-print', '-o', '-not', '-and'].includes(w) || (i > 0 && ['-name', '-iname', '-path', '-type', '-maxdepth', '-mindepth', '-newer'].includes(rest[i - 1])));
     if (cmd === 'git') return readOnlyGit(rest);
-    return false;
+    return argsFit(readers[cmd], rest);
   });
 }
 
-// Git by argument position (Codex auto-2 on #542): before the subcommand only `-C <dir>` is
-// allowed (no -c/--exec-path/-p or any other global option); after it, options that write or run a
-// program refuse the exemption, and `branch` takes only listing flags (`branch -C` force-copies).
+// Git by argument position: before the subcommand only `-C <dir>`; after it, only the options
+// listed for that subcommand, matched exactly (so `--open-files-in` or `--textconv` never pass).
 export function readOnlyGit(args) {
   let i = 0;
   while (i < args.length && args[i].startsWith('-')) {
@@ -164,11 +211,9 @@ export function readOnlyGit(args) {
   }
   const sub = args[i];
   const opts = args.slice(i + 1);
-  if (!sub) return false;
-  if (opts.some(w => /^--(output|ext-diff|open-files-in-pager|exec|upload-pack|receive-pack)/.test(w) || /^-O/.test(w))) return false;
-  if (sub === 'config') return opts.length === 2 && opts[0] === '--get' || (opts.length === 1 && opts[0] === '--list');
-  if (sub === 'branch') return opts.every(w => ['--show-current', '-a', '-r', '--list', '-v', '-vv'].includes(w));
-  return gitReaders.has(sub);
+  if (sub === 'config') return (opts.length === 2 && opts[0] === '--get' && !opts[1].startsWith('-')) || (opts.length === 1 && opts[0] === '--list');
+  if (sub === 'branch') return opts.every(w => gitSubs.branch.flags.has(w));
+  return argsFit(gitSubs[sub], opts);
 }
 
 // Workspace setup a sub-agent may run against a shared clone: it writes only Git metadata there and
