@@ -25,6 +25,7 @@ from tests.birth.test_birth_api import (
     birth_repository,
     create_guest,
 )
+from tests.leak_checks import leaked
 
 __all__ = ["birth_client", "birth_repository"]
 
@@ -414,20 +415,25 @@ def test_reading_detail_and_personalized_sky_expose_one_safe_rich_contract(
             "sky": sky_payload,
         }
     )
-    for forbidden in (
-        "1990-01-01",
-        "19:00",
-        "birth_date",
-        "birth_time",
-        "birth_place",
-        "10.8231",
-        "106.6297",
-        "gate_policy_version",
-        "renderer_version",
-        "prompt",
-        "provider",
-    ):
-        assert forbidden not in serialized
+    assert (
+        leaked(
+            serialized,
+            (
+                "1990-01-01",
+                "19:00",
+                "birth_date",
+                "birth_time",
+                "birth_place",
+                "10.8231",
+                "106.6297",
+                "gate_policy_version",
+                "renderer_version",
+                "prompt",
+                "provider",
+            ),
+        )
+        == []
+    )
 
 
 def test_an_approximate_birth_time_reads_the_time_stable_chart(
