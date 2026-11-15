@@ -33,6 +33,18 @@ Owner quyết trong chat tối 14.11. Codex phản biện cùng tối: cả ba �
   - lỗi lọt ghi riêng cho L20, **không** cộng vào M3.
 - **Giờ chạy và trần Codex** (owner 14.11, PR #514): bắt đầu PR lúc 08:00 thay 10:00, kết thúc 23:59; trần 60 lượt/ngày, tính chung plan, review, soát đêm và tranh luận. Thay đổi giữa cách 1 nên thêm vào danh sách yếu tố gây nhiễu ở §5 cho M5 và M6.
 
+## 0b. Thay đổi giữa thử nghiệm ngày 15.11 (owner quyết, cách 1 đang chạy)
+
+- **Lúc nào:** 15.11.2026, khoảng 17:00–18:00, trong ngày thứ hai của cách 1 (Claude làm, 14–16.11). Ghi ở hub #2.
+- **Đổi gì:** owner không còn là bước duyệt bắt buộc. Claude làm, Claude và Codex phản biện nhau, Codex duyệt, máy merge qua cổng cũ (author check PASS và APPROVE có biên nhận, cả hai đúng head). `needs-owner` chỉ còn cho 4 loại việc: chi phí hoặc dịch vụ mới, phát hành, chữ privacy/consent/crisis/safety, bật tính năng thu dữ liệu mới. Owner kiểm QA ngẫu nhiên. Chi tiết ở `collab-auto-loop-plan.md` §2.
+- **Gây nhiễu:** thay đổi này rơi vào giữa cách 1 và trước cách 2 (17–19.11). Nó tác động trực tiếp tới:
+  - M5: số việc đạt trong ngày có thể tăng vì bớt chờ owner;
+  - M6: thời gian tới lúc merge;
+  - M10: câu hỏi gửi owner và số lần bị kẹt;
+  - có thể cả M7.
+  Báo cáo 20.11 ghi nó vào danh sách yếu tố gây nhiễu ở §5 và tách số đo trước và sau 15.11 18:00 khi so sánh.
+- **Số đo giữ định nghĩa cũ:** M1–M10 không đổi định nghĩa, nguồn hay hướng tốt. Riêng M10 vẫn đếm mọi câu hỏi gửi owner, kể cả câu thuộc 4 loại còn lại.
+
 ## 1. Lịch
 
 | Giai đoạn | Ngày (giờ VN) | Cách chạy |
