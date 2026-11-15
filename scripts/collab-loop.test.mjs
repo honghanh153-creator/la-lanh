@@ -694,6 +694,9 @@ test('busy check matches the running program, not a command line that mentions i
     'pnpm check',
     '/x/node /x/pnpm.cjs check',
     'pytest -q',
+    // The nightly fake-user simulator (personas-nightly.mjs).
+    '/x/apps/api/.venv/bin/python3 -m scripts.persona_sim --personas p.json --out o',
+    'uv run --locked --directory /x/apps/api python -m scripts.persona_sim --personas p.json --out o',
   ]) assert.ok(isHeavy(heavy), heavy);
   for (const light of [
     '/bin/zsh -c source snap.sh && eval \'pgrep -f "contracts:check|vitest|pytest|playwright"\'',
