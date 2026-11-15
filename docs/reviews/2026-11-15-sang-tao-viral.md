@@ -40,7 +40,7 @@ Bản mẫu để chị xem (riêng tư, chỉ chị mở được):
 - Sửa ngay 5 điểm rút ra từ lượt chấm (mục 4). Các sửa này chưa được chấm lại.
 - Không sửa chữ thêm để đuổi điểm.
 
-**Phần thêm tối 14.11, đã chấm trên 300 người giả:** gói có Lá nhây và Học đạt 5 trên 9 điều kiện. Thấy được hiểu 3,63; bớt một mình 3,38; bình yên 3,66; gửi hoặc rủ 16,7%. Lá nhây là phần kéo "bớt một mình", "muốn quay lại" và chia sẻ lên nhiều nhất. Học làm người mở bài thấy được hiểu (3,91) nhưng chưa êm (bình yên 3,41). Chi tiết ở cuối mục 3. "Mời hẹn thử" đã hoãn theo ý chị.
+**Phần thêm tối 14.11, đã chấm trên 300 người giả:** gói có Lá nhây và Học đạt 4 trên 9 điều kiện; điều kiện an toàn (5) chưa đủ bằng chứng vì chỉ 7 người chơi trò chơi, cần 30 (sửa 15.11 sau review Codex của PR #506). Thấy được hiểu 3,63; bớt một mình 3,38; bình yên 3,66; gửi hoặc rủ 16,7%. Lá nhây là phần kéo "bớt một mình", "muốn quay lại" và chia sẻ lên nhiều nhất. Học làm người mở bài thấy được hiểu (3,91) nhưng chưa êm (bình yên 3,41). Chi tiết ở cuối mục 3. "Mời hẹn thử" đã hoãn theo ý chị.
 
 ## 2. Đã làm gì
 
@@ -50,7 +50,7 @@ Bản mẫu để chị xem (riêng tư, chỉ chị mở được):
 | Tra bằng chứng trên web | Font pixel có tiếng Việt, quy tắc dễ đọc WCAG, kích thước thư viện hoạt hình, nghiên cứu về lan truyền và cô đơn, luật dữ liệu, lịch Việt Nam (mục 9) |
 | Phản biện chéo 3 vòng, mọi góp ý đều ghi sổ | 139 góp ý có mã qua 9 lượt phản biện và 3 lần chấm thử (3 vòng chính, thêm 3 vòng cho phần bổ sung tối 14.11), dòng nào cũng có ghi nhận, nhận một phần hoặc từ chối kèm lý do (Phụ lục B) |
 | Rút gọn, viết mock 4–8 màn mỗi ý, vẽ bản mẫu pixel; chấm thử hai lần bằng Codex trên 20 người giả rồi sửa (bản 3 → bản 6) | 13 ý: 10 ý vào "gói", 3 ý thử có điều kiện |
-| Ghi ngưỡng trước khi chấm, rồi chấm bằng 1000 người giả | Gói so với kế hoạch hiện tại trên đủ 1000 người giả; từng ý riêng lẻ trên 91 cặp mỗi ý; Codex chấm đối chiếu 40 người. Kết quả: đạt 4 trên 9 điều kiện (mục 1 và mục 4). Phần thử có điều kiện đã chấm đủ 90 cặp mỗi ý. Bản có Lá nhây và Học được chấm thêm trên 300 người: đạt 5 trên 9 điều kiện |
+| Ghi ngưỡng trước khi chấm, rồi chấm bằng 1000 người giả | Gói so với kế hoạch hiện tại trên đủ 1000 người giả; từng ý riêng lẻ trên 91 cặp mỗi ý; Codex chấm đối chiếu 40 người. Kết quả: đạt 4 trên 9 điều kiện (mục 1 và mục 4). Phần thử có điều kiện đã chấm đủ 90 cặp mỗi ý. Bản có Lá nhây và Học được chấm thêm trên 300 người: đạt 4 trên 9 điều kiện, điều kiện 5 chưa đủ bằng chứng (7 người chơi trò chơi, cần 30) |
 
 Lượt Codex dùng cho việc này: 13 trên 15 lượt được giao (brainstorm 1, phản biện 9 lượt, chấm thử 3 lần) (trong số lượt chị cấp thêm hôm nay; không đụng trần review tự động).
 
@@ -287,7 +287,7 @@ Bản mẫu xem được ngay (chỉ chị mở được): https://claude.ai/art
 - **Học:** chỉ 1 trên 20 người mở bài học. Người đó chấm 5 và chọn Học là phần thích nhất. Hai người khác thoát trước khi thấy dòng dẫn tới bài. Tức là bài học tốt nhưng khó gặp.
 - **Sửa thành bản 7.1 trước lượt chấm lớn:** thêm lối vào bài học ngay từ câu của Lá ở Trang chủ ("Hôm nay Lá diễn một chiêu 3 phút"), không thêm khối mới; đưa dòng [Xem bài] trong ba lô lên cao hơn; thêm món "Chăm người nhà" cho người lớn tuổi.
 - **Điểm nhấn mình đề xuất: "Lá diễn".** Lá pixel nhây là thứ ai cũng thấy ngay ở màn đầu, và chính Lá dẫn vào bài học 3 phút khớp với chuyện của người dùng. Lá là thứ dễ chụp và dễ gửi; bài học là thứ làm người dùng thấy được giúp đúng chuyện của mình.
-- **Chấm lớn bản 7.1 (xong 14.11 đêm):** gói có Lá nhây và Học so với kế hoạch cũ, trên 300 người giả chọn đều theo nhóm. **Đạt 5 trên 9 điều kiện** (bản chưa có Lá nhây và Học đạt 4 trên 9). Các mốc giữ nguyên.
+- **Chấm lớn bản 7.1 (xong 14.11 đêm):** gói có Lá nhây và Học so với kế hoạch cũ, trên 300 người giả chọn đều theo nhóm. **Đạt 4 trên 9 điều kiện** (bản chưa có Lá nhây và Học cũng đạt 4 trên 9). Điều kiện 5 chưa đủ bằng chứng: chỉ 7 người chơi trò chơi, mốc ghi trước cần 30. Bản đầu của báo cáo ghi 5 trên 9; Codex chỉ ra lỗi này khi review PR #506 ngày 15.11. Các mốc giữ nguyên.
 
 | | Kế hoạch cũ | Gói có Lá nhây và Học | Mốc | |
 |---|---|---|---|---|

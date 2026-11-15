@@ -1,0 +1,5205 @@
+{
+ "rubric": "judge-rubric-v1-2026-11-14",
+ "scores": {
+  "0012d825b1f7e6d9120c865b": {
+   "reason": "Ngày Đuối lại bảo nói thời gian với người khác, không chạm chuyện tìm chỗ dạy.",
+   "score": 2
+  },
+  "009572d557ff92ce56560789": {
+   "reason": "Việc nhỏ nhẹ, làm được khi trực, nhưng nội dung chung chung không dính chuyện cư dân.",
+   "score": 2
+  },
+  "00a02d61d562480f1797b5b0": {
+   "reason": "Chuyện nhận giúp không đụng tới livestream hay khách bom hàng, lại giao việc.",
+   "score": 2
+  },
+  "0152d03fb0a1ca61ed1066d1": {
+   "reason": "Ngắn, hợp lúc đang căng với tin nhắn khó chịu, nhưng vẫn là việc giao.",
+   "score": 3
+  },
+  "0176259e15bf1ae05ce3ab1c": {
+   "reason": "Chuyện gửi bản nháp xa lạ với người mẹ làm cà phê ở làng.",
+   "score": 1
+  },
+  "01aebd58ae37e037b31f8ac1": {
+   "reason": "Chuyện giữ cách cũ chung chung, không nhắc chỉ tiêu thứ sáu.",
+   "score": 2
+  },
+  "01b7d8057dcb96ab5ef62863": {
+   "reason": "Chuyện dời giờ hẹn chung chung, không nói gì tiền cuối tháng của tiệm.",
+   "score": 2
+  },
+  "01b8daea7d3a3ab16b4e870a": {
+   "reason": "Chuyện giúp người khác thiếu giờ quá chung, không chạm chuyện tiền cuối tháng.",
+   "score": 2
+  },
+  "02061eff24c5d7c5f40fa224": {
+   "reason": "Hỏi góp ý đúng phần hợp người làm thiết kế, nhưng ngày Đuối vẫn phải hỏi người khác.",
+   "score": 3
+  },
+  "02136bbfb618f22c7d17df87": {
+   "reason": "Chuyện lịch kín mà nhận thêm hợp với tuần chốt sổ và việc nhà dồn, phần còn lại chung.",
+   "score": 3
+  },
+  "02916cfcc37f5bdbd229ab7f": {
+   "reason": "Ý giữ điều riêng mà cần nói rõ hơi giống mình nhút nhát, nhưng không chạm chuyện toán hay nhớ nhà.",
+   "score": 3
+  },
+  "02f306a9457076850f9b1db8": {
+   "reason": "Cảnh nhóm chốt việc qua chat không có trong đời mình lúc đang ở nhà phụ bà làm vườn.",
+   "score": 2
+  },
+  "02f441ea179fb10ddb784977": {
+   "reason": "Chuyện góp ý bản nháp không hợp với người làm cơ khí, phần sao cũng không phải điều họ cần.",
+   "score": 2
+  },
+  "0351af95b01ac427d87dd193": {
+   "reason": "Chuyện nhận lời khi lịch kín chung chung, không chạm chuyện đổi nghề.",
+   "score": 2
+  },
+  "0383807c0b6e82d8bf231fdf": {
+   "reason": "Chuyện mở lịch nhận lời giúp nông và chung, không có chiều sâu mình cần.",
+   "score": 2
+  },
+  "03cb5a3c08bd92dc83deda5e": {
+   "reason": "Chuyện nhận lời chung chung, lại giao việc nhắn trong khi chị không muốn bị giao việc.",
+   "score": 2
+  },
+  "03cc5a98bc4465a52cd6c3f3": {
+   "reason": "Chuyện chuyển việc liên tục chung chung, không chạm chuyện đi học muộn.",
+   "score": 2
+  },
+  "03f3ec023c12ec961d97cc3d": {
+   "reason": "Chuyện ngại đổi cách làm khi kết quả chưa tốt hơi chạm việc bán hàng, phần còn lại chung.",
+   "score": 3
+  },
+  "03fad79c285e5707c642c0a4": {
+   "reason": "Thêm việc nhắn tin từ chối giữa mùa thi, không nhắc nghỉ tay như Ngọc muốn.",
+   "score": 2
+  },
+  "0415c72e1486150cb7fdb5e1": {
+   "reason": "Chuyện nhận lời khi lịch kín chung chung, không chạm mùa đồ án.",
+   "score": 2
+  },
+  "043d9e629d63e6aacc2a9ca9": {
+   "reason": "Nội dung chung chung, không chạm tới chuyện riêng của họ.",
+   "score": 2
+  },
+  "047bb7bfce746cfcef387352": {
+   "reason": "Chuyện nhờ giúp chung chung, không chạm ca đêm hay chuyện bị giục lấy vợ.",
+   "score": 2
+  },
+  "0493b7410e288b0b02cb37fb": {
+   "reason": "Chuyện chỉnh mãi bản nháp hợp tính cầu toàn và buổi báo cáo hằng tuần, lời rõ và thực tế.",
+   "score": 4
+  },
+  "04fd00e166c66ed041729739": {
+   "reason": "Chuyện danh sách việc học hành không hợp đời bà, đọc chung chung.",
+   "score": 2
+  },
+  "050a39b5c8b60cca1031a8bc": {
+   "reason": "Chuyện đọc hết tin nhắn chung chung, không chạm tới phân vân học tiếp hay đi làm.",
+   "score": 2
+  },
+  "055c0a5474d5023ab82b06ba": {
+   "reason": "Nhận thêm việc khi chưa xem lịch khá đúng mùa cưới đông khách, nhưng câu Lá chưa đủ dữ kiện nghe máy móc.",
+   "score": 3
+  },
+  "0570dc5c0ffda76cfd4f7fab": {
+   "reason": "Chuyện nói được dù không muốn nghe chung, không chạm chuyện mưa ế hay vốn.",
+   "score": 2
+  },
+  "0589c0761c826091e37609a6": {
+   "reason": "Nội dung chung chung, không chạm tới chuyện riêng của họ.",
+   "score": 2
+  },
+  "05bb9d2a4797620697b6b2f8": {
+   "reason": "Đang căng thi mà nói chuyện nhận giúp người, chung chung.",
+   "score": 2
+  },
+  "05dcf80b7224c00eb83a11e3": {
+   "reason": "Cảnh bực vì tin nhắn rồi trả lời vội khớp với chuyện sếp soi trong nhóm chat.",
+   "score": 4
+  },
+  "05f1a575daeb5a62af578ff7": {
+   "reason": "Chuyện nhờ giúp chung, không chạm tới sự cô đơn hay việc học của họ.",
+   "score": 2
+  },
+  "067486adc3316695dfcca422": {
+   "reason": "Chuyện tin nhắn chưa rõ khá chung, không dính tới đồ án hay nỗi lo tiền.",
+   "score": 2
+  },
+  "06c7cdb8a8b06a553eabd6e2": {
+   "reason": "Nội dung chung chung, không chạm tới chuyện riêng của họ.",
+   "score": 2
+  },
+  "07058f6057d87a683615af17": {
+   "reason": "Chuyện xuôi theo nhóm hợp tính hay giữ trong lòng, việc nhỏ không tốn tiền.",
+   "score": 3
+  },
+  "070e96f1e68486f11431d8c7": {
+   "reason": "Chuyện nhận lời giúp và mở lịch xa với ca làm phòng lạnh, câu chưa đủ dữ kiện nghe lạ.",
+   "score": 2
+  },
+  "0749bd03d69b68294a179f59": {
+   "reason": "Chuyện giữ cách cũ chung chung, không chạm chuyện gia đình hay mở tiệm.",
+   "score": 2
+  },
+  "075eea8e19410b7f5a96bb61": {
+   "reason": "Cảnh tin nhắn dài trả lời sót ý khớp với khách hối liên tục, hợp hôm căng.",
+   "score": 4
+  },
+  "07683b999053deee1433d2c7": {
+   "reason": "Chuyện bản nháp xa lạ với thủ kho, lại giao việc như ở cơ quan mà họ ghét.",
+   "score": 1
+  },
+  "078b6c505e4984c3889e8648": {
+   "reason": "Chuyện xem lịch, nhận lời giúp không dính tới nỗi buồn trong nhà của chị.",
+   "score": 1
+  },
+  "07b086d9be7317a5f007c55d": {
+   "reason": "Chuyện nhận thêm việc chung chung, không chạm buổi live vắng hay bom hàng.",
+   "score": 2
+  },
+  "07b8c7849d11a08a05b5c35a": {
+   "reason": "Chuyện nhận lời cho xong hơi hợp cảnh sếp giao việc khuya, nhưng vẫn chung.",
+   "score": 3
+  },
+  "07f4d3cd75681b01c79bd22d": {
+   "reason": "Chuyện đổi giờ hẹn không chạm tuần deadline và khách sửa phút chót.",
+   "score": 2
+  },
+  "082019b6f57754aba77a909d": {
+   "reason": "Câu xem lịch chung, không chạm chuyện gia đình hay dự án gấp.",
+   "score": 2
+  },
+  "08221b3b474f2123b17efd19": {
+   "reason": "Chuyện đọc kỹ tin nhắn khó chịu khá chung, không gắn với homestay hay sức khỏe của cô.",
+   "score": 2
+  },
+  "08780bd4f5768d65cd8270c2": {
+   "reason": "Chạm chuyện bàn giao việc cần góp ý rõ, nhưng vẫn giao thêm việc.",
+   "score": 3
+  },
+  "08c042f8e1b804a33f4b9182": {
+   "reason": "Chuyện soạn trả lời tin nhắn xa lạ với người làm vườn ít dùng điện thoại.",
+   "score": 2
+  },
+  "08f317ae01a07ee3cca95dc0": {
+   "reason": "Nhận việc vì ngại từ chối hơi hợp chuyện bị đổi lịch sát giờ, còn lại chung.",
+   "score": 3
+  },
+  "0913aaf0df1b435632cf266c": {
+   "reason": "Ngày đuối mà bảo nhắn lại để từ chối, giọng hơi dạy với người ghét bị giao việc.",
+   "score": 2
+  },
+  "0945cc2439a96006bea42f62": {
+   "reason": "Ngày đuối mà bảo nói chuyện thời gian, không dính chuyện đổi ca.",
+   "score": 2
+  },
+  "095c09090eb9eb3d04d74e97": {
+   "reason": "Xin góp ý cụ thể có thể dùng cho giáo án hằng tuần, nhưng không nhắc bé ốm hay chuyện ngủ ít.",
+   "score": 3
+  },
+  "0985b7153938b55dbebeda81": {
+   "reason": "Chung chung, ai đọc cũng đúng, không chạm tuần chốt sổ.",
+   "score": 2
+  },
+  "099aa831a1352250625dc217": {
+   "reason": "Chuyện nhận việc dù không muốn hợp cảnh bài nhóm bạn ít làm, nhưng chưa thấy riêng mình.",
+   "score": 3
+  },
+  "09a023f6689bf5579ee401a9": {
+   "reason": "Chuyện nhận lời giúp người khác ai đọc cũng được, không chạm tới áp lực thật của họ.",
+   "score": 2
+  },
+  "09ace0d84baefb896b4a4984": {
+   "reason": "Câu báo chưa đủ dữ kiện, đọc như tử vi chung chung mà họ không thích.",
+   "score": 2
+  },
+  "09ec0e4359dc49d2343ee076": {
+   "reason": "Chạm nhẹ chuyện nộp bài nhóm nhưng giọng nhắc gửi bài, không nói gì mùa thi.",
+   "score": 2
+  },
+  "09f4841ee6e45b60c1811245": {
+   "reason": "Nội dung chung chung, không chạm tới chuyện riêng của họ.",
+   "score": 2
+  },
+  "0a2dd6d73eaec3b335014dbf": {
+   "reason": "Hôm đuối mùa thi mà nói chuyện đổi giờ hẹn, lại phải hỏi người khác.",
+   "score": 2
+  },
+  "0a64a273902281618ae8a53a": {
+   "reason": "Chuyện nhận lời giúp khi lịch kín không dính chuyện chờ tin phỏng vấn.",
+   "score": 2
+  },
+  "0a72cb18c6682067cd19a6be": {
+   "reason": "Chuyện xin góp ý bản nháp hợp bài tốt nghiệp, nhưng cô không muốn bị giao việc.",
+   "score": 3
+  },
+  "0a8f4425eb66e1d1ea08a770": {
+   "reason": "Chuyện gửi bản nháp không dính tới mùa thi và mạng chập chờn của mình, đọc như lời chung.",
+   "score": 2
+  },
+  "0ae055b23e4afb35e2064ce6": {
+   "reason": "Ngày đuối mà bảo hỏi lại người khác, không nhắc chuyện tìm việc.",
+   "score": 2
+  },
+  "0aed0c4f4e6a40238f7389d2": {
+   "reason": "Chuyện trả lời tin nhắn vội chung chung, không chạm chuyện tiền cuối tháng.",
+   "score": 2
+  },
+  "0af92b83a75f927c6d9784b8": {
+   "reason": "Chuyện hỏi lại nhóm có thể gặp khi làm khóa luận, nhưng chung chung và vẫn giao việc.",
+   "score": 2
+  },
+  "0afd68d3760c3c0457d420ba": {
+   "reason": "Câu Lá chưa đủ dữ kiện, không dính chuyện portfolio chưa ai trả lời.",
+   "score": 2
+  },
+  "0b15f3d1e23bb2d53c6e7159": {
+   "reason": "Lời khuyên đọc hết tin nhắn chung chung, không biết đổi ca hay chuyện chia tay.",
+   "score": 2
+  },
+  "0b2894a808037db45d96eda8": {
+   "reason": "Vừa trượt hồ sơ, ngày đuối mà bị nói chuyện nhận thêm việc và bảo đi nói với người khác.",
+   "score": 1
+  },
+  "0b37ef57395cfbd60d9942b6": {
+   "reason": "Chuyện nhận thêm việc khi lịch kín có chạm deadline dày, dù Lá nói chưa đủ dữ kiện.",
+   "score": 3
+  },
+  "0b4f137966c2d4c1128e8ff6": {
+   "reason": "Chuyện hỏi nhóm không chạm tới chuyện ở lại hay về quê, lại giao việc họ ngại.",
+   "score": 2
+  },
+  "0b5196e21ddcd943309323f8": {
+   "reason": "Bản nháp sửa mãi gần với bài nhóm mùa thi, nhưng vẫn giao việc.",
+   "score": 3
+  },
+  "0b5364f9f44adebcd639023e": {
+   "reason": "Chuyện nói được cho xong không chạm đồ án đang sửa nhiều.",
+   "score": 2
+  },
+  "0b898d849ae38fdfd9df8fbb": {
+   "reason": "Chuyện giúp người khác dù mệt khá chung và không có phần chiêm tinh họ muốn.",
+   "score": 2
+  },
+  "0b99439a1810cca50b3575ef": {
+   "reason": "Hỏi đúng phần khi gửi báo cáo hợp tuần nộp báo cáo của Long, phần còn lại chung.",
+   "score": 3
+  },
+  "0ba85a7ae9e0be624fe407b3": {
+   "reason": "Hợp tính dễ ôm việc, nhưng thầy bắt sửa thì không từ chối được và lại thêm việc.",
+   "score": 3
+  },
+  "0c07ae281e462978009fadfa": {
+   "reason": "Nội dung chung chung, không chạm tới chuyện riêng của họ.",
+   "score": 2
+  },
+  "0c1a5c7b562a795d8bfb1cc3": {
+   "reason": "Hỏi góp ý cụ thể có ích cho khóa luận, phần còn lại chung.",
+   "score": 3
+  },
+  "0c3a773c70e4d75368946eef": {
+   "reason": "Chuyện nhóm chốt việc qua chat hoàn toàn xa với ông già nuôi gà trông cháu.",
+   "score": 1
+  },
+  "0c6528603247fcedea1c474f": {
+   "reason": "Tự nói chưa đủ dữ kiện, không có việc nhỏ chăm mình như cô muốn.",
+   "score": 2
+  },
+  "0ca166edc9f9bc5d78bbbe27": {
+   "reason": "Chuyện lỡ nhắn gắt không dính tới tiền eo hẹp hay đồ án.",
+   "score": 2
+  },
+  "0cab8a515b555501fe6e79cf": {
+   "reason": "Chạm chuyện hiểu ý cấp trên và anh em trong tổ, nhưng bảo đi hỏi lại ngày đuối.",
+   "score": 3
+  },
+  "0cbf32f41b263b4f54844caf": {
+   "reason": "Chuyện xem lịch chung chung, không để ý ca tối ở nhà thuốc.",
+   "score": 2
+  },
+  "0cd3479ccde8d225210cd92f": {
+   "reason": "Lá tự nhận chưa đủ dữ kiện, chuyện lịch kín không chạm áp lực gia đình của họ.",
+   "score": 2
+  },
+  "0cda7735681e03da9b19a9d5": {
+   "reason": "Sau ca dài đang đuối mà phải đi hỏi lại người khác, nội dung không dính ngày làm hay nghỉ.",
+   "score": 2
+  },
+  "0d260d0e9702c60333fc70af": {
+   "reason": "Lời nhắc đọc hết tin trước khi đáp có thể dùng khi bị cư dân nhắn khó chịu, nhưng vẫn chung.",
+   "score": 3
+  },
+  "0d3daa67557df21e01499314": {
+   "reason": "Câu Lá chưa đủ dữ kiện, không chạm cảm giác trống trải cuối tuần.",
+   "score": 2
+  },
+  "0dabf440dea524bbac727585": {
+   "reason": "Chuyện bị nhờ thêm khi lịch kín hơi giống việc bị giao thu tiền, nhưng vẫn là giao thêm việc.",
+   "score": 3
+  },
+  "0dfaf49899b9f7b8d90b0c3f": {
+   "reason": "Chuyện giữ cách cũ không chạm tới điều họ đang lo.",
+   "score": 2
+  },
+  "0e44eaebfd7ecca04b36b49f": {
+   "reason": "Chuyện lịch kín và nhận lời giúp xa với đời nuôi gà trồng rau ở quê.",
+   "score": 2
+  },
+  "0ec72ed4591c22413dfd278a": {
+   "reason": "Chuyện đổi việc liên tục khi học có thể đúng nhưng ai đọc cũng được.",
+   "score": 2
+  },
+  "0ed8f148f40c309e790a0595": {
+   "reason": "Chuyện nói rõ việc cần giúp chung chung, không chạm tới chuyện thi và portfolio.",
+   "score": 2
+  },
+  "0ee71d77e65834f0b0112e01": {
+   "reason": "Chuyện nhận thêm khi lịch đã kín chạm đúng cái lịch trực dày, nhưng vẫn giao việc.",
+   "score": 3
+  },
+  "0f458fe0d8e79477c4658c70": {
+   "reason": "Chuyện đổi giờ hẹn chỉ chạm rất nhẹ tới phỏng vấn, còn lại chung.",
+   "score": 2
+  },
+  "10057b1c02604cc4ec9f7434": {
+   "reason": "Chuyện bản nháp và hỏi góp ý cụ thể khớp với việc giao ấn phẩm bị khách sửa đi sửa lại.",
+   "score": 4
+  },
+  "1007edc8625653c347534742": {
+   "reason": "Chuyện nhận lời giúp chung chung, không chạm mùa thi và làm thêm khuya.",
+   "score": 2
+  },
+  "101c209876f21d90b5a7b0c5": {
+   "reason": "Nội dung chung chung về tin nhắn, ai đọc cũng được, không chạm chuyện của họ.",
+   "score": 2
+  },
+  "1023bb2f1e69814e79cf047b": {
+   "reason": "Nội dung chung chung, không chạm tới chuyện riêng của họ.",
+   "score": 2
+  },
+  "102df1bbd2f8c54725b23995": {
+   "reason": "Ngày đuối mà phải nhắn lại cho người khác, không nhắc ca đêm hay đau lưng.",
+   "score": 2
+  },
+  "105bd83927c3daab161028da": {
+   "reason": "Chuyện xem lịch chung chung, lại có việc phải làm dù họ không muốn.",
+   "score": 2
+  },
+  "10be1704c4b535b7405416bb": {
+   "reason": "Lời nhắc xem lịch trước khi nhận hợp với người thích kế hoạch và đang bán hàng thêm, nhưng vẫn chung.",
+   "score": 3
+  },
+  "10c1040e32f0d37bde89f735": {
+   "reason": "Chuyện từ chối chung chung, đọc xong không nhớ gì.",
+   "score": 2
+  },
+  "10d42077d86368cfce809622": {
+   "reason": "Chuyện gật theo nhóm cho êm hợp tính sợ làm phật lòng, nhưng chưa nói tới tuần báo cáo.",
+   "score": 3
+  },
+  "10ed73c94326debf185ea1b2": {
+   "reason": "Chuyện làm xong một việc chung chung, không chạm chuyện tiền túng.",
+   "score": 2
+  },
+  "113117187c0745996015dc0c": {
+   "reason": "Chung chung và giao việc ghi kết quả thử cách khác, điều họ không thích.",
+   "score": 2
+  },
+  "1156d8b61e03a22fa35738e5": {
+   "reason": "Chuyện nhờ giúp chung chung, lại giao việc họ không muốn.",
+   "score": 2
+  },
+  "1170b1157c23ccf2303366e2": {
+   "reason": "Chuyện hỏi góp ý bản nháp chung, chỉ gần gần việc sổ sách.",
+   "score": 2
+  },
+  "11df36a25ba68d22e0900a8c": {
+   "reason": "Ngày đuối lại bảo đi hỏi lại giờ hẹn, không chạm ca nhà thuốc hay mùa thi.",
+   "score": 2
+  },
+  "11dfcf28bf77e48789d20a5d": {
+   "reason": "Chuyện từ chối nhận việc nghe chung, không chạm chuyện tiền học hay nợ mối hàng.",
+   "score": 2
+  },
+  "120559a80226c6232658fde7": {
+   "reason": "Chuyện trả lời tin nhắn khó chịu không chạm nỗi nhớ nhà của Ánh.",
+   "score": 2
+  },
+  "120b600bdce908569f84f15b": {
+   "reason": "Chuyện nhận lời gần với bị ép nhưng cảnh lệch, ngày đuối vẫn giao việc nhắn.",
+   "score": 2
+  },
+  "12494f2f3dc493b9b7104ff4": {
+   "reason": "Câu xem lịch chung, không trấn an trước kỳ thi đầu như họ cần.",
+   "score": 2
+  },
+  "1267fa9356d16b268a045794": {
+   "reason": "Cảnh họp nhóm gật đầu có dính chút tới đi làm, phần còn lại chung chung.",
+   "score": 3
+  },
+  "1269b366f42eec36db315384": {
+   "reason": "Chuyện sửa bản nháp không hợp đời công nhân ca, lại giao việc anh không muốn.",
+   "score": 1
+  },
+  "1292f238fd40e4e8614a09fd": {
+   "reason": "Lời khuyên nhờ giúp chung chung, không nhắc chuyện bị soi lỗi hay đau chân sau ca.",
+   "score": 2
+  },
+  "12e2a9b39bf5cd5bb4aa0d1d": {
+   "reason": "Lời chung về nhận việc khó từ chối, không nhắc vai làm mẹ hay chuyện con ốm.",
+   "score": 2
+  },
+  "1302fc48dc902117ae6fdc89": {
+   "reason": "Lời chung về đọc hết tin nhắn, không dính chuyện tiền nợ hay bố mẹ.",
+   "score": 2
+  },
+  "1310402a23be2cd0453bd6de": {
+   "reason": "Hôm đuối lại bảo đi hỏi rõ tin nhắn, nội dung khá chung.",
+   "score": 2
+  },
+  "1366f68760da4e236a3ea67f": {
+   "reason": "Mood đuối mà nói 'nhiều năng lượng', lại bắt nói lời nhờ người khác.",
+   "score": 2
+  },
+  "136f992e30585ec8061243b8": {
+   "reason": "Chuyện bản nháp và góp ý không dính gì tới việc trông cháu của cô.",
+   "score": 1
+  },
+  "139527a2228d3528fc8de54b": {
+   "reason": "Ngày đuối vẫn bảo đi hỏi lại, không nhắc chuyện tìm việc.",
+   "score": 2
+  },
+  "13a1a23c53a64e078cebf3b7": {
+   "reason": "Chuyện nhận giúp không chạm báo cáo hay chuyện ở phòng ồn.",
+   "score": 2
+  },
+  "13b4c4b67a211f8b00083509": {
+   "reason": "Chuyện bản nháp không dính tới bán dừa và đơn lớn cuối tháng.",
+   "score": 1
+  },
+  "13c22106db5757ee797678f0": {
+   "reason": "Đang căng vì thi tay nghề mà nội dung là xin góp ý bản nháp, chung chung.",
+   "score": 2
+  },
+  "13c8a9a03403a67b3c2141aa": {
+   "reason": "Có chạm chuyện thiếu giờ nhưng không nói tới hạn nộp và khách sửa bài.",
+   "score": 2
+  },
+  "13ef5380b09575a8f5e79f07": {
+   "reason": "Lời khuyên nhờ giúp chung chung, không chạm tiền hay nỗi nhớ nhà.",
+   "score": 2
+  },
+  "13ef9902feb1e5845412c1e9": {
+   "reason": "Chuyện nhận giúp người khác không phải nỗi lo của người này.",
+   "score": 2
+  },
+  "140b7bde482e29465646b40e": {
+   "reason": "Chuyện nhận lời giúp người khác ai đọc cũng được, không chạm tới áp lực thật của họ.",
+   "score": 2
+  },
+  "141e5eba38910a2f4b1582da": {
+   "reason": "Chuyện xếp lịch giúp người không chạm chuyện so sánh trên mạng.",
+   "score": 2
+  },
+  "148e34505a990ab79f6e5914": {
+   "reason": "Chuyện tin nhắn để sau chung chung, bỏ qua nỗi nhớ nhà cuối tuần.",
+   "score": 2
+  },
+  "15623d09e6a4bd6b1f588cf6": {
+   "reason": "Ngày Đuối mà bắt hỏi lại người khác, nội dung về tin nhắn chung.",
+   "score": 2
+  },
+  "15a6c66f0ce1f35c8e3bd471": {
+   "reason": "Chuyện nhận lời giúp không chạm chuyện bị từ chối việc.",
+   "score": 2
+  },
+  "15eb174661d291c3e68aa634": {
+   "reason": "Chuyện lỡ gắt trong tin nhắn chung chung, không chạm chuyện làm mẹ hay giao việc cho riêng mình.",
+   "score": 2
+  },
+  "1608c4de14af06e6df3f0233": {
+   "reason": "Đang mùa thi mà nói chuyện đọc tin nhắn, chung chung.",
+   "score": 2
+  },
+  "1614830c10c543c48e1794ca": {
+   "reason": "Nội dung chung chung về tin nhắn, ai đọc cũng được, không chạm chuyện của họ.",
+   "score": 2
+  },
+  "16511326d1efba0b8032b906": {
+   "reason": "Chuyện sửa bản nháp xa lạ với chị bán hủ tiếu ở chợ.",
+   "score": 1
+  },
+  "16af05fa26e9845dffc60931": {
+   "reason": "Cảnh nhóm chốt nhanh mà mình chưa hiểu khớp với đội tranh tụng, việc nhỏ cụ thể và thực tế.",
+   "score": 4
+  },
+  "17030a9f0ae813768b5db4a6": {
+   "reason": "Chuyện bắt đầu nhiều việc khá chung, không để ý cái mệt của ca làm.",
+   "score": 2
+  },
+  "1755019448450ee5c58cfbf7": {
+   "reason": "Chuyện trả lời tin nhắn vội không chạm tới nỗi chờ kết quả xin việc, vẫn giao thêm việc.",
+   "score": 2
+  },
+  "17663302ba708816db7c15e8": {
+   "reason": "Chuyện bản nháp xa lạ với người phụ quán cơm đang phân vân học hay làm.",
+   "score": 2
+  },
+  "177361b00b8c6c6da7f26a23": {
+   "reason": "Chuyện gật đầu khi chưa hiểu hơi hợp người ngại va chạm, nhưng lại giao việc đi hỏi.",
+   "score": 3
+  },
+  "17849134b7124f7a48b0b90c": {
+   "reason": "Chuyện xin góp ý bản nháp chung chung, lại giao việc dù họ không muốn.",
+   "score": 2
+  },
+  "1790c4ee1de8e17e1386fa5a": {
+   "reason": "Chuyện xin góp ý bản nháp có gần khóa luận, nhưng ngày đuối lại phải hỏi người khác.",
+   "score": 3
+  },
+  "1833b2bbebbc4f2e843cbb6b": {
+   "reason": "Chuyện nhận lời giúp chung chung, không dính việc tiệm sửa xe hay đồ án.",
+   "score": 2
+  },
+  "1869ce231de5c4f6d8ec7e8e": {
+   "reason": "Không nhắc mùa thi, còn tự nói chưa đủ dữ kiện và giao việc phải nói với người khác.",
+   "score": 2
+  },
+  "187c8e18536f1e476434ce9d": {
+   "reason": "Chuyện nhận việc chung chung, không chạm chuyện chờ hồi âm xin việc.",
+   "score": 2
+  },
+  "1887d694cc682cc53e7e15e6": {
+   "reason": "Chuyện tin nhắn khó nghe chung chung, không dính tới kho hay con cái.",
+   "score": 2
+  },
+  "189abdb09bedc9526261e530": {
+   "reason": "Ngày đuối mà bắt nhắn tin chia việc, nội dung không chạm chuyện tìm việc.",
+   "score": 2
+  },
+  "18a9997c3bd8c7d1f4668992": {
+   "reason": "Chuyện góp ý bản nháp không dính hạn gửi sổ, lại giao việc.",
+   "score": 2
+  },
+  "1921b4115b143b4d69d95c51": {
+   "reason": "Ngày đuối lại phải đi hỏi góp ý, dù chuyện bản nháp có gần bài vẽ.",
+   "score": 2
+  },
+  "195d1d6ac4802adbb24bd576": {
+   "reason": "Ngày đuối mà bảo đi nói chuyện thời gian, câu Lá chưa đủ dữ kiện nghe xa lạ.",
+   "score": 2
+  },
+  "195d7f6624886f6749bd2e38": {
+   "reason": "Bà muốn xem ngày tốt xấu mà nhận chuyện xem lịch nhận việc, không dính gì.",
+   "score": 1
+  },
+  "19c60db4b471ec669ada1d73": {
+   "reason": "Đang lạc trôi lại nhận lời khuyên xem lịch giúp người, không chạm áp lực nội trú hay tự trách.",
+   "score": 2
+  },
+  "19f53a49554ea08e0b72d677": {
+   "reason": "Chuyện bản nháp xin góp ý không dính gì tới chị bán hàng ít quen điện thoại.",
+   "score": 1
+  },
+  "1af1577862364169124b849a": {
+   "reason": "Chuyện nhờ giúp chung chung, không nhắc gì tới mùa thi.",
+   "score": 2
+  },
+  "1b17f500c771c11f910bf117": {
+   "reason": "Nội dung chung chung, không chạm tới chuyện riêng của họ.",
+   "score": 2
+  },
+  "1b4a9fba0275cd230b2d4c53": {
+   "reason": "Chuyện dời lịch hẹn không gần với đời bán chè của bà, cũng không nhắc sức khỏe.",
+   "score": 2
+  },
+  "1b98d194c115190dd51deefb": {
+   "reason": "Cảnh viết dở một đoạn khớp với việc viết bài cộng tác, phần còn lại chung.",
+   "score": 3
+  },
+  "1bf094bc96bdc256f609681f": {
+   "reason": "Chủ đề nhận thêm việc rất chung, không nói tới áp lực thật của họ. Lại tự nhận chưa đủ dữ kiện.",
+   "score": 2
+  },
+  "1bf8f618110989edc0ab07eb": {
+   "reason": "Cảnh tin nhắn bảo làm như cũ gần với đơn sửa máy hay đồ án nhóm, nhưng vẫn chung.",
+   "score": 3
+  },
+  "1c0834b1c6ce7af83fc2459f": {
+   "reason": "Chuyện bản nháp không hợp cậu sinh viên cơ khí thích làm bằng tay.",
+   "score": 2
+  },
+  "1c124c1c6a9a00a60daf8cbe": {
+   "reason": "Chuyện nói được dù không muốn chung chung, chưa chạm mùa thi.",
+   "score": 2
+  },
+  "1c67a62410e890bda646c0fa": {
+   "reason": "Chuyện bản nháp không gần nỗi lo nghe nói tiếng Anh của họ.",
+   "score": 2
+  },
+  "1c8afcb99ea28b8a5ab33b65": {
+   "reason": "Tự nói chưa đủ dữ kiện, chuyện xem lịch nhận việc xa lạ với bà.",
+   "score": 2
+  },
+  "1c938fb9e701caf2727de8d8": {
+   "reason": "Ngày đuối lại nói chuyện nhận việc cho khỏi từ chối, không chạm chuyện đau chân hay giá hàng.",
+   "score": 2
+  },
+  "1cb17d095fdc8d2c0b9d3075": {
+   "reason": "Tự nói chưa đủ dữ kiện, nội dung chung không nhắc chuyện mới đi làm.",
+   "score": 2
+  },
+  "1ce14134ca62e877c329f650": {
+   "reason": "Hôm đuối nói chuyện nhận thêm việc chung chung, lại bảo đi nói với người khác.",
+   "score": 2
+  },
+  "1cf590b573b40b5ae06be4db": {
+   "reason": "Chuyện nhận lời giúp quá sức chung chung, không dính gì tới đời ông.",
+   "score": 2
+  },
+  "1cfda5b64a6ec75462f33877": {
+   "reason": "Chuyện nhận lời khi lịch kín có thể gặp ở trường nhưng nghe chung chung.",
+   "score": 2
+  },
+  "1d056d25abd9f470cad8157e": {
+   "reason": "Hôm đuối lại giao việc nói với người khác, nội dung chung chung.",
+   "score": 2
+  },
+  "1d4138f33207776444f84834": {
+   "reason": "Lời chung về nhận thêm việc, câu Lá chưa đủ dữ kiện làm mình thấy app không biết mình.",
+   "score": 2
+  },
+  "1d6777e54357766292865b20": {
+   "reason": "Chuyện đọc hết tin nhắn chung chung, không có chiều sâu họ cần.",
+   "score": 2
+  },
+  "1da194038590a5de34aadf2f": {
+   "reason": "Nội dung chung chung và lại giao việc trong khi người này không muốn bị giao việc.",
+   "score": 2
+  },
+  "1dab7c739e3dc6cbc2273ba2": {
+   "reason": "Chuyện khó nói không khá chung, không có gì vui hay chuyện nhớ nhà.",
+   "score": 2
+  },
+  "1db1a6c5251724d091bd98c4": {
+   "reason": "Không nói gì về tiền hay bài vẽ, chỉ là câu xem lịch dùng cho ai cũng được.",
+   "score": 2
+  },
+  "1dbd84c7c1c4077c63669e0c": {
+   "reason": "Chuyện đổi cách làm chung chung, lại giao việc cho người không muốn làm gì.",
+   "score": 2
+  },
+  "1dda3457612694de5862b92c": {
+   "reason": "Chuyện nhận việc cho êm hơi hợp người mới đi làm, nhưng vẫn giao việc nhắn tin.",
+   "score": 3
+  },
+  "1df100b7a15d54e8b19cd6b2": {
+   "reason": "Chuyện nhờ giúp chung, không chạm tới chuyện chấm công hay hỏi lương.",
+   "score": 2
+  },
+  "1e034f09bdeeb37a634b619a": {
+   "reason": "Cảnh sửa mãi bản nháp hơi gần chuyện báo cáo thứ Sáu, nhưng không chạm chuyện con ốm.",
+   "score": 3
+  },
+  "1e0d3ab7eb4324d97b5038bb": {
+   "reason": "Chuyện tin nhắn chung chung, không chạm thi cắt may, vẫn là việc giao.",
+   "score": 2
+  },
+  "1e21088810a0da0b7f96e82c": {
+   "reason": "Chuyện từ chối chung chung, giao việc nhắn tin vào ngày đuối.",
+   "score": 2
+  },
+  "1e68c2c00e0fd6379aa7ad33": {
+   "reason": "Chuyện nhận lời giúp người khác ai đọc cũng được, không chạm tới áp lực thật của họ.",
+   "score": 2
+  },
+  "1e9ede77c0979e49187cae39": {
+   "reason": "Chuyện giữ cách cũ và ghi kết quả thử nghe chung, lại là việc phải làm dù mình không muốn bị giao.",
+   "score": 2
+  },
+  "1ed8f06484ef9151771848b9": {
+   "reason": "Chuyện gửi bản nháp không dính tới đời công nhân ca, lại giao việc gửi đi vào ngày đuối.",
+   "score": 1
+  },
+  "1f0bbbf18a81ae1145909b6f": {
+   "reason": "Chuyện hỏi góp ý bản nháp không dính chuyện phân vân với bố, lại bắt hỏi người khác lúc đang đuối.",
+   "score": 2
+  },
+  "1f0e3ce5b2cde8d0c31f3ce1": {
+   "reason": "Chuyện nói được khi không muốn khá chung, không chạm nhớ nhà hay ngại tiếng Anh.",
+   "score": 2
+  },
+  "1f1dec26793a5353a94e0dc4": {
+   "reason": "Chủ đề nhận thêm việc rất chung, không nói tới áp lực thật của họ. Lại tự nhận chưa đủ dữ kiện.",
+   "score": 2
+  },
+  "1f282a596003c341dc1c7183": {
+   "reason": "Chuyện tin nhắn chưa rõ chung chung, không chạm nỗi nhớ nhà hay cô đơn của họ.",
+   "score": 2
+  },
+  "1f2ec7ef1b8726c324f6bd97": {
+   "reason": "Chuyện lịch kín có dính hôm giao bản cập nhật, lời ngắn và thực tế.",
+   "score": 3
+  },
+  "1f47279ecbb5885bd12d0ae4": {
+   "reason": "Chuyện nhận việc cho xong không chạm chuyện ba bắt về coi tiệm.",
+   "score": 2
+  },
+  "1f57ac2a581b86d4ba901c79": {
+   "reason": "Nội dung chung chung, không chạm tới chuyện riêng của họ.",
+   "score": 2
+  },
+  "1f5c7deba29f74ceec8821ed": {
+   "reason": "Tin nhắn chưa rõ có thể gặp nhưng không nói gì tới sức khỏe hay chuyện con cháu.",
+   "score": 2
+  },
+  "1fa4cd6c9918e6f79fb5ef7c": {
+   "reason": "Chuyện họp nhóm chung chung, không dính con thi hay giá cà phê.",
+   "score": 2
+  },
+  "1fc4c776ce2c5e137fd41519": {
+   "reason": "Đọc hết tin trước khi trả lời hợp với người bán online, phần còn lại chung.",
+   "score": 3
+  },
+  "1fc6d049694171c6f700fd31": {
+   "reason": "Chuyện nhận lời giúp không dính tới áp lực học và gia đình, việc nhỏ phải nói với người khác vào ngày đuối.",
+   "score": 2
+  },
+  "1fde6b7af598f1b8fb17055c": {
+   "reason": "Chuyện nói rõ việc cần giúp chung chung và lại giao việc cho người không muốn bị giao việc.",
+   "score": 2
+  },
+  "1ffbf633c142e369d0733d2d": {
+   "reason": "Hôm đuối lại bảo đi nói điều chưa hiểu, không chạm chuyện ở một mình.",
+   "score": 2
+  },
+  "2026ca4f810ce4185a8e0778": {
+   "reason": "Câu báo chưa đủ dữ kiện và lời khuyên nhận việc chung chung, đúng kiểu họ không thích.",
+   "score": 2
+  },
+  "20617ade5f5897897818bcb3": {
+   "reason": "Chuyện nhận giúp không chạm chuyện với bố, lại giao việc ngày đuối.",
+   "score": 2
+  },
+  "207465754a26e7d74913fd5b": {
+   "reason": "Chuyện giúp quá sức hơi gần ngày làm ở tiệm, nhưng đang đuối mà phải nói giới hạn với người khác.",
+   "score": 2
+  },
+  "20763e786d05595f46024ddc": {
+   "reason": "Chuyện bản nháp chung chung, không chạm chuyện ngại nói tiếng Anh.",
+   "score": 2
+  },
+  "20df70fd66e63b35f0dbd633": {
+   "reason": "Nội dung chung chung, không chạm tới chuyện riêng của họ.",
+   "score": 2
+  },
+  "21194406b945c9928f8e65ca": {
+   "reason": "Ngày đuối mà bảo hỏi lại người khác, nội dung chung, không chạm chuyện lưng chừng.",
+   "score": 2
+  },
+  "2137d0b2f426cae095cce8f7": {
+   "reason": "Chuyện xếp lịch giúp người không chạm nỗi nhớ nhà, khá chung.",
+   "score": 2
+  },
+  "21749bec9b9f9250c345cdcf": {
+   "reason": "Chuyện tin nhắn khó chịu chung chung, không dính chuyện học hay làm xưởng.",
+   "score": 2
+  },
+  "21c3cffd268855d0e4656ebd": {
+   "reason": "Chuyện giúp người khác không chạm việc so sánh hay đồ án dang dở.",
+   "score": 2
+  },
+  "21eb6d6829447a77078e863d": {
+   "reason": "Câu xem lịch chung, không chạm chuyện thực tập hay khóa luận.",
+   "score": 2
+  },
+  "223428b25b26194b64bb9c8f": {
+   "reason": "Chuyện làm dở nhiều việc chung, không nhắc tới việc học hay sự cô đơn của họ.",
+   "score": 2
+  },
+  "223486d6a73b2257fad27600": {
+   "reason": "Chuyện nhận lời dù không muốn gần với cảnh khách đổi ý phút cuối, phần còn lại chung chung.",
+   "score": 3
+  },
+  "2255371446a560e72291f3dd": {
+   "reason": "Chuyện tin nhắn nhắc làm như cũ có thể gần việc sổ sách nhưng vẫn chung.",
+   "score": 2
+  },
+  "22783ff306bdb8b69541e2a0": {
+   "reason": "Lúc đuối lại giao việc nói với người nhờ, không chạm chuyện bố ép hay đồ án.",
+   "score": 2
+  },
+  "22b968b1fdd9b54612c228bf": {
+   "reason": "Chuyện giữ cách cũ chung chung, lại giao việc trong khi mình muốn đọc xong thôi.",
+   "score": 2
+  },
+  "22dfa3438efbffb02512df68": {
+   "reason": "Có dính chuyện làm nhóm, nhưng lại giao việc phải đi hỏi nhóm trong khi mình không thích bị giao việc.",
+   "score": 3
+  },
+  "22fed186fd2908836d5b84f7": {
+   "reason": "Lạc trôi mà nhận bài về nhận việc thêm, không chạm chuyện gia đình hay người yêu.",
+   "score": 2
+  },
+  "23311433c8fc18b49d37121f": {
+   "reason": "Không nói gì tới chuyện trượt vòng tuyển hay mất ngủ, chỉ là mẹo nhắn tin chung.",
+   "score": 2
+  },
+  "236c0ea2b237f453e0873223": {
+   "reason": "Chuyện trả lời tin nhắn vội chung chung, không chạm chuyện rớt phỏng vấn.",
+   "score": 2
+  },
+  "237b8cbf108186b677d070e6": {
+   "reason": "Chuyện nói không với việc được nhờ, chưa chạm nỗi lo tìm việc.",
+   "score": 2
+  },
+  "23daebc0eb2f9b8692ccce6c": {
+   "reason": "Chuyện nhận lời giúp không chạm nỗi lo tiền cuối tháng đang căng.",
+   "score": 2
+  },
+  "23fc9fee89a190982b274f7e": {
+   "reason": "Chuyện xin góp ý đúng chỗ chạm tới việc bị sửa bài nhiều lần, nhưng lại giao thêm việc phải hỏi người khác.",
+   "score": 3
+  },
+  "23fec4ba03236e0992a92a9d": {
+   "reason": "Chuyện nhận giúp chung chung, ai đọc cũng được.",
+   "score": 2
+  },
+  "2425238feade526438e7d05c": {
+   "reason": "Chuyện nhận lời giúp không dính chuyện trượt phỏng vấn của mình.",
+   "score": 2
+  },
+  "248180597e49e29669e80517": {
+   "reason": "Đúng tật nhận nhiều việc rồi bỏ dở, việc mười phút vừa sức.",
+   "score": 4
+  },
+  "24b6f9064f420087eee8654c": {
+   "reason": "Không nói gì về chuyện bị sếp mắng mà họ đang cần.",
+   "score": 2
+  },
+  "24da2569c362088b59fed4fa": {
+   "reason": "Chuyện nhận thêm khi lịch kín hợp phần nào với deadline dồn, nhưng vẫn khá chung.",
+   "score": 3
+  },
+  "250267cccf81c8ee83685c36": {
+   "reason": "Mùa thi đuối mà nói chuyện bản nháp, không dính môn giải phẫu.",
+   "score": 2
+  },
+  "251a18782207a3efd7d737f0": {
+   "reason": "Chuyện bản nháp chung chung, không dính chuyện yêu hay thi tiếng Anh.",
+   "score": 2
+  },
+  "255a3cbbebdb50a220d85229": {
+   "reason": "Nói lịch kín vì bị nhờ trong khi ngày của cậu đang trống, trái hẳn hoàn cảnh.",
+   "score": 1
+  },
+  "256dcf6928ac25db30e3f489": {
+   "reason": "Chuyện bản nháp không dính việc trả lời khách của bạn.",
+   "score": 2
+  },
+  "258acad248a96963875cb4fe": {
+   "reason": "Chuyện nhận việc cho khỏi nói không hợp tính nhạy cảm, nhưng lại giao việc nhắn tin.",
+   "score": 3
+  },
+  "25bb0485459e782b0f6481ce": {
+   "reason": "Chuyện đọc hết tin nhắn chung chung, giọng khô không vui như bạn bè.",
+   "score": 2
+  },
+  "260afe18794e1cb60c865e3d": {
+   "reason": "Chuyện nói được khi không muốn chung chung, không dính buôn bán hay con lấy chồng.",
+   "score": 2
+  },
+  "2670ee25bf66e6bae0c88d7a": {
+   "reason": "Chuyện trả lời tin nhắn không chạm chuyện tiệm vắng khách.",
+   "score": 2
+  },
+  "26bfae87b9a3bbb0c8c9afa6": {
+   "reason": "Ngày đuối mà bảo nói chuyện thời gian, còn tự nhận chưa đủ dữ kiện.",
+   "score": 2
+  },
+  "26c58f81ccfb2f9202b2ace6": {
+   "reason": "Không nhắc đồ án, Lá còn nói chưa đủ dữ kiện nên thấy hời hợt.",
+   "score": 2
+  },
+  "275e5b5675445bcb353f489f": {
+   "reason": "Cảnh tin nhắn khó nghe có gần chuyện khách khó tính, nhưng chưa để ý chân mỏi sau ca.",
+   "score": 3
+  },
+  "27680ffe0563c6ec812bad45": {
+   "reason": "Đang tìm việc mà nói chuyện nhận việc thêm, ngày đuối còn phải nhắn người khác.",
+   "score": 2
+  },
+  "276f4deb6ab855b8d2328a1a": {
+   "reason": "Mẹo đọc hết tin nhắn chung, không chạm nỗi nhớ nhà hay cô đơn.",
+   "score": 2
+  },
+  "27c05872b2e0ff3758245ac5": {
+   "reason": "Chuyện giúp người chung chung, không chạm cảnh thiếu ngủ vì con.",
+   "score": 2
+  },
+  "27c32c2e134094067146ea63": {
+   "reason": "Chuyện sửa bản nháp không hợp công nhân lắp ráp đi ca.",
+   "score": 1
+  },
+  "27d073fe7f23e3ae5a98cb83": {
+   "reason": "Chuyện bỏ dở việc chung chung, không nhận ra mình đang căng vì bà chủ.",
+   "score": 2
+  },
+  "27f95b70c2feb2313450159c": {
+   "reason": "Chuyện sửa bản nháp không dính nhớ nhà hay chuyện của bạn.",
+   "score": 2
+  },
+  "28062f1d1123207d38037f45": {
+   "reason": "Chuyện tin nhắn chưa rõ chung chung, không chạm chuyện riêng tư.",
+   "score": 2
+  },
+  "286b184a630a62bee09959e0": {
+   "reason": "Ngày Đuối mà bảo hỏi nhóm, không chạm chuyện ba môn thi cùng tuần.",
+   "score": 2
+  },
+  "28b47fe324d12fd55f693a72": {
+   "reason": "Chuyện giúp người khác không chạm mùa thi hay tiền nhà hụt.",
+   "score": 2
+  },
+  "28ce67d5e3be3dca3914393f": {
+   "reason": "Chuyện ngại nói rõ nhu cầu hơi gần cảnh ngại xin mẹ tiền, phần còn lại chung.",
+   "score": 3
+  },
+  "28d13e7b1228dcdb6e59427d": {
+   "reason": "Cảnh nhóm chốt việc qua chat xa lạ với bà hưu trí ở nhà, lại nhắc làm việc.",
+   "score": 1
+  },
+  "2924e9e5afce70ee81f64c29": {
+   "reason": "Chuyện nhóm chốt nhanh hơi gần bếp nhưng vẫn chung chung.",
+   "score": 2
+  },
+  "29322ed4a34b5bb28b78823d": {
+   "reason": "Ngày Đuối mà bảo đi nhờ người giúp, trong khi họ không có ai để kể và đang lo thi.",
+   "score": 2
+  },
+  "293939e6ed1bdaa10d9e2c7b": {
+   "reason": "Chuyện góp ý bản nháp không chạm tới nỗi nhớ nhà của người này.",
+   "score": 2
+  },
+  "2967f675419c6d1c15076794": {
+   "reason": "Chuyện bản nháp không chạm mùa thi dồn mà Việt đang lo.",
+   "score": 2
+  },
+  "2979310f022b412ba30b8b48": {
+   "reason": "Chuyện than mệt mà chưa nói cần giúp gì rất giống cảnh một mình lo con, giọng nhẹ.",
+   "score": 4
+  },
+  "29bc1862b9269f6755ecc69e": {
+   "reason": "Chuyện bản nháp không hợp thợ sửa xe đang đuối, lại bắt đi hỏi người khác.",
+   "score": 2
+  },
+  "29d5c8b09674dd63d0e80280": {
+   "reason": "Ngày Đuối mà việc nhỏ bắt nói chuyện với người khác, lại tự nhận chưa đủ dữ kiện nên rất chung.",
+   "score": 2
+  },
+  "29e1b42574e7dc8156d5b47f": {
+   "reason": "Chuyện nhóm chốt việc xa đời họ, lại bảo đi hỏi nhóm ngày đuối.",
+   "score": 2
+  },
+  "2ad6cb3c739fdc0db33361d9": {
+   "reason": "Chuyện hỏi góp ý đúng chỗ khớp với tin bài hay bị trả lại, hợp hôm nhiều năng lượng.",
+   "score": 4
+  },
+  "2af5fa02128a5f4dcb6a02aa": {
+   "reason": "Lời chung về lịch kín, không đụng gì tới chuyện mình đang lo.",
+   "score": 2
+  },
+  "2afc8d17fdd14848eed14b80": {
+   "reason": "Chuyện giúp người khi mệt không chạm nỗi lo tiền cuối tháng của Bảo.",
+   "score": 2
+  },
+  "2b0718a29e6d235d1080d5dc": {
+   "reason": "Chuyện nhận việc chung chung, không chạm chuyện so sánh trên mạng.",
+   "score": 2
+  },
+  "2b616ab3e9f49509ea64fd23": {
+   "reason": "Câu thú nhận chưa đủ dữ kiện rồi khuyên chung chung, không giúp bớt so sánh.",
+   "score": 2
+  },
+  "2bcaf1b78521f0c851ad71fb": {
+   "reason": "Chuyện nhận thêm việc khi lịch kín hợp mùa may đồ, nhưng tự nói chưa đủ dữ kiện nên nghe chung.",
+   "score": 3
+  },
+  "2c3238218155f8d6fac06267": {
+   "reason": "Ngày đuối mà nói chuyện nhận lời giúp, không đụng tới chuyện so mình trên mạng.",
+   "score": 2
+  },
+  "2c55675e4407791fd9f08f77": {
+   "reason": "Hợp với lịch lâm sàng và dạy kèm kín, nhưng câu vẫn chung.",
+   "score": 3
+  },
+  "2c675c7fcdf12670d452d835": {
+   "reason": "Câu xem lịch chung, không để ý mùa thi và người không muốn bị giao việc.",
+   "score": 2
+  },
+  "2cf172d7dc143c2448227940": {
+   "reason": "Chuyện tin nhắn khó hiểu có thể gần cảnh sếp nhắn việc đêm, nhưng vẫn nói chung.",
+   "score": 3
+  },
+  "2cfd5b393f99905c7b739a0e": {
+   "reason": "Chuyện thử cách khác rồi so kết quả có chạm số liệu hay lệch, phần còn lại chung.",
+   "score": 3
+  },
+  "2d19aec252ef16f109f5fd08": {
+   "reason": "Tự nói chưa đủ dữ kiện, chuyện nhận lời giúp không dính áp lực với sếp.",
+   "score": 2
+  },
+  "2d5994d8b1f74971cf95915c": {
+   "reason": "Chuyện tin nhắn khó nghe chung chung, không chạm lo tiền cuối tháng.",
+   "score": 2
+  },
+  "2d60579e4d848c788671f1d7": {
+   "reason": "Ngày đuối lại bị giao hỏi góp ý bản nháp, không dính việc nghe khách phàn nàn.",
+   "score": 1
+  },
+  "2e1afe14d2e10ad1dcb35140": {
+   "reason": "Chuyện giúp người khác rồi thiếu giờ cho mình hợp với việc xã nhiều người ít.",
+   "score": 3
+  },
+  "2e6e316beb879dc8d137c5fe": {
+   "reason": "Chuyện ngại đổi cách làm chung chung, không dính lịch tour hay thu nhập.",
+   "score": 2
+  },
+  "2e99e4b9b9664b08b07097e2": {
+   "reason": "Chuyện nói rõ mình cần gì hợp với tính ngại làm phiền con, phần còn lại chung.",
+   "score": 3
+  },
+  "2edc1b7b5224139d08833faf": {
+   "reason": "Lời khuyên về lịch và nhận việc ai đọc cũng được, không dính chuyện yêu xa hay ca trực.",
+   "score": 2
+  },
+  "2f0e80251664f9bc769f44f7": {
+   "reason": "Đoán ý tin nhắn khá chung, không nhắc chuyện ngại nói với con dâu hay nhớ ông nhà.",
+   "score": 2
+  },
+  "2f6740b3d9be3cd4ea1ffff9": {
+   "reason": "Chuyện gửi bản nháp và hỏi góp ý cụ thể hợp với sinh viên năm nhất, việc nhỏ nhẹ, nhưng không dính tới điều đang làm bạn ấy lo.",
+   "score": 3
+  },
+  "2f69397acda01fa1722a8092": {
+   "reason": "Ngày đuối sau ca mà bảo đi hỏi góp ý bản nháp, không hợp sức lúc đó.",
+   "score": 2
+  },
+  "2f701cfecf9b3a79b64952a0": {
+   "reason": "Chuyện giúp quá sức chung, không chạm chuyện công nhân hỏi lương.",
+   "score": 2
+  },
+  "2fccff96444baf0a047e726e": {
+   "reason": "Chuyện bản nháp xa với nghề sửa xe, lại bắt làm việc chú không thích.",
+   "score": 1
+  },
+  "2ff5f055d2559bfc09e5ed09": {
+   "reason": "Chuyện tin nhắn khó nghe có thể gặp nhưng chung, không chạm việc may gấp.",
+   "score": 2
+  },
+  "3001863ebcabcf905b025c13": {
+   "reason": "Chuyện nhóm chốt việc không chạm nỗi nhớ nhà, lại có việc phải hỏi.",
+   "score": 2
+  },
+  "3001ef817aaf74956816942a": {
+   "reason": "Chuyện ngại đổi cách cũ có thể dính đồ án bị chê, nhưng việc nhỏ hơi nặng hôm rối.",
+   "score": 3
+  },
+  "3066aa74868a5d74d2b6a2c3": {
+   "reason": "Nói chuyện nhận thêm việc trong khi họ chưa có việc ổn định, chung chung.",
+   "score": 2
+  },
+  "306ca27d519df2d16b63e700": {
+   "reason": "Chuyện giúp người khác không khớp việc bị sếp giao, lại có việc phải làm.",
+   "score": 2
+  },
+  "308860ca7e6bc408e3a6cc21": {
+   "reason": "Không chạm chuyện tiền trọ hay bị dẹp hàng, chỉ là lời khuyên giúp người chung chung.",
+   "score": 2
+  },
+  "309bd5421100f155a6470ddf": {
+   "reason": "Chuyện bản nháp chung, không chạm nỗi lo thuyết trình hay đi học muộn.",
+   "score": 2
+  },
+  "30d82b0638fd0539425eff15": {
+   "reason": "Chuyện sửa bản nháp không liên quan việc buôn online.",
+   "score": 2
+  },
+  "31316dc93de30d3fd951e698": {
+   "reason": "Chuyện nhận lời dù không muốn có dính áp lực giao hàng gấp, nhưng câu chữ còn chung.",
+   "score": 3
+  },
+  "3139f0c72ac2c65444128e62": {
+   "reason": "Câu báo chưa đủ dữ kiện và chuyện nhận lời giúp không chạm tới cảm giác bỡ ngỡ khi mới đi làm.",
+   "score": 2
+  },
+  "315f9ec5a5f3964b31b0f2c3": {
+   "reason": "Chuyện gửi bản nháp không dính tới đời người này, lại bắt gửi cho người khác.",
+   "score": 2
+  },
+  "317f135319b3e4f2cf3d5a8c": {
+   "reason": "Câu xem lịch chung, không nhớ chuyện vừa bị từ chối phỏng vấn.",
+   "score": 2
+  },
+  "31cbb4ada1485ff3b788eaaa": {
+   "reason": "Chuyện cách cũ chưa hiệu quả có thể chạm việc bán hàng, nhưng việc ghi chép lại là thứ cô không thích.",
+   "score": 3
+  },
+  "31d8d0ddbfe0c787f9aeab4f": {
+   "reason": "Chuyện nhờ giúp chung chung, không hợp mood rực của ngày đó.",
+   "score": 2
+  },
+  "31fa212cf0a6f174058b5fb7": {
+   "reason": "Chuyện giữ trong lòng mà không nói cần gì khá đúng tính, nhưng không nhắc đồ án hay tiền.",
+   "score": 3
+  },
+  "324464e97b17a7c0aefbfe7e": {
+   "reason": "Chuyện giúp quá sức có chạm người đang lo cho mẹ, nhưng chưa nói tới nghỉ ngơi cho mình.",
+   "score": 3
+  },
+  "3281c83dfd386d19cd26c89a": {
+   "reason": "Ngày đuối lại bảo thử cách khác rồi so sánh, lạc khỏi chuyện ca và sức khỏe.",
+   "score": 2
+  },
+  "32da0c7d186d42847bf6a901": {
+   "reason": "Chuyện hỏi góp ý bản nháp không chạm áp lực bố mẹ, lại là việc giao.",
+   "score": 2
+  },
+  "32da37461442f01bcbc1528c": {
+   "reason": "Chuyện từ chối chung chung, không dính tới thi thực hành.",
+   "score": 2
+  },
+  "331140e2d1d577f7eae54ccf": {
+   "reason": "Nội dung chung chung, không chạm tới chuyện riêng của họ.",
+   "score": 2
+  },
+  "33401918359f4c26475ab959": {
+   "reason": "Chuyện nhờ giúp chung chung, không nói tới ôn thi.",
+   "score": 2
+  },
+  "33a1d961586c1e26eea68ba5": {
+   "reason": "Ngày Đuối mà việc nhỏ bắt nói chuyện với người khác, lại tự nhận chưa đủ dữ kiện nên rất chung.",
+   "score": 2
+  },
+  "33afe99e0e7220c9e2961fa1": {
+   "reason": "Chuyện đổi cách làm mơ hồ, không thấy nỗi nhớ nhà hay bài tập viết tin.",
+   "score": 2
+  },
+  "33f691e6b7d88c642c6c0441": {
+   "reason": "Lời chung về được nhờ việc, không nói tới đồ án hay áp lực so sánh.",
+   "score": 2
+  },
+  "34097abb39d4b30b87a9c4d8": {
+   "reason": "Có thể chạm chuyện mệt khi trông cháu nhưng bắt ghi và đề nghị, bà ngại viết.",
+   "score": 2
+  },
+  "3419c806b9f5e0e06c719b81": {
+   "reason": "Mình chọn rực mà tiêu đề lại bảo mình đã mệt, nội dung không dính đời mình.",
+   "score": 1
+  },
+  "34413110f6d5768440cc2493": {
+   "reason": "Lời chung về nhờ giúp, lại giao việc cho người không muốn bị giao.",
+   "score": 2
+  },
+  "349fdfc7e8e01088e6a30b85": {
+   "reason": "Chung chung, không để ý chuyện ca đêm và mệt.",
+   "score": 2
+  },
+  "34abf7eaacafce4fbb1cc07d": {
+   "reason": "Chuyện bản nháp không liên quan tới kỳ thi tay nghề hay chuyện chị họ.",
+   "score": 1
+  },
+  "34c4c9255f99e19278e45fdf": {
+   "reason": "Chuyện nói rõ việc cần nhờ hợp với cảnh một mình lo hai con, dù không nói thẳng ra.",
+   "score": 3
+  },
+  "34f8fb318d9f475de0f04e3c": {
+   "reason": "Lời chung về hỏi góp ý, không dính chuyện bán hàng hay quay video.",
+   "score": 2
+  },
+  "34fc329b70d4f35c9e11da56": {
+   "reason": "Chuyện xem lịch nhận việc không dính gì tới sức khỏe, đời ông.",
+   "score": 1
+  },
+  "3507314f1d99388ebb0ef074": {
+   "reason": "Chuyện từ chối nhận việc kèm tên sao khó hiểu, xa với đời làm ruộng của bà.",
+   "score": 1
+  },
+  "35175cf6f8b8e4c5d4fd3a9b": {
+   "reason": "Sửa mãi chưa gửi bản nháp đúng kiểu dân thiết kế, việc nhỏ gọn và có ích.",
+   "score": 4
+  },
+  "354e2e9801a874455b3f7549": {
+   "reason": "Chuyện chuyển việc liên tục khá chung, không dính tới ca làm hay chuyện yêu xa.",
+   "score": 2
+  },
+  "356fba3986a86a8f1016008c": {
+   "reason": "Cảnh nhóm chốt nhanh không hợp người làm một mình chờ báo cáo thứ Sáu.",
+   "score": 2
+  },
+  "3589de2cb4c007fa701dc798": {
+   "reason": "Chuyện nhận lời giúp chung chung, không chạm chuyện nhà đang căng hay thi.",
+   "score": 2
+  },
+  "35e560839803cac33f171278": {
+   "reason": "Chuyện bản nháp và góp ý chẳng dính gì tới việc bán bánh ở chợ, không nói hôm nay nên làm gì.",
+   "score": 1
+  },
+  "35e91d2264f1466f59d2015e": {
+   "reason": "Chuyện bản nháp chưa gửi không dính tới người bán hàng đang lo đơn bom.",
+   "score": 1
+  },
+  "35ee1978e31c22d1b1cb8051": {
+   "reason": "Tự nói chưa đủ dữ kiện, chuyện nhận lời giúp đổi tên ai cũng hợp.",
+   "score": 2
+  },
+  "36435fe77fe1132475826187": {
+   "reason": "Chuyện nhờ giúp chung chung, không chạm chuyện tìm việc.",
+   "score": 2
+  },
+  "365cc11bc3675651fd9aaf9b": {
+   "reason": "Chuyện xem lịch chung chung, không hiểu chuyện học sai ngành.",
+   "score": 2
+  },
+  "3668f94cca7fd43071892f80": {
+   "reason": "Chuyện tin nhắn chưa rõ nghe chung, không chạm chuyện mẹ chồng hay con ốm.",
+   "score": 2
+  },
+  "3692838eab01e6667a0e611e": {
+   "reason": "Nội dung chung chung, không chạm tới chuyện riêng của họ.",
+   "score": 2
+  },
+  "36bc10a7e892f6e50ee0a8db": {
+   "reason": "Hợp mood căng nhưng không chạm chuyện ao tôm hay đi học lại.",
+   "score": 2
+  },
+  "36fc9512c5e2da76df15ce01": {
+   "reason": "Chuyện sửa bản nháp không dính tới năm nhất xa nhà.",
+   "score": 2
+  },
+  "378569d8e4555237506db352": {
+   "reason": "Chuyện bản nháp không chạm chuyện so sánh trên mạng, lại là việc phải làm.",
+   "score": 2
+  },
+  "37adef32b9d7af0cbb04f1fa": {
+   "reason": "Câu Lá chưa đủ dữ kiện, không dính chuyện chạy đơn hay bài tập lớn.",
+   "score": 2
+  },
+  "37c57f1a3ac3ad832528728f": {
+   "reason": "Câu Lá chưa đủ dữ kiện, ngày đuối vẫn bị giao việc nói chuyện.",
+   "score": 2
+  },
+  "37c7610745f68f89f766876f": {
+   "reason": "Nói rõ thời gian khi được nhờ hợp chuyện bị đồng nghiệp đẩy việc, cảnh vẫn chung.",
+   "score": 3
+  },
+  "37cb35bb0b7e63e64405a473": {
+   "reason": "Lúc đuối lại bảo hỏi nhóm, không chạm chuyện sếp mắng.",
+   "score": 2
+  },
+  "37ccb0ac02cb5129351b3000": {
+   "reason": "Ngày Đuối lại giao việc nhắn tin sắp xếp với người khác, không chạm chuyện chọn nghề.",
+   "score": 2
+  },
+  "37f692dbc9a45c1e9f429754": {
+   "reason": "Chuyện xếp lịch giúp người khác chung chung, không biết Mai đang tuần thi.",
+   "score": 2
+  },
+  "3835a68d738dc2d4199008ad": {
+   "reason": "Tin nhắn khó nghe gần với chuyện bị nhắn việc buổi tối, phần còn lại chung.",
+   "score": 3
+  },
+  "38868a4ad5971536aa433928": {
+   "reason": "Chuyện góp ý bản nháp không chạm tới nỗi nhớ nhà của người này.",
+   "score": 2
+  },
+  "3913b4f8b67384f26b8dde01": {
+   "reason": "Chuyện giúp người khác không phải điều họ đang lo là khóa luận và tìm việc.",
+   "score": 2
+  },
+  "392414898fce6282eac041a2": {
+   "reason": "Chuyện than mệt mà chưa nói cần giúp gì có phần chạm người mẹ không ai đỡ.",
+   "score": 3
+  },
+  "3993b67c63794f30aa104aeb": {
+   "reason": "Chuyện gửi bản nháp chung chung, lại giao việc khi anh muốn nhẹ nhàng.",
+   "score": 2
+  },
+  "39a9134aace1dfed02de3de7": {
+   "reason": "Chuyện hỏi góp ý cụ thể dùng được trong việc marketing, nhưng không chạm tới chuyện sếp nhận công.",
+   "score": 3
+  },
+  "39ac18ba062de33ac7fac170": {
+   "reason": "Câu nhiều năng lượng lệch với người đang lạc trôi, nhờ giúp thì chung.",
+   "score": 2
+  },
+  "39bb9202ff161878d88cda6a": {
+   "reason": "Nội dung chung chung, không chạm tới chuyện riêng của họ.",
+   "score": 2
+  },
+  "39d4dcfb5805543384e1dd6a": {
+   "reason": "Chuyện nhóm chốt việc chung chung, không hợp đời công nhân ca xoay.",
+   "score": 2
+  },
+  "3a2f17c10cd382137b834fb8": {
+   "reason": "Chuyện tin nhắn chưa rõ khá chung, không nói tới nhà hay con cháu.",
+   "score": 2
+  },
+  "3a31c92e2e350722bb54f322": {
+   "reason": "Chuyện nhận lời cho xong khớp thói quen nhận việc quá sức với chủ shop, việc nhắn lại làm được.",
+   "score": 4
+  },
+  "3a363bc7d346fb69b3f0582d": {
+   "reason": "Xin góp ý đúng chỗ hợp lúc bị thầy bắt sửa bản vẽ, nhưng vẫn là thêm việc.",
+   "score": 3
+  },
+  "3a3e6a9e2ed5f3660ed1086e": {
+   "reason": "Chuyện từ chối chung chung, không dính chuyện bán bún hay trông cháu.",
+   "score": 2
+  },
+  "3a48f1b1553e723292a40625": {
+   "reason": "Hỏi lại thay vì đoán ý hợp với chuyện khách đổi ý, nhưng vẫn khá chung.",
+   "score": 3
+  },
+  "3aa8643e8455a400b12d2eae": {
+   "reason": "Chuyện khó từ chối không dính tới chuyện đổi nghề hay demo.",
+   "score": 2
+  },
+  "3b1c61e0ae0aabfcd99c6f27": {
+   "reason": "Chuyện đọc hết tin nhắn không chạm cảnh nhà đang khó.",
+   "score": 2
+  },
+  "3b3cbb21b03fe0d9091960ac": {
+   "reason": "Tự nói chưa đủ dữ kiện, chuyện nhận lời giúp không dính chuyện tìm việc.",
+   "score": 2
+  },
+  "3b9c7c6be9ede421810cfecb": {
+   "reason": "Chuyện bản nháp không dính đời họ, lại giao việc họ không muốn.",
+   "score": 2
+  },
+  "3bc90cb5aa58cadb7646fb21": {
+   "reason": "Ngày Đuối mà phải nhắn tin từ chối, không chạm chuyện thi tay nghề hay tiền.",
+   "score": 2
+  },
+  "3bf4c92ce593e97e0076c63c": {
+   "reason": "Chuyện nhận thêm việc và xem lịch không dính gì tới đời bà.",
+   "score": 1
+  },
+  "3c6d4ca6884fd9f30ed57236": {
+   "reason": "Chuyện giữ cách cũ không chạm tới điều họ đang lo.",
+   "score": 2
+  },
+  "3c990fdb7bd2f73223098462": {
+   "reason": "Bảo gửi bản nháp không hợp công việc của họ và quá nặng ngày đuối.",
+   "score": 2
+  },
+  "3cd9467418e5cef61761968f": {
+   "reason": "Có dính chuyện thiếu giờ nhưng không nói tới báo cáo hay hàng trễ, vẫn chung.",
+   "score": 2
+  },
+  "3cdb64aaee03cd5c911c0d15": {
+   "reason": "Ngày đuối lại nói chuyện nhận thêm việc, trong khi Nam đang lo chưa ai nhận hồ sơ.",
+   "score": 2
+  },
+  "3ce8b25864f5a4da04c510d9": {
+   "reason": "Sinh nhật không được nhắc, lời khuyên nhờ giúp không dính đồ án.",
+   "score": 2
+  },
+  "3cf23dff379fe034ac9790b0": {
+   "reason": "Chuyện từ chối chung chung, lại giao việc nhắn tin cho người ghét bị giao việc.",
+   "score": 2
+  },
+  "3d040d4f83e34645677aedf3": {
+   "reason": "Nội dung chung chung về tin nhắn, ai đọc cũng được, không chạm chuyện của họ.",
+   "score": 2
+  },
+  "3d328d28d7c1a27d4820beeb": {
+   "reason": "Ngày Đuối mà bắt nhắn lại phân chia việc với người khác, nội dung chung.",
+   "score": 2
+  },
+  "3d34d7574b299da9323f28fd": {
+   "reason": "Gửi bản nháp sớm để được góp ý khớp với việc giao thiết kế cho khách, việc nhỏ làm được.",
+   "score": 4
+  },
+  "3d637c8b6c1b71b7c8b9276e": {
+   "reason": "Không chạm chuyện livestream hay khách bom hàng, lại thêm một việc phải làm.",
+   "score": 2
+  },
+  "3d8e588b1a93e70d54e106bc": {
+   "reason": "Chuyện bỏ dở việc không chạm cảm giác tụt lại so với bạn bè.",
+   "score": 2
+  },
+  "3da48609614604b1293ffd69": {
+   "reason": "Chuyện nhận giúp chung chung, không chạm sếp hối chỉ tiêu.",
+   "score": 2
+  },
+  "3de1cda71537b867ccde0c7b": {
+   "reason": "Chuyện nhận giúp quá sức ngược với việc mình ngại hỏi bạn, không hợp.",
+   "score": 2
+  },
+  "3e40733f979e0c39445e0175": {
+   "reason": "Chuyện góp ý bản nháp chung chung, không chạm tới nỗi ngại nói tiếng Anh.",
+   "score": 2
+  },
+  "3e4fe69cca844760d02a05b7": {
+   "reason": "Chuyện nhận thêm việc không nhắc chuyện bị quản lý nói nặng.",
+   "score": 2
+  },
+  "3ea892432cb061b89e7e07a0": {
+   "reason": "Chuyện xếp lịch nhận việc không chạm chuyện bị chủ quán quát.",
+   "score": 2
+  },
+  "3f771b4dbb3787cfbdb4e5e3": {
+   "reason": "Đúng chuyện tự so với người khác rồi thấy mình chậm, việc nhỏ nhẹ và đáng làm.",
+   "score": 5
+  },
+  "3f8f9f84efb651ee3e729085": {
+   "reason": "Nội dung chung chung, không chạm tới chuyện riêng của họ.",
+   "score": 2
+  },
+  "3f99866ad356de1b4f5aa767": {
+   "reason": "Chuyện xin góp ý bản nháp không chạm bảng dự toán đang lo.",
+   "score": 2
+  },
+  "404a613c8737ef3fd7bb7a89": {
+   "reason": "Tự nói chưa đủ dữ kiện, nội dung chung chung trong khi anh muốn lời đọc riêng.",
+   "score": 2
+  },
+  "404ad8a8934af887542ae2bc": {
+   "reason": "Ngày đuối lại phải nói chuyện nhận việc, nội dung chung không dính khóa luận hay bà ốm.",
+   "score": 2
+  },
+  "40868bcd71863232a1432ea7": {
+   "reason": "Hỏi nhóm là việc thêm với người ngại va chạm, không chạm chuyện lương công nhân.",
+   "score": 2
+  },
+  "40af03af011ef595e437dcd0": {
+   "reason": "Câu báo chưa đủ dữ kiện và lời mở lịch không hợp với bà, không nhắc nỗi lo con ở xa.",
+   "score": 2
+  },
+  "40dbacfd063f668179793011": {
+   "reason": "Đoán ý tin nhắn chung chung, không nhắc chuyện đang tìm việc.",
+   "score": 2
+  },
+  "40dd596511677fb93a164f2e": {
+   "reason": "Chuyện nhắn tin gắt không hợp nếp sống của chú, đọc thấy chung chung.",
+   "score": 2
+  },
+  "40eb1fd48e010db3db4deada": {
+   "reason": "Chuyện tin nhắn chung chung, khó thấy mình trong đó.",
+   "score": 2
+  },
+  "40ef9d08058323267f6b1c35": {
+   "reason": "Chuyện nhận lời giúp quá sức không dính tới nỗi lo tiền hàng cuối tháng của chị.",
+   "score": 2
+  },
+  "41508cf645d3cfed49a9fcf3": {
+   "reason": "Đang đuối sau ca, ghét bị giao việc mà lại bắt gửi bản nháp cho người khác.",
+   "score": 1
+  },
+  "41b94cbee7102f851a740d8f": {
+   "reason": "Chuyện nói rõ cần giúp gì không hợp người công nhân ca đêm đang nhớ con.",
+   "score": 2
+  },
+  "41c53f4baeadf81bd5debb3c": {
+   "reason": "Chuyện bắt đầu nhiều việc chung chung, không chạm chuyện so sánh với bạn.",
+   "score": 2
+  },
+  "41daa0763c2053f5a3c6d697": {
+   "reason": "Cảnh muốn đáp ngay tin nhắn khó nghe khớp chuyện quản lý nhắn la, việc nhỏ nhẹ.",
+   "score": 4
+  },
+  "41f00f231bd114b1200a0d00": {
+   "reason": "Đúng tật bắt đầu nhiều việc rồi bỏ dở, việc mười phút vừa sức.",
+   "score": 4
+  },
+  "4238308385a206b6fe08ecc8": {
+   "reason": "Nội dung chung chung, không chạm tới chuyện riêng của họ.",
+   "score": 2
+  },
+  "425304675a83e7a01350a420": {
+   "reason": "Chuyện tin nhắn mơ hồ chung chung, không nhắc báo cáo hay chuyện biên chế.",
+   "score": 2
+  },
+  "4253bb902b9894666c4ac222": {
+   "reason": "Chuyện giúp người khác không chạm hạn nộp tác phẩm hay lịch bị hủy.",
+   "score": 2
+  },
+  "426e9e312f57c94d45dc13f7": {
+   "reason": "Thú nhận chưa đủ dữ kiện, lời khuyên không dính tuần demo hay con nhỏ.",
+   "score": 2
+  },
+  "42a600b28b077e48cc843830": {
+   "reason": "Chuyện mở nhiều việc cùng lúc gần với tuần thi và portfolio, việc nhỏ mười phút vừa sức ngày đuối.",
+   "score": 3
+  },
+  "42ed56a6b044ec454bf99cdd": {
+   "reason": "Hôm đuối sau ca mà bảo gửi bản nháp, chuyện không dính tới việc của mình.",
+   "score": 1
+  },
+  "42f972986134a289944c008f": {
+   "reason": "Lá tự nhận chưa đủ dữ kiện, chuyện lịch kín hơi gần deadline nhưng chung chung.",
+   "score": 2
+  },
+  "4373a7d26199ff7a3d163270": {
+   "reason": "Chuyện nhận thêm khi lịch kín hợp lịch học và ca tối dày, nhưng vẫn chung.",
+   "score": 3
+  },
+  "441fd16aa003895122370a99": {
+   "reason": "Ngày đuối mà bảo nhắn từ chối, chuyện cũng không dính tới bạn.",
+   "score": 2
+  },
+  "44394045403ed6115dcf08ab": {
+   "reason": "Ngày đuối lại bị giao việc hỏi góp ý bản nháp, xa với việc lắp ráp và điều cô ghét.",
+   "score": 1
+  },
+  "44731c1488a7c4c6438aa158": {
+   "reason": "Ngày đuối mà bảo đi hỏi nhóm, chưa để ý mấy hôm đồ án căng.",
+   "score": 2
+  },
+  "447d3fd3f512f337f808562d": {
+   "reason": "Ngày đuối mà bảo nói chuyện nhận việc, không biết anh đang làm ca đêm.",
+   "score": 2
+  },
+  "448356cbaf85d2fabc13bb50": {
+   "reason": "Chuyện khó từ chối không gần với việc đang đi xin việc của họ.",
+   "score": 2
+  },
+  "4485e11ab16f7a5be2d5e7be": {
+   "reason": "Hợp với lịch học và làm quán kín, nhưng câu vẫn chung.",
+   "score": 3
+  },
+  "44887d2cd218300c353bf936": {
+   "reason": "Mood đuối mà nói 'nhiều năng lượng', lại bắt nhờ người khác giúp.",
+   "score": 2
+  },
+  "44b90e2cdb10709bea10db10": {
+   "reason": "Chuyện góp ý bản nháp chung chung, không dính chuyện tìm chỗ thực tập.",
+   "score": 2
+  },
+  "44d4a94115dc03a3af4dd5cd": {
+   "reason": "Ngày đuối, tự nói chưa đủ dữ kiện, không chạm chuyện bị từ chối hồ sơ.",
+   "score": 2
+  },
+  "44d51ad16ca542a327229072": {
+   "reason": "Mẹo hỏi lại tin nhắn chung chung, không thấy mình là mẹ đang thiếu ngủ.",
+   "score": 2
+  },
+  "4583bb52dbf2d7536a3028b7": {
+   "reason": "Chuyện lịch kín hợp người hay bị dồn việc, nhưng vẫn chung.",
+   "score": 3
+  },
+  "4586a6c73d202b05318428a7": {
+   "reason": "Lúc đuối lại bảo hỏi lại người gửi, không dính chuyện ca đêm hay nhớ con.",
+   "score": 2
+  },
+  "45a4af3b9dd305d87b3e50c1": {
+   "reason": "Nói rõ việc cần giúp có ích với đồ án nhóm chia việc lệch, phần còn lại chung.",
+   "score": 3
+  },
+  "45b9e3a0753e739bf15fded5": {
+   "reason": "Tự nói chưa đủ dữ kiện, chuyện nhận lời giúp không dính chuyện thi.",
+   "score": 2
+  },
+  "463071ddd17e2473463228f6": {
+   "reason": "Ngày đuối mà bảo hỏi góp ý bản nháp, không hợp việc của cô.",
+   "score": 2
+  },
+  "463ac86a29f21ee6752676af": {
+   "reason": "Lời chung về lịch kín, không nhắc chuyện con ở xa.",
+   "score": 2
+  },
+  "468146bdf6c8fcf687c42227": {
+   "reason": "Ngày đuối mà việc nhỏ là nói chuyện thời gian với người khác, chỉ chạm nhẹ chuyện bị bắt ở lại.",
+   "score": 2
+  },
+  "468f92ab187e6b572fd74107": {
+   "reason": "Chuyện đổi việc liên tục ai đọc cũng được, không nhắc thi tay nghề.",
+   "score": 2
+  },
+  "46d9c2b6a2c23eb5a4595a7d": {
+   "reason": "Việc nhỏ làm xong trong mười phút hợp lúc lạc trôi, nhưng không nhắc nỗi lo thực tập.",
+   "score": 3
+  },
+  "46dd24febe90d5f044a68df8": {
+   "reason": "Chuyện đổi cách làm chung chung và giao việc thử cách mới vào ngày đuối cho người ghét bị giao việc.",
+   "score": 2
+  },
+  "46e1d03ae8f2f67c9698c191": {
+   "reason": "Ngày đuối vẫn bảo đi nhờ người khác, không nhắc chuyện ôn thi.",
+   "score": 2
+  },
+  "46e839e868ad052a97f1c87d": {
+   "reason": "Chạm chuyện một mình gánh việc nhà, nói rõ cần giúp gì, nhưng vẫn chung.",
+   "score": 3
+  },
+  "47153c08e9b41822ae9dbfe8": {
+   "reason": "Chuyện nhận lời giúp chung, kèm phần chiêm tinh họ không thích.",
+   "score": 2
+  },
+  "475fd94c4a20a31f3f74766a": {
+   "reason": "Chuyện trả lời tin nhắn khó chịu xa với đời làm vườn của họ.",
+   "score": 2
+  },
+  "47b84e3be5b09fccb96e5f3a": {
+   "reason": "Xin góp ý cụ thể cho bản nháp có chạm chuyện công việc mới, nhưng chưa nói tới buổi demo.",
+   "score": 3
+  },
+  "47babfc18a70e256a732bcbe": {
+   "reason": "Chuyện góp ý bản nháp lạc khỏi đời công nhân ca, còn giao thêm việc.",
+   "score": 1
+  },
+  "47e7d806e9bc57bce03761e5": {
+   "reason": "Chuyện đọc nửa tin nhắn khá chung, không chạm tới chuyện với ba hay chuyện tình cảm.",
+   "score": 2
+  },
+  "480b080a218c5c0a46b34e12": {
+   "reason": "Lời khuyên nhờ giúp chung chung, không chạm chuyện bố mẹ muốn chuyển ngành.",
+   "score": 2
+  },
+  "48adf895eaa36ad3760d46f9": {
+   "reason": "Chuyện giới hạn thời gian giúp chung chung, lại giao thêm việc.",
+   "score": 2
+  },
+  "48b2b313850bb1813241c426": {
+   "reason": "Chuyện nhắn tin từ chối việc ít hợp ông già trồng mai, phần sao không có ý với mình.",
+   "score": 2
+  },
+  "48ef18ae8b2f8b5968b1ff6c": {
+   "reason": "Hôm đuối mà nói chuyện bản nháp xa lạ và còn giao việc đi hỏi người khác.",
+   "score": 1
+  },
+  "49161968dcc1a889c728ca88": {
+   "reason": "Đang nhớ nhà mà bị giao gửi bản nháp, lạc hẳn khỏi điều họ cần.",
+   "score": 1
+  },
+  "49868cb94f79c3b84deb7f7d": {
+   "reason": "Chuyện nhận thêm việc khi lịch kín hơi giống cảnh nhận bài cộng tác, nhưng câu chưa đủ dữ kiện làm mất cảm giác riêng.",
+   "score": 3
+  },
+  "49cf11dc4ae21db6a23e82f9": {
+   "reason": "Chạm chuyện lịch kín khi bị nhờ, nhưng không nói gì tới nghề dạy học.",
+   "score": 3
+  },
+  "49e4e987ead88b348d2979ce": {
+   "reason": "Chuyện hỏi góp ý bản nháp không dính bán hàng livestream hay chuyện bố mẹ chê.",
+   "score": 2
+  },
+  "4a56298210c958dd0d998678": {
+   "reason": "Chuyện tin nhắn khó chịu không chạm ca đêm hay chuyện dùng chung máy.",
+   "score": 2
+  },
+  "4a5d9854a9b88ce2d063b3e6": {
+   "reason": "Chuyện làm xong một việc chung, không nói tới ca xoay hay ngày nghỉ.",
+   "score": 2
+  },
+  "4a67f922c3573b2f32943416": {
+   "reason": "Chuyện tin nhắn khó chịu không chạm nỗi lo mất việc.",
+   "score": 2
+  },
+  "4a8bc8b62a23623ac3add093": {
+   "reason": "Lời chung về giúp người, lại giao việc cho người không muốn nhiệm vụ.",
+   "score": 2
+  },
+  "4aaf69ff116c8d3390c01d2b": {
+   "reason": "Chuyện giúp người quá sức chung chung, không nói gì tới mùa thi.",
+   "score": 2
+  },
+  "4abb85a1a9a41117f5d454c7": {
+   "reason": "Chuyện đọc tin nhắn chung chung, không dính chuyện chờ hồ sơ.",
+   "score": 2
+  },
+  "4ad7dbd5a22b61b1ccdea7d5": {
+   "reason": "Chuyện nhận thêm việc chung chung, không nhắc ca xoay.",
+   "score": 2
+  },
+  "4b1a716fa9fc0f715b3963ed": {
+   "reason": "Hỏi góp ý đúng phần hợp người làm thiết kế tự do, còn lại chung.",
+   "score": 3
+  },
+  "4b84e4c9a346e065630f613e": {
+   "reason": "Chuyện tin nhắn chưa rõ chung chung, chưa chạm chuyện trực cuối tuần và con ốm.",
+   "score": 2
+  },
+  "4ba5300aefc546f6a333878e": {
+   "reason": "Tin nhắn nhắc làm như cũ hợp cảnh nhận may gia công, phần còn lại chung.",
+   "score": 3
+  },
+  "4bb686102baff1831f5a4a2d": {
+   "reason": "Ngày đuối lại phải nói chuyện nhận việc, nội dung chung không chạm chuyện nhà.",
+   "score": 2
+  },
+  "4c1aaff20134d652f9a97a92": {
+   "reason": "Chuyện nhận lời giúp chung chung, không dính tới chuyện thi trượt hay tìm việc.",
+   "score": 2
+  },
+  "4c1bb7439720232d68d7be4a": {
+   "reason": "Chuyện gửi bản nháp chung chung, không chạm chuyện thực tập hay nhớ nhà.",
+   "score": 2
+  },
+  "4c1fe76854577acae3ff8216": {
+   "reason": "Chung chung kiểu nhận việc, không nhắc giáo án hay chồng đi xa.",
+   "score": 2
+  },
+  "4c24a898f5579925a059a29a": {
+   "reason": "Nội dung chung chung, không chạm tới chuyện riêng của họ.",
+   "score": 2
+  },
+  "4c36874aab93e2512496798f": {
+   "reason": "Nói chuyện giúp người và lịch, lại nhận Lá chưa đủ dữ kiện; không dính chuyện đơn hàng.",
+   "score": 2
+  },
+  "4c46685c60082bdc1b69843c": {
+   "reason": "Chuyện khó nói không khớp với cảnh bị kẹp giữa quản đốc và công nhân.",
+   "score": 4
+  },
+  "4ca9c606dc2357c6229f5f91": {
+   "reason": "Chuyện lo cho người khác dù lịch kín có chạm tính người này, nhưng chung chung.",
+   "score": 3
+  },
+  "4ccfe0c5631c64c00764faaa": {
+   "reason": "Chuyện dời giờ hẹn chung chung, không nhắc khách nợ và hạn trả lương thợ.",
+   "score": 2
+  },
+  "4d41e7eca4dcc8a5ebc1ada0": {
+   "reason": "Chạm việc bạn chưa nói ra điều mình cần, nhưng việc nhỏ vẫn đòi nói với người khác.",
+   "score": 3
+  },
+  "4d77646ecb0dd2455133882b": {
+   "reason": "Chuyện chỉnh bản nháp xa lạ với ông bán nước chè, câu kiểu người trẻ đi làm.",
+   "score": 1
+  },
+  "4db54260953e45bbaaaaf34b": {
+   "reason": "Chuyện bản nháp không hợp với việc lắp ráp ở nhà máy.",
+   "score": 2
+  },
+  "4db5ba6efac0078d1a5a7bf9": {
+   "reason": "Cảnh làm mãi một cách mà kết quả không đổi gần với chuyện phỏng vấn chưa đậu, nhưng vẫn nói chung.",
+   "score": 3
+  },
+  "4deb45ace34671163cc81195": {
+   "reason": "Chuyện lịch kín hơi đúng tuần bận, nhưng đang đuối mà vẫn bị giao việc phải nói với người khác.",
+   "score": 2
+  },
+  "4df1a22007e6456501e1ecaa": {
+   "reason": "Chuyện nhận thêm việc chung chung và lại giao việc cho người ghét bị giao việc.",
+   "score": 2
+  },
+  "4e6901a995c48b72149c073b": {
+   "reason": "Chuyện từ chối chung chung, không chạm nhớ nhà hay bài kế toán.",
+   "score": 2
+  },
+  "4f29c214fce5b2a202d5b445": {
+   "reason": "Chuyện gửi bản nháp ai cũng nhận được, không dính chuyện tiền hay buổi dạy.",
+   "score": 2
+  },
+  "4f3308d8a6fa67474dee391f": {
+   "reason": "Nói trúng chuyện hay giữ trong lòng, nhưng vẫn khuyên đi nhờ người khi đang lạc trôi.",
+   "score": 3
+  },
+  "4f3489d9a2efc408583eaa63": {
+   "reason": "Chuyện xin góp ý bản nháp có gần báo cáo cuối tuần, phần còn lại chung.",
+   "score": 3
+  },
+  "4f357a2c28f76547033f3d6d": {
+   "reason": "Ngày đuối mà nhận chuyện bản nháp không liên quan tới việc lễ tân, kèm việc phải hỏi người khác.",
+   "score": 1
+  },
+  "4f5349d41106d2fcc982c16f": {
+   "reason": "Hôm nay sinh nhật mà app không nhắc, lời khuyên nhờ giúp chung chung.",
+   "score": 2
+  },
+  "4f5687914138beba8741103c": {
+   "reason": "Chuyện nhận thêm việc không chạm nỗi nhớ nhà hay máy tính chậm.",
+   "score": 2
+  },
+  "4fe557c9f9876c69c542f3c6": {
+   "reason": "Chuyện đoán lý do tin nhắn hơi gần việc chờ hồi âm nhưng vẫn chung chung.",
+   "score": 2
+  },
+  "5004184a773f06a719d7c343": {
+   "reason": "Chuyện hỏi góp ý bản nháp chung chung, không chạm tới nỗi ngại nói tiếng Anh.",
+   "score": 2
+  },
+  "504a999b73c10b7c9286ddf7": {
+   "reason": "Chuyện than mà chưa nhờ giúp không chạm tới ca đêm hay chạy xe xa.",
+   "score": 2
+  },
+  "5051e80f949ef7b44c92b3c7": {
+   "reason": "Tin nhắn ngắn chưa rõ ý hơi hợp chuyện chốt đơn với chủ thầu, phần còn lại chung.",
+   "score": 3
+  },
+  "505fdcb7db58bd7fa2901f14": {
+   "reason": "Chuyện đổi giờ hẹn rõ ràng nhưng chung chung, không chạm mùa chấm thi.",
+   "score": 2
+  },
+  "5073bb8030ba0060044280f9": {
+   "reason": "Ngày đuối mà bảo nói chuyện thời gian, không nhắc đợt bận vừa qua.",
+   "score": 2
+  },
+  "5093ef6736673801b142f64b": {
+   "reason": "Có dính chút chuyện việc dồn, nhưng chung chung và không chạm chuyện bị sếp mắng.",
+   "score": 2
+  },
+  "50e6f6209845a3068d19e9ab": {
+   "reason": "Tự nói chưa đủ dữ kiện, không chạm chuyện gánh tiền nhà.",
+   "score": 2
+  },
+  "510167e1e1f12b670819fb79": {
+   "reason": "Câu đã mệt mà còn phải chọn chạm được chút mệt mỏi, phần còn lại chung chung.",
+   "score": 3
+  },
+  "5117c0f8030c7602478f28d3": {
+   "reason": "Mẹo đọc hết tin nhắn chung chung, không chạm deadline hay cảm giác lạc lõng.",
+   "score": 2
+  },
+  "512337eec4f993e111c5662e": {
+   "reason": "Chuyện nói rõ việc cần giúp khá chung, không chạm tới cảm giác phòng trọ vắng hay ngại làm quen.",
+   "score": 2
+  },
+  "512d1cbbaa221dfa095e9692": {
+   "reason": "Đúng tật cầu toàn sửa mãi bản vẽ, nhưng ngày đuối vẫn bảo gửi cho người khác xem.",
+   "score": 3
+  },
+  "516762044a2177bd3f22dfc0": {
+   "reason": "Chuyện góp ý bản nháp xa lạ với chị công nhân may nhớ con.",
+   "score": 1
+  },
+  "51ebdbf0ac08b10f31005913": {
+   "reason": "Câu Lá chưa đủ dữ kiện, không nhớ mùa này mình bận.",
+   "score": 2
+  },
+  "51ecb836847540ac14cb1174": {
+   "reason": "Chuyện gửi bản nháp không dính gì tới đời bà, lại giao việc phải gửi cho người khác.",
+   "score": 1
+  },
+  "52192c77bb8c35d987844d83": {
+   "reason": "Gửi bản nháp sớm khớp với việc vẽ cho văn phòng và đồ án, việc nhỏ gọn.",
+   "score": 4
+  },
+  "522c1af87bf220448371148d": {
+   "reason": "Ngày đuối mà bảo hỏi góp ý bản nháp, không thấy app biết mình vừa học vừa làm.",
+   "score": 2
+  },
+  "52303ff15fee161ca03f4a78": {
+   "reason": "Câu Lá chưa đủ dữ kiện, chuyện được nhờ chỉ hơi gần chuyện đơn vẽ.",
+   "score": 2
+  },
+  "52435949499d9f7f7f22d8a9": {
+   "reason": "Chuyện bản nháp chưa gửi chỉ gần bài nhóm, không chạm nỗi nhớ nhà.",
+   "score": 2
+  },
+  "5250c3198f596ced0eff25d3": {
+   "reason": "Chuyện than việc mà chưa nhờ ai chung chung, lại giao việc lặt vặt.",
+   "score": 2
+  },
+  "5280f791972dec0ac71c9454": {
+   "reason": "Ngày đuối vẫn giao nói chuyện với người nhờ, nội dung chung chung.",
+   "score": 2
+  },
+  "52853cb84acd3f751f719d1e": {
+   "reason": "Ngày đuối mà bảo nhắn lại để từ chối, chuyện cũng không dính tới ca làm của anh.",
+   "score": 2
+  },
+  "52923897bae1d95bddbcbfa6": {
+   "reason": "Chuyện giữ cách cũ chung chung, không dính giáo án hay con nhỏ.",
+   "score": 2
+  },
+  "52f04b9d5b83e54ff18d49a6": {
+   "reason": "Đang nhớ nhà mà nói chuyện nhận giúp, câu cảnh còn khó hiểu.",
+   "score": 1
+  },
+  "52f5520ebb5b50588f4ee421": {
+   "reason": "Ngày đuối vẫn bị giao việc đi nói chuyện, nội dung không dính mùa thi.",
+   "score": 2
+  },
+  "5301fbc8ab31f351901d1917": {
+   "reason": "Chuyện nhờ giúp cụ thể chung, không chạm tới chuyện giấu người yêu hay mẹ hỏi.",
+   "score": 2
+  },
+  "53208efa002d9bb0918edd7b": {
+   "reason": "Hôm nay sinh nhật mà Lá không nhắc, chuyện nhờ giúp chung chung.",
+   "score": 2
+  },
+  "53d968851456fe3855c3c435": {
+   "reason": "Lúc đuối lại giao việc phải nói giới hạn với người khác, không chạm nỗi nhớ nhà.",
+   "score": 2
+  },
+  "53dec4cce96c6f37228e456f": {
+   "reason": "Chuyện xin góp ý bản nháp chung chung, không chạm chuyện thiếu tiền.",
+   "score": 2
+  },
+  "540582945a1c81414f53b47c": {
+   "reason": "Chuyện nhận lời giúp người khác ai đọc cũng được, không chạm tới áp lực thật của họ.",
+   "score": 2
+  },
+  "5419082c7ce890be6286581a": {
+   "reason": "Ngày đuối mà phải đi hỏi nhóm, nội dung không nhắc ca làm hay bài vẽ nộp muộn.",
+   "score": 2
+  },
+  "5461341bc6190b987bbb397a": {
+   "reason": "Chuyện nói được khi không muốn khá chung, không nói tới chuyện tìm việc.",
+   "score": 2
+  },
+  "548a3fcfa6c88e1e1f6dd9ed": {
+   "reason": "Lời khuyên đọc hết tin nhắn chung chung, giọng nghiêm, không có chút hài nào.",
+   "score": 2
+  },
+  "54ed78e69465abb7ffcc0ea7": {
+   "reason": "Chuyện lịch và nhận lời giúp chung chung, không nói gì nhớ nhà hay thực tập.",
+   "score": 2
+  },
+  "550bb2be87469292c18ae8e8": {
+   "reason": "Chuyện chuyển việc dở dang chỉ hơi chạm, câu cảnh lủng củng.",
+   "score": 2
+  },
+  "55118269f491d583c5b4281b": {
+   "reason": "Nội dung chung chung, không chạm tới chuyện riêng của họ.",
+   "score": 2
+  },
+  "5512beb8ef2e923db201f9eb": {
+   "reason": "Chuyện nhận lời cho xong hợp với việc nhận vẽ cho người quen, câu phản hồi mood hợp, nhưng vẫn giao việc nhắn.",
+   "score": 3
+  },
+  "552550b8c0e34c1131afc9b4": {
+   "reason": "Chuyện nhờ giúp việc chung chung, không chạm nhớ nhà hay ở phòng đông người.",
+   "score": 2
+  },
+  "555e1b2dd28afab83ad1402b": {
+   "reason": "Chuyện góp ý bản nháp chung chung, lại giao việc trong khi Hiếu không muốn bị giao việc.",
+   "score": 2
+  },
+  "55666498a657aa280cba5f3b": {
+   "reason": "Chuyện giúp người chung chung, không dính tới hồ sơ thứ Sáu hay con nhỏ.",
+   "score": 2
+  },
+  "565ed5881a2b872b567be034": {
+   "reason": "Ngày đuối mà bảo đi hỏi góp ý bản nháp, chuyện không có trong đời Ngọc.",
+   "score": 1
+  },
+  "569d56c7a6ef68247f564b99": {
+   "reason": "Đang đuối mà phải đi nói thời gian với người nhờ, chuyện không dính việc tìm việc.",
+   "score": 2
+  },
+  "5755f034f503e614911e29b9": {
+   "reason": "Chuyện hỏi lại tin nhắn chung chung, chưa giúp Phát biết bắt đầu từ đâu.",
+   "score": 2
+  },
+  "5777544c92b1033e02ed8263": {
+   "reason": "Nội dung chung chung về tin nhắn, ai đọc cũng được, không chạm chuyện của họ.",
+   "score": 2
+  },
+  "57907edfe74ccd8b8e6f21c7": {
+   "reason": "Lúc đuối lại bảo hỏi nhóm, không dính tới ca đêm hay lương.",
+   "score": 2
+  },
+  "5799a27673a9d52bffadc124": {
+   "reason": "Chuyện đổi cách làm có thể gần bài tốt nghiệp nhưng vẫn giao việc thử cách mới vào ngày đuối.",
+   "score": 2
+  },
+  "57f5b2f91139705272f917ca": {
+   "reason": "Chuyện giúp người chung chung, chưa chạm việc chăm mẹ hay chốt sổ.",
+   "score": 2
+  },
+  "57fbae5e7f6379497b0fd7bf": {
+   "reason": "Chuyện giữ cách cũ chung chung, không chạm chuyện sếp mắng ngoài giờ.",
+   "score": 2
+  },
+  "583fd03d2173ecce6a6b3fe6": {
+   "reason": "Mệt mà phải so nhiều phương án hơi giống chuyện kế hoạch đổi liên tục, phần còn lại chung.",
+   "score": 3
+  },
+  "5898c3bec77f1f979045c846": {
+   "reason": "Chuyện hỏi góp ý cụ thể gần với báo cáo tiến độ, nhưng vẫn khá chung.",
+   "score": 3
+  },
+  "58a142037d99c86a2f899b97": {
+   "reason": "Nội dung chung chung, không chạm tới chuyện riêng của họ.",
+   "score": 2
+  },
+  "58a62ed6ed8a79a263455b93": {
+   "reason": "Chuyện từ chối chung chung, không nhắc mùa thu hoạch hay tuần báo cáo.",
+   "score": 2
+  },
+  "5906d414576defa719d06ab9": {
+   "reason": "Cảnh nhóm chốt qua chat mà chưa rõ ai làm phần nào khá đúng chuyện nhóm, nhưng lại giao việc.",
+   "score": 3
+  },
+  "5915c956b92922b1ff3f77ae": {
+   "reason": "Chuyện đổi cách làm nghe chung chung, lại giao việc ghi chép dù họ không muốn bị giao.",
+   "score": 2
+  },
+  "59468125cb299032833276af": {
+   "reason": "Chuyện gật đầu trong nhóm không khớp với đồ án làm một mình, đọc thấy chung chung.",
+   "score": 2
+  },
+  "594767bae91887100e66ff4b": {
+   "reason": "Chuyện làm dở nhiều việc chung chung, lại có việc giao người này không thích.",
+   "score": 2
+  },
+  "59c0be18ba8c5bccade27744": {
+   "reason": "Chuyện góp ý bản nháp không dính gì tới đời chú sửa xe.",
+   "score": 1
+  },
+  "59cf7d9d27662fa6e7bc0b84": {
+   "reason": "Chạm phần lịch đã kín vì báo cáo và con nhỏ, nhưng câu chữ vẫn chung.",
+   "score": 3
+  },
+  "5a02382f3c2ee37d03817ea1": {
+   "reason": "Chuyện giúp người chung chung, không chạm nỗi nhớ nhà.",
+   "score": 2
+  },
+  "5a0fe157e3f82c941e2ff2de": {
+   "reason": "Ngày Đuối mà việc nhỏ bắt nói chuyện với người khác và nội dung rất chung.",
+   "score": 2
+  },
+  "5aa42fdbd9cc51dab1affb41": {
+   "reason": "Chuyện hỏi góp ý bản nháp không dính kỳ thi nấu ăn trước giáo viên.",
+   "score": 2
+  },
+  "5b643ed3a51770a13fb533ef": {
+   "reason": "Chuyện bản nháp không gần việc học thuộc bài của họ.",
+   "score": 2
+  },
+  "5b869a6cd513b798d88f516d": {
+   "reason": "Nhận giúp khi việc mình dở có thể đúng nhưng nghe xa với chuyện chồng ốm, việc nông.",
+   "score": 2
+  },
+  "5be867d34a3fe071171abbf5": {
+   "reason": "Nội dung chung chung, không chạm tới chuyện riêng của họ.",
+   "score": 2
+  },
+  "5c195b6c33ff4aeee43cb515": {
+   "reason": "Chuyện xuôi theo nhóm hợp tính hay nhường, phần còn lại chung.",
+   "score": 3
+  },
+  "5c458a0730a1646eb15dd319": {
+   "reason": "Chuyện từ chối chung chung, không chạm chỉ tiêu bán xe.",
+   "score": 2
+  },
+  "5c63f6eaf5a6398668d2e335": {
+   "reason": "Chuyện thiếu giờ cho mình chạm tới cảm giác ít thời gian riêng, phần còn lại chung.",
+   "score": 3
+  },
+  "5c7fb5f2e0b797e4bb28cbbb": {
+   "reason": "Chuyện gửi bản nháp hỏi đúng chỗ hợp nghề thiết kế tự do, nhưng không chạm chuyện gia đình.",
+   "score": 3
+  },
+  "5ca410c9cf924ea9ec1de6e6": {
+   "reason": "Chuyện sửa bản nháp chung chung, không chạm doanh số hay con thức đêm.",
+   "score": 2
+  },
+  "5cb5f2f66595005a38f653a1": {
+   "reason": "Chuyện nhận giúp chung chung, không chạm chuyện con hay họp báo cáo.",
+   "score": 2
+  },
+  "5cbe5c78d2ce925557d34203": {
+   "reason": "Cảnh hẹn đổi giờ có thể gặp nhưng chung chung, không nhắc con hay báo cáo.",
+   "score": 2
+  },
+  "5cdd528c25a551107c2fe2b2": {
+   "reason": "Chuyện làm dở nhiều việc không chạm tới việc làm người nghe cho bố mẹ.",
+   "score": 2
+  },
+  "5d26e981b8b2d5c4d86368be": {
+   "reason": "Lời bảo nhờ giúp nghe như giao việc lúc mới tan ca, không nhận ra mình làm ca đêm.",
+   "score": 2
+  },
+  "5d3f3acb1ba866cc7088bc6f": {
+   "reason": "Câu báo chưa đủ dữ kiện, không nhắc mùa thi, lại giao việc phải nói vào ngày đuối.",
+   "score": 2
+  },
+  "5d52909633dc6b21310c4e39": {
+   "reason": "Có thể chạm chuyện ở nhờ ngại từ chối, nhưng vẫn giao việc nhắn.",
+   "score": 2
+  },
+  "5da08a0eea03ce47ea8f1aa8": {
+   "reason": "Tin nhắn để sau nhé hơi hợp chuyện khách hàng online, phần còn lại chung.",
+   "score": 3
+  },
+  "5de79d59a87ca5ffe2bb208c": {
+   "reason": "Câu Lá chưa đủ dữ kiện, chuyện được nhờ chưa phải chuyện đơn khách.",
+   "score": 2
+  },
+  "5df49cd6e4078d911f176ecd": {
+   "reason": "Chuyện nhận thêm việc chung chung, không nói tới giữ sức mùa thi.",
+   "score": 2
+  },
+  "5e07ceba4c0061a025821aeb": {
+   "reason": "Chuyện nhận lời giúp và mở lịch chung chung, không nói gì chuyện xa vợ con.",
+   "score": 2
+  },
+  "5e1a41d8af4cee68741c74e4": {
+   "reason": "Chuyện nhận lời giúp người khác ai đọc cũng được, không chạm tới áp lực thật của họ.",
+   "score": 2
+  },
+  "5e3867a060bfe92784f53c7b": {
+   "reason": "Chuyện lịch và nhận việc xa lạ, lời lẽ sách vở với người lớn tuổi.",
+   "score": 1
+  },
+  "5e8a9c2e6b8ce3f44e0107bf": {
+   "reason": "Ngày đuối mà bảo hỏi nhóm, không gợi nghỉ tay chân như chị cần.",
+   "score": 2
+  },
+  "5ecf97666fc33d56a31a7a64": {
+   "reason": "Chạm chuyện quá tải ít thời gian cho mình, nhưng vẫn giao việc.",
+   "score": 3
+  },
+  "5ee52cbb6085e48edcf0f059": {
+   "reason": "Chuyện tin nhắn khó chịu chung chung, không chạm tới chuyện tiền và không khí nhà căng.",
+   "score": 2
+  },
+  "5f9214efcb915592a732ef27": {
+   "reason": "Việc nhỏ nhẹ cho ngày đuối nhưng chuyện tin nhắn chung chung, không chạm chuyện nhà.",
+   "score": 2
+  },
+  "5f9bb0b490e37397ce000218": {
+   "reason": "Cảnh đang viết lại mở thêm tài liệu hơi giống lúc ôn thi, việc mười phút làm được, nhưng vẫn chung.",
+   "score": 3
+  },
+  "5fe72c691e6f2ccfc09d8f84": {
+   "reason": "Chuyện từ chối chung chung, lại giao việc trong khi cô không muốn.",
+   "score": 2
+  },
+  "60afaf3038771445212f25c6": {
+   "reason": "Giúp người khác quá sức không phải chuyện sếp mắng mà Huy đang cần nghe.",
+   "score": 2
+  },
+  "6128c8bb77083fb8c233db88": {
+   "reason": "Có chạm cảnh bận, nhưng hôm căng lại bảo đi nói với người khác.",
+   "score": 2
+  },
+  "61506378d022be7532667184": {
+   "reason": "Chuyện đọc nửa tin nhắn không dính chuyện nhớ nhà hay thực tế của Ngân.",
+   "score": 2
+  },
+  "61ffed12491ebb130f55f5af": {
+   "reason": "Ngày Đuối mà việc nhỏ bắt nói chuyện với người khác, lại tự nhận chưa đủ dữ kiện nên rất chung.",
+   "score": 2
+  },
+  "620fafb866028fe4eb0ce879": {
+   "reason": "Đúng có chuyện nhóm, nhưng nội dung về nhận giúp, không phải ôn thi hay bạn bỏ ngang.",
+   "score": 2
+  },
+  "621774368902f1aea5a0ff64": {
+   "reason": "Chuyện trả lời tin nhắn khó chịu không chạm tới cảnh xa nhà, không ai để kể.",
+   "score": 2
+  },
+  "6241028c17a2dfc071055444": {
+   "reason": "Mẹo đọc tin nhắn chung, không chạm chuyện so mình với bạn trên mạng.",
+   "score": 2
+  },
+  "6246e82780159e9d5d3f082d": {
+   "reason": "Câu Lá chưa đủ dữ kiện, nội dung ai cũng hợp.",
+   "score": 2
+  },
+  "6256b7a3b221673605cbb265": {
+   "reason": "Nội dung chung chung, không chạm tới chuyện riêng của họ.",
+   "score": 2
+  },
+  "629dcbafd7a0c394dbf363ca": {
+   "reason": "Chuyện chưa hiểu yêu cầu hơi gần với sếp đổi yêu cầu, còn lại chung chung.",
+   "score": 3
+  },
+  "62cf84bdc55e671a6a6c266b": {
+   "reason": "Chuyện sửa và gửi bản nháp không liên quan tới người về hưu muốn biết ngày tốt xấu.",
+   "score": 1
+  },
+  "62ed091e88fe91ef5efbe805": {
+   "reason": "Muốn nói không thì có chạm chuyện giữ ý, nhưng cảnh công việc học hành xa lạ với bà.",
+   "score": 2
+  },
+  "631090c34785e324c7fde6b8": {
+   "reason": "Tự nói chưa đủ dữ kiện, chuyện bận nhận việc trái với cảm giác trống trải cuối tuần.",
+   "score": 2
+  },
+  "6381362b4543618dc678b6c2": {
+   "reason": "Việc nhỏ nhẹ và hợp ngày đuối, nhưng lời bói chung chung, không chạm chuyện học với làm quán.",
+   "score": 3
+  },
+  "63cf463de242ddb3c13747dc": {
+   "reason": "Ngày đuối mà vẫn bắt nhắn tin chia việc với người khác, nội dung chung chung.",
+   "score": 2
+  },
+  "6411f3a6b1881605abcc8457": {
+   "reason": "Có dính bài nhóm một chút nhưng chung chung và lại giao việc gửi bản nháp.",
+   "score": 2
+  },
+  "645470159026aed010bc9a1c": {
+   "reason": "Ngày đuối mà bảo chọn việc để làm cho xong, không nói gì tới ca đóng quán hay giấc ngủ.",
+   "score": 2
+  },
+  "64987759092233a9846c3ad0": {
+   "reason": "Lá tự nhận chưa đủ dữ kiện, chuyện lịch kín không chạm kỳ thi may.",
+   "score": 2
+  },
+  "657f78dfb68bdb7bd1f07dfc": {
+   "reason": "Chuyện nhận giúp không dính chuyện tìm việc, lại giao việc ngày đuối.",
+   "score": 2
+  },
+  "65b32c829ea567f4e70f771a": {
+   "reason": "Tự nói chưa đủ dữ kiện, chuyện nhận lời giúp không dính chuyện tìm việc.",
+   "score": 2
+  },
+  "660ee3db533cb67a9fd3a51d": {
+   "reason": "Cảnh lỡ nhắn gắt có thể gần chuyện chủ thầu giục giao hàng, việc nhỏ nhanh gọn.",
+   "score": 3
+  },
+  "66322af278f9334209381108": {
+   "reason": "Nội dung chung chung về tin nhắn, ai đọc cũng được, không chạm chuyện của họ.",
+   "score": 2
+  },
+  "6667f49a0a2a8c02a753afc8": {
+   "reason": "Nội dung chung chung, không chạm tới chuyện riêng của họ.",
+   "score": 2
+  },
+  "668da5698c759075e9d09150": {
+   "reason": "Chuyện từ chối chung chung, không chạm ca làm hay chuyện học nghề.",
+   "score": 2
+  },
+  "669df2cd9194496bfaec57d6": {
+   "reason": "Ngày Đuối mà việc nhỏ bắt nói chuyện với người khác, lại tự nhận chưa đủ dữ kiện nên rất chung.",
+   "score": 2
+  },
+  "66aed5539e3acb75ae040708": {
+   "reason": "Chuyện tin nhắn chung chung, không chạm chuyện nhà đang khó.",
+   "score": 2
+  },
+  "6703cfb3ce14b19edcb8a192": {
+   "reason": "Chuyện đoán ý tin nhắn khá chung, nhưng phần sao và việc nhỏ nhẹ, đọc không khó chịu.",
+   "score": 3
+  },
+  "675b6a9b1e1a7ff7ee21050d": {
+   "reason": "Chủ đề nhận thêm việc rất chung, không nói tới áp lực thật của họ. Lại tự nhận chưa đủ dữ kiện.",
+   "score": 2
+  },
+  "67983cd87eac616f8d5f5622": {
+   "reason": "Ngày đuối, tự nói chưa đủ dữ kiện, không có chiêm tinh hay chuyện ca làm.",
+   "score": 2
+  },
+  "67a6cd88b383dd0d1c98f6dc": {
+   "reason": "Chuyện tin nhắn chưa rõ chung chung, không nhắc livestream hay con nhỏ.",
+   "score": 2
+  },
+  "67b49fcef65b69f006e233db": {
+   "reason": "Ngày đuối mà bảo đi hỏi lại người khác, không nhắc gì ca đêm.",
+   "score": 2
+  },
+  "67b8b47bed858029c0c67538": {
+   "reason": "Chuyện nhận việc cho xong chung chung, không nhắc nợ ngân hàng hay mùa ít khách.",
+   "score": 2
+  },
+  "67ba0235e90d36c0aa39b5dc": {
+   "reason": "Lạc trôi mà bảo nhắn tin từ chối, không chạm chuyện khách khó hay mới đi làm.",
+   "score": 2
+  },
+  "6829b963c48411c6cd3fb93f": {
+   "reason": "Chuyện xem lịch trước khi nhận thêm khớp phần nào với khách nhờ sửa thêm, nhưng vẫn chung.",
+   "score": 3
+  },
+  "683432bdd2aa610c0a2066e3": {
+   "reason": "Chuyện nhận lời giúp không dính gì tới việc tìm việc của cậu.",
+   "score": 2
+  },
+  "683ea9426fde085b8021c9a1": {
+   "reason": "Chuyện bản nháp hợp với bài tập viết tin, nhưng không đụng nỗi nhớ nhà.",
+   "score": 3
+  },
+  "6862b91ba011d239b5677fed": {
+   "reason": "Chuyện gửi bản nháp không dính gì tới đời bà về hưu.",
+   "score": 1
+  },
+  "688bb4cc3e8a53b093086555": {
+   "reason": "Chuyện đọc hết tin nhắn ai cũng đọc được, không chạm chuyện so sánh hay ra trường.",
+   "score": 2
+  },
+  "6896f8b2915c0ec21c3a94bb": {
+   "reason": "Chuyện giúp người khác rồi thiếu giờ không dính chuyện thiếu tiền của mình.",
+   "score": 2
+  },
+  "6924556382971ccd11d33c7d": {
+   "reason": "Chuyện bản nháp chung chung, không nói tới đi học muộn hay yêu xa.",
+   "score": 2
+  },
+  "694e68dbadcdd04e4978838c": {
+   "reason": "Chuyện bản nháp không hợp công việc lễ tân của cô.",
+   "score": 2
+  },
+  "695042a02e3fa58960b08416": {
+   "reason": "Lạc trôi mà bảo gửi bản nháp, không chạm nỗi nhớ nhà, nhớ biển.",
+   "score": 2
+  },
+  "697d693c251d7ee792efae4d": {
+   "reason": "Chuyện góp ý bản nháp chung chung, không chạm chuyện ba mẹ ép ngành.",
+   "score": 2
+  },
+  "699829fc7f8aa7b4062aeea4": {
+   "reason": "Tin nhắn chưa rõ ý hơi gần chuyện khách sửa sát giờ, còn lại chung.",
+   "score": 3
+  },
+  "69adf0a761a17866814db4e6": {
+   "reason": "Chuyện hẹn bị dời nghe chung, không chạm báo cáo hay tăng ca.",
+   "score": 2
+  },
+  "69cd0b356af6b2ece3b301d4": {
+   "reason": "Chuyện nhận lời giúp người không dính tới báo cáo hay việc con, ai đọc cũng được.",
+   "score": 2
+  },
+  "69db8209f6455e92f9a0bbeb": {
+   "reason": "Chuyện nhận giúp chung chung, không chạm áp lực sếp.",
+   "score": 2
+  },
+  "6ac933f1a4f51892e920383e": {
+   "reason": "Chuyện trả lời tin nhắn chung chung, không chạm ca xoay hay cô đơn.",
+   "score": 2
+  },
+  "6b135b07928e78e2b428566b": {
+   "reason": "Chuyện góp ý bản nháp có thể dùng trong việc marketing, nhưng không chạm tới chuyện sếp.",
+   "score": 3
+  },
+  "6b1420c7a5931b3f8b7e2c14": {
+   "reason": "Chuyện tin nhắn chưa rõ nghe chung, chưa chạm khách đổi ý hay ngày trình bày.",
+   "score": 2
+  },
+  "6b55e5afa09f17cbbfcda9c3": {
+   "reason": "Đúng tật nhận nhiều việc rồi bỏ dở, việc mười phút vừa sức ngày lạc trôi.",
+   "score": 4
+  },
+  "6b7cbf306af873e46279fd0a": {
+   "reason": "Không nhắc gì tới mùa thi, chỉ nói chuyện từ chối việc chung chung.",
+   "score": 2
+  },
+  "6bd23a33fef31e10eefdc2c6": {
+   "reason": "Đang đuối mà bị giao việc phải nói nhờ người khác, giọng khô, không thấy mình trong đó.",
+   "score": 2
+  },
+  "6bd86a3a47732b9ccbd4d5c9": {
+   "reason": "Lời khuyên xem lịch chung, không nói gì về ca xoay hay nghỉ sau ca đêm.",
+   "score": 2
+  },
+  "6bd8d21285e9d22b8d8f3fb7": {
+   "reason": "Chuyện gửi bản nháp để xin góp ý gần với nỗi sợ bị chê code, nhưng việc phải gửi cho người khác hơi nặng cho ngày đuối.",
+   "score": 3
+  },
+  "6c08d15b78bdf8b696c6da96": {
+   "reason": "Câu báo chưa đủ dữ kiện, thiếu phần chiêm tinh và gợi ý trước ca mà họ muốn.",
+   "score": 2
+  },
+  "6c821bdf0ecdd6ea4b9fad22": {
+   "reason": "Lời khuyên làm xong một việc chung chung, không nhắc thời gian với con.",
+   "score": 2
+  },
+  "6d1a0e9ca0747c489a8ea65a": {
+   "reason": "Ngày đuối, đang lạc hướng mà nói chuyện lịch kín vì được nhờ.",
+   "score": 2
+  },
+  "6d1f9f5a0c964d817e1ba4ee": {
+   "reason": "Chuyện dời lịch hẹn chung chung, không dính đời buôn bán của chị.",
+   "score": 2
+  },
+  "6ddc04a87473262bba5de596": {
+   "reason": "Nội dung chung chung, không chạm tới chuyện riêng của họ.",
+   "score": 2
+  },
+  "6de8e600c468a99e24898d6d": {
+   "reason": "Nhờ giúp cụ thể khá chung, câu nhiều năng lượng không hợp người đang căng.",
+   "score": 2
+  },
+  "6e156c466bdcaaa16bda26b5": {
+   "reason": "Chuyện góp ý bản nháp có dính tới đồ án đang làm, giọng thẳng gọn hợp Minh.",
+   "score": 3
+  },
+  "6e15762b8f1ee32fdf02d693": {
+   "reason": "Đang lạc hướng mà nói chuyện lịch kín vì được nhờ, chưa chạm chuyện học.",
+   "score": 2
+  },
+  "6e1ee7f92b5bb9468bf5a261": {
+   "reason": "Nói rõ cần giúp gì chạm tới cảnh làm đồ dùng tới khuya, nhưng lại giao thêm việc.",
+   "score": 3
+  },
+  "6e38d4745a9418703830468b": {
+   "reason": "Chuyện nhận thêm việc khi giờ còn ít khớp với cảnh bị đồng nghiệp đẩy việc sang, việc nhỏ làm được.",
+   "score": 4
+  },
+  "6e432e1daea65e22550884dd": {
+   "reason": "Chuyện giữ cách cũ không chạm tới nỗi sợ làm sai trước lớp.",
+   "score": 2
+  },
+  "6ea3e829ae42a07227d8a1ce": {
+   "reason": "Chuyện nói được cho xong chạm nhẹ áp lực sếp nhưng không đúng nỗi bị so sánh.",
+   "score": 2
+  },
+  "6ecbc220c5befe20dd88ab96": {
+   "reason": "Chuyện nói ra việc cần giúp hơi gần cảnh nhà nhưng vẫn chung chung.",
+   "score": 2
+  },
+  "6f250d0578e01d293b0fd768": {
+   "reason": "Cảnh viết đoạn, mở tài liệu xa lạ với người đứng bếp quán bún.",
+   "score": 1
+  },
+  "6f5c2bf80f43ed5a93127456": {
+   "reason": "Đọc hết tin nhắn là lời khuyên chung, chưa chạm cảnh khách hối đơn.",
+   "score": 2
+  },
+  "6f7b10776908a2aaac5474b6": {
+   "reason": "Chuyện họp nhóm không hợp người bán hàng một mình, không chạm chuyện đang lo.",
+   "score": 1
+  },
+  "6f7bc565226cc897c1435359": {
+   "reason": "Ngày Đuối mà việc nhỏ bắt nói chuyện với người khác, lại tự nhận chưa đủ dữ kiện nên rất chung.",
+   "score": 2
+  },
+  "6fbf464800fcb2340819cc6f": {
+   "reason": "Hỏi rõ ai làm phần nào hợp với cảnh nhóm hay bị đổ lỗi, phần còn lại chung.",
+   "score": 3
+  },
+  "705d03e5c8c848debe304f97": {
+   "reason": "Ngày Đuối mà bắt nhắn lại phân chia việc với người khác, nội dung chung.",
+   "score": 2
+  },
+  "707673697988bf4c675de20c": {
+   "reason": "Lời chung về được nhờ giúp, không nói gì tới chuyện tiền đang thiếu.",
+   "score": 2
+  },
+  "7088546cb60e6dfa9182ba18": {
+   "reason": "Câu báo chưa đủ dữ kiện và lời khuyên nhận việc rất chung, đúng điều họ ghét.",
+   "score": 2
+  },
+  "70c0714dc65238d4b20ead06": {
+   "reason": "Chuyện góp ý bản nháp chung chung, không dính tới nỗi lo tiền.",
+   "score": 2
+  },
+  "70f384f8e96d618d09302e78": {
+   "reason": "Chuyện đổi cách làm chung, lại bảo ghi kết quả khi họ không muốn làm gì.",
+   "score": 2
+  },
+  "7197f1c1d13cb6d7f0b80c9e": {
+   "reason": "Ngày đuối mà việc nhỏ là nói chuyện với người nhờ, không nhắc làm khuya hay đồ án.",
+   "score": 2
+  },
+  "71baf232ed210aa04668cada": {
+   "reason": "Chuyện tin nhắn để sau nhé chung chung, không chạm chỉ tiêu thứ Sáu hay chuyện nhà chồng.",
+   "score": 2
+  },
+  "71c1a3c0234a0fc131bae158": {
+   "reason": "Tin nhắn để sau nhé chung chung, không chạm chuyện tiền cuối tháng.",
+   "score": 2
+  },
+  "71f2e0fba3b25606abdab9f5": {
+   "reason": "Ngày đuối, tự nói chưa đủ dữ kiện, không dính chuyện khóa luận hay tìm việc.",
+   "score": 2
+  },
+  "720f83656ecee9fc9d4ec778": {
+   "reason": "Lúc đuối mùa thi lại giao việc hỏi nhóm, nội dung chung chung.",
+   "score": 2
+  },
+  "72142515fc53945ba373cff6": {
+   "reason": "Chuyện trả lời tin nhắn khó chịu khá chung, không gắn với ca làm hay việc học báo.",
+   "score": 2
+  },
+  "7267b6e963d6373bb685a1a1": {
+   "reason": "Nội dung chung chung về tin nhắn, ai đọc cũng được, không chạm chuyện của họ.",
+   "score": 2
+  },
+  "72746d607ed3f5e1e4fde271": {
+   "reason": "Chuyện lỡ gắt không giống tính rụt rè của mình, không nói tới chuyện mới xa nhà.",
+   "score": 2
+  },
+  "728d7c41daba698ae8e8f376": {
+   "reason": "Chuyện nhận thêm việc khi lịch kín hợp với cảnh khách nhờ sửa thêm, nhưng vẫn khá chung.",
+   "score": 3
+  },
+  "7354a855386d17406462008f": {
+   "reason": "Chuyện nhờ giúp chung, không chạm tới sự cô đơn hay việc học của họ.",
+   "score": 2
+  },
+  "740aeae88dd334835fdaa124": {
+   "reason": "Ngày đuối mà bảo đề nghị người khác giúp, chung chung.",
+   "score": 2
+  },
+  "7463e047074854e2d320e95f": {
+   "reason": "Chuyện nhận thêm việc chung chung, không biết họ làm ca đêm.",
+   "score": 2
+  },
+  "755957111858920ca6d6e1d5": {
+   "reason": "Chuyện làm dở nhiều việc chung chung, lại giao việc cho người không muốn bị giao.",
+   "score": 2
+  },
+  "756be81f68a2300710e6b595": {
+   "reason": "Chuyện tin nhắn chưa hiểu yêu cầu không hợp nếp sống của bà, đọc thấy chung.",
+   "score": 2
+  },
+  "7579b3fca227194d4cc6cbbe": {
+   "reason": "Lời khuyên đọc hết tin nhắn chung chung, không chạm nỗi lo học tiếng Anh.",
+   "score": 2
+  },
+  "759e1ae13c558393d6497745": {
+   "reason": "Chuyện xin góp ý bản nháp không hợp đời làm ca, cũng không nhắc chuyện con.",
+   "score": 2
+  },
+  "75bb74566c2afeab83253958": {
+   "reason": "Chỉnh bản nháp thay vì gửi khớp với chuyện sếp sửa màu và hạn nộp ấn phẩm.",
+   "score": 4
+  },
+  "75dfdaee8198da04caa14999": {
+   "reason": "Chuyện nói được dù không muốn nhận có chạm cảnh lịch kín, phần còn lại chung.",
+   "score": 3
+  },
+  "764d7b48b751ecb1a7762904": {
+   "reason": "Chuyện nói rõ cần giúp gì nghe chung, không chạm chuyện gặp khách hay hủy cọc.",
+   "score": 2
+  },
+  "76622d2f3eb853f49c4cf2c3": {
+   "reason": "Nội dung chung chung, không chạm tới chuyện riêng của họ.",
+   "score": 2
+  },
+  "767180572c7d38b383e61b4d": {
+   "reason": "Chuyện sửa bản nháp không hợp người học bếp đang lo thi thực hành.",
+   "score": 1
+  },
+  "76d645f082948eafcd1dd420": {
+   "reason": "Cảnh chỉnh mãi bản nháp khớp với tính cầu toàn và chuyện bị bắt sửa bản vẽ, việc gửi đi còn giúp bớt việc.",
+   "score": 4
+  },
+  "771315ae792279a665150771": {
+   "reason": "Có hiểu cái mệt khi phải chọn, nhưng việc so phương án hơi nặng ngày đuối.",
+   "score": 3
+  },
+  "77df4c7c3aa782bb8870349f": {
+   "reason": "Đang đuối mà được bảo thử cách khác rồi ghi kết quả, nội dung không dính chuyện đơn may hay gia đình.",
+   "score": 2
+  },
+  "77e279e91012579d811f548f": {
+   "reason": "Chuyện nhóm chốt việc chung chung, lại giao việc phải hỏi.",
+   "score": 2
+  },
+  "77ed78a4f9e4ac3496286410": {
+   "reason": "Chuyện đọc hết tin nhắn chung chung, chỉ hơi gần chuyện bên thu mua.",
+   "score": 2
+  },
+  "7867e435f93353b0501bc008": {
+   "reason": "Chuyện giúp người chung chung, không dính tới việc dựng video.",
+   "score": 2
+  },
+  "786d14e297cdae83430fa1e4": {
+   "reason": "Chuyện thử cách khác có thể áp vào mẫu hàng bán chậm, nhưng chưa nói rõ.",
+   "score": 3
+  },
+  "792bacb3c69e94c50a5b8a83": {
+   "reason": "Mẹo nhắn tin chung chung và lại giao việc, điều anh không muốn.",
+   "score": 2
+  },
+  "7978088d454c1d3bc8801251": {
+   "reason": "Việc nói rõ thời gian giúp là giao việc, không chạm chuyện sếp la hay làm thêm.",
+   "score": 2
+  },
+  "79c40a9ab1f3697a5fae7857": {
+   "reason": "Chuyện nhận thêm khi chưa xem lịch có thể áp vào việc trông cháu.",
+   "score": 3
+  },
+  "7a0d7f5bfb26cfdb73ca0d63": {
+   "reason": "Chủ đề nhận thêm việc rất chung, không nói tới áp lực thật của họ. Lại tự nhận chưa đủ dữ kiện.",
+   "score": 2
+  },
+  "7a135bed03fd8822bee007f5": {
+   "reason": "Đoán ý tin nhắn chung chung, không biết mình vừa ca đêm và thiếu ngủ.",
+   "score": 2
+  },
+  "7a2829080d12e670caf6aedf": {
+   "reason": "Chuyện sửa bản nháp chưa gửi khá chung với một thầy giáo, không chạm tới áp lực gia đình.",
+   "score": 2
+  },
+  "7a302799f71ea97204e0f863": {
+   "reason": "Câu Lá chưa đủ dữ kiện, không nhớ ca làm hay vợ con.",
+   "score": 2
+  },
+  "7a6e4acaaa48a3fec54c7139": {
+   "reason": "Chuyện bắt đầu nhiều việc hợp tính bốc đồng, nhưng không chạm chuyện với bố.",
+   "score": 3
+  },
+  "7a83332d585a04f19212ebc8": {
+   "reason": "Câu Lá chưa đủ dữ kiện, đổi tên ai cũng hợp.",
+   "score": 2
+  },
+  "7a95402ce75db9fdb2186a86": {
+   "reason": "Chuyện bản nháp chung chung, không chạm nỗi nhớ nhà hay lo thực tập.",
+   "score": 2
+  },
+  "7ad27e7c7a9da8962bc05269": {
+   "reason": "Ngày đuối lại phải đi hỏi góp ý bản nháp, không dính chuyện thi lập trình.",
+   "score": 2
+  },
+  "7b00ca32cb2124a95ba08898": {
+   "reason": "Không nhắc chuyện thi thực hành, chuyện nhờ giúp chung chung.",
+   "score": 2
+  },
+  "7b1397192b2b20479d42867a": {
+   "reason": "Chuyện nhận thêm việc để khỏi nói không khớp với việc bị sếp ép ca, việc nhỏ làm được.",
+   "score": 4
+  },
+  "7b2875c66d73db716a52cdfc": {
+   "reason": "Nhận lời cho xong hơi hợp chuyện bị đổi lịch, còn lại chung.",
+   "score": 3
+  },
+  "7b7a65ff13dc4ecb9595fa8d": {
+   "reason": "Chuyện sửa bản nháp không dính tới chuyện hết tiền cuối tháng.",
+   "score": 2
+  },
+  "7ba65c2b2f3c9799b288ea50": {
+   "reason": "Chuyện đổi cách làm chung chung, không chạm gì tới đời An.",
+   "score": 2
+  },
+  "7babda4b5e540707d347a0ee": {
+   "reason": "Nói chuyện nhận thêm việc trong khi họ đang chưa có việc, lúc đuối còn bảo nói với người khác.",
+   "score": 2
+  },
+  "7bba17979b15bb0badb2db6d": {
+   "reason": "Sếp đổi chỉ tiêu liên tục nên xem lịch trước khi nhận việc có phần đúng, dù câu còn chung.",
+   "score": 3
+  },
+  "7bc42010a37e4902db924e9f": {
+   "reason": "Tự nói chưa đủ dữ kiện, chuyện nhận lời giúp không dính chuyện nhà hay khóa luận.",
+   "score": 2
+  },
+  "7bc67dcecae791f7c14610d9": {
+   "reason": "Chuyện hẹn đổi giờ nghe chung, không chạm kỳ thi kỹ năng sắp tới.",
+   "score": 2
+  },
+  "7c06beb8ee8c41e28ad39d1b": {
+   "reason": "Chuyện nhận lời giúp chung chung, không nhận ra áp lực gia đình, lại giao việc.",
+   "score": 2
+  },
+  "7c53a09aae6c22e5a6e5e26b": {
+   "reason": "Câu tin nhắn ngắn không có nghĩa người kia giận có thể chạm nỗi lo về con ít liên lạc.",
+   "score": 3
+  },
+  "7c73a0a6861f3a792a5489c5": {
+   "reason": "Chuyện được nhờ thêm gần với khách bắt sửa nhiều lần, nhưng phải nói với người khác vào ngày đuối.",
+   "score": 3
+  },
+  "7cdafbdd56eb1df3ffb949b0": {
+   "reason": "Chuyện tin nhắn chưa rõ khá chung, không nhắc tới cái mệt khi một mình lo hai con.",
+   "score": 2
+  },
+  "7cee95744eef496e3fa6d1a7": {
+   "reason": "Chuyện nhận lời giúp người khác ai đọc cũng được, không chạm tới áp lực thật của họ.",
+   "score": 2
+  },
+  "7d7bf66bd24b30b54aed6492": {
+   "reason": "Chuyện góp ý bản nháp xa nghề cắt tóc và chuyện hai người.",
+   "score": 2
+  },
+  "7d7c49195465c9671e3ac881": {
+   "reason": "Cảnh đang bực mà gõ trả lời hơi gần chuyện trưởng phòng soi lỗi, phần còn lại chung.",
+   "score": 3
+  },
+  "7d8ff6fbc817b003949de29a": {
+   "reason": "Chuyện nhận thêm việc không chạm nỗi nhớ nhà, chưa quen bạn.",
+   "score": 2
+  },
+  "7dfed8d34618b97b84a02f06": {
+   "reason": "Nội dung chung chung về tin nhắn, ai đọc cũng được, không chạm chuyện của họ.",
+   "score": 2
+  },
+  "7e05716770657bf8d7802100": {
+   "reason": "Chuyện gật theo nhóm không dính chuyện ở lại hay về quê, lại giao thêm việc.",
+   "score": 2
+  },
+  "7e184d5977e4615dc34138e3": {
+   "reason": "Chuyện sửa mãi chưa gửi hợp tính cầu toàn, phần còn lại chung chung.",
+   "score": 3
+  },
+  "7e8933954ab5f14ead303c74": {
+   "reason": "Chuyện giới hạn giờ giúp người xa với đời bà, lời lẽ kiểu người trẻ.",
+   "score": 2
+  },
+  "7e9c64255540fbdccac149d1": {
+   "reason": "Chuyện nhận lời giúp chung chung, không chạm chuyện phân vân công việc.",
+   "score": 2
+  },
+  "7ea1844ca5cd6830b1cef075": {
+   "reason": "Chuyện đổi việc liên tục, chọn một việc mười phút hợp ngày bận chỉ tiêu.",
+   "score": 3
+  },
+  "7eb26f0eab71ad6ed6d5b44f": {
+   "reason": "Chuyện nhận thêm việc chung chung, không biết họ làm ca đêm.",
+   "score": 2
+  },
+  "7eef1e1e399e77c4ef42d441": {
+   "reason": "Cảnh bực vì một câu trong tin nhắn hơi hợp chuyện khách đổi ý, nhưng không nói về video.",
+   "score": 3
+  },
+  "7ef5dc560b29fa2a6c64718d": {
+   "reason": "Chuyện tin nhắn chưa rõ chung chung, không chạm ca trực hay mệt.",
+   "score": 2
+  },
+  "7f37630e15fad851b4a87588": {
+   "reason": "Ngày đuối mà vẫn bảo đi nói chuyện thời gian với người nhờ, nội dung không riêng cho mình.",
+   "score": 2
+  },
+  "7f7b717795d6c58a44774184": {
+   "reason": "Chuyện góp ý bản nháp không hợp với việc bán xe, chỉ có lời phản hồi mood là hợp.",
+   "score": 2
+  },
+  "7f9810b628d938cdb7283640": {
+   "reason": "Chuyện nhận thêm việc chung chung, không nói gì tới mùa thi tay nghề.",
+   "score": 2
+  },
+  "7fa621296eed5bf215ec1091": {
+   "reason": "Có nhắc than việc nhiều, nhưng giao việc nhờ người khi đang lạc trôi và không chạm nỗi nhớ nhà.",
+   "score": 2
+  },
+  "7ffff3d32d7a2340c0eee50a": {
+   "reason": "Hợp tật hứa nhiều cho xong, nhưng cảnh vẫn chung chung.",
+   "score": 3
+  },
+  "800b7321bf1f17c23bc86bbb": {
+   "reason": "Ngày đuối lại giao việc nói đề nghị giúp, chưa chạm chuyện kẹp giữa bố mẹ.",
+   "score": 2
+  },
+  "80100644b6f8d87b42464189": {
+   "reason": "Chuyện hỏi góp ý bản nháp chung chung, không nhắc tới ngày phát hành căng nhất.",
+   "score": 2
+  },
+  "8037143ec2c7eafcae9ce0cf": {
+   "reason": "Chuyện nhận việc cho khỏi từ chối không chạm tới nỗi lo tiền, lại còn giao việc.",
+   "score": 2
+  },
+  "80497b52fdb6c2cb15d4e07d": {
+   "reason": "Chuyện bản nháp chung chung, không chạm thi lâm sàng hay chuyện tình cảm.",
+   "score": 2
+  },
+  "80aafc0c42b5bb6f21e083d2": {
+   "reason": "Hơi chạm chuyện bị đẩy thêm việc ở chỗ làm, còn lại chung chung.",
+   "score": 3
+  },
+  "80ae2f70a400db974a483dc2": {
+   "reason": "Chuyện đổi giờ hẹn chung chung, không nói gì tới đau lưng hay nhớ bạn cũ.",
+   "score": 2
+  },
+  "80edf06aa2f7e099274a871d": {
+   "reason": "Lời dạy cách nhờ giúp nghe chung chung và giống bị giao nhiệm vụ, điều mình ghét.",
+   "score": 2
+  },
+  "816013d13e6bd366aa8fa93d": {
+   "reason": "Hỏi góp ý cụ thể có ích cho bài tiểu luận, nhưng vẫn chung.",
+   "score": 3
+  },
+  "81c300ddd7e602894996d762": {
+   "reason": "Chuyện xếp lịch giúp người khác không chạm tới đồ án bị trả hay giai đoạn khó của Nam.",
+   "score": 2
+  },
+  "825970fc4d37e95cda04d32e": {
+   "reason": "Chuyện góp ý bản nháp không chạm tới nỗi lo học phí, phần sao lại không phải điều họ quan tâm.",
+   "score": 2
+  },
+  "82968ee8806bc0c761d618d9": {
+   "reason": "Chuyện đọc hết tin nhắn chung chung, giọng khô, không vui như bạn bè.",
+   "score": 2
+  },
+  "82b1a79d184eb4ccabd88c73": {
+   "reason": "Tính cầu toàn có khớp, nhưng hôm đuối lại bảo gửi bản nháp cho người khác.",
+   "score": 2
+  },
+  "82fb93a055e39ceb9c243484": {
+   "reason": "Chuyện sửa mãi chưa gửi bản nháp hơi khớp nỗi sợ bị chê code, nhưng vẫn chung.",
+   "score": 3
+  },
+  "835582bb705b6762af8d758c": {
+   "reason": "Chuyện nói được cho xong chung chung, không biết Thoa đang mùa thi may áo dài.",
+   "score": 2
+  },
+  "8371098f4922f8ce45ef9ad8": {
+   "reason": "Nội dung chung chung, không chạm tới chuyện riêng của họ.",
+   "score": 2
+  },
+  "837a2a608838e20b91ea1330": {
+   "reason": "Cảnh tin nhắn chưa rõ làm nghĩ mãi hơi giống chuyện với sếp mới, phần còn lại chung.",
+   "score": 3
+  },
+  "842f2b3f3c4b1e880e1b5ca5": {
+   "reason": "Chuyện nhận lời giúp người khác ai đọc cũng được, không chạm tới áp lực thật của họ.",
+   "score": 2
+  },
+  "842f8bda348fbad852c05115": {
+   "reason": "Sửa mãi chưa gửi hợp mùa đồ án, phần còn lại chung.",
+   "score": 3
+  },
+  "84953bd333f063f3cd92a6df": {
+   "reason": "Chuyện giúp người khác khá chung, không chạm tới nỗi lo giao tiệm cho con.",
+   "score": 2
+  },
+  "84deecc78b41e134e195b29e": {
+   "reason": "Chuyện nhận lời giúp chung chung, không chạm mùa thi lâm sàng, lại giao việc.",
+   "score": 2
+  },
+  "84e2f070fde4f4137aaadb27": {
+   "reason": "Chuyện đọc vội tin nhắn chung chung, không nói gì tới đổi ca hay mệt.",
+   "score": 2
+  },
+  "84eff670f99f424bfe89c765": {
+   "reason": "Chuyện nhận thêm khi lịch kín gần với đơn vẽ chồng lên bài trường, dù mở đầu bằng câu chưa đủ dữ kiện.",
+   "score": 3
+  },
+  "84fe860fab2cf3a6c00470f5": {
+   "reason": "Chuyện tin nhắn khó chịu khá chung, không chạm tới cái mệt một mình lo con.",
+   "score": 2
+  },
+  "84fef337364bec4dd0c6bdc5": {
+   "reason": "Chuyện nhận thêm việc chung chung, lại có việc phải làm.",
+   "score": 2
+  },
+  "8524837cdcdca67df972bee3": {
+   "reason": "Chuyện nhận việc chung chung, không phải lời riêng về chuyện học nghề.",
+   "score": 2
+  },
+  "8566f6fe37508ddd159571f1": {
+   "reason": "Lời chung về hỏi góp ý, không nói gì tới nghề dạy hay đợt thanh tra.",
+   "score": 2
+  },
+  "85835644541603fbf861411e": {
+   "reason": "Chuyện lỡ nhắn gắt không gần với Linh, lại lệch với mood thong thả hôm nay.",
+   "score": 2
+  },
+  "85ada3e22e3cd42274359b8d": {
+   "reason": "Hỏi góp ý đúng phần hơi gần việc sửa số của nhân viên mới, còn lại chung.",
+   "score": 3
+  },
+  "85e2ff8e3155c9c737417d83": {
+   "reason": "Chọn lại giờ hẹn có thể gặp nhưng không chạm chuyện con ốm hay thời gian cho mình.",
+   "score": 2
+  },
+  "864d6421f12a542ff9ed3fbf": {
+   "reason": "Chuyện bản nháp không chạm gì tới việc thiếu người để kể.",
+   "score": 2
+  },
+  "865551f94b6708ef336cb936": {
+   "reason": "Chuyện từ chối chung chung, không dính chuyện tìm việc.",
+   "score": 2
+  },
+  "865f225c3396e5cf3aa12186": {
+   "reason": "Xin góp ý bản nháp chung chung, không kéo về chuyện so sánh trên mạng.",
+   "score": 2
+  },
+  "8681e9c981074657d41d462c": {
+   "reason": "Ý chỗ chưa rõ dễ thành làm lại chạm chuyện hồ sơ bị trả, nhưng vẫn giao việc phải hỏi nhóm.",
+   "score": 3
+  },
+  "8685b86fdaf555c355f01f0b": {
+   "reason": "Chuyện bỏ dở việc không chạm chuyện bố mẹ ly thân đang đè lên mình.",
+   "score": 2
+  },
+  "8697021baff2c29837dace3c": {
+   "reason": "Nội dung về tin nhắn chung, câu việc nhỏ hơi khó hiểu với người kỹ chữ.",
+   "score": 2
+  },
+  "86b3042005d581fbfbd4dfd9": {
+   "reason": "Nội dung chung chung, không chạm tới chuyện riêng của họ.",
+   "score": 2
+  },
+  "86e3b1df765091f21a2c3c83": {
+   "reason": "Không nhắc mùa thi, chuyện tin nhắn chung chung dù câu đáp mood hợp.",
+   "score": 2
+  },
+  "86fa3d152905ba85fe0726f9": {
+   "reason": "Nội dung chung chung, tiêu đề nói chuyện hỏi gì còn cảnh lại nói chuyện đồng ý phần nào nên đọc hơi rối.",
+   "score": 2
+  },
+  "87011ce77dd0c2f737a77758": {
+   "reason": "Việc nhỏ rõ nhưng chuyện nhận thêm việc không dính đời anh ở kho.",
+   "score": 2
+  },
+  "8704cab13db7030cd756e7fd": {
+   "reason": "Ngày đuối mà bảo nhắn từ chối người khác, không dính chuyện tìm việc.",
+   "score": 2
+  },
+  "8719fcba60d640fafa10e70e": {
+   "reason": "Lời khuyên nhờ giúp việc chung chung, không dính tới lái xe hay đau lưng.",
+   "score": 2
+  },
+  "8736e352ea9424f0db59bee1": {
+   "reason": "Có dính chuyện làm nhóm, nhưng việc nhỏ là đi hỏi nhóm, mình không thích bị giao việc.",
+   "score": 3
+  },
+  "8757156bc91f93d1a0ee3cff": {
+   "reason": "Ngày đuối mà việc nhỏ là nói giới hạn với người khác, nội dung chung chung.",
+   "score": 2
+  },
+  "87a825c0c1d28d92225255e5": {
+   "reason": "Chủ đề nhận thêm việc rất chung, không nói tới áp lực thật của họ. Lại tự nhận chưa đủ dữ kiện.",
+   "score": 2
+  },
+  "8813e26e9a785c83027bd82c": {
+   "reason": "Tin nhắn kiểu làm như cũ gần với chuyện khách sửa bài, phần còn lại chung.",
+   "score": 3
+  },
+  "882c122a1764758fff62f539": {
+   "reason": "Chuyện nói được cho xong không chạm nỗi lo trả tiền mối và hàng tồn.",
+   "score": 2
+  },
+  "8883f162d7a777875711be67": {
+   "reason": "Chuyện chỉ than mệt mà chưa nói cần gì chạm cảnh không có ai tâm sự.",
+   "score": 3
+  },
+  "892d4267a9327649d857956a": {
+   "reason": "Hợp chuyện bài viết đầu tiên bị sửa nhiều, hỏi góp ý đúng chỗ.",
+   "score": 4
+  },
+  "8930db89fedd5d1127f4eede": {
+   "reason": "Chuyện bản nháp không liên quan tới thợ bảo trì làm ca.",
+   "score": 1
+  },
+  "8935ff0dd9d7b1de0f1ee2fb": {
+   "reason": "Chuyện bắt đầu nhiều việc chung chung, không nói gì tới đau lưng hay lo cho con.",
+   "score": 2
+  },
+  "895da82b5c346ffaf84dadf9": {
+   "reason": "Chuyện giúp người khác chung chung, không chạm nỗi nhớ nhà hay thực tập.",
+   "score": 2
+  },
+  "897768790d8e68c7e347f824": {
+   "reason": "Chuyện xem lịch nhận việc xa lạ với bà, lại là việc giao bà không muốn.",
+   "score": 1
+  },
+  "89845d2881353d25fa02955d": {
+   "reason": "Lời khuyên nói rõ cần giúp chung chung, không chạm chuyện ngành học bị ép.",
+   "score": 2
+  },
+  "89b2a42f1d4306b4df5f286e": {
+   "reason": "Chuyện gật đầu trong nhóm chat không chạm chuyện nhà đang căng.",
+   "score": 2
+  },
+  "89e8bc76f6740ee3064bec04": {
+   "reason": "Chuyện tin nhắn mơ hồ chung chung, không nhắc kỳ thi tay nghề.",
+   "score": 2
+  },
+  "8a0c7055eeb58619665ba45d": {
+   "reason": "Chuyện làm dở nhiều việc chung chung, lại có ý nhắc làm việc.",
+   "score": 2
+  },
+  "8a334d8e1c80a6e368a0e783": {
+   "reason": "Không chạm chuyện sếp gọi giữa tối hay xa vợ con.",
+   "score": 2
+  },
+  "8a50980a1809523d8c364c20": {
+   "reason": "Chuyện bỏ dở việc đang làm khá chung, không chạm tới nỗi lo đi học muộn.",
+   "score": 2
+  },
+  "8a7b9440d302d468017dfe6e": {
+   "reason": "Chuyện nhờ giúp không đụng tới tiền sinh hoạt đang thiếu.",
+   "score": 2
+  },
+  "8ab37a19184a0c07f1f3db5e": {
+   "reason": "Đoán ý khi chờ hồi âm có chạm tới lúc đang chờ nhà tuyển dụng, còn lại chung.",
+   "score": 3
+  },
+  "8ac1af1f7b3aaeaf4ddb9084": {
+   "reason": "Việc nhỏ nhẹ nhưng chuyện tin nhắn chung chung, không chạm ca tối mệt.",
+   "score": 2
+  },
+  "8acaae4255ece961898c6357": {
+   "reason": "Việc làm xong trong mười phút hợp lúc lạc hướng, nhưng không chạm chuyện chọn ôn thi hay học nghề.",
+   "score": 3
+  },
+  "8afe90cd356103a7c3ac2e9f": {
+   "reason": "Đang mùa thi mà nội dung về nhờ giúp việc chung, không nói gì chuyện ôn thi.",
+   "score": 2
+  },
+  "8ba2a3bf721fb0ab2d8326bb": {
+   "reason": "Chuyện giữ cách cũ chung chung, không biết ca dài ở hiệu thuốc.",
+   "score": 2
+  },
+  "8bb3688793356327715e15f6": {
+   "reason": "Chuyện sửa bản nháp mãi chưa gửi chạm đồ án và khách đòi sửa, nhưng vẫn giao việc.",
+   "score": 3
+  },
+  "8bcc7fdc70e304f874b99d81": {
+   "reason": "Chuyện nhận thêm việc chung chung, không chạm chuyện nhà căng.",
+   "score": 2
+  },
+  "8bcd844620227a39b466374c": {
+   "reason": "Chuyện góp ý bản nháp chung chung, không nhắc lịch ca hay chuyện dùng chung máy.",
+   "score": 2
+  },
+  "8bd976facfcce1d68914cf43": {
+   "reason": "Ngày đuối mà bảo gửi bản nháp cho người khác xem, lại không nói gì về chuyện bị chê code.",
+   "score": 2
+  },
+  "8c263b0edd06f5e712ed0b43": {
+   "reason": "Chuyện góp ý bản nháp chung chung, chưa dính tới việc quản lý cửa hàng.",
+   "score": 2
+  },
+  "8c5b418fa33d5a38964ca5bd": {
+   "reason": "Ngày đuối mà nhận chuyện bản nháp không liên quan tới việc bán xe, kèm việc phải hỏi người khác.",
+   "score": 1
+  },
+  "8c664761302d4f1404c615ce": {
+   "reason": "Chuyện đoán ý tin nhắn không dính tới ca trực, thiếu ngủ hay cảm giác lạc lõng của mình.",
+   "score": 2
+  },
+  "8cb899d8f51e584e296d6204": {
+   "reason": "Cảnh nhóm chốt việc qua chat không hợp người chưa đi học, chưa có nhóm.",
+   "score": 2
+  },
+  "8d022af29155af4cc1c4449c": {
+   "reason": "Chuyện gửi bản nháp xin góp ý chẳng liên quan gì tới người trồng rau như mình.",
+   "score": 1
+  },
+  "8d5500b47484ded791c64c27": {
+   "reason": "Chuyện nhờ người giúp chung chung, không dính chuyện khách trả tiền chậm.",
+   "score": 2
+  },
+  "8d674a713fe7076a82bec58f": {
+   "reason": "Chuyện gửi bản nháp không dính gì tới làm bánh hay tiền cuối tháng, ai đọc cũng được.",
+   "score": 2
+  },
+  "8dbf396d71a4ec07c27d7e39": {
+   "reason": "Chuyện nhờ giúp chung chung, không chạm đồ án vẽ hay chỗ ở ghép.",
+   "score": 2
+  },
+  "8dda7b81c61707dce2a79679": {
+   "reason": "Mùa cưới khách giục nên nói rõ thời gian cần có ích, dù câu tự nhận chưa đủ dữ kiện.",
+   "score": 3
+  },
+  "8e04c99f04cb218c7487d378": {
+   "reason": "Nói chuyện công việc hoặc chuyện học với người làm vườn sáu mươi tuổi, sai người.",
+   "score": 1
+  },
+  "8e93e7be2dc946cecd1a970a": {
+   "reason": "Chuyện nhận lời giúp không chạm nỗi nhớ nhà, việc nhỏ lại phải nói với người khác.",
+   "score": 2
+  },
+  "8edf6dcf487d069fab3be6e8": {
+   "reason": "Tin nhắn chưa rõ quá chung, lại là việc phải hỏi người khác cho người không muốn làm gì.",
+   "score": 2
+  },
+  "8ee2d22cd09963b77e47701b": {
+   "reason": "Câu nhờ giúp nghe chung, chưa thấy chuyện xa vợ con hay việc hàn nắng.",
+   "score": 2
+  },
+  "8f152e63b986bd049e695189": {
+   "reason": "Chuyện nhờ giúp cụ thể hơi gần cảnh vừa học vừa làm nhưng vẫn chung.",
+   "score": 2
+  },
+  "8f4fe96caee7a4ac4a3d2629": {
+   "reason": "Việc đọc hết tin nhắn nhẹ nhưng chung, không hiểu người làm ca nuôi con một mình.",
+   "score": 2
+  },
+  "8f78f96228ed9131b849a5e6": {
+   "reason": "Người không muốn bị giao việc lại nhận việc nhỏ phải nói với người khác, không chạm hạn chiến dịch.",
+   "score": 2
+  },
+  "8fa9493db5bebe1bd9565fbf": {
+   "reason": "Chuyện giúp quá sức khá chung, không chạm tới nỗi lo giao tiệm hay mỏi gối.",
+   "score": 2
+  },
+  "9021865f753472b7d3fe3203": {
+   "reason": "Chạm nhẹ chuyện bận hồ sơ nhưng câu chưa đủ dữ kiện, chung chung.",
+   "score": 2
+  },
+  "9045ebede66c186038a0d633": {
+   "reason": "Ngày Đuối sau ca đôi lại bảo nói thời gian với người khác thay vì gợi ý nghỉ.",
+   "score": 2
+  },
+  "90b186194c525ebed9b280a0": {
+   "reason": "Chuyện bản nháp chưa gửi không dính tới người làm xét nghiệm theo ca.",
+   "score": 1
+  },
+  "90dc4bc3d7ef11e13b20b5e3": {
+   "reason": "Ngày đuối mà bảo nhắn từ chối, chuyện chung chung.",
+   "score": 2
+  },
+  "91036c26b015d600cbc94acd": {
+   "reason": "Câu báo chưa đủ dữ kiện, thiếu phần chiêm tinh và không chạm tới chuyện bị so sánh.",
+   "score": 2
+  },
+  "910de5b983be10eb99f9dd70": {
+   "reason": "Chuyện gửi bản nháp không dính gì tới bà đang lo chăm ông.",
+   "score": 1
+  },
+  "91aee3f35c53207c761940a4": {
+   "reason": "Tự nói chưa đủ dữ kiện, không chạm chuyện tiền eo hẹp hay nhuận bút.",
+   "score": 2
+  },
+  "924679fef076676a59b13a34": {
+   "reason": "Chuyện xin góp ý bản nháp ít liên quan đời nghỉ hưu, chỉ hợp tính cẩn thận.",
+   "score": 2
+  },
+  "92763944abfb9de67409db89": {
+   "reason": "Cảnh tin nhắn khó nghe hợp lúc đang căng và bị nhắc ở chỗ thực tập, phần còn lại chung.",
+   "score": 3
+  },
+  "927da2190a0ad09d5c444f00": {
+   "reason": "Làm một việc mười phút hợp ngày lạc trôi, nhưng không chạm chuyện nhà.",
+   "score": 3
+  },
+  "92d6aaf3788f9ba99f5e9e2a": {
+   "reason": "Chuyện tin nhắn được thôi chung chung, không chạm nỗi lo sắp nghỉ hay huyết áp.",
+   "score": 2
+  },
+  "92ed24542041c7dee0f59005": {
+   "reason": "Chuyện giúp người khác không chạm áp lực chỉ tiêu, khách chửi.",
+   "score": 2
+  },
+  "930159001465cc2222e78929": {
+   "reason": "Chuyện giúp người khi mệt chung chung, không chạm chuyện tiền hay học bổng.",
+   "score": 2
+  },
+  "9362c04cd8129aedb112d469": {
+   "reason": "Có dính cảnh nhiều việc, nhưng hôm đuối lại bảo đi nói giới hạn với người khác.",
+   "score": 2
+  },
+  "93e6a1e966f3ab514ab9285d": {
+   "reason": "Chuyện nhận lời giúp không chạm chuyện hồ sơ không ai hồi âm.",
+   "score": 2
+  },
+  "93fe099e793b03f8c07ff8b7": {
+   "reason": "Chuyện nhận việc không chạm nỗi nhớ nhà hay chuyện kết bạn.",
+   "score": 2
+  },
+  "9409a60136da1bcf35eb3bfb": {
+   "reason": "Mẹo hỏi lại tin nhắn chung, ngày đuối lại phải đi hỏi người khác.",
+   "score": 2
+  },
+  "944517cb8139ad3edb7d4adb": {
+   "reason": "Chuyện ý tưởng mới làm dở việc không giống người mẹ bận rộn như mình.",
+   "score": 2
+  },
+  "94a77aedca65c5bfc344e601": {
+   "reason": "Chuyện từ chối chung chung, lại là việc giao người này không thích.",
+   "score": 2
+  },
+  "94ebb42da7841133c64c706b": {
+   "reason": "Chuyện đọc hết tin nhắn chung chung, không chạm hạn thứ Sáu hay con ốm.",
+   "score": 2
+  },
+  "951aaaf27b5eab9a151ee112": {
+   "reason": "Hợp tính dễ nhận rồi bỏ dở và không trách móc, nhưng không đụng chuyện thi lại hay ông bà.",
+   "score": 3
+  },
+  "95d4717cecd7e4177f59154d": {
+   "reason": "Chuyện mở lịch rồi mới nhận lời không hợp bà, đọc thấy xa lạ.",
+   "score": 1
+  },
+  "95e40d5763508ecfd31187fa": {
+   "reason": "Ngày đuối mà phải nhắn từ chối người khác, cảnh không gắn với ca làm của cô.",
+   "score": 2
+  },
+  "961ce0d97ac5e1a4f70f6060": {
+   "reason": "Ngày đuối mà bảo đi nói đề nghị với người khác, lại thêm câu sao chiếu với người không tin.",
+   "score": 1
+  },
+  "9650cdb8bb96d09d0e8252e5": {
+   "reason": "Câu bận cả buổi việc chưa xong và lời bớt một việc hợp ngày đuối, nhưng không chạm chuyện riêng của mình.",
+   "score": 3
+  },
+  "969452632e05502fa3e226e8": {
+   "reason": "Chuyện chọn lựa khi mệt chung chung, không dính con thi hay kiểm kho.",
+   "score": 2
+  },
+  "97503890be20eec93b092a49": {
+   "reason": "Chuyện nhờ người xem bản nháp gần với việc làm portfolio mùa thi, nhưng vẫn nói chung.",
+   "score": 3
+  },
+  "9771c97f82b3d62313c64007": {
+   "reason": "Chuyện tin nhắn khó chịu chung chung, không nhắc mùa thi.",
+   "score": 2
+  },
+  "9806ac9e661f8222c7bebabc": {
+   "reason": "Nội dung chung chung về tin nhắn, ai đọc cũng được, không chạm chuyện của họ.",
+   "score": 2
+  },
+  "98081190cb43a449ec88b9b6": {
+   "reason": "Chủ đề nhận thêm việc rất chung, không nói tới áp lực thật của họ.",
+   "score": 2
+  },
+  "986ab1d580a631ff9b407283": {
+   "reason": "Chung chung, câu Lá chưa đủ dữ kiện nghe xa cách, việc nhỏ phải nói với người khác lúc đuối.",
+   "score": 2
+  },
+  "989f09e01a4b5946d782d4a6": {
+   "reason": "Bản nháp gần với khóa luận và hồ sơ, nhưng ngày đuối mà bắt gửi cho người khác.",
+   "score": 3
+  },
+  "98be534958081c3f65f393ad": {
+   "reason": "Nội dung chung chung, không chạm tới chuyện riêng của họ.",
+   "score": 2
+  },
+  "9915500be007e43df7a6582a": {
+   "reason": "Chuyện xem lịch nhận việc xa lạ với đời nuôi ong trồng chè ở quê, lời đọc chung chung.",
+   "score": 1
+  },
+  "9a04ba3eab7b0e2c71d85368": {
+   "reason": "Cảnh viết đoạn văn và mở tài liệu không hợp người làm xưởng đông lạnh.",
+   "score": 2
+  },
+  "9a746e904da32ff91d44e5ab": {
+   "reason": "Chuyện chốt việc trong nhóm không có trong đời chạy giao đồ của Huy.",
+   "score": 1
+  },
+  "9a96df6a8e706125ab00a909": {
+   "reason": "Chuyện tự chê khi nhìn người khác và việc nhỏ nhẹ hợp ngày lạc trôi, nhưng chưa dính bài thi may.",
+   "score": 3
+  },
+  "9acb865290bfbff414df1af3": {
+   "reason": "Chuyện đổi giờ hẹn có thể gần với lịch phỏng vấn, nhưng không chạm tới nỗi lo tìm việc.",
+   "score": 3
+  },
+  "9b9c655d1a22b8c07ccdb29c": {
+   "reason": "Câu 'chưa đủ dữ kiện' và chuyện xem lịch không chạm nỗi mệt ở chỗ làm.",
+   "score": 2
+  },
+  "9c1ee829e980bbb87910f830": {
+   "reason": "Chuyện xem lịch nhận việc không hợp người bán tạp hóa ít dùng máy.",
+   "score": 2
+  },
+  "9caba03a99a25a6be673ba46": {
+   "reason": "Có chạm chuyện trả lời khách nhưng ngày đuối lại bảo nhắn lại cho người kia.",
+   "score": 2
+  },
+  "9cbfc2cf03b1095ba4ad0bc6": {
+   "reason": "Nội dung về bản nháp chung chung, không thấy mình trong đó.",
+   "score": 2
+  },
+  "9d017e4e44bd76a4110a5e39": {
+   "reason": "Chuyện đoán ý tin nhắn chung chung, không nói chuyện xa chồng con hay báo cáo.",
+   "score": 2
+  },
+  "9d37b07618b0bb63f536f2a5": {
+   "reason": "Chạm chuyện việc vẽ thuê và bài tập dồn, nhưng vẫn chung.",
+   "score": 3
+  },
+  "9d4ff2d1f560fe28dbe96c2c": {
+   "reason": "Cảnh dọn dẹp chung chung, không biết anh làm ca đêm, ngày đuối vẫn giao việc.",
+   "score": 2
+  },
+  "9d861a241b35aa7b492f34ce": {
+   "reason": "Ngày đuối lại phải nói giới hạn với người khác, nội dung chung không dính ca làm.",
+   "score": 2
+  },
+  "9dae002393a324b0eda2a493": {
+   "reason": "Chuyện bản nháp chung chung, không chạm sếp mới và chỉ tiêu.",
+   "score": 2
+  },
+  "9dba19ada1cd00ab3d5d47cb": {
+   "reason": "Chuyện góp ý bản nháp lạc khỏi đời thợ điện, đọc xong không biết làm gì.",
+   "score": 1
+  },
+  "9de6925a89d1168163428e61": {
+   "reason": "Ngày đuối mà bảo đi hỏi góp ý, lại giao việc dù họ không muốn.",
+   "score": 2
+  },
+  "9defb93ec24b40cdcdf22ed8": {
+   "reason": "Cảnh nhóm chốt việc qua chat chung chung, không hiểu chuyện một mình nuôi con.",
+   "score": 2
+  },
+  "9e35ca527415e9228dc94fba": {
+   "reason": "Chuyện sửa bản nháp không gần với việc live bán hàng của Chi.",
+   "score": 2
+  },
+  "9e46010e5fe3149edeffa845": {
+   "reason": "Chuyện giữ cách cũ chung chung, không nhắc tuần chốt đơn.",
+   "score": 2
+  },
+  "9e4ab1ed9542ee2ccf218af3": {
+   "reason": "Chuyện đổi cách làm chung chung, không nói tới chuyện tự ti khi học.",
+   "score": 2
+  },
+  "9e6a7e27f49d521c402a550e": {
+   "reason": "Chuyện bản nháp không dính đời công nhân, ngày đuối lại bảo đi hỏi người khác.",
+   "score": 1
+  },
+  "9e70f67248ae5a2ecea49c26": {
+   "reason": "Chuyện sửa bản nháp chung chung, không chạm nỗi lo tiền cuối tháng.",
+   "score": 2
+  },
+  "9eca674f5729c03cdf411c0b": {
+   "reason": "Chuyện nói được cho xong chỉ chạm nhẹ, nội dung chung.",
+   "score": 2
+  },
+  "9f2fcd7de73dcb2a022bf893": {
+   "reason": "Ngày đuối vẫn giao nói giới hạn với người khác, khó với người đang ở nhờ.",
+   "score": 2
+  },
+  "9f75ddedbbb63374fa74a1d5": {
+   "reason": "Chuyện nhận lời giúp chung chung, không chạm lo tiền phòng cuối tháng.",
+   "score": 2
+  },
+  "9f7e9ad629661a50dd2b8a47": {
+   "reason": "Ngày đuối lại phải nhắn lại người khác, chuyện tin nhắn gắt không dính ca đêm.",
+   "score": 2
+  },
+  "9fd0fea88c17c9c243e900af": {
+   "reason": "Đang lạc trôi mà nói chuyện nhận lời giúp, không chạm nỗi buồn cuối tuần.",
+   "score": 2
+  },
+  "9fe006594f1d3755aa3f1d33": {
+   "reason": "Chủ đề nhận thêm việc rất chung, không nói tới áp lực thật của họ. Lại tự nhận chưa đủ dữ kiện.",
+   "score": 2
+  },
+  "a02a618d90eb96be78840355": {
+   "reason": "Chuyện xem lịch nhận việc chung chung, không chạm tiền hay đồ án.",
+   "score": 2
+  },
+  "a0ebb351cc2b51bb67cb3d59": {
+   "reason": "Mẹo đọc hết tin nhắn chung chung, không chạm chuyện chọn đi học hay đi làm.",
+   "score": 2
+  },
+  "a13cf38ade125262abb198c0": {
+   "reason": "Chuyện họp nhóm chốt ý xa đời bán bún của họ.",
+   "score": 2
+  },
+  "a17064b623765d38978a025d": {
+   "reason": "Chuyện xem lịch trước khi giúp chung chung, xa đời bán nước mía.",
+   "score": 2
+  },
+  "a18ad88a3b5452aee0bc53bc": {
+   "reason": "Nội dung chung chung, không chạm tới chuyện riêng của họ.",
+   "score": 2
+  },
+  "a1ae20f425cb71d44d3a7462": {
+   "reason": "Không nói gì tới chuyện bị từ chối hồ sơ, câu Lá chưa đủ dữ kiện nghe máy móc.",
+   "score": 2
+  },
+  "a1e6c702972f56cb8f477c6f": {
+   "reason": "Câu báo chưa đủ dữ kiện và chuyện nhận việc không chạm tới áp lực bị so sánh hay phần chiêm tinh họ muốn.",
+   "score": 2
+  },
+  "a265805929a630fd9d32034c": {
+   "reason": "Chuyện đọc hết tin nhắn chung chung, không hiểu là mình đang ôn thi.",
+   "score": 2
+  },
+  "a2d6e18c6d57a35e210395f1": {
+   "reason": "Chuyện nhận lời giúp không dính tới đơn hàng, livestream của họ.",
+   "score": 2
+  },
+  "a2f7ce2767527e9d528bf694": {
+   "reason": "Chủ đề nhận thêm việc rất chung, không nói tới áp lực thật của họ. Lại tự nhận chưa đủ dữ kiện.",
+   "score": 2
+  },
+  "a36be30d138043b9609afad9": {
+   "reason": "Nội dung chung chung, không chạm tới chuyện riêng của họ.",
+   "score": 2
+  },
+  "a4b8507afd5aaa85be7725de": {
+   "reason": "Chuyện từ chối chung chung, không nhắc chuyện chốt sổ thứ Sáu.",
+   "score": 2
+  },
+  "a52e0baf4c1f6e8e4e11fae5": {
+   "reason": "Chuyện tự so mình không hợp tính vô tư của Tùng, việc nhỏ thì không tốn tiền.",
+   "score": 2
+  },
+  "a53b0da1f4cd0e254635a9c8": {
+   "reason": "Cảnh tin nhắn khó chịu có thể gần chuyện cư dân phàn nàn, việc nhỏ làm được khi trực.",
+   "score": 3
+  },
+  "a55be82dbc3ea7c322c15b09": {
+   "reason": "Lúc đuối giao việc nói giới hạn với người khác, không chạm chuyện nghề và bố mẹ.",
+   "score": 2
+  },
+  "a5aeec376fbf510a3f2ff496": {
+   "reason": "Chuyện nói được dù chưa đồng ý chạm tới khó khăn khi quản lý nhân viên lớn tuổi, nhưng vẫn chung.",
+   "score": 3
+  },
+  "a5d69b93a63bf29f3d173912": {
+   "reason": "Câu về cách cũ chưa hiệu quả quá chung, không dính tới đời hưu ở quê.",
+   "score": 2
+  },
+  "a675d77ee47e0e7c960baf86": {
+   "reason": "Hỏi lại tin nhắn chung chung, không trấn an trước ngày thi như họ muốn.",
+   "score": 2
+  },
+  "a681a78e29bc38c4b573a3f5": {
+   "reason": "Đúng cảnh làm việc nhóm tranh tụng, hỏi một câu là việc vừa sức ngày căng.",
+   "score": 4
+  },
+  "a6adf665aa162960d29d6924": {
+   "reason": "Hỏi góp ý cụ thể có ích cho khóa luận, phần còn lại chung.",
+   "score": 3
+  },
+  "a76ec2291ad2850d533cbb89": {
+   "reason": "Chuyện góp ý bản nháp không dính nhớ nhà hay lịch học của bạn.",
+   "score": 2
+  },
+  "a816a9a4ea2a52fd7cb9c430": {
+   "reason": "Đang đuối mà được bảo đi nói với người nhờ giúp, chuyện lịch kín cũng không dính kỳ thi thực hành.",
+   "score": 2
+  },
+  "a877e6e5fa805819c81ffa04": {
+   "reason": "Cảnh đang viết bỏ dở không hợp người làm phòng lạnh, chỉ việc làm xong một việc là dùng được.",
+   "score": 2
+  },
+  "a88d36ffa7cb5bf099fda6aa": {
+   "reason": "Chuyện góp ý bản nháp không hợp với việc bán xe, lại giao việc cho người không muốn.",
+   "score": 2
+  },
+  "a89105f4f73543184d8e7ee8": {
+   "reason": "Ngày đuối mà bảo đi nói chuyện thời gian với người khác, nội dung không hợp đời chị.",
+   "score": 2
+  },
+  "a920a00a57e3aa4ac72c5b4c": {
+   "reason": "Chuyện tin nhắn chưa rõ chung chung, không chạm tới chuyện chỉ còn là mẹ.",
+   "score": 2
+  },
+  "a94f2609d477d12d2d0bf082": {
+   "reason": "Lời khuyên xem lịch chung, không nhận ra họ một mình lo hai con, không ai tâm sự.",
+   "score": 2
+  },
+  "a955e6288b85f8e24069aa8a": {
+   "reason": "Nội dung chung chung, không chạm tới chuyện riêng của họ.",
+   "score": 2
+  },
+  "a980a82c06f9b534ee376475": {
+   "reason": "Ngày đuối mà bảo thử cách khác rồi so kết quả, không chạm chuyện ca kíp.",
+   "score": 2
+  },
+  "a98386f19a87582c9984a3fb": {
+   "reason": "Ý nói rõ điều mình cần chạm chút tới chuyện ngại xin giúp, nhưng không nhắc gì việc tìm việc.",
+   "score": 3
+  },
+  "a98e8eeb51114624392a5a7c": {
+   "reason": "Chuyện tin nhắn gắt không phải nỗi nhớ nhà của Linh.",
+   "score": 2
+  },
+  "a99209875f3a4c368626c78d": {
+   "reason": "Nội dung chung chung, không chạm tới chuyện riêng của họ.",
+   "score": 2
+  },
+  "a9b4f14412399eaf30673ede": {
+   "reason": "Nói chuyện giúp thêm việc trong khi họ đang mất việc, chung chung.",
+   "score": 2
+  },
+  "a9ccde53123d3d85d04aa904": {
+   "reason": "Chuyện nhận lời giúp không dính tới nỗi lo đổi nghề của họ.",
+   "score": 2
+  },
+  "aa0d0a44bf3800bc78d37ac8": {
+   "reason": "Ý thử cách khác rồi so chạm chuyện gửi nhiều hồ sơ ít phản hồi, nhưng ngày đuối việc này hơi nặng.",
+   "score": 3
+  },
+  "aa3cd45ff0aeba5a0d1498ae": {
+   "reason": "Câu báo chưa đủ dữ kiện và lời khuyên nhận việc chung, lại giao việc phải nói vào ngày đuối.",
+   "score": 2
+  },
+  "ab1baf40afec5a394f42ecc8": {
+   "reason": "Chuyện giúp người khác chung chung, không đụng chuyện thiếu tiền.",
+   "score": 2
+  },
+  "ab25bee46d363f2096981359": {
+   "reason": "Tự nói chưa đủ dữ kiện, không có chiêm tinh hay chuyện ca làm như cô muốn.",
+   "score": 2
+  },
+  "ab2d226ccdaad1fac581d08e": {
+   "reason": "Chuyện giữ cách cũ chung chung, không chạm chuyện mẹ hay bạn gái.",
+   "score": 2
+  },
+  "ab4d915a36810f71cc8587e7": {
+   "reason": "Chuyện nhận thêm việc chung chung, câu Lá chưa đủ dữ kiện nghe hời hợt.",
+   "score": 2
+  },
+  "ab681f32c0ec78cb39ccf5f1": {
+   "reason": "Ngày Đuối lại bảo gửi bản nháp, không nhận ra chuyện chờ việc và nản.",
+   "score": 2
+  },
+  "ab6d192e9d2f1255b563b6d5": {
+   "reason": "Câu 'chưa đủ dữ kiện' và chuyện xem lịch chung chung.",
+   "score": 2
+  },
+  "ab6d2e51da5fa8d73002738c": {
+   "reason": "Lời chung về nhận thêm việc, không nói tới chuyện đổi nghề.",
+   "score": 2
+  },
+  "ab6d7ea5b4a88fabc83aeb7c": {
+   "reason": "Chuyện nói rõ cần giúp gì hợp người hay lo cho người khác, nhưng không dính tới thực tập.",
+   "score": 3
+  },
+  "abcaa5dfd01ea2eea6a93b94": {
+   "reason": "Chuyện hỏi góp ý cụ thể hợp lúc làm khóa luận, phần còn lại chung.",
+   "score": 3
+  },
+  "abe1d771fdd5bfa666ecff97": {
+   "reason": "Chuyện gửi bản nháp không dính gì tới đời bà và chuyện chồng ốm.",
+   "score": 1
+  },
+  "ac12584d1932397914a97843": {
+   "reason": "Ngày đuối mà nói chuyện gửi bản nháp, không dính gì tới đời bán hàng chợ của cô.",
+   "score": 1
+  },
+  "ac3c39cec2d5678f4a45cb5c": {
+   "reason": "Có chi tiết sao và cảnh trả lời vội hợp người viết bài cho shop, phần còn lại chung.",
+   "score": 3
+  },
+  "ac6e07314f15f703a8db397b": {
+   "reason": "Nội dung chung chung, không chạm tới chuyện riêng của họ.",
+   "score": 2
+  },
+  "ac7b51560eb3591f268a4dd7": {
+   "reason": "Chuyện tin nhắn chưa rõ chung chung, bảo hỏi lại vào ngày đuối.",
+   "score": 2
+  },
+  "acde599470f08646192d06c9": {
+   "reason": "Chuyện giữ cách cũ không chạm tới điều họ đang lo.",
+   "score": 2
+  },
+  "ad6910a639d872647dbf064f": {
+   "reason": "Ngày đuối mùa thi mà nói chuyện nhận lời giúp người, không nhắc thi.",
+   "score": 2
+  },
+  "ad8689208a147318a66b62ab": {
+   "reason": "Chuyện trả lời tin nhắn chung chung, không chạm lo xin việc.",
+   "score": 2
+  },
+  "ad923e10db9a289d11cdbf8e": {
+   "reason": "Chuyện nhận lời giúp người khác ai đọc cũng được, không chạm tới áp lực thật của họ.",
+   "score": 2
+  },
+  "ae0f249c237347bbe3cdbba4": {
+   "reason": "Ngày đuối mà bảo đi hỏi nhóm, không biết Ân vừa qua ca đêm.",
+   "score": 2
+  },
+  "ae10edf85950509636a02c58": {
+   "reason": "Hôm đuối lại giao việc hỏi góp ý, không chạm chuyện bị sếp mắng.",
+   "score": 2
+  },
+  "aea07908ab8efc30630ded6c": {
+   "reason": "Nội dung chung chung, không chạm tới chuyện riêng của họ.",
+   "score": 2
+  },
+  "aebbc8d2bdd0ae9a017bba61": {
+   "reason": "Nội dung chung chung, không chạm tới chuyện riêng của họ.",
+   "score": 2
+  },
+  "aec1265630c0698e5a67ed55": {
+   "reason": "Chuyện góp ý bản nháp xa với công việc kiểm hàng ca đêm.",
+   "score": 1
+  },
+  "aef5c7fcc523b2fabe9e17c6": {
+   "reason": "Ngày đuối mà vẫn bảo nói chuyện nhận việc với người khác, nội dung chung chung.",
+   "score": 2
+  },
+  "af1b7a7da27303c84495d33d": {
+   "reason": "Chung chung và vẫn giao việc kiểu học sinh, điều ông không thích.",
+   "score": 2
+  },
+  "af221fcd531fe1b45e998598": {
+   "reason": "Chuyện bản nháp không hợp với công việc đứng quầy lễ tân, dù lời phản hồi mood hợp.",
+   "score": 2
+  },
+  "af23d7e602a4a086509408d4": {
+   "reason": "Mẹo hỏi lại tin nhắn chung, không chạm chuyện thi thực hành.",
+   "score": 2
+  },
+  "af302b44fcb672f11dfb08ca": {
+   "reason": "Chuyện đọc hết tin nhắn nghe chung, lại giao việc dù họ không muốn bị giao.",
+   "score": 2
+  },
+  "af40bd62d127613876f06101": {
+   "reason": "Chuyện giúp người khác rồi thiếu giờ khá chung, chưa nói tới thi tiếng Anh.",
+   "score": 2
+  },
+  "af8e6a5d55ac34e084011c8d": {
+   "reason": "Câu báo chưa đủ dữ kiện, không nhắc mùa thi và không có lời động viên họ cần.",
+   "score": 2
+  },
+  "af8f2194a10c8a47fbb8032c": {
+   "reason": "Câu báo chưa đủ dữ kiện, đọc như tử vi chung chung mà họ không thích.",
+   "score": 2
+  },
+  "afc5f18f2e01f2f1f9143dfb": {
+   "reason": "Ngày đang rực mà cảnh lại là than mệt, chuyện nhờ giúp còn chung.",
+   "score": 2
+  },
+  "afcd77a8b6bc61f7cc581be8": {
+   "reason": "Không nhắc chuyện tìm việc, lại giao việc nói với người khác cho người không muốn bị giao việc.",
+   "score": 2
+  },
+  "afe69f274b499b5f8ce538bb": {
+   "reason": "Chuyện giúp quá sức khá chung và không có chi tiết chiêm tinh họ muốn.",
+   "score": 2
+  },
+  "affcb002b9cbf0c3e6cd5453": {
+   "reason": "Câu báo chưa đủ dữ kiện và chuyện nhận lời giúp chung chung, việc nhỏ lại thêm một lần phải nói với người khác.",
+   "score": 2
+  },
+  "b05b5ad714670132aa7ea541": {
+   "reason": "Chuyện hỏi góp ý cụ thể hợp lúc làm khóa luận, phần còn lại chung.",
+   "score": 3
+  },
+  "b0c1060f2563efc1bea1be42": {
+   "reason": "Chuyện góp ý bản nháp chung, không chạm chuyện kết bạn và lại giao việc.",
+   "score": 2
+  },
+  "b0fc2d8758a4de8066b4f534": {
+   "reason": "Chuyện nói được cho xong chạm cảnh phụ dì khó tính, nhưng không nhắc gì mùa thi.",
+   "score": 3
+  },
+  "b102618c9403b188057815d4": {
+   "reason": "Cảnh tin nhắn khó nghe hơi giống khách gọi mắng, câu thở chậm hợp lúc căng, phần còn lại chung.",
+   "score": 3
+  },
+  "b15236fdb56ee2e32b06a0a9": {
+   "reason": "Chuyện mở lịch rồi mới nhận lời xa với đời bà, đọc không thấy mình.",
+   "score": 1
+  },
+  "b17ccbfb26aca0d5b3fd0e8f": {
+   "reason": "Chuyện đổi cách làm chung chung, lại giao việc khi cô chỉ muốn đọc.",
+   "score": 2
+  },
+  "b21fc7d43b01c2a4ea2118bd": {
+   "reason": "Chuyện gửi bản nháp đi gần với việc nộp code, nhưng phải gửi cho người khác hơi nặng cho ngày đuối.",
+   "score": 3
+  },
+  "b226c918489ce0c2d3428982": {
+   "reason": "Hỏi rõ yêu cầu chạm tới chuyện bị giao việc gấp, nhưng chưa nói tới nỗi lo của họ.",
+   "score": 3
+  },
+  "b25bb0934f5d45584dd9b555": {
+   "reason": "Nội dung chung chung, không chạm tới chuyện riêng của họ.",
+   "score": 2
+  },
+  "b27a16418eb31918a164110e": {
+   "reason": "Chuyện tin nhắn khó chịu chung chung, không chạm cảm giác lạc lõng ở chỗ mới.",
+   "score": 2
+  },
+  "b2b3a5ac2d8b270987545f63": {
+   "reason": "Ngày Đuối lại bảo gửi bản nháp, không nhận ra họ đang bực sếp và không muốn bị giao việc.",
+   "score": 2
+  },
+  "b2cb51a270c3f94b07cd092e": {
+   "reason": "Cảnh nhóm chốt việc qua chat chung chung, không chạm chuyện nhà căng hay cô đơn ở trường.",
+   "score": 2
+  },
+  "b32b17d9bfe46c249fceb9da": {
+   "reason": "Chuyện xếp lịch giúp người chung chung, không vui cũng không chạm nhớ nhà.",
+   "score": 2
+  },
+  "b347716d99a4f4464f7a5d8e": {
+   "reason": "Chuyện hỏi góp ý bản nháp xa với việc đang xin việc của bạn.",
+   "score": 2
+  },
+  "b3518417d9e4972e3084021c": {
+   "reason": "Chuyện khó từ chối chung, không nhận ra nhà đang khó tiền.",
+   "score": 2
+  },
+  "b389d569511474744d5f0e80": {
+   "reason": "Chuyện khó từ chối không trúng chuyện nhân viên lớn tuổi không nghe mình.",
+   "score": 2
+  },
+  "b39bd2c150286b60adac34bd": {
+   "reason": "Chuyện ngại đổi cách dù kết quả chưa tốt gần với việc nộp hồ sơ mãi chưa được gọi.",
+   "score": 3
+  },
+  "b40fd91a45f494b75cd1e28f": {
+   "reason": "Chuyện mở nhiều việc không trúng gánh nặng làm người nghe cho bố mẹ.",
+   "score": 2
+  },
+  "b42cbb2ebe001169986d570f": {
+   "reason": "Chuyện thử cách khác khi kết quả chưa tốt hơi hợp chuyện bán ế, phần còn lại chung.",
+   "score": 3
+  },
+  "b4600bb3ef10b2656ae91c1c": {
+   "reason": "Hợp tính hay giúp người của Tài, nhưng không chạm chuyện kẹt tiền hay đồ án.",
+   "score": 3
+  },
+  "b469101c9d535beaab089735": {
+   "reason": "Chuyện từ chối và nhắn lại xa với đời bán rau của cô.",
+   "score": 2
+  },
+  "b49496b417472d702bec37fc": {
+   "reason": "Chuyện khó từ chối chung chung, không chạm chuyện thiếu tiền.",
+   "score": 2
+  },
+  "b4fe2b85d19e51140b419b88": {
+   "reason": "Ngày Đuối mà bảo hỏi lại người gửi, chưa chạm lịch dạy kèm chồng chéo.",
+   "score": 2
+  },
+  "b5127e482ba3a0fff5162553": {
+   "reason": "Chuyện tin nhắn chung chung, giao việc cho người không muốn.",
+   "score": 2
+  },
+  "b54e35ccaf67cde9f70fd024": {
+   "reason": "Chuyện nhắn lại để từ chối khá xa đời bán bún, trông cháu, chỉ hơi hợp tính hay hứa.",
+   "score": 2
+  },
+  "b57b24b1cb54969ee506a814": {
+   "reason": "Lời chung về nhận thêm việc, không chạm cảm giác trống trải cuối tuần.",
+   "score": 2
+  },
+  "b5d3d673ba0d7e1f0c0abed1": {
+   "reason": "Chung chung, câu năng lượng cơ thể lạc lõng, không dính tới ca làm.",
+   "score": 2
+  },
+  "b5de50c59349f56ae8eb064f": {
+   "reason": "Hôm đuối nói chuyện nhận giúp và bảo đi nói, không chạm chuyện ôn thi lại.",
+   "score": 2
+  },
+  "b5ff54f01c034f5cadaf33aa": {
+   "reason": "Câu 'chưa đủ dữ kiện' và chuyện lịch không hợp người bán hàng ở chợ.",
+   "score": 2
+  },
+  "b6015871183f9ceb9a16a5ae": {
+   "reason": "Chuyện nói được khi chưa muốn chung chung, không chạm chuyện so sánh hay đồ án.",
+   "score": 2
+  },
+  "b6225f6c0c406b88515c6bbf": {
+   "reason": "Chuyện giờ hẹn bị dời không liên quan mùa thi nói tiếng Anh của mình.",
+   "score": 2
+  },
+  "b72bad58a3cecdf979479089": {
+   "reason": "Lời khuyên nhờ giúp chung chung, không nói tới chuyện con ở xa hay đau khớp.",
+   "score": 2
+  },
+  "b7784ad8e6469adcb29fd5ed": {
+   "reason": "Chuyện nhận lời giúp chung chung, không nói tới mùa thi.",
+   "score": 2
+  },
+  "b7973d0711d4a9287376aa2a": {
+   "reason": "Chuyện than việc mà chưa nhờ cụ thể khá chung, không chạm tới chuyện yêu xa hay đi học lại.",
+   "score": 2
+  },
+  "b7e6a3cdb62310c3f8606d1b": {
+   "reason": "Chuyện xem lịch nhận việc không dính đời làm ca, để dành vốn.",
+   "score": 2
+  },
+  "b7efe62c517a6846421fd4e7": {
+   "reason": "Chuyện gật theo nhóm chung chung, không nói chuyện tình cảm mà lại giao việc.",
+   "score": 2
+  },
+  "b800ac3afd263718fff8b4e2": {
+   "reason": "Chuyện xem lịch chung chung, không biết họ làm ca đêm.",
+   "score": 2
+  },
+  "b803a7ab94b67bccc59a02be": {
+   "reason": "Chuyện xin góp ý bản nháp có gần bài nhóm đầu tiên, chưa chạm nỗi nhớ nhà.",
+   "score": 3
+  },
+  "b8575b2230caca9b17781190": {
+   "reason": "Chuyện tin nhắn chung chung, không chạm ca trực tối hay cảm giác lạc lõng.",
+   "score": 2
+  },
+  "b8bccb0aa8867a241c7110c9": {
+   "reason": "Chuyện muốn nói không mà vẫn nhận khớp với khách đòi sửa nhiều lần.",
+   "score": 4
+  },
+  "b8bfce519b5810896e35e4d3": {
+   "reason": "Chuyện nhận thêm việc chung chung, không chạm chuyện căng với ba.",
+   "score": 2
+  },
+  "b8e4b2ef7812c0c24b0a3b8c": {
+   "reason": "Câu báo chưa đủ dữ kiện và lời khuyên chung, không chạm tới chuyện bị trưởng phòng quát.",
+   "score": 2
+  },
+  "ba4deec0eb895e229a32ed6b": {
+   "reason": "Cảnh đoán mãi một tin nhắn hợp tính hay lo của Uyên, nhưng không nhắc mùa thi.",
+   "score": 3
+  },
+  "ba82c5747aa254958744f2d3": {
+   "reason": "Chuyện xin góp ý bản nháp gần đồ án đang làm, nhưng vẫn giao việc.",
+   "score": 3
+  },
+  "ba888dbf5f139066b3c82cd1": {
+   "reason": "Cảnh viết đoạn văn, mở tài liệu xa đời công nhân xưởng giày.",
+   "score": 1
+  },
+  "ba96fc66e0e230b987991f4d": {
+   "reason": "Chủ đề nhận thêm việc rất chung, không nói tới áp lực thật của họ. Lại tự nhận chưa đủ dữ kiện.",
+   "score": 2
+  },
+  "bada614629d0efc4f41ade07": {
+   "reason": "Nói rõ việc cần giúp còn chung, không gắn với ca xoay hay chuyện trả góp.",
+   "score": 2
+  },
+  "bb7ee15854d0611a10e344ca": {
+   "reason": "Ngày đuối lại nói chuyện xin góp ý bản nháp, không liên quan gì tới đời họ.",
+   "score": 1
+  },
+  "bbdf203c121bce23702289dc": {
+   "reason": "Chuyện nhận lời giúp không chạm việc đang lơ lửng, chưa có hướng đi.",
+   "score": 2
+  },
+  "bcec1e3e4fe15d2d3fc9b806": {
+   "reason": "Chuyện nhận giúp không chạm cảnh khách sửa bản thiết kế nhiều lần.",
+   "score": 2
+  },
+  "bcf10dd755a50d6760f7a559": {
+   "reason": "Chuyện từ chối nhận việc khá chung, không nói gì tới sổ cân hay chuyện ngủ muộn.",
+   "score": 2
+  },
+  "bd30ef88f7c9b758b24dbc7e": {
+   "reason": "Chuyện tin nhắn khó chịu hợp người nhạy với lời người khác, việc nhỏ nhẹ, nhưng chưa chạm chuyện so sánh.",
+   "score": 3
+  },
+  "bd36d87727cc59a9e1cf3ca5": {
+   "reason": "Chuyện xem lịch, nhận lời giúp không dính gì tới đời bà, câu lại khó với người già.",
+   "score": 1
+  },
+  "bddb86bbf5a56f9a33dcc86a": {
+   "reason": "Chuyện tin nhắn chưa rõ khá chung, không chạm tới cái mệt vì ca đêm và trực viện.",
+   "score": 2
+  },
+  "bebbd3f65b8bbc0682a0c893": {
+   "reason": "Chuyện đổi cách làm khá chung, không chạm nỗi sợ sai trong giờ thực hành.",
+   "score": 2
+  },
+  "beecf969d41eedc50a0f0a62": {
+   "reason": "Ngày Đuối sau ca đêm mà nói chuyện đọc kỹ tin nhắn, không nhận ra họ mệt.",
+   "score": 2
+  },
+  "bf2142342b7c249a54a3f730": {
+   "reason": "Mùa cưới khách giục nên nói rõ thời gian cần có ích, dù câu tự nhận chưa đủ dữ kiện.",
+   "score": 3
+  },
+  "bf3ae3ad85409ac31ff4039b": {
+   "reason": "Gửi bản nháp đúng với việc viết bài cho shop, còn lại chung.",
+   "score": 3
+  },
+  "bf4fa0c3e52f9ae95846b23a": {
+   "reason": "Câu 'chưa đủ dữ kiện' và chuyện lịch không chạm đời người này.",
+   "score": 2
+  },
+  "bfa84fc01b03d8fb23f48e13": {
+   "reason": "Câu chung chung, không nhớ chuyện một mình lo con.",
+   "score": 2
+  },
+  "bfac260ab62ed346e3ef6450": {
+   "reason": "Ngày đuối lại phải nhắn từ chối, không chạm chuyện con hay tiền nuôi con.",
+   "score": 2
+  },
+  "bfb32297e1f5225bff57a6d3": {
+   "reason": "Chuyện đoán ý tin nhắn khá gần đời sinh viên và nói ngắn gọn, hợp mood chill, nhưng không chạm tới chuyện tiền đang lo.",
+   "score": 3
+  },
+  "bfbe1780d0a9e29946756b2a": {
+   "reason": "Chuyện từ chối nhận việc xa chuyện sức khỏe, gia đình bà quan tâm.",
+   "score": 2
+  },
+  "bfdabaa1953413c922fb7dcf": {
+   "reason": "Chuyện giữ cách cũ chung chung, không dính ca đêm của bạn.",
+   "score": 2
+  },
+  "c0276077394a01f5ee385c9a": {
+   "reason": "Mùa thi mà nói chuyện nhận giúp người khác, chung và tự nhận chưa đủ dữ kiện.",
+   "score": 2
+  },
+  "c063fd4d902353d57644cc4e": {
+   "reason": "Chuyện sửa nháp chưa gửi chỉ chạm nhẹ tới báo cáo, nội dung chung.",
+   "score": 2
+  },
+  "c067de13fd01790f2de55234": {
+   "reason": "Chuyện bản nháp xin góp ý không dính tới người trực sự cố, sửa đường dây.",
+   "score": 1
+  },
+  "c0d06f1a93d69a3d682f8e70": {
+   "reason": "Chuyện chuyển việc khi dọn dẹp chung chung, không nhắc ca làm mệt.",
+   "score": 2
+  },
+  "c0fcb686ec38bc6a8c6b2309": {
+   "reason": "Đang đuối mà được bảo nhắn lại với người khác, không nhận ra mình làm ca đêm.",
+   "score": 2
+  },
+  "c168c3b6aeee1b9d61b71300": {
+   "reason": "Chuyện bản nháp xin góp ý xa với người bán hàng online đang lo đơn.",
+   "score": 1
+  },
+  "c18139378deb67ed5da3f920": {
+   "reason": "Chuyện nhận lời giúp chung chung, không thấy nỗi lo con ốm hay chỉ tiêu.",
+   "score": 2
+  },
+  "c19571afa5735a19ee0cc373": {
+   "reason": "Chuyện sửa mãi trước khi gửi hợp với giáo án và hội giảng, phần còn lại chung.",
+   "score": 3
+  },
+  "c1cb0a7568f19208e2173d7a": {
+   "reason": "Chuyện tin nhắn khó hiểu chung chung, không nhắc gì tới việc anh vừa bị quát.",
+   "score": 2
+  },
+  "c24027b7399c6aefffe842c4": {
+   "reason": "Hỏi cụ thể về bản nháp có ích cho bài tiểu luận, nhưng chưa chạm áp lực trong đội.",
+   "score": 3
+  },
+  "c2c8f1aae877e9f975c2e9a3": {
+   "reason": "Ngày Đuối mà bảo nói đề nghị với người khác, không biết họ đang làm ca.",
+   "score": 2
+  },
+  "c2c9bfa31d278bd344fe795f": {
+   "reason": "Đang rối mà bị giao hỏi góp ý bản nháp, không dính chuyện giấu nghỉ học.",
+   "score": 1
+  },
+  "c31c64a49aee6b73e850885d": {
+   "reason": "Lời khuyên nhờ giúp chung chung, không chạm nỗi lo giá xoài rớt và tiền cọc.",
+   "score": 2
+  },
+  "c3294c5925106eb6c966e61e": {
+   "reason": "Việc nhỏ nhẹ, nhưng chuyện tin nhắn khó nghe vẫn chung chung.",
+   "score": 2
+  },
+  "c33529ec9a5685a3944609bc": {
+   "reason": "Chuyện góp ý bản nháp chung chung, không chạm nỗi sợ dịch sai hay chuyện cô đơn ở chỗ mới.",
+   "score": 2
+  },
+  "c34bdff38a6c491f57f6d592": {
+   "reason": "Câu Lá chưa đủ dữ kiện và lời chung về lịch, không hiểu mình đang gánh việc nhà.",
+   "score": 2
+  },
+  "c36191eb4f293721d15ea395": {
+   "reason": "Vừa tan ca đuối mà bảo nói chuyện thời gian với người nhờ, chung chung.",
+   "score": 2
+  },
+  "c3b46a6ba11d30984aa5313e": {
+   "reason": "Chuyện nhận lời giúp chung chung, không chạm hạn chứng từ hay con ốm.",
+   "score": 2
+  },
+  "c3c764f444410c36e09b90ac": {
+   "reason": "Chuyện gửi bản nháp không chạm tới cảnh kẹt tiền hay ca thực tập của Linh.",
+   "score": 2
+  },
+  "c40af8fcffe25668afa19481": {
+   "reason": "Chuyện xếp lịch khi được nhờ hơi gần việc dạy kèm nhưng vẫn chung chung, bỏ qua chuyện tiền.",
+   "score": 2
+  },
+  "c418122ca7388bf3f2a3d1d8": {
+   "reason": "Chuyện hỏi góp ý bản nháp không dính chuyện chờ hồ sơ.",
+   "score": 2
+  },
+  "c4a406016d169acf483347aa": {
+   "reason": "Chuyện mở lịch nhận việc xa đời bà về hưu sống một mình.",
+   "score": 1
+  },
+  "c4cb90f8140a3891394b97be": {
+   "reason": "Đang ôn thi mà nội dung lại về nhận lời giúp và xem lịch, không liên quan chuyện học.",
+   "score": 2
+  },
+  "c4e361c95d1bb333fcc5de3f": {
+   "reason": "Có chạm tới chuyện ít thời gian và dễ mệt, nhưng cảnh giúp người khác vẫn khá chung.",
+   "score": 3
+  },
+  "c4f62471ee82ed533c7968a9": {
+   "reason": "Chuyện nhờ giúp chung chung, không chạm chuyện giấu nhà về người yêu.",
+   "score": 2
+  },
+  "c4fd6940de33e45be27b0df4": {
+   "reason": "Mình chọn đuối mà app bảo mình nhiều năng lượng, còn bắt đi nhờ người khác.",
+   "score": 1
+  },
+  "c509461afda3bf2bea963570": {
+   "reason": "Chạm chuyện lịch kín vì vừa học vừa làm, nhưng câu chưa đủ dữ kiện và việc phải nói với người khác.",
+   "score": 3
+  },
+  "c52c1b43a8b6d0672507a5a6": {
+   "reason": "Chuyện gật theo nhóm khá chung, không chạm doanh số hay con ốm.",
+   "score": 2
+  },
+  "c535172d17c5e03ac787863e": {
+   "reason": "Chuyện đổi cách làm chung chung, không để ý ca đêm.",
+   "score": 2
+  },
+  "c5b26c0b2cb414628f111575": {
+   "reason": "Chuyện trả lời tin nhắn khó chịu không phải nỗi lo tiền và nhớ nhà của Thảo.",
+   "score": 2
+  },
+  "c5b2ef52f0b91af2dd59d6f8": {
+   "reason": "Chuyện góp ý bản nháp không hợp với việc lắp ráp ở nhà máy.",
+   "score": 2
+  },
+  "c62d2c18795737fd8a336bcf": {
+   "reason": "Chuyện góp ý bản nháp khá xa chuyện chốt sổ và con nhỏ.",
+   "score": 2
+  },
+  "c65a1a1b203672f079aeb75c": {
+   "reason": "Chuyện xếp lịch giúp người khác xa với đời bà, nghe chung chung.",
+   "score": 2
+  },
+  "c70619688dd9403ecefffd9b": {
+   "reason": "Chung chung, không chạm nỗi nhớ nhà buổi tối.",
+   "score": 2
+  },
+  "c7155dd4634e3ab2647b0401": {
+   "reason": "Không nhắc gì tới livestream hay bán hàng, chỉ chung chung.",
+   "score": 2
+  },
+  "c75ad9d05437ad3ea15aa76b": {
+   "reason": "Chuyện lịch kín có dính chút tuần bận, nhưng chung chung và không nói chuyện một mình lo nhà.",
+   "score": 2
+  },
+  "c76423be0a1a8f83c51fd761": {
+   "reason": "Chuyện tin nhắn chung chung, lại giao việc cho người không muốn làm gì.",
+   "score": 2
+  },
+  "c76ad8cbafed84e642158c57": {
+   "reason": "Chuyện mở lịch, nhận lời không hợp ông lớn tuổi muốn câu dễ, không bắt làm gì.",
+   "score": 1
+  },
+  "c7cb8f9185b983e0ed2d4195": {
+   "reason": "Chuyện tin nhắn chung chung, quên mất người này đang lo thi.",
+   "score": 2
+  },
+  "c7dade956a049b6e75cc2c82": {
+   "reason": "Chuyện nói được cho xong chỉ hơi gần cảnh ngại nhà dì, không nhận ra mình đang nhớ nhà.",
+   "score": 2
+  },
+  "c80ce949268560136ac62adc": {
+   "reason": "Chuyện nhận lời giúp chung chung, không chạm chuyện hết tiền mà lại giao việc.",
+   "score": 2
+  },
+  "c81d582bde1a841bbe2c3f67": {
+   "reason": "Chuyện xếp lịch nhận việc xa đời đi biển, lại thêm việc phải làm.",
+   "score": 1
+  },
+  "c86497ec54bf5020fac83822": {
+   "reason": "Chuyện xếp lịch giúp người không chạm nỗi nhớ nhà, khá chung.",
+   "score": 2
+  },
+  "c8963c5d86e720ba6e25432b": {
+   "reason": "Đang đuối mà được bảo đi nhờ người khác, trong khi ở đây mình chưa quen ai.",
+   "score": 2
+  },
+  "c918489510f680642684bfda": {
+   "reason": "Chuyện từ chối và câu sao không gần đời người lớn tuổi trồng mai.",
+   "score": 2
+  },
+  "c93c8574b10237b0a0bc94dc": {
+   "reason": "Chuyện nhận lời giúp người khác ai đọc cũng được, không chạm tới áp lực thật của họ.",
+   "score": 2
+  },
+  "c9417d75897ecd6a409b0dca": {
+   "reason": "Nội dung chung chung, không chạm tới chuyện riêng của họ.",
+   "score": 2
+  },
+  "c949766f5baa33b2a1475623": {
+   "reason": "Tự nói chưa đủ dữ kiện, chung chung đúng kiểu anh sẽ bỏ app.",
+   "score": 2
+  },
+  "c956f584d69655ec4323011f": {
+   "reason": "Chuyện nhận thêm việc chung chung, không biết Phúc làm ca khuya.",
+   "score": 2
+  },
+  "c96f1cfdba3714e7d61324f1": {
+   "reason": "Ngày đuối bị giao việc kiểu bài tập về bản nháp, không dính chuyện nghe khách cáu.",
+   "score": 1
+  },
+  "c977734041eb357fb852a382": {
+   "reason": "Chuyện nhận giúp chung chung, không vui nhẹ như mong.",
+   "score": 2
+  },
+  "ca17d43db02f199c166416e0": {
+   "reason": "Câu báo chưa đủ dữ kiện, không nhắc mùa thi và vẫn giao việc.",
+   "score": 2
+  },
+  "ca3362e79dd0294801555735": {
+   "reason": "Chuyện lịch hẹn bị đổi giờ khá xa nhịp sống của bạn ấy và câu cảnh viết lủng củng, chỉ có lời phản hồi mood căng là hợp.",
+   "score": 2
+  },
+  "ca6fe1b562984333034e0c3c": {
+   "reason": "Cảnh nhận giúp chung chung, không hợp đời chạy giao hàng và con nhỏ.",
+   "score": 2
+  },
+  "ca9aac412f7ee6c26f53b306": {
+   "reason": "Chuyện nói rõ cần giúp gì hợp với người mẹ bận rộn, nhưng không nhắc tới nhịp livestream.",
+   "score": 3
+  },
+  "caaadb35cef188d064194984": {
+   "reason": "Đang đuối, ghét bị giao việc mà lại bắt đi hỏi góp ý bản nháp không dính gì tới mình.",
+   "score": 1
+  },
+  "cac35fd54479a1d9c4003f37": {
+   "reason": "Tự nói chưa đủ dữ kiện, chuyện nhận lời giúp không dính chuyện bị so với anh.",
+   "score": 2
+  },
+  "caf1b0a7764d8d69280d5fbb": {
+   "reason": "Chuyện khó từ chối và câu sao không gắn với học hay ca xưởng của họ.",
+   "score": 2
+  },
+  "caf987fc696bbbb18b539802": {
+   "reason": "Ngày đuối mà bảo đi nói với người nhờ việc, không nhắc mùa thi.",
+   "score": 2
+  },
+  "cb258bdf555488603d827fa4": {
+   "reason": "Chuyện tin nhắn chung chung, không dính ca làm.",
+   "score": 2
+  },
+  "cb99f74f2a3aac424001c1c7": {
+   "reason": "Chuyện giữ cách cũ chung chung, không nói rõ hôm nay nên làm gì.",
+   "score": 2
+  },
+  "cbdb6094d5b89b3ae2fb3f72": {
+   "reason": "Chuyện gửi bản nháp hỏi góp ý không dính gì tới đời một ông về hưu.",
+   "score": 1
+  },
+  "cbe6305f85deab58081f55c4": {
+   "reason": "Cảnh làm nhóm có chạm tới chuyện bài nhóm, nhưng vẫn là một việc phải làm mà họ không thích.",
+   "score": 3
+  },
+  "cbf77111dcac160e3eed7b51": {
+   "reason": "Chuyện xin góp ý bản nháp không dính tới mùa thi thực hành đang đè lên.",
+   "score": 2
+  },
+  "cc4a8dd6ac7189de5c7183b8": {
+   "reason": "Chạm phần lịch kín vì báo cáo dồn, nhưng không nói tới việc chia báo cáo.",
+   "score": 3
+  },
+  "cc78276d814e7cdb07041e9e": {
+   "reason": "Chuyện nói ra điều mình cần chạm nhẹ tới tính ngại mở lời, phần còn lại chung chung.",
+   "score": 3
+  },
+  "cc78fa10346f9d886f9316c3": {
+   "reason": "Đang căng mà nhận lời khuyên về giúp người khác, không chạm chuyện ngành học hay tiền.",
+   "score": 2
+  },
+  "ccb891538450968682ddc812": {
+   "reason": "Chuyện đọc nửa tin nhắn khi đang bực khá chung và hơi lệch với tâm trạng thư thả.",
+   "score": 2
+  },
+  "cd27d3aea7490e6732ece0b8": {
+   "reason": "Không đụng tới chuyện tiền eo hẹp hay nhuận bút, nghe như ai cũng nhận được.",
+   "score": 2
+  },
+  "cd482605496d601b9b7ea79b": {
+   "reason": "Chuyện nhận việc rồi nhắn tin chia phần xa lạ với ông, lời lẽ kiểu người trẻ.",
+   "score": 1
+  },
+  "cd4f4ecc4ee92a50d944ccc5": {
+   "reason": "Chuyện xin góp ý bản nháp không dính gì tới tiệm tóc hay chuyện riêng của mình.",
+   "score": 1
+  },
+  "cd66f7edce9c81028d943544": {
+   "reason": "Có hợp chuyện hội cựu giáo chức nhờ làm sổ sách, nhưng câu trong công việc hoặc chuyện học không hợp người đã nghỉ hưu.",
+   "score": 3
+  },
+  "cd6e75dcc673ac36ddeb64ce": {
+   "reason": "Đang lạc trôi nhớ nhà mà nói chuyện nhờ người giúp, lại giao việc.",
+   "score": 2
+  },
+  "cd82842ae943bd88a873ab05": {
+   "reason": "Chuyện tin nhắn chưa rõ chung chung, không chạm portfolio hay chuyện so sánh.",
+   "score": 2
+  },
+  "cdddfbfad3410b132332b8ba": {
+   "reason": "Tự nói chưa đủ dữ kiện, không ghi nhận cảm xúc căng với trưởng phòng.",
+   "score": 2
+  },
+  "ce2d5b87ee51ff37e4c6d79a": {
+   "reason": "Nội dung chung chung, không chạm tới chuyện riêng của họ.",
+   "score": 2
+  },
+  "cec81735564e26d72f27b777": {
+   "reason": "Chuyện nhận giúp người khác lệch với mùa thi tiểu luận, còn tự nhận chưa đủ dữ kiện.",
+   "score": 2
+  },
+  "ced2ddb5a4db1f18ab13a98a": {
+   "reason": "Nội dung chung chung, không chạm tới chuyện riêng của họ.",
+   "score": 2
+  },
+  "ced53a7b476b2dcfec885881": {
+   "reason": "Chuyện gửi bản nháp không chạm chuyện so mình với bạn trên mạng.",
+   "score": 2
+  },
+  "cf35c334f9632d8ed34d38e0": {
+   "reason": "Chuyện chọn lúc mệt không hợp mood chill, không chạm áp lực ngày phát hành.",
+   "score": 2
+  },
+  "cf7fa04fde2320475bf697f5": {
+   "reason": "Thú nhận chưa đủ dữ kiện rồi khuyên chung, Phong lại không muốn bị giao việc.",
+   "score": 2
+  },
+  "cfa91f7c680f6ad14c8abd3a": {
+   "reason": "Chuyện nói được cho xong chạm nhẹ áp lực công việc nhưng vẫn chung.",
+   "score": 2
+  },
+  "cfbb57bb8d6c610809524089": {
+   "reason": "Chuyện giúp quá sức không chạm nỗi lo tiền hàng cuối tháng.",
+   "score": 2
+  },
+  "cfec91565be8b1c16fca3433": {
+   "reason": "Chuyện nhận giúp quá sức chung chung, không chạm chuyện tìm việc.",
+   "score": 2
+  },
+  "d02b3e0b718eb93b365eebd4": {
+   "reason": "Ngày đuối mà việc nhỏ là nói đề nghị với người khác, nội dung chung.",
+   "score": 2
+  },
+  "d04097c3d945d0212d64c7d3": {
+   "reason": "Chuyện gửi bản nháp ai cũng đọc được, không dính tới áp lực doanh số.",
+   "score": 2
+  },
+  "d05d445cd2eca23ea3ba5222": {
+   "reason": "Hôm đuối lại bảo đi nói chuyện giúp thêm, không chạm chuyện đơn hay tiền.",
+   "score": 2
+  },
+  "d0f965a7cc0ed6d955b0792b": {
+   "reason": "Chuyện khó từ chối chung, câu sao không hợp người muốn lời có lý.",
+   "score": 2
+  },
+  "d0fe90e56419ffdc30da85ab": {
+   "reason": "Ngày đuối mà bảo nói chuyện thời gian với người nhờ, không dính chuyện bán hàng.",
+   "score": 2
+  },
+  "d11a3eb4765f5a043784245b": {
+   "reason": "Chuyện nhận việc khi lịch kín không dính tới nỗi lo đổi nghề hay buổi demo của họ.",
+   "score": 2
+  },
+  "d11c9adc4ad926ea19431f40": {
+   "reason": "Cảnh bực vì một câu trong tin nhắn hơi giống những lần bố gọi trách, phần còn lại chung.",
+   "score": 3
+  },
+  "d1a7b543928c57d1f9d492fb": {
+   "reason": "Chuyện tin nhắn mơ hồ không dính livestream hay khách bom hàng.",
+   "score": 2
+  },
+  "d2619a9a468c2635319a9989": {
+   "reason": "Chuyện tin nhắn chung chung, không dính ca trực hay nhớ con.",
+   "score": 2
+  },
+  "d27beeb2b80fbafa744378c3": {
+   "reason": "Chuyện mệt mà khó chọn hơi chạm lúc đang lạc sau chia tay, nhưng vẫn khá chung.",
+   "score": 3
+  },
+  "d28165ca731dd5ba848fafec": {
+   "reason": "Chuyện góp ý bản nháp gần với việc khách sửa video, nhưng vẫn giao thêm việc họ không muốn.",
+   "score": 3
+  },
+  "d2a0856ea1db767a3b463ce7": {
+   "reason": "Chuyện giữ bản nháp chưa gửi gần với việc viết content và khóa luận, nhưng thiếu phần chiêm tinh họ muốn.",
+   "score": 3
+  },
+  "d2b7623e379f730e44821208": {
+   "reason": "Lúc đuối lại bảo đi hỏi góp ý bản nháp, không dính chuyện ca tối hay bài đọc.",
+   "score": 2
+  },
+  "d2f43dab7c9f7e4d2c74f0fc": {
+   "reason": "Chuyện hỏi góp ý cụ thể hợp nghề thiết kế, nhưng ngày đuối vẫn phải làm việc với người khác.",
+   "score": 3
+  },
+  "d314d0f372480081e6bbd0d9": {
+   "reason": "Chuyện khó từ chối hợp tính hiền ít than, nhưng không chạm ca làm hay tổ trưởng.",
+   "score": 3
+  },
+  "d32345cc0f2e4f5609fe7689": {
+   "reason": "Chuyện bản nháp không dính chuyện chọn đường, việc nặng ngày đuối.",
+   "score": 2
+  },
+  "d35096ed451de1cd2739ae56": {
+   "reason": "Chuyện tin nhắn chung chung, không biết Lam vừa chia tay.",
+   "score": 2
+  },
+  "d3bd0c8bba7a9f3a355e1c1c": {
+   "reason": "Chuyện tin nhắn làm như cũ gần việc kho, nhưng câu sao chiếu là điều anh không thích.",
+   "score": 2
+  },
+  "d3c01371701014a88c143d73": {
+   "reason": "Ngày Đuối mà việc nhỏ bắt nói chuyện với người khác, lại tự nhận chưa đủ dữ kiện nên rất chung.",
+   "score": 2
+  },
+  "d3c9a65acb09c69324c27e34": {
+   "reason": "Chuyện nhóm chốt ý chung chung, không chạm ca quán hay bài lập trình.",
+   "score": 2
+  },
+  "d3e8c5465876a783d48bfc6e": {
+   "reason": "Chuyện gửi bản nháp xa lạ với việc làm cá ca đêm và mục tiêu học nail.",
+   "score": 1
+  },
+  "d458aacc1a4fbec55773ebcd": {
+   "reason": "Ý ngại nói ra hơi giống mình, nhưng đang đuối mà bị giao việc đi nhờ người khác.",
+   "score": 2
+  },
+  "d48e19cb17aa4bf922eb1fbe": {
+   "reason": "Chuyện tin nhắn chưa hiểu yêu cầu không hợp đời làm vườn, lại giao việc.",
+   "score": 2
+  },
+  "d4b5fdab726846c81de4587e": {
+   "reason": "Chuyện bản nháp không nhắc mùa thi thực hành, khá chung.",
+   "score": 2
+  },
+  "d4f3e46aa05effcc3e8f1617": {
+   "reason": "Chuyện theo ý nhóm không dính chuyện tiền hay chuyện nhà đang căng.",
+   "score": 2
+  },
+  "d50331dba4ea3451220cebcd": {
+   "reason": "Chuyện dời giờ hẹn hơi gần cảnh đổi ca, nhưng không biết chị làm ca gì.",
+   "score": 2
+  },
+  "d54c1bc31542aabff1c8871f": {
+   "reason": "Hôm đuối lại bảo gửi bản nháp, chuyện không dính tới việc bảo trì máy.",
+   "score": 1
+  },
+  "d5936b3082f69497c7f1d965": {
+   "reason": "Đúng chuyện hay bị chị đồng nghiệp đẩy việc sang, việc nhỏ làm được ngay.",
+   "score": 4
+  },
+  "d59424c5683b377dc69ba67f": {
+   "reason": "Chuyện giữ cách cũ chung chung, không chạm chuyện gia đình hay bị gọi sai.",
+   "score": 2
+  },
+  "d5998f32b9843a323b68ba69": {
+   "reason": "Ngày đuối vẫn giao nói chuyện giới hạn với người khác, nội dung chung.",
+   "score": 2
+  },
+  "d5c9e58e2ee4ff0022fbea4f": {
+   "reason": "Chuyện nói được dù chưa đồng ý rất đúng với Khoa, nhưng ngày đuối lại bảo đi nhắn tin.",
+   "score": 3
+  },
+  "d6728544f6fcf7a0c282a9fd": {
+   "reason": "Ngày đuối, tự nói chưa đủ dữ kiện, chuyện nhận lời giúp không dính chuyện tìm việc.",
+   "score": 2
+  },
+  "d67811330ce9a05bd1f57c70": {
+   "reason": "Đoán ý tin nhắn chung chung, không nói chuyện tìm việc.",
+   "score": 2
+  },
+  "d69a61ee5730c97fb6482b5d": {
+   "reason": "Chuyện nói lại ý trong tin đã gửi gần với việc trả lời khách hằng ngày.",
+   "score": 3
+  },
+  "d6b0bc3e82df01d2362b0efa": {
+   "reason": "Tự nói chưa đủ dữ kiện, chuyện nhận lời giúp không dính chuyện bị hỏi điểm.",
+   "score": 2
+  },
+  "d74581c4e28e5993efaad256": {
+   "reason": "Nội dung chung chung, không chạm tới chuyện riêng của họ.",
+   "score": 2
+  },
+  "d7c520060965e1cee04c4d4a": {
+   "reason": "Chuyện nhận lời cho xong khá chung, không nhắc đồ án hay ngày làm ở tiệm.",
+   "score": 2
+  },
+  "d7c52c540c365719755c9a23": {
+   "reason": "Lời khuyên chung về nhận việc, lại có ý bảo đi làm, giọng không hợp người muốn đọc nhanh.",
+   "score": 2
+  },
+  "d7c9a654316b57e096367c51": {
+   "reason": "Lời khuyên nhờ giúp chung chung, không chạm chuyện nhớ nhà hay thực tập.",
+   "score": 2
+  },
+  "d7e5ab75df2aef1d7bc3a4eb": {
+   "reason": "Lời chung về nhận việc khó từ chối, không chạm nỗi lo cuối tuần hay con nhỏ.",
+   "score": 2
+  },
+  "d8016ac0f321cca75e5e2234": {
+   "reason": "Chuyện tin nhắn chung chung, lại giao việc hỏi lại người khác vào ngày đuối.",
+   "score": 2
+  },
+  "d80bf9879977de323194f8e3": {
+   "reason": "Chuyện sửa bản nháp chung chung, không để ý nỗi nhớ nhà.",
+   "score": 2
+  },
+  "d824d88b6d8497b03c888dee": {
+   "reason": "Lá tự nhận chưa đủ dữ kiện, chuyện nhận lời giúp không nói gì tới mùa thi.",
+   "score": 2
+  },
+  "d86380402183860df9de6ecf": {
+   "reason": "Lời khuyên nhận việc chung chung, không nói gì tới ca đêm hay buồn ngủ.",
+   "score": 2
+  },
+  "d882e798022b90ae0da8108a": {
+   "reason": "Chuyện lỡ nhắn gắt không gần với Thu, không nói chuyện nhớ nhà.",
+   "score": 2
+  },
+  "d8a29682033adab93fc52e0a": {
+   "reason": "Chuyện nhắn từ chối việc xa với đời bán chè ở chợ, giọng không thân như người nhà.",
+   "score": 2
+  },
+  "d8b23fe8eb82f7df8b12f237": {
+   "reason": "Chuyện đổi việc liên tục chung chung, không nhắc tới đồ án bị trả về.",
+   "score": 2
+  },
+  "d99b48532c05d9d4f8e7a363": {
+   "reason": "Chuyện nhận thêm việc chung chung, không dính tới tiền hay việc học của Hân.",
+   "score": 2
+  },
+  "d9bdbc9e4457bbc9e38881f7": {
+   "reason": "Chuyện nhận lời giúp người khác ai đọc cũng được, không chạm tới áp lực thật của họ.",
+   "score": 2
+  },
+  "da4bd60a93cdd18903e74e39": {
+   "reason": "Chuyện nhận thêm việc hơi gần tăng ca nhưng vẫn chung chung.",
+   "score": 2
+  },
+  "da7a5fd677b51bdfcc984d2f": {
+   "reason": "Chuyện bản nháp xin góp ý không dính gì tới việc buôn bán và công nợ.",
+   "score": 1
+  },
+  "da8865018dde0c4597f016dd": {
+   "reason": "Đang căng mà nội dung là chuyện nhận việc, không đụng chuyện ôn thi lại hay học nghề.",
+   "score": 2
+  },
+  "daa6732e09520508893b7d55": {
+   "reason": "Chuyện nhận lời giúp chung chung, câu cảnh còn vụng, không dính chuyện con hay hồ sơ.",
+   "score": 2
+  },
+  "db0192e79858512fe019e27c": {
+   "reason": "Chuyện xem lịch nhận việc không dính gì tới đời ông.",
+   "score": 1
+  },
+  "db0735bf38d1a448a90c6dec": {
+   "reason": "Hôm đuối lại bảo đi hỏi góp ý, không chạm quãng chờ phỏng vấn.",
+   "score": 2
+  },
+  "db1c95bc15d7ba7c0655d5af": {
+   "reason": "Đang lo thi thực hành mà nói chuyện tin nhắn, chung chung.",
+   "score": 2
+  },
+  "db2db1bcd7c96afbb0b8110c": {
+   "reason": "Ngày Đuối vẫn bảo gửi bản nháp cho người xem, không nhận ra ngày ca mệt.",
+   "score": 2
+  },
+  "db3070f9dc03bfb61c6746cb": {
+   "reason": "Câu chuyện học hay công việc chung, không hợp người mở tiệm và nỗi lo của họ.",
+   "score": 2
+  },
+  "db801971923a1e640afa7c65": {
+   "reason": "Câu 'chưa đủ dữ kiện' và chuyện xem lịch chung chung.",
+   "score": 2
+  },
+  "dbbb91d09a6b0bbb1d0ea910": {
+   "reason": "Ngày đuối mà bảo nhắn từ chối người khác, khá xa chuyện bán bún, trông cháu.",
+   "score": 2
+  },
+  "dbf3a5ba19c289faae281150": {
+   "reason": "Chuyện sửa mãi chưa gửi có thể dính đồ án, nhưng vẫn là thêm việc.",
+   "score": 3
+  },
+  "dc0d1b405315c19b63f2bbac": {
+   "reason": "Chuyện gật theo nhóm khá chung, không chạm chuyện thiếu tiền hay laptop hỏng.",
+   "score": 2
+  },
+  "dc66e4cd599170cd25751d2e": {
+   "reason": "Ngày đuối lại nói chuyện xin góp ý bản nháp, không dính đời họ.",
+   "score": 1
+  },
+  "dc901e638bd92188d3759403": {
+   "reason": "Nội dung chung chung, không chạm tới chuyện riêng của họ.",
+   "score": 2
+  },
+  "dd108730d964d0d69287c2ed": {
+   "reason": "Lúc đuối sau ca quán lại bảo nói thời gian với người nhờ, chung chung.",
+   "score": 2
+  },
+  "dd43a854edda58a35f754668": {
+   "reason": "Ngày đuối mà bảo đi nhờ người khác bằng lời, không gợi nghỉ như chị cần.",
+   "score": 2
+  },
+  "ddb0f2710ee979fbf01f3ea1": {
+   "reason": "Nội dung chung chung, không chạm tới chuyện riêng của họ.",
+   "score": 2
+  },
+  "ddd47de66497a854a0d029b3": {
+   "reason": "Chuyện từ chối chung chung, không chạm chuyện đưa đón con.",
+   "score": 2
+  },
+  "ddd4dccf2524f5f8287e5de2": {
+   "reason": "Chuyện góp ý bản nháp không dính mùa thi hay ca tối của mình.",
+   "score": 2
+  },
+  "ddeb66816ec7e3986e6361ff": {
+   "reason": "Nói trúng chuyện hay giữ trong lòng, nhưng vẫn giao việc đi nhờ người khi đang căng.",
+   "score": 3
+  },
+  "de07fa0619665b7b2aed8b8f": {
+   "reason": "Chuyện giữ cách cũ vì tiếc công hơi hợp cách ôn bài, nhưng không nhắc kỳ thi.",
+   "score": 3
+  },
+  "de287a6b6254499129e81b8b": {
+   "reason": "Câu chung chung, không biết họ đang mùa thi, giao việc ngày đuối.",
+   "score": 2
+  },
+  "de7f3cc14197f01d1554b07a": {
+   "reason": "Chuyện sửa bản nháp khá chung, lại kèm câu sao chiếu mà mình không tin, và vẫn giục gửi việc.",
+   "score": 2
+  },
+  "deba189d84b62410d6ac91bf": {
+   "reason": "Việc nhỏ nhẹ nhưng nội dung chung chung, không biết Mạnh đang đổi ca.",
+   "score": 2
+  },
+  "dec32fd67f81551ab28ef2b8": {
+   "reason": "Chuyện giữ cách cũ chung chung, không chạm tiền học con hay đau vai.",
+   "score": 2
+  },
+  "dee4e70633425cfde4c44192": {
+   "reason": "Nội dung chung chung, không chạm tới chuyện riêng của họ.",
+   "score": 2
+  },
+  "df30604f207458ab463184f7": {
+   "reason": "Họ ở một mình, ít ai để nhờ; việc nhỏ lại bắt nói đề nghị với người khác.",
+   "score": 2
+  },
+  "df53671fd75850b30af0a7d6": {
+   "reason": "Ngày đuối mà bảo nói đề nghị với người khác, không dính ca đêm.",
+   "score": 2
+  },
+  "df878e14c60cd3ace6da1443": {
+   "reason": "Lặp lại chủ đề nhận việc, chung và tự nhận chưa đủ dữ kiện.",
+   "score": 2
+  },
+  "dfb18900ad2be8702b79620a": {
+   "reason": "Chuyện góp ý bản nháp xa với công việc kiểm hàng của cô.",
+   "score": 2
+  },
+  "dfc846c1c4410f16dd815618": {
+   "reason": "Chuyện góp ý bản nháp không chạm tới nỗi nhớ nhà và những cuối tuần ở lại ký túc.",
+   "score": 2
+  },
+  "dfdcc24eb363fb044a10d480": {
+   "reason": "Tuần bận chứng từ và đưa đón con thì chuyện xem lịch trước khi nhận việc có phần đúng.",
+   "score": 3
+  },
+  "dff452f8021a1ecc1e328149": {
+   "reason": "Chuyện hỏi góp ý bản nháp không chạm chuyện bị trưởng phòng mắng hôm nay.",
+   "score": 2
+  },
+  "dffcf94becaea6d3d93efb96": {
+   "reason": "Nội dung chung chung, không chạm tới chuyện riêng của họ.",
+   "score": 2
+  },
+  "e014b8408bfd5d5c16231075": {
+   "reason": "Chuyện chọn lựa khi mệt chung chung, không nhắc mùa thi.",
+   "score": 2
+  },
+  "e04b738342eff3bf6ffcaa4d": {
+   "reason": "Chuyện lịch kín vì nhận lời không chạm cái mệt hay phân vân của bạn.",
+   "score": 2
+  },
+  "e0633e537086aae1ec036653": {
+   "reason": "Chuyện đổi cách làm chung chung, lại bắt ghi chép so sánh.",
+   "score": 2
+  },
+  "e07e2ba9b3b35a763d125ca5": {
+   "reason": "Đúng cái tật mở nhiều việc rồi bỏ dở, việc mười phút làm được ngay.",
+   "score": 4
+  },
+  "e07ff71aaa75eb1b39c3838c": {
+   "reason": "Chuyện sửa mãi trước khi gửi gần với công việc thiết kế, việc nhỏ nhẹ.",
+   "score": 3
+  },
+  "e086c845a61de75b2e954b83": {
+   "reason": "Hôm đuối mùa thi lại bảo đi nói chuyện thời gian giúp người.",
+   "score": 2
+  },
+  "e089dfe3e484832079407201": {
+   "reason": "Chuyện bản nháp không hợp người làm ca dọn phòng.",
+   "score": 2
+  },
+  "e0a3eb3825e2a7eaa3ccdcdc": {
+   "reason": "Chuyện góp ý bản nháp không dính gì tới đời ông bán ở chợ.",
+   "score": 1
+  },
+  "e0abd89c36c9017c8bcc1689": {
+   "reason": "Chuyện đổi giờ hẹn không dính tới kiểm kho hay quản lý nhân viên.",
+   "score": 2
+  },
+  "e0d01c6c06cd54a3045a4e79": {
+   "reason": "Chuyện đọc hết tin nhắn không gắn với ca trực hay chuyện cư dân phàn nàn.",
+   "score": 2
+  },
+  "e116ed3d34c23235de428862": {
+   "reason": "Chuyện chuyển việc khi dọn dẹp chung chung, không nói gì sức khỏe hay gia đình.",
+   "score": 2
+  },
+  "e12109447a4bd82f92c7e6fc": {
+   "reason": "Chuyện xem lịch nhận việc chung chung, không chạm chuyện quản lý nhắc trước khách.",
+   "score": 2
+  },
+  "e1468d643c68dfa802f17e91": {
+   "reason": "Chuyện tin nhắn chưa rõ nghe chung, không chạm nỗi lo bố đang nằm viện.",
+   "score": 2
+  },
+  "e149840d59db82a80a2bed73": {
+   "reason": "Nói chuyện từ chối nhận việc, không nhắc gì tới mùa thi đang đè nặng.",
+   "score": 2
+  },
+  "e14ac1ace71e66f86f60ac1d": {
+   "reason": "Chuyện nhận giúp tới mất giờ nghỉ có chạm cảnh ít thời gian cho mình, nhưng vẫn giao việc.",
+   "score": 3
+  },
+  "e16be781191b8f10c8aef864": {
+   "reason": "Lời chung về giúp quá sức, không nói tới chuyện đi học muộn hay yêu xa.",
+   "score": 2
+  },
+  "e1a7c29ca04eca633e3971cc": {
+   "reason": "Gửi bản nháp hợp với đồ án và việc vẽ thuê, nhưng ngày đuối vẫn phải gửi cho người khác xem.",
+   "score": 3
+  },
+  "e1c07d1ae7198cfbd5524df6": {
+   "reason": "Lời chung về nhận lời khó từ chối, không chạm ngày chốt sổ.",
+   "score": 2
+  },
+  "e1dc172213a299b599901cd2": {
+   "reason": "Chuyện nhận thêm việc và xem lịch không dính gì tới bà, lại nhắc bà làm việc.",
+   "score": 1
+  },
+  "e1ed84137eb1f031fb01683c": {
+   "reason": "Đang căng vì thi mà nhận lời chung về lịch, không có gì chăm mình.",
+   "score": 2
+  },
+  "e1f9700e905f2afe7d7d25a3": {
+   "reason": "Câu Lá chưa đủ dữ kiện, không nhớ ca đêm hay vợ con.",
+   "score": 2
+  },
+  "e20448d46933b4e7c0d5f9a1": {
+   "reason": "Ngày đuối mà bảo đi hỏi nhóm, không nhắc ca làm hay khóa luận.",
+   "score": 2
+  },
+  "e212c0ef058c79048c869ef4": {
+   "reason": "Chuyện đoán ý tin nhắn hợp với tính hay lo bị đánh giá, phần còn lại chung.",
+   "score": 3
+  },
+  "e220d3ab47940b940a07d24e": {
+   "reason": "Chuyện gửi bản nháp chung chung, không nhận ra mình đang chờ kết quả, lại giao việc.",
+   "score": 2
+  },
+  "e255452df3756cc03a6f2caa": {
+   "reason": "Chuyện bản nháp không liên quan gì tới việc bán xe và chỉ tiêu.",
+   "score": 2
+  },
+  "e2c6bb7b46d44ad0542a8282": {
+   "reason": "Chuyện giúp quá sức chung chung, lại giao việc khi họ không muốn.",
+   "score": 2
+  },
+  "e2e5337b3202ef6f4904930b": {
+   "reason": "Chuyện từ chối và câu sao không gần đời làm vườn, nhắn lại khó với họ.",
+   "score": 2
+  },
+  "e369979b5522e1dd674d8b1d": {
+   "reason": "Không chạm chuyện bị quản lý nói nặng hay ý nghỉ việc.",
+   "score": 2
+  },
+  "e3a9ca1f8ceb77d6b5527124": {
+   "reason": "Hợp tật bỏ dở, việc mười phút dễ làm, nhưng câu mở đầu hơi như trách.",
+   "score": 3
+  },
+  "e3fcac77f26d47dd1d2e8e92": {
+   "reason": "Chuyện nhận thêm khi lịch kín gần với việc cân đơn khách và bài trường, nhưng mở đầu bằng câu chưa đủ dữ kiện.",
+   "score": 3
+  },
+  "e461f0379ada744c97a45c82": {
+   "reason": "Lạc trôi mà nhận câu xem lịch chung, không chạm chuyện vụ tôm hay giấu chuyện riêng.",
+   "score": 2
+  },
+  "e4b9b36b3eb22e13386831b6": {
+   "reason": "Chuyện nhận thêm việc chung chung, không nói gì tới ca làm hay giấc ngủ.",
+   "score": 2
+  },
+  "e59f0efd55ee149a037a6ae2": {
+   "reason": "Nội dung chung chung, không chạm tới chuyện riêng của họ.",
+   "score": 2
+  },
+  "e5cf85580f7e58133f6986ff": {
+   "reason": "Mùa bận có liên quan chút nhưng nội dung chung và tự nhận chưa đủ dữ kiện.",
+   "score": 2
+  },
+  "e600e275272af0612c848d82": {
+   "reason": "Ngày đuối mà bảo đi nói với người nhờ, không nhắc mùa thi.",
+   "score": 2
+  },
+  "e653f9a2f6280f4e56679e99": {
+   "reason": "Tự nói chưa đủ dữ kiện, chuyện nhận lời giúp không dính chuyện nhà hay khóa luận.",
+   "score": 2
+  },
+  "e688851ef47b043b8282928b": {
+   "reason": "Đang nhớ nhà mà nói chuyện nhận thêm việc, chung chung.",
+   "score": 2
+  },
+  "e69e235a1f6f1355a50786ef": {
+   "reason": "Chuyện làm dở nhiều việc chung, không chạm tới chuyện so sánh với bạn bè.",
+   "score": 2
+  },
+  "e6a89bdf5c560197b264c8ed": {
+   "reason": "Chuyện dời giờ hẹn có thể gặp khi đi khám, nhưng chung chung và chưa hỏi han sức khỏe.",
+   "score": 2
+  },
+  "e6f5a25efed59bc51c32f466": {
+   "reason": "Chuyện mở lịch rồi nhận lời giúp xa với đời mình, câu chưa đủ dữ kiện nghe lạ, lại giao việc.",
+   "score": 2
+  },
+  "e70e6b90b863a6f593bc076b": {
+   "reason": "Chuyện giúp quá sức chung chung, không chạm chuyện live ế hay hàng hoàn.",
+   "score": 2
+  },
+  "e73f3d60017da823cd2801eb": {
+   "reason": "Chuyện mở lịch nhận lời giúp ai đọc cũng được, không có gì mới với mình.",
+   "score": 2
+  },
+  "e741565c8e1e4279f8a6ca95": {
+   "reason": "Chuyện lịch kín chung chung, không dính ca làm của chị.",
+   "score": 2
+  },
+  "e77f08e75d0714ff021663f8": {
+   "reason": "Chuyện nói ra việc cần giúp hợp lúc dồn sổ sách, phần còn lại chung.",
+   "score": 3
+  },
+  "e7ef7bac90709ee82ae35373": {
+   "reason": "Nội dung chung chung, không chạm tới chuyện riêng của họ.",
+   "score": 2
+  },
+  "e8a7ecd369515efcd9002401": {
+   "reason": "Chuyện khó chọn lúc mệt chung chung, không nhắc sức khỏe hay con sắp thi.",
+   "score": 2
+  },
+  "e8e96c0f69d813afedd85f0f": {
+   "reason": "Cảnh nhóm chốt việc chung chung, không chạm kiểm kho hay chuyện bố ốm.",
+   "score": 2
+  },
+  "e91c4c134d5ce2dab7a8a85b": {
+   "reason": "Hỏi góp ý đúng phần chạm tới bài tốt nghiệp, nhưng vẫn giao việc dù họ không muốn bị bắt làm.",
+   "score": 3
+  },
+  "e929e3b429470d466d25579f": {
+   "reason": "Chuyện bản nháp chung chung, không dính chuyện video hay so sánh.",
+   "score": 2
+  },
+  "e931ecf9f27c91806030bcd1": {
+   "reason": "Lời bớt một việc hợp ngày đuối, nhưng câu dễ muốn thử thêm việc lại không giống mình hôm nay.",
+   "score": 2
+  },
+  "e990d439246a79e3dededc90": {
+   "reason": "Chuyện đọc hết tin nhắn khá chung, không chạm tới nỗi sợ hỏi nhiều.",
+   "score": 2
+  },
+  "e99810e9d68a2651a07bdb2d": {
+   "reason": "Chuyện cách cũ chưa hiệu quả có thể áp vào nhập hàng, lời nói thực tế.",
+   "score": 3
+  },
+  "e9edc10282a067549510420a": {
+   "reason": "Chuyện giúp người quá sức không chạm chuyện so mình trên mạng của Vy.",
+   "score": 2
+  },
+  "ea3bda32e1f201048c30f46b": {
+   "reason": "Chuyện đổi giờ hẹn không dính tới chuyện bố mẹ gọi hỏi han mỗi tối.",
+   "score": 2
+  },
+  "ea42b288bd29cec6d09606ce": {
+   "reason": "Tin nhắn chưa rõ cách làm hợp với công việc mới, nhưng chưa chạm chỉ tiêu.",
+   "score": 3
+  },
+  "ea7cc368a936b62c69b3681d": {
+   "reason": "Câu 'Lá chưa đủ dữ kiện' nghe lạ, nội dung không liên quan tới buôn bán.",
+   "score": 2
+  },
+  "eae7d2255f4dedcfacad0e57": {
+   "reason": "Chuyện nhận lời giúp và xem lịch không dính tới việc buôn bán hay đau vai của chị.",
+   "score": 2
+  },
+  "eb9f5ea263f93b03166780ca": {
+   "reason": "Chuyện nói ra mình cần giúp chạm cảnh chăm chồng một mình, phần còn lại chung.",
+   "score": 3
+  },
+  "ebc6ee4b92cb8655624f35c1": {
+   "reason": "Câu Lá chưa đủ dữ kiện và lời chung về lịch, không dính chuyện mẹ thúc về quê.",
+   "score": 2
+  },
+  "ebfeae30126aa18565b8ca96": {
+   "reason": "Chuyện đọc hết tin nhắn chung, không nhắc chuyện chờ phỏng vấn.",
+   "score": 2
+  },
+  "ec28c41e5789fcc0c3937015": {
+   "reason": "Nội dung chung chung, không chạm tới chuyện riêng của họ.",
+   "score": 2
+  },
+  "ec5157e4cf7e54d630aff3ca": {
+   "reason": "Chuyện nhóm chốt việc xa với đời chú, lại giao việc phải hỏi trong khi chú không muốn.",
+   "score": 1
+  },
+  "ec7a7c6d18b7a6d464669063": {
+   "reason": "Ngày Đuối lại giao việc nhắn tin sắp xếp, trong khi họ không muốn bị giao việc.",
+   "score": 2
+  },
+  "ec7bb3ad353cb5c449a52979": {
+   "reason": "Nội dung chung chung về nhận thêm việc, không nói gì tới chuyện nhà hay con nhỏ.",
+   "score": 2
+  },
+  "ecb45d7981bc89e989bd6751": {
+   "reason": "Chuyện từ chối chung chung, không biết cuối tuần là lúc căng nhất.",
+   "score": 2
+  },
+  "ecf71ac77e3b2c69ef99c041": {
+   "reason": "Mẹo đọc hết tin nhắn chung, không chạm chuyện thi lần đầu hay bố mẹ hỏi điểm.",
+   "score": 2
+  },
+  "ed308a64359c791f260669e1": {
+   "reason": "Ý không giữ cách cũ chỉ vì đã tốn công chạm chuyện thi lại, nhưng cảnh và việc nhỏ còn mơ hồ.",
+   "score": 3
+  },
+  "ed7c36d78670f22ea73716be": {
+   "reason": "Ngày đuối mà bảo đi nói với người nhờ việc, chưa để ý vừa đứng ca mệt.",
+   "score": 2
+  },
+  "ed83513797e337ea1fc3910a": {
+   "reason": "Hỏi đúng phần cần góp ý có ích ở chỗ làm khắt khe, nhưng chưa chạm chuyện bị nhắc trước mọi người.",
+   "score": 3
+  },
+  "edf01d05bb3ff92db4acc0bb": {
+   "reason": "Nội dung chung chung, không chạm tới chuyện riêng của họ.",
+   "score": 2
+  },
+  "ee0031be2d6d76dddb34010c": {
+   "reason": "Đang căng mà vẫn bị giao việc nói thời gian, không đụng ca xoay hay chuyện hai người.",
+   "score": 2
+  },
+  "ee48203f69e7cf1f2977152a": {
+   "reason": "Chủ đề nhận thêm việc rất chung, không nói tới áp lực thật của họ.",
+   "score": 2
+  },
+  "ee6accb1ac6fc59d47c57850": {
+   "reason": "Chuyện bản nháp hợp với đồ án và hồ sơ, nhưng ngày đuối vẫn phải đi hỏi người khác.",
+   "score": 3
+  },
+  "ee6fc083b6a3409ac9d0fd34": {
+   "reason": "Không đụng tới chuyện thiếu tiền hay ca phục vụ, chỉ là lời khuyên xem lịch chung.",
+   "score": 2
+  },
+  "ee7dedf5c68ad93e3d5d8a94": {
+   "reason": "Chuyện nhận lời chung chung, không dính chốt sổ hay con ốm.",
+   "score": 2
+  },
+  "eea7d1481a407ba664a0a651": {
+   "reason": "Cảnh nhóm chốt việc qua chat hơi xa chuyện khách sửa video sát giờ, lại giao thêm việc.",
+   "score": 2
+  },
+  "eee1c86b55c448a3d87fb495": {
+   "reason": "Cảnh giờ hẹn trùng việc khác hợp người phải đón con đúng giờ.",
+   "score": 3
+  },
+  "ef06f417d10a47410e3bbcae": {
+   "reason": "Chuyện hỏi khách góp ý đúng phần hợp với cảnh khách đổi ý sát giờ chốt bài.",
+   "score": 4
+  },
+  "ef5d6c2f69ba0e0c9ff6a15d": {
+   "reason": "Chuyện xếp giờ giúp người chung chung, không nhắc tuần nộp báo cáo.",
+   "score": 2
+  },
+  "ef7207cc3962db08d00c587e": {
+   "reason": "Chuyện nhận thêm việc chưa nói gì tới đơn dồn hay nên đẩy hàng.",
+   "score": 2
+  },
+  "ef9190cc29f05b6a9018a7e9": {
+   "reason": "Chuyện khó từ chối chung chung, không nhắc tới livestream hay con nhỏ.",
+   "score": 2
+  },
+  "efebdfa5bbeabf7eb0f88871": {
+   "reason": "Chuyện tin nhắn chung chung, lại bảo đi hỏi lại người khác.",
+   "score": 2
+  },
+  "efee6ce3775e050c63ea6c97": {
+   "reason": "Cảnh viết đoạn văn mở tài liệu không giống ngày làm vườn và thu mua cà phê.",
+   "score": 2
+  },
+  "f0325dc52857436191a51346": {
+   "reason": "Chuyện góp ý bản nháp chung chung, không chạm nỗi lo học Luật.",
+   "score": 2
+  },
+  "f0bc4600ef1893a118815d24": {
+   "reason": "Nội dung chung chung về tin nhắn, ai đọc cũng được, không chạm chuyện của họ.",
+   "score": 2
+  },
+  "f0f4e499fef1713e4c414cdf": {
+   "reason": "Câu 'chưa đủ dữ kiện' và chuyện nhận việc không chạm nỗi nhớ nhà.",
+   "score": 2
+  },
+  "f0f5ccb7a925617e3d4d14ec": {
+   "reason": "Chuyện gửi bản nháp chung chung, xa với ông giáo về hưu ít dùng điện thoại.",
+   "score": 2
+  },
+  "f0fd3e3827ca270b67db165d": {
+   "reason": "Ngày Đuối mà việc nhỏ bắt nói chuyện với người khác và nội dung rất chung.",
+   "score": 2
+  },
+  "f112588525a459f71e865a07": {
+   "reason": "Câu Lá chưa đủ dữ kiện và chuyện nhận thêm việc không chạm áp lực ba mẹ hỏi điểm.",
+   "score": 2
+  },
+  "f118f07f935c5fc27146e12f": {
+   "reason": "Chuyện gật đầu trong nhóm chung chung, không chạm chỉ tiêu cuộc gọi.",
+   "score": 2
+  },
+  "f1219fd0ada2c2e431de5070": {
+   "reason": "Chuyện tự so với người khác khá chung, không chạm chuyện kế hoạch bị đổi hay bố.",
+   "score": 2
+  },
+  "f15097d0123e2d1ab47f4d68": {
+   "reason": "Chuyện lịch nhận việc không dính đời công nhân ca, dễ thấy bị giao việc.",
+   "score": 2
+  },
+  "f160526ab060e317021fa36b": {
+   "reason": "Chuyện xin góp ý bản nháp không gần với công việc kế toán của họ.",
+   "score": 2
+  },
+  "f1619b79f41a7d5b112fc33d": {
+   "reason": "Nội dung chung chung về tin nhắn, ai đọc cũng được, không chạm chuyện của họ.",
+   "score": 2
+  },
+  "f17876b55aa2eef5dfdd60da": {
+   "reason": "Chuyện nói được dù không muốn nhận chạm cảnh ở với nhà chồng, nhưng vẫn giao việc nhắn tin.",
+   "score": 3
+  },
+  "f1a448127fbb84eea3de3cb2": {
+   "reason": "Chuyện góp ý bản nháp không dính tới cái căng cuối tuần của người bố đi dạy.",
+   "score": 2
+  },
+  "f22237a1999608b6d2567bc9": {
+   "reason": "Chuyện tin nhắn chưa rõ chung chung, không nhắc ca trực.",
+   "score": 2
+  },
+  "f25f3926ba36e57ea2281dc4": {
+   "reason": "Câu báo chưa đủ dữ kiện và chuyện nhận lời giúp không chạm tới cảm giác trống trải cuối tuần.",
+   "score": 2
+  },
+  "f28417eff80e9811b5a60d40": {
+   "reason": "Sinh nhật không được nhắc, chuyện nhờ giúp chưa dính tới đồ án hay cảm giác một mình.",
+   "score": 2
+  },
+  "f2bcac2192ee4ca659edfb3e": {
+   "reason": "Tin nhắn khó chịu có thể gặp, nhưng không nhắc ngày xuất hàng hay thợ làm chậm.",
+   "score": 2
+  },
+  "f2fdb46dcab27e1b7ad138da": {
+   "reason": "Nội dung chung chung, không chạm tới chuyện riêng của họ.",
+   "score": 2
+  },
+  "f30beae5c3d86e8d4546d0bb": {
+   "reason": "Có chạm chuyện nhận việc, nhưng giao việc nhắn tin cho người không muốn bị giao việc.",
+   "score": 2
+  },
+  "f31324a31f71a9ee46907eb3": {
+   "reason": "Chuyện nhận lời khi chưa muốn hợp việc cộng tác viên, nhưng ngày đuối mà phải nhắn lại.",
+   "score": 3
+  },
+  "f345209dd3917fb8fc64cea6": {
+   "reason": "Chuyện bản nháp xin góp ý không dính tới người làm ca đêm và lo cho con.",
+   "score": 1
+  },
+  "f35cf2f95c239cb508ddb4c5": {
+   "reason": "Chuyện giờ hẹn đổi chung chung, không chạm ca dài hay tiền trọ.",
+   "score": 2
+  },
+  "f3ecb213baa78ce1a09c272f": {
+   "reason": "Chuyện nói được khi không muốn chung chung, không chạm bài Giải phẫu hay sợ thi.",
+   "score": 2
+  },
+  "f43d1f5908c7b74064522c21": {
+   "reason": "Chuyện từ chối chung chung, không dính chuyện khách hay video.",
+   "score": 2
+  },
+  "f49115434f0c592c7abe2170": {
+   "reason": "Lời chung về giúp người, không dính báo cáo hay sếp đổi yêu cầu, lại giao việc.",
+   "score": 2
+  },
+  "f4941a9f56a3296e681f0b47": {
+   "reason": "Nội dung chung chung, không chạm tới chuyện riêng của họ.",
+   "score": 2
+  },
+  "f49614d1d63dcfa300dcd325": {
+   "reason": "Chuyện đang viết rồi bỏ dở, chọn một việc mười phút có hợp mùa ôn thi.",
+   "score": 3
+  },
+  "f49c5d5d60ffc003fcd76593": {
+   "reason": "Chuyện tin nhắn chưa rõ chung chung, đọc thấy app làm cho có.",
+   "score": 2
+  },
+  "f49cf77d3a5799516e39c399": {
+   "reason": "Chuyện tin nhắn chưa rõ hơi gần với khách đổi yêu cầu, còn lại chung chung.",
+   "score": 3
+  },
+  "f4a9ed2f6643e5a7b4d8f1dd": {
+   "reason": "Chuyện nhận việc để khỏi nói không nghe chung, không chạm ca quầy thuốc.",
+   "score": 2
+  },
+  "f4faa81130f6cc07236a5e37": {
+   "reason": "Nói chuyện tin nhắn công việc, học hành không hợp ông già trồng mai.",
+   "score": 1
+  },
+  "f5046cf778317047c4855632": {
+   "reason": "Chuyện nhận lời giúp chung chung, không có gì riêng cho mình hôm nay.",
+   "score": 2
+  },
+  "f56470ee50fe684cdc91271b": {
+   "reason": "Chuyện bản nháp không dính gì tới đời bà, lại giao việc phải gửi cho người khác.",
+   "score": 1
+  },
+  "f59a6cb683f69b76a838110d": {
+   "reason": "Chuyện xin góp ý bản nháp không hợp việc học thuộc giải phẫu, chỉ câu phản hồi mood là ổn.",
+   "score": 2
+  },
+  "f611542c0df0392ad6595ba1": {
+   "reason": "Chuyện đọc hết tin nhắn chung chung, không gần đời bà ở thành phố.",
+   "score": 2
+  },
+  "f611bb6d818d3551d226dc82": {
+   "reason": "Chuyện khó nói không chung chung, xa đời làm ruộng.",
+   "score": 2
+  },
+  "f62046c15f3f7388053d887e": {
+   "reason": "Câu báo chưa đủ dữ kiện và chuyện nhận thêm việc không chạm tới những ngày bị từ chối, lại giao việc phải nói vào ngày đuối.",
+   "score": 2
+  },
+  "f637c0514d02cb56354cc256": {
+   "reason": "Ngày đuối mà bảo đi nhờ người khác bằng lời, không hợp người chưa có ai để kể.",
+   "score": 2
+  },
+  "f743a1ef32f39e57095c251e": {
+   "reason": "Chuyện xếp giờ giúp người chung chung, không nhắc lịch trực hay kỳ thi.",
+   "score": 2
+  },
+  "f782ccef8827329f40c9d614": {
+   "reason": "Chuyện đổi giờ hẹn chung chung, không chạm chỉ tiêu doanh số.",
+   "score": 2
+  },
+  "f7872d8c81ec5a880890d612": {
+   "reason": "Chuyện lịch và nhận lời giúp chung chung, không nói gì lưng mỏi hay con sắp thi.",
+   "score": 2
+  },
+  "f788748f1cc7ceb276831714": {
+   "reason": "Chạm phần việc dồn mùa thi và bị gánh phần nhóm, còn lại chung.",
+   "score": 3
+  },
+  "f7a081fde40b34113966e1e2": {
+   "reason": "Câu báo chưa đủ dữ kiện và lời khuyên nhận việc chung, không chạm tới chuyện gánh việc nhà.",
+   "score": 2
+  },
+  "f7be5a913d4e6743665271a1": {
+   "reason": "Chuyện trả lời tin nhắn vội không dính tới cái mệt sau ngày làm tiệm.",
+   "score": 2
+  },
+  "f7d522c8cf2ef7fb792e261c": {
+   "reason": "Thử cách khác rồi so kết quả có thể áp vào chuyện nộp hồ sơ mãi chưa được gọi, dù câu còn chung.",
+   "score": 3
+  },
+  "f81f92a9954a7ac1a858a9cd": {
+   "reason": "Chuyện hỏi góp ý bản nháp hơi hợp lúc nộp portfolio, phần còn lại chung.",
+   "score": 3
+  },
+  "f845198151c027b2d120b27c": {
+   "reason": "Chuyện xin góp ý bản nháp không gần với công việc kế toán của họ.",
+   "score": 2
+  },
+  "f84b770ccf7da93bf5ea95fc": {
+   "reason": "Chuyện nhóm chốt ý chung, không nhắc đồ án hay mùa thi.",
+   "score": 2
+  },
+  "f87fd9af1e5341b12235264b": {
+   "reason": "Chuyện tin nhắn chưa rõ nghe chung, không chạm cuối tuần đứng quầy mệt.",
+   "score": 2
+  },
+  "f8b5b2e6f721e1971d43e173": {
+   "reason": "Lời lẽ đứng đắn nhưng chuyện bản nháp xa đời người về hưu.",
+   "score": 2
+  },
+  "f8bcf7a6bd13b82af254fbcd": {
+   "reason": "Chuyện góp ý bản nháp không dính gì tới công nhân ca đêm.",
+   "score": 1
+  },
+  "f922983080a1bb9629c23edf": {
+   "reason": "Chuyện nhận thêm việc chung chung, Lá còn tự nói chưa đủ dữ kiện.",
+   "score": 2
+  },
+  "f955722658f80141860d532b": {
+   "reason": "Lời khuyên chung chung lại giao việc phải nhờ người, điều Minh không muốn.",
+   "score": 2
+  },
+  "f975476517f8341585bf1918": {
+   "reason": "Đoán ý tin nhắn hợp lúc đang căng, nhưng chưa chạm chuyện bố mẹ hỏi điểm.",
+   "score": 3
+  },
+  "f9df2bbf5ae00b0d8b5930a2": {
+   "reason": "Sửa mãi chưa gửi hợp mùa đồ án, phần còn lại chung.",
+   "score": 3
+  },
+  "f9fdc533abe5f75cce409d57": {
+   "reason": "Chuyện chuyển việc liên tục chung chung, không chạm chuyện so sánh với bạn.",
+   "score": 2
+  },
+  "fa033ebcf5291f7b0421d3b6": {
+   "reason": "Mẹo đọc hết tin nhắn chung, không chạm chuyện thi thống kê.",
+   "score": 2
+  },
+  "fa3f24a9d9a02cc128643597": {
+   "reason": "Cảnh viết đoạn văn mở tài liệu xa lạ với ông lão trồng rau sống một mình.",
+   "score": 1
+  },
+  "fa5a5fca7c2f0b0d37c4cd0b": {
+   "reason": "Chuyện dời lịch hẹn chung chung, không chạm nỗi buồn chia tay.",
+   "score": 2
+  },
+  "fa99c4cd58e380d5c84b2ce2": {
+   "reason": "Tin nhắn khó chịu là cảnh ai cũng gặp, chưa khớp nhịp demo hay chuyện căng của tuần.",
+   "score": 2
+  },
+  "fae12de91221f89ca766e90c": {
+   "reason": "Xin góp ý đúng chỗ khớp với chuyện báo cáo tuần bị sửa nhiều, việc nhỏ làm được.",
+   "score": 4
+  },
+  "fb07ec073134cfba3e56fcf0": {
+   "reason": "Chuyện xem lịch trước khi nhận việc hợp phần nào với người bận gặp khách, nhưng còn chung.",
+   "score": 3
+  },
+  "fb45f049ae3d3f36ba2b01a7": {
+   "reason": "Chuyện tin nhắn chưa rõ chung chung, không có gì riêng của Phúc.",
+   "score": 2
+  },
+  "fb74ce5508c5fe63307f82d8": {
+   "reason": "Chuyện nhận lời chung chung, giao việc trong khi chị không muốn làm gì.",
+   "score": 2
+  },
+  "fb7b4e4ff2175b98877cf979": {
+   "reason": "Chuyện chốt việc trong nhóm không dính gì tới đời ông.",
+   "score": 1
+  },
+  "fc5d502fb3adb0bffc08e185": {
+   "reason": "Ngày Đuối mà việc nhỏ bắt nói chuyện với người khác, lại tự nhận chưa đủ dữ kiện nên rất chung.",
+   "score": 2
+  },
+  "fca9a895de25d42e8f6a15a4": {
+   "reason": "Chuyện đổi cách làm chung chung, lại giao việc trong khi cô không muốn.",
+   "score": 2
+  },
+  "fd09da24da7884dc9aa10534": {
+   "reason": "Nhận việc để khỏi nói không có thể gặp ở kho, nhưng câu còn chung, không nhắc sức khỏe.",
+   "score": 2
+  },
+  "fd1940e27842096efd26f3fa": {
+   "reason": "Chuyện nhận lời dù không muốn hơi gần cảnh bị dồn việc cuối ca, còn lại chung.",
+   "score": 3
+  },
+  "fdb632089ebd37d695996e6d": {
+   "reason": "Cảnh sửa mãi bản nháp hơi hợp nghề thiết kế, nhưng không chạm khách sửa sát hạn.",
+   "score": 3
+  },
+  "fdf6824a39aa6082adbdbefe": {
+   "reason": "Câu 'chưa đủ dữ kiện' nghe máy móc, không dính chuyện chạy xe hay bài nhóm.",
+   "score": 2
+  },
+  "fdf847ebbe3700e615d6c33e": {
+   "reason": "Nhờ giúp một việc cụ thể có phần chạm tới lúc nhà đang khó, còn lại chung.",
+   "score": 3
+  },
+  "fe2357733265e515615be427": {
+   "reason": "Chuyện bị nhờ thêm việc có chạm cảnh thợ lớn sai vặt, nhưng phải nói ra với người lớn hơn.",
+   "score": 3
+  },
+  "fe2d5e66d29da9873c0cd9cc": {
+   "reason": "Chuyện theo ý nhóm chung chung, không dính nhớ nhà hay chuyện riêng của bạn.",
+   "score": 2
+  },
+  "febdb87ba2b76feb91f8bde3": {
+   "reason": "Mùa bận có liên quan chút nhưng nội dung chung và tự nhận chưa đủ dữ kiện.",
+   "score": 2
+  },
+  "fed9c62fda8b93d54be1fe3f": {
+   "reason": "Nội dung chung chung về tin nhắn, ai đọc cũng được, không chạm chuyện của họ.",
+   "score": 2
+  },
+  "fedcdfe38f25b637899189e9": {
+   "reason": "Chuyện khó từ chối chung chung, không dính kỳ thi thực hành.",
+   "score": 2
+  },
+  "ff1c4cf200c92275d075ef76": {
+   "reason": "Nội dung chung chung, không chạm tới chuyện riêng của họ.",
+   "score": 2
+  },
+  "ffff7881638782dc7a37ca52": {
+   "reason": "Chuyện gửi bản nháp hoàn toàn xa đời bà, ngày đuối mà còn giao việc gửi đi.",
+   "score": 1
+  }
+ }
+}
