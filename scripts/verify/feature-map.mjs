@@ -63,6 +63,10 @@ export function featureSelectors(feature) {
   for (const [state, spec] of Object.entries(feature.states ?? {})) {
     if (!spec || spec.manual) continue;
     add(spec.ready, `states.${state}.ready`);
+    (spec.ac_checks ?? []).forEach((check, index) => {
+      add(check.expect, `states.${state}.ac_checks[${index}].expect`);
+      add(check.count?.selector, `states.${state}.ac_checks[${index}].count.selector`);
+    });
     (spec.walk ?? []).forEach((step, index) => {
       for (const kind of ["click", "fill", "check", "press", "expect"]) {
         if (step[kind] && typeof step[kind] === "object") add(step[kind], `states.${state}.walk[${index}].${kind}`);
@@ -110,6 +114,15 @@ export function checkMap(map, { routes, appSource, fixtureSource, repoRoot = REP
     for (const [state, spec] of automated) {
       if (!fixtureNames.has(spec.fixture)) problems.push(`${label}: states.${state} uses unknown fixture "${spec.fixture}"`);
       if (!spec.ready) problems.push(`${label}: states.${state} has no "ready" selector`);
+      for (const [index, check] of (spec.ac_checks ?? []).entries()) {
+        const at = `${label}: states.${state}.ac_checks[${index}]`;
+        if (!(feature.ac ?? []).includes(check.ac)) problems.push(`${at}: "${check.ac}" is not in the feature's "ac" list`);
+        if (!String(check.part ?? "").trim()) problems.push(`${at}: says no "part" (what this check proves)`);
+        const kinds = ["expect", "count"].filter((kind) => check[kind]);
+        if (kinds.length > 1) problems.push(`${at}: use "expect" or "count", not both`);
+        if (!kinds.length && !String(check.manual ?? "").trim()) problems.push(`${at}: needs "expect", "count" or a "manual" note`);
+        if (check.text !== undefined && !check.expect) problems.push(`${at}: "text" needs an "expect" selector`);
+      }
       if (!Array.isArray(spec.walk) || !spec.walk.length || !spec.walk[0].goto) problems.push(`${label}: states.${state}.walk must start with a goto step`);
       for (const step of spec.walk ?? []) {
         const kinds = STEP_KINDS.filter((kind) => kind in step);

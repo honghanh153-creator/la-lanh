@@ -91,7 +91,7 @@ const insightsLocked = {
   bodies: [], houses_available: false, time_precision: "unknown",
 };
 
-const insightsReady = {
+export const insightsReady = {
   status: "ready", required_fields: [], houses_available: true, time_precision: "exact", bodies: [],
   reading: {
     tradition: "western", config_hash: "abc123456789", observed_at: "2026-09-04T00:00:00Z",

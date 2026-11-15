@@ -50,6 +50,12 @@ Exit codes: `0` pass, `1` findings, `2` usage or build/server problem, `3` anoth
 ## Read the report
 
 The output folder has `summary.md` (read this first), `report.json`, `screens/*.png` and `raw/*.json`.
+`verify-ac.json` lists each acceptance criterion of the features run, with the commit:
+- `chưa đạt` means a configured `ac_checks` entry did not find its content on screen (the run fails);
+- `đạt phần tự động` means only the named parts were seen; the `manual` notes say what still needs API or hand checks;
+- `không tự động` means nothing is checked on screen yet.
+
+Never report an AC as met from this file alone (L04).
 
 Per feature, each automated state is walked at each width. Findings that FAIL:
 
