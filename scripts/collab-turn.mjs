@@ -105,6 +105,17 @@ const entryKey = e => (e.item ? `item:${e.item}` : `pr:${e.pr}`);
 // drops the item it works on.
 // The day's drops, kept in the day state, so an item stays dropped after its PR closes; held
 // turns for dropped work never reach the active area, a queue or a re-pick (Codex r3 on #544).
+// Codex r4 on #544: drops become PR numbers before turnsFor, so prTurn holds them and fileBlocker
+// lets work behind them move, at every call (tick, re-pick, queue refresh, --status).
+export function dropSet(plan, prs, dayPath = null, day = {}) {
+  const d = dayPath ? readJson(dayPath, day) : day;
+  const dropped = plan?.dropped ?? [];
+  const keys = new Set([...(d.droppedKeys ?? []), ...dropped.flatMap(n => [`pr:${n}`, `item:${n}`])]);
+  for (const p of prs ?? []) if (dropped.includes(p.number)) { const item = workRef(p.body); keys.add(item ? `item:${item}` : `pr:${p.number}`); }
+  if (dayPath && keys.size !== (d.droppedKeys ?? []).length) writeJson(dayPath, { ...d, droppedKeys: [...keys].sort() });
+  const numbers = (prs ?? []).filter(p => keys.has(`pr:${p.number}`) || (workRef(p.body) && keys.has(`item:${workRef(p.body)}`))).map(p => p.number);
+  return { keys, prs: [...new Set([...dropped, ...numbers])] };
+}
 export function dayDrops(plan, turns, dayPath, day) {
   const d = readJson(dayPath, day);
   const keys = new Set([...(d.droppedKeys ?? []), ...droppedKeysOf(plan, turns)]);
@@ -131,12 +142,12 @@ export function replan({ gh, plan, dayPath, day, date, issues = () => quotaIssue
   }
   if (!Array.isArray(d.plannedKeys)) return null;
   const prs = gh.openPrs();
-  const raw = turnsFor(prs, { dropped: plan.dropped, baseFiles: gh.compareFiles });
-  // Codex r2/r3 on #544: every drop of the day (by PR or item number) stays dropped, for selection
+  // Codex r2–r4 on #544: every drop of the day (by PR or item number) stays dropped, for selection
   // and execution alike, also after the dropped PR closes.
-  const all = dayDrops(plan, raw, dayPath, d);
+  const drops = dropSet(plan, prs, dayPath, d);
   d = readJson(dayPath, d);
-  const turns = applyDrops(raw, all);
+  const all = drops.keys;
+  const turns = applyDrops(turnsFor(prs, { dropped: drops.prs, baseFiles: gh.compareFiles }), all);
   const droppedKeys = d.plannedKeys.filter(k => all.has(k));
   const dropKey = droppedKeys.sort().join(',');
   if (!dropKey || d.replannedFor === dropKey) return null;
@@ -308,8 +319,8 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
         heartbeat(plan.state);
         if (plan.state === 'closed') { show({ status: plan.state, turns: [] }); return { status: plan.state }; }
         const prs = gh.openPrs();
-        const raw = turnsFor(prs, { dropped: plan.dropped, baseFiles: gh.compareFiles });
-        const turns = applyDrops(raw, dayDrops(plan, raw, dayPath, day));
+        const drops = dropSet(plan, prs, dayPath, day);
+        const turns = applyDrops(turnsFor(prs, { dropped: drops.prs, baseFiles: gh.compareFiles }), drops.keys);
         measure(prs, turns);
         show({ status: plan.state, turns });
         tell({ turns, comments: plan.comments, dropped: plan.dropped });
@@ -318,9 +329,9 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       // Every tick works when the plan is open (retro D1, 31.10.2026): the locks keep heavy jobs
       // serial and the state on GitHub keeps work from repeating, so an hourly gate only cost time.
       const prs = gh.openPrs();
-      const rechecked = ciRechecks(turnsFor(prs, { dropped: plan.dropped, baseFiles: gh.compareFiles }), prs, { ci: ciStatus, seen: recheckedKeys(now.date), log });
-      const gone = dayDrops(plan, rechecked, dayPath, day);
-      const turns = applyDrops(rechecked, gone);
+      const drops = dropSet(plan, prs, dayPath, day);
+      const gone = drops.keys;
+      const turns = applyDrops(ciRechecks(turnsFor(prs, { dropped: drops.prs, baseFiles: gh.compareFiles }), prs, { ci: ciStatus, seen: recheckedKeys(now.date), log }), gone);
       // #253: the scheduled tick samples the flow metric and owns the buffer top-up, so the
       // persisted queue and --status agree and the metric does not depend on report reads.
       const { queue: startBuffer } = bufferStatus(prs, turns);
@@ -463,7 +474,7 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       // #158/#159: after merges, checks or reviews the queue and buffer are read again, so the
       // top-up describes what is left now, not the list fetched before this run's work.
       const left = done.length ? gh.openPrs() : prs;
-      const leftTurns = done.length ? turnsFor(left, { dropped: plan.dropped, baseFiles: gh.compareFiles }) : turns;
+      const leftTurns = done.length ? applyDrops(turnsFor(left, { dropped: dropSet(plan, left, null, readJson(dayPath, day)).prs, baseFiles: gh.compareFiles }), gone) : turns;
       const buffer = done.length ? queueTopUp(wipCount(left, leftTurns)) : startBuffer;
       writeJson(join(stateDir, 'claude-queue.json'), {
         at: new Date().toISOString(), plan: plan.state, area, items: leftTurns.filter(t => t.turn === 'claude-fix'),
@@ -521,9 +532,8 @@ export function tickGap(last, nowMs = Date.now()) {
 export function planTurns(gh, now) {
   const plan = readPlanStatus(gh, now);
   const prs = gh.openPrs();
-  const raw = turnsFor(prs, { dropped: plan.dropped, baseFiles: gh.compareFiles });
-  const kept = readJson(dayStatePath((now ?? vnNow()).date), {}).droppedKeys ?? [];
-  return { plan, prs, turns: applyDrops(raw, new Set([...kept, ...droppedKeysOf(plan, raw)])) };
+  const drops = dropSet(plan, prs, null, readJson(dayStatePath((now ?? vnNow()).date), {}));
+  return { plan, prs, turns: applyDrops(turnsFor(prs, { dropped: drops.prs, baseFiles: gh.compareFiles }), drops.keys) };
 }
 
 // S8 (retro 08.11, K35): one open ops-alert per subject. A repeat becomes a comment on the open

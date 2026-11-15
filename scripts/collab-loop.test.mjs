@@ -1643,3 +1643,20 @@ test('7-week: a re-pick keeps the 7-week class a selection had when it was picke
   assert.ok(d.planned7wKeys.includes('pr:32'), 'classified at plan time');
   assert.equal(d.plannedItems.find(e => e.pr === 32)?.plan7w, true);
 });
+
+// Codex r4 on #544: an item drop holds its PR before dependency routing and in the refreshed queue.
+test('7-week: a dropped item neither returns to the fix queue nor holds a PR on the same file', () => {
+  const date = '2027-01-02';
+  const issue300 = { number: 300, title: 'việc 300', labels: w7Label, body: '## Tiêu chí đạt\n- AC1 x\n' };
+  const shared = [{ path: 'scripts/same.mjs' }];
+  const ops = pr({ number: 71, title: 'ops(collab): làm việc 300', body: `${goodBody}\nViệc: #300`, mergeable: 'CONFLICTING', files: shared, createdAt: '2026-10-01T00:00:00Z' });
+  const content = pr({ number: 72, title: 'content(copy): câu mới', files: shared });
+  const comments = Object.assign([], { date });
+  tick({ gh: w7Gh({ comments, open: [ops, content], issues: [issue300] }), now: { date, hour: 6, minute: 52 }, merge: () => ({}), review: () => ({}) });
+  comments.push({ authorAssociation: 'OWNER', createdAt: `${date}T01:59:30Z`, body: 'Duyệt\nBỏ #300' });
+  const checked = [];
+  tick({ gh: w7Gh({ comments, open: [ops, content], issues: [issue300] }), now: { date, hour: 8, minute: 10 }, prPreflight: () => ({ status: 'PASS' }), heavyFree: () => true, check: n => { checked.push(n); return { status: 'FAIL' }; }, merge: () => ({}), review: () => ({}) });
+  assert.deepEqual(checked, [72], 'the content PR is not held behind the dropped PR on the same file');
+  const queue = trust.readJson(join(trust.stateDir, 'claude-queue.json'), {});
+  assert.ok(!(queue.items ?? []).some(t => t.number === 71), `fix queue ${JSON.stringify((queue.items ?? []).map(t => t.number))}`);
+});
