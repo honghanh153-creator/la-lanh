@@ -395,6 +395,10 @@ def main() -> None:
             "why_today_days": sum(1 for r in ok_rows if r.get("why_today")),
         },
     }
+    metrics["verdicts"] = [
+        {"group": g, "threshold": th, "result": res, "ok": ok}
+        for g, th, res, ok in verdict_rows(metrics)
+    ]
     (run / "metrics.json").write_text(
         json.dumps(metrics, ensure_ascii=False, indent=1) + "\n", encoding="utf-8"
     )
@@ -422,7 +426,9 @@ def table_row(*cells: object) -> str:
     return "| " + " | ".join("—" if c is None else str(c) for c in cells) + " |"
 
 
-def render(m: Mapping[str, Any], title: str) -> str:
+def verdict_rows(m: Mapping[str, Any]) -> list[tuple[str, str, str, bool | None]]:
+    """The threshold table: (group, threshold, result text, passed or None = not measured)."""
+
     rep = m["repetition"]
     a = rep["all"]
     mood = m["mood"]
@@ -500,6 +506,16 @@ def render(m: Mapping[str, Any], title: str) -> str:
             None if not full_judge else ret["D28"] >= 0.15,
         ),
     ]
+    return rows
+
+
+def render(m: Mapping[str, Any], title: str) -> str:
+    rows = verdict_rows(m)
+    rm = m["return_model"]
+    rep = m["repetition"]
+    mood = m["mood"]
+    cr = m["crisis"]
+    u = m["understood"]
     run = m["run"]
     ref = rm["calibration"]["reference"]
     lines = [
