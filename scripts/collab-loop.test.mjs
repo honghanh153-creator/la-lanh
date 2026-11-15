@@ -7,7 +7,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 
 process.env.LA_LANH_COLLAB_HOME = mkdtempSync(join(tmpdir(), 'collab-loop-'));
 const trust = await import('./collab-trust.mjs');
-const { checksPerTick, copyBatchAttempts, fileBlocker, planTurns, prTurn, tickGap, turnsFor, tick } = await import('./collab-turn.mjs');
+const { checksPerTick, ciFailAtHead, copyBatchAttempts, fileBlocker, planTurns, prTurn, tickGap, turnsFor, tick } = await import('./collab-turn.mjs');
 const preflightMod = await import('./collab-preflight.mjs');
 const { renderBoard } = await import('./collab-status.mjs');
 const { committedTurns, copyReview, planMax, planMin, planState, renderPlan } = await import('./collab-plan.mjs');
@@ -19,10 +19,28 @@ const A = 'a'.repeat(40);
 const B = 'b'.repeat(40);
 const C = 'c'.repeat(40);
 let clock = 0;
-const owner = body => ({ authorAssociation: 'OWNER', createdAt: `2026-10-30T0${Math.floor(clock / 60)}:${String(clock++ % 60).padStart(2, '0')}:00Z`, body });
+const { asPosted } = await import('./collab-test-post.mjs');
+const owner = body => asPosted(trust, { authorAssociation: 'OWNER', createdAt: `2026-10-30T0${Math.floor(clock / 60)}:${String(clock++ % 60).padStart(2, '0')}:00Z`, body });
 const outsider = body => ({ ...owner(body), authorAssociation: 'NONE' });
-const check = (sha, status = 'PASS') => owner(renderCheck({ head: sha, status, exitCode: status === 'PASS' ? 0 : 1, seconds: 1, date: 'x' }));
-const pr = (extra = {}) => ({ number: 7, title: 'feat(tarot): plain summary', author: { login: 'honghanh153-creator' }, isCrossRepository: false, state: 'OPEN', isDraft: false, baseRefName: 'collab/integration', headRefName: 'feat/x', headRefOid: A, mergeable: 'MERGEABLE', labels: [], createdAt: '2026-10-29T00:00:00Z', comments: [], body: goodBody, ...extra });
+// The live tip of collab/integration in every fixture (P1-A).
+const BASE = 'e'.repeat(40);
+// Scripted comments come with a local receipt (P1-B). A fixture is signed for PR 7 and re-signed by
+// pr() for another number, the way the real check and review paths sign for their own PR.
+const sealBody = (kind, c, n) => {
+  const receipt = trust.signReceipt({ kind, pr: n, head: c.head, base: c.base, result: c.result, p2: c.p2 ?? 0 });
+  return kind === 'check'
+    ? renderCheck({ head: c.head, status: c.result, base: c.base, receipt, exitCode: c.result === 'PASS' ? 0 : 1, seconds: 1, date: 'x' })
+    : [`Review verdict: ${c.result} @ ${c.head}`, 'Reviewer: Codex (auto, scripts/codex-review.mjs)', '', ...(c.fix ? [`Fix-forward: #${c.fix}`, ''] : []), trust.verdictSeal({ head: c.head, p2: c.p2 ?? 0, base: c.base, receipt })].join('\n');
+};
+const sealable = (kind, claims) => ({ ...owner(sealBody(kind, claims, 7)), seal: { kind, claims } });
+const check = (sha, status = 'PASS', base = BASE) => sealable('check', { head: sha, result: status, base });
+const approve = (sha, { p2 = 0, base = BASE, fix = null } = {}) => sealable('verdict', { head: sha, result: 'APPROVE', base, p2, fix });
+const requestChanges = (sha, base = BASE) => sealable('verdict', { head: sha, result: 'REQUEST_CHANGES', base });
+const resign = (n, c) => (c?.seal && n !== 7 ? asPosted(trust, { ...c, body: sealBody(c.seal.kind, c.seal.claims, n) }) : c);
+const pr = (extra = {}) => {
+  const p = { number: 7, title: 'feat(tarot): plain summary', author: { login: 'honghanh153-creator' }, isCrossRepository: false, state: 'OPEN', isDraft: false, baseRefName: 'collab/integration', headRefName: 'feat/x', headRefOid: A, baseTipOid: BASE, mergeable: 'MERGEABLE', labels: [], createdAt: '2026-10-29T00:00:00Z', comments: [], body: goodBody, ...extra };
+  return { ...p, comments: p.comments.map(c => resign(p.number, c)) };
+};
 
 function fakeGh(state) {
   const calls = [];
@@ -36,7 +54,7 @@ function fakeGh(state) {
       if (args[0] === 'issue' && args[1] === 'create') return 'https://github.com/x/y/issues/901\n';
       return '';
     },
-    comment: (kind, number, body) => { trust.assertAgentBody(body); calls.push(['comment', kind, number, body]); state.pr.comments.push(owner(body)); },
+    comment: (kind, number, body) => { trust.assertAgentBody(body); calls.push(['comment', kind, number, body]); const c = owner(body); state.pr.comments.push(c); return c.url; },
   };
 }
 
@@ -73,7 +91,7 @@ test('turns follow check → review → fix/merge on the exact head', () => {
   assert.equal(prTurn(p).turn, 'claude-fix');
   p.comments.push(check(B));
   assert.equal(prTurn(p).turn, 'codex-review');
-  p.comments.push(owner(`Review verdict: APPROVE @ ${B}`));
+  p.comments.push(approve(B));
   assert.equal(prTurn(p).turn, 'merge');
   assert.equal(prTurn({ ...p, baseRefName: 'feat/parent' }).turn, 'hold');
   assert.equal(prTurn({ ...p, baseRefName: 'main' }).turn, 'hold');
@@ -162,7 +180,7 @@ test('review posts verdict, files fix-forward first, and records the output hash
   const body = gh.calls.find(c => c[0] === 'comment')[3];
   assert.equal(trust.parseVerdict(body).sha, A);
   assert.match(body, /Fix-forward: #901/);
-  assert.match(body, /p2=1 -->/);
+  assert.match(body, new RegExp(`p2=1 base=${BASE} receipt=[0-9a-f]{32} -->$`));
   assert.match(body, /Output SHA-256: `[0-9a-f]{64}`/);
   assert.equal(prTurn(state.pr).turn, 'merge');
   assert.equal(review.runReview(7, { gh, run: runner.run, readOut: () => raw }).status, 'refused', 'no second verdict for the same head');
@@ -191,7 +209,7 @@ test('the scheduled PR list asks GitHub for mergeability (K24 needs it)', () => 
 });
 
 test('a re-review across an integration merge reads only the PR files (K25)', () => {
-  const prior = owner(`Review verdict: REQUEST_CHANGES @ ${B}\n${trust.agentMarker} codex-auto-review sha=${B} p2=0 -->`);
+  const prior = requestChanges(B);
   const raw = JSON.stringify(output());
   for (const [merges, scoped] of [['d'.repeat(40), true], ['', false]]) {
     const runner = fakeRun();
@@ -221,7 +239,7 @@ test('review refuses without an author check, stops on limits, and escalates to 
   assert.equal(trust.readJson(trust.dayStatePath(now.date), {}).codexRuns ?? 0, 0, 'limits do not use a daily run');
 
   const blocking = JSON.stringify(output({ verdict: 'REQUEST_CHANGES', findings: [finding('P1', 'correctness')] }));
-  const state = { pr: pr({ headRefOid: B, comments: [check(A), owner(`Review verdict: REQUEST_CHANGES @ ${A}\n${trust.agentMarker} codex-auto-review sha=${A} p2=0 -->`), check(B)] }) };
+  const state = { pr: pr({ headRefOid: B, comments: [check(A), requestChanges(A), check(B)] }) };
   const gh = fakeGh(state);
   const runner = fakeRun({ head: B });
   const result = review.runReview(7, { gh, run: runner.run, readOut: () => blocking.replace(A, B), now });
@@ -239,15 +257,15 @@ test('daily cap refuses automatic reviews', () => {
 });
 
 test('merge gate needs APPROVE and PASS on head, integration base and a fix-forward link', () => {
-  const ok = pr({ comments: [check(A), owner(`Review verdict: APPROVE @ ${A}`)] });
+  const ok = pr({ comments: [check(A), approve(A)] });
   assert.deepEqual(mergeGate(ok).reasons, []);
   assert.ok(!mergeGate({ ...ok, baseRefName: 'main' }).ok);
   assert.ok(!mergeGate({ ...ok, mergeable: 'CONFLICTING' }).ok);
   assert.ok(!mergeGate({ ...ok, labels: ['needs-owner'] }).ok);
-  assert.ok(!mergeGate(pr({ comments: [owner(`Review verdict: APPROVE @ ${A}`)] })).ok, 'needs author check');
-  assert.ok(!mergeGate(pr({ comments: [check(A), owner(`Review verdict: APPROVE @ ${A}`), owner(`Review verdict: REQUEST_CHANGES @ ${A}`)] })).ok);
+  assert.ok(!mergeGate(pr({ comments: [approve(A)] })).ok, 'needs author check');
+  assert.ok(!mergeGate(pr({ comments: [check(A), approve(A), owner(`Review verdict: REQUEST_CHANGES @ ${A}`)] })).ok);
   assert.ok(!mergeGate(pr({ comments: [check(A), outsider(`Review verdict: APPROVE @ ${A}`)] })).ok);
-  assert.ok(!mergeGate(pr({ comments: [check(A), owner(`Review verdict: APPROVE @ ${A}\n${trust.agentMarker} codex-auto-review sha=${A} p2=2 -->`)] })).ok);
+  assert.ok(!mergeGate(pr({ comments: [check(A), approve(A, { p2: 2 })] })).ok);
 
   const state = { pr: ok, open: [ok, pr({ number: 8, baseRefName: 'feat/x' })] };
   const gh = fakeGh(state);
@@ -258,6 +276,23 @@ test('merge gate needs APPROVE and PASS on head, integration base and a fix-forw
   assert.deepEqual(merge.slice(-3), ['--merge', '--match-head-commit', A]);
   assert.ok(!merge.includes('--admin') && !merge.includes('--auto') && !merge.includes('--squash'));
   assert.ok(gh.calls.some(c => c[0] === 'raw' && c[1][1] === 'edit' && c[1][2] === '8' && c[1].includes('collab/integration')));
+});
+
+// L11 (Codex 14.11): the items picked are recorded when the plan is made; a PR body edited later
+// does not change them.
+test('the plan records the picked items once; a later body edit changes nothing', () => {
+  const comments = [];
+  const ghFor = open => ({ ...fakeGh({ pr: open[0], open }),
+    json: args => args[0] === 'issue' && args[1] === 'list' ? [{ number: 50, title: 'Kế hoạch chạy tự động hằng ngày' }] : { comments },
+    comment: (kind, number, body) => { trust.assertAgentBody(body); comments.push({ authorAssociation: 'OWNER', createdAt: '2026-12-09T01:50:00Z', body }); } });
+  const date = '2026-12-09';
+  const open = [pr({ number: 81, body: `${goodBody}\nViệc: #12` }), pr({ number: 82, body: `${goodBody}\nViệc: #12` }), pr({ number: 83 })];
+  assert.equal(tick({ gh: ghFor(open), now: { date, hour: 8, minute: 52 }, merge: () => ({}), review: () => ({}) }).status, 'plan-made');
+  const day = () => trust.readJson(trust.dayStatePath(date), {});
+  assert.deepEqual(day().plannedItems, [{ item: 12 }, { pr: 83 }]);
+  const edited = open.map(p => p.number === 83 ? { ...p, body: `${goodBody}\nViệc: #99` } : p);
+  tick({ gh: ghFor(edited), now: { date, hour: 9, minute: 20 }, merge: () => ({}), review: () => ({}) });
+  assert.deepEqual(day().plannedItems, [{ item: 12 }, { pr: 83 }]);
 });
 
 // Codex r1 on #482 (P2): health reached only the morning plan, so a hook removed later in the day
@@ -287,7 +322,7 @@ test('tick makes the plan once, waits for the owner, then runs merges and capped
     json: args => args[0] === 'issue' && args[1] === 'list' ? [{ number: 50, title: 'Kế hoạch chạy tự động hằng ngày' }] : { comments },
     comment: (kind, number, body) => { trust.assertAgentBody(body); comments.push({ authorAssociation: 'OWNER', createdAt: '2026-11-02T01:50:00Z', body }); },
   });
-  const open = [pr({ number: 1, comments: [check(A), owner(`Review verdict: APPROVE @ ${A}`)] }), pr({ number: 2, comments: [check(A)] }), pr({ number: 3, comments: [check(A)] }), pr({ number: 4, comments: [check(A)] }), pr({ number: 5 })];
+  const open = [pr({ number: 1, comments: [check(A), approve(A)] }), pr({ number: 2, comments: [check(A)] }), pr({ number: 3, comments: [check(A)] }), pr({ number: 4, comments: [check(A)] }), pr({ number: 5 })];
   const date = '2026-11-02';
   const done = { merge: [], review: [] };
   const deps = now => ({ gh: ghFor(open), now: { date, ...now }, merge: n => { done.merge.push(n); return { status: 'merged' }; }, review: n => { done.review.push(n); return { status: 'posted' }; } });
@@ -301,14 +336,14 @@ test('tick makes the plan once, waits for the owner, then runs merges and capped
   assert.deepEqual(queue.items, [], 'author checks are the tick\'s job, not Claude\'s queue');
 });
 
-test('r1: a newer FAIL outvotes an older PASS, and a retarget voids earlier verdicts', () => {
-  const failedLater = pr({ comments: [check(A), owner(`Review verdict: APPROVE @ ${A}`), check(A, 'FAIL')] });
+test('r1: a newer FAIL outvotes an older PASS; a base change (not the retarget marker) voids the evidence', () => {
+  const failedLater = pr({ comments: [check(A), approve(A), check(A, 'FAIL')] });
   assert.ok(!mergeGate(failedLater).ok);
   assert.equal(prTurn(failedLater).turn, 'claude-fix');
-  const retargeted = pr({ comments: [check(A), owner(`Review verdict: APPROVE @ ${A}`), owner(`Base changed.\n\n${trust.agentMarker} retarget parent=6 -->`)] });
+  const retargeted = pr({ baseTipOid: C, comments: [check(A), approve(A), owner(`Base changed.\n\n${trust.agentMarker} retarget parent=6 -->`)] });
   assert.ok(!mergeGate(retargeted).ok);
-  assert.equal(prTurn(retargeted).turn, 'codex-review');
-  retargeted.comments.push(owner(`Review verdict: APPROVE @ ${A}`));
+  assert.equal(prTurn(retargeted).turn, 'claude-check');
+  retargeted.comments.push(check(A, 'PASS', C), approve(A, { base: C }));
   assert.ok(mergeGate(retargeted).ok);
 });
 
@@ -326,7 +361,7 @@ const plannedGh = (open, date) => {
   return { ...fakeGh({ pr: open[0], open }), json: args => args[0] === 'issue' && args[1] === 'list' ? [{ number: 50, title: 'Kế hoạch chạy tự động hằng ngày' }] : { comments } };
 };
 
-test('r1: the clock is re-read before each review, so nothing new starts after 23:30', () => {
+test('r1: the clock is re-read before each review, so nothing new starts from 23:35', () => {
   const date = '2026-11-03';
   const open = [pr({ number: 1, comments: [check(A)] }), pr({ number: 2, comments: [check(A)] })];
   const times = [{ hour: 23, minute: 20 }, { hour: 23, minute: 20 }, { hour: 23, minute: 41 }];
@@ -351,7 +386,7 @@ test('r1: privacy and features wait while content has machine work; a content PR
   const date = '2026-11-05';
   const open = [
     pr({ number: 1, title: 'feat(tarot): copy', comments: [check(A), owner(`Review verdict: REQUEST_CHANGES @ ${A}`)] }),
-    pr({ number: 2, title: 'feat(privacy): export', comments: [check(A), owner(`Review verdict: APPROVE @ ${A}`)] }),
+    pr({ number: 2, title: 'feat(privacy): export', comments: [check(A), approve(A)] }),
     pr({ number: 3, title: 'feat(tarot): held', isDraft: true }),
   ];
   const merged = [];
@@ -500,7 +535,7 @@ test('r3: author check runs alone, with CI=1, in the given checkout', () => {
 });
 
 test('r4 (P0): fork or outside PRs are never checked, reviewed or merged', () => {
-  const approved = [check(A), owner(`Review verdict: APPROVE @ ${A}`)];
+  const approved = [check(A), approve(A)];
   for (const hostile of [pr({ isCrossRepository: true, comments: approved }), pr({ author: { login: 'someone-else' }, comments: approved }), pr({ author: undefined, comments: approved })]) {
     assert.equal(prTurn(hostile).turn, 'hold');
     assert.ok(!mergeGate(hostile).ok);
@@ -545,7 +580,7 @@ test('r5 (#137 r2 P1): clone preparation is bounded by the nightly deadline', ()
   // Worst case: every build step uses its whole budget and times out.
   const group = (cmd, args, opts) => { calls.push({ cmd, ms: opts.timeoutMs, left: 26 * minute - fake }); fake += opts.timeoutMs; return { status: 124 }; };
   const run = (cmd, args) => (args[0] === 'rev-parse' ? A : '');
-  // Selected at 23:29: 26 minutes to 23:55.
+  // Selected at 23:29: 26 minutes to the old 23:55 cutoff; the deadline here is given directly.
   assert.throws(() => prepareAuthorClone(7, A, run, { deadlineMs: 26 * minute, nowMs: () => fake, group }), /hết giờ/);
   assert.ok(calls.length >= 1);
   assert.ok(calls.every(c => c.ms <= c.left), 'no step may run past the deadline');
@@ -800,7 +835,7 @@ test('12.11 trial: CI source reads pr-check at the head and never installs, buil
   const gh = { ...fakeGh({ pr: pr() }), comment: (...a) => posted.push(a) };
   const run = (cmd, args) => args[0] === 'rev-parse' ? A : '';
   const never = () => { throw new Error('nothing of the PR may run on the Mac in CI mode'); };
-  const ci = (_, head) => { assert.equal(head, A); return { state: 'PASS', conclusion: 'success', url: 'https://github.com/x/actions/runs/1' }; };
+  const ci = (_, head) => { assert.equal(head, A); return { state: 'PASS', conclusion: 'success', url: 'https://github.com/x/actions/runs/1', base: BASE }; };
   const result = runCheckInClone(7, { gh, run, group: never, spawn: never, busy: never, terms: () => [], preflight: () => null, source: 'ci', ci });
   assert.equal(result.status, 'PASS');
   assert.equal(posted.length, 1);
@@ -830,6 +865,8 @@ test('12.11 trial: ciCheck passes only a completed success of the pr-check check
   assert.equal(ciCheck(at([]), A).state, 'pending');
   assert.equal(ciCheck(at([w({ status: 'in_progress' })], { 1: [j({ status: 'in_progress', conclusion: null })] }), A).state, 'pending');
   assert.equal(ciCheck(at([w()], { 1: [j()] }), A).state, 'PASS');
+  const ids = ciCheck(at([w({ run_attempt: 2 })], { 1: [j({ completed_at: '2026-11-12T01:20:00Z' })] }), A);
+  assert.deepEqual([ids.runId, ids.attempt, ids.completedAt], [1, 2, '2026-11-12T01:20:00Z'], '#508: run, attempt and the job end time');
   for (const conclusion of ['failure', 'cancelled', 'skipped', 'timed_out', 'neutral', 'action_required']) assert.equal(ciCheck(at([w()], { 1: [j({ conclusion })] }), A).state, 'FAIL', conclusion);
   assert.equal(ciCheck(at([w()], { 1: [j({ name: 'scope' })] }), A).conclusion, 'missing', 'a finished run without a check job fails');
   assert.equal(ciCheck(at([w({ head_sha: C })], { 1: [j()] }), A).state, 'pending', 'another head does not count');
@@ -950,14 +987,31 @@ test('only the front PR of the area is synced before its check; waiting PRs get 
   const gh = { ...fakeGh({ pr: pr({ headRefName: 'agent/claude/x' }) }), comment: () => {} };
   const waiting = runCheckInClone(7, { gh, run, group: never, spawn: never, busy: never, terms: () => [], preflight: () => null, source: 'ci', ci: () => ({ state: 'pending' }), sync: false });
   assert.equal(waiting.status, 'ci-pending');
-  assert.ok(!gitCalls.some(c => /^merge\b|^-c .*merge|push/.test(c) || c.includes('auto-sync')), gitCalls.join(' | '));
+  // #456 P1-A + L14: behind integration is a waiting PR's normal state, never a failure sent to Claude.
+  const unheld = { record: () => { throw new Error('a waiting PR is not recorded as a preflight failure'); } };
+  assert.match(runCheckInClone(7, { gh, run, group: never, spawn: never, busy: never, terms: () => [], preflight: () => null, source: 'ci', ci: () => ({ state: 'success' }), sync: false, held: unheld }).reason, /đồng bộ khi tới lượt đầu hàng/);
+  const local = runCheckInClone(7, { gh, run, group: () => ({ status: 0 }), spawn: never, busy: () => null, terms: () => [], preflight: () => null, source: 'local', sync: false, held: unheld });
+  assert.equal(local.status, 'waiting', JSON.stringify(local));
+  // merge-base only reads; a merge, a merge commit or a push would change the branch.
+  assert.ok(!gitCalls.some(c => /^merge(?!-base)\b|^-c .*merge|push/.test(c) || c.includes('auto-sync')), gitCalls.join(' | '));
   const front = runCheckInClone(7, { gh, run, group: never, spawn: never, busy: never, terms: () => [], preflight: () => null, source: 'ci', ci: () => ({ state: 'pending' }), sync: true });
   assert.equal(front.status, 'synced', 'the front PR behind integration is merged and pushed');
 });
 
+test('#524: a held or conflicting older PR is not the front; the first actionable PR is synced', () => {
+  const date = '2026-11-18';
+  for (const older of [{ labels: [{ name: 'needs-owner' }] }, { mergeable: 'CONFLICTING' }]) {
+    const open = [pr({ number: 160, createdAt: '2026-11-01T00:00:00Z', ...older }), pr({ number: 161, createdAt: '2026-11-02T00:00:00Z' }), pr({ number: 162, createdAt: '2026-11-03T00:00:00Z' })];
+    const calls = [];
+    tick({ gh: plannedGh(open, date), now: { date, hour: 11, minute: 5 }, merge: () => ({}), review: () => ({ status: 'posted' }),
+      check: (n, o) => { calls.push([n, o.sync]); return { status: 'ci-pending' }; } });
+    assert.deepEqual(calls, [[161, true], [162, false]], JSON.stringify(older));
+  }
+});
+
 test('after a merge in the same tick, the next PR becomes the front', () => {
   const date = '2026-11-17';
-  const open = [pr({ number: 70, createdAt: '2026-11-01T00:00:00Z', comments: [check(A), owner(`Review verdict: APPROVE @ ${A}`)] }),
+  const open = [pr({ number: 70, createdAt: '2026-11-01T00:00:00Z', comments: [check(A), approve(A)] }),
     pr({ number: 71, createdAt: '2026-11-02T00:00:00Z' }), pr({ number: 72, createdAt: '2026-11-03T00:00:00Z' })];
   const calls = [];
   tick({ gh: plannedGh(open, date), now: { date, hour: 11, minute: 5 }, merge: () => ({ status: 'merged' }), review: () => ({ status: 'posted' }),
@@ -1041,7 +1095,7 @@ test('review 228: a deleted Python file is not linted by default', () => {
 
 test('#158/#159: top-up is computed from the queue left after this tick merges', () => {
   const date = '2026-11-15';
-  const approved = [check(A), owner(`Review verdict: APPROVE @ ${A}`)];
+  const approved = [check(A), approve(A)];
   // Two agent PRs are merge-ready when the tick starts, so WIP is full before the merges.
   const open = [1, 2].map(number => pr({ number, headRefName: `agent/claude/q${number}`, comments: approved }));
   const merged = [];
@@ -1226,4 +1280,151 @@ test('copy batch: an owner "Duyệt" before 08:00 still waits for the 08:00 auto
   assert.deepEqual(runs, []);
   tick(deps(8, 0));
   assert.deepEqual(runs, [8]);
+});
+
+// #508 (Codex 14.11): synthetic CI results; the fake check posts nothing, so only the key stops a repeat.
+const ciFail = (sha, extra = {}) => owner(renderCheck({ head: sha, status: 'FAIL', date: 'x', ci: { conclusion: 'failure', url: 'u' }, ...extra }));
+const green = (extra = {}) => () => ({ state: 'PASS', conclusion: 'success', url: 'u', runId: 5, attempt: 2, completedAt: '2026-11-14T03:00:00Z', ...extra });
+const recheckTick = (date, open, { ci = green(), check = () => ({ status: 'PASS' }), gh = plannedGh(open, date), preflight } = {}) => {
+  const checked = [];
+  const result = tick({ gh, now: { date, hour: 11, minute: 5 }, merge: () => ({}), review: () => ({ status: 'posted' }), ciStatus: ci, ...(preflight ? { prPreflight: preflight } : {}), check: (n, o) => { checked.push(n); return check(n, o); } });
+  return { checked, result };
+};
+const rechecked = date => JSON.parse(readFileSync(trust.dayStatePath(date), 'utf8')).rechecked ?? [];
+
+test('a CI FAIL that turns green on a re-run at the same head is checked again, not left in claude-fix', async () => {
+  // The launchd entry hands tick() a ciStatus that reads the real pr-check job (Codex: prove the
+  // production caller, not only an injected one).
+  const { runTick } = await import('./collab-tick.mjs');
+  const asked = [];
+  const gh = { ...fakeGh({ pr: pr(), open: [] }), json: args => { asked.push(args.join(' ')); return { workflow_runs: [] }; } };
+  const opts = runTick(gh, () => [], { run: given => given });
+  assert.equal(typeof opts.ciStatus, 'function', 'runTick wires ciStatus');
+  assert.equal(opts.ciStatus(A).state, 'pending');
+  assert.ok(asked.some(a => a.includes(`pr-check.yml/runs?head_sha=${A}`)), asked.join(' | '));
+  const open = [pr({ number: 160, comments: [ciFail(A)] })];
+  assert.equal(prTurn(open[0]).turn, 'claude-fix');
+  assert.ok(ciFailAtHead(open[0]));
+  assert.deepEqual(recheckTick('2026-12-10', open).checked, [160], 'rechecked exactly once');
+  assert.deepEqual(rechecked('2026-12-10'), [`160@${A}#5.2`]);
+  assert.deepEqual(recheckTick('2026-12-10', open).checked, [], 'the same run and attempt never rechecks twice');
+  assert.deepEqual(recheckTick('2026-12-10', open, { ci: green({ attempt: 3 }) }).checked, [160], 'a new attempt of the same run rechecks');
+  assert.deepEqual(recheckTick('2026-12-11', open, { ci: green({ attempt: 3 }) }).checked, [], 'the key survives midnight');
+});
+
+test('#508: a local FAIL, a CI still red or unfinished, an older green run and a guard hit stay in claude-fix', () => {
+  const date = '2026-12-12';
+  const one = comments => [pr({ number: 161, comments })];
+  assert.deepEqual(recheckTick(date, one([check(A, 'FAIL')])).checked, [], 'a local FAIL stays');
+  assert.deepEqual(recheckTick(date, one([ciFail(A)]), { ci: green({ state: 'FAIL', conclusion: 'failure' }) }).checked, [], 'CI still failure');
+  assert.deepEqual(recheckTick(date, one([ciFail(A)]), { ci: () => ({ state: 'pending', url: 'u' }) }).checked, [], 'CI not done');
+  assert.deepEqual(recheckTick(date, one([ciFail(A)]), { ci: green({ completedAt: '2026-10-01T00:00:00Z' }) }).checked, [], 'a green run older than the FAIL');
+  assert.deepEqual(recheckTick(date, one([ciFail(A, { guard: ['notes/x.md:3'] })])).checked, [], 'a guard hit in the receipt');
+  assert.deepEqual(recheckTick(date, one([ciFail(A)]), { ci: () => { throw new Error('network'); } }).checked, [], 'an unreadable CI changes nothing');
+  assert.equal(recheckTick(date, one([ciFail(A)]), { ci: () => { throw new Error('network'); } }).result.status, 'ran', 'and never breaks the tick');
+  assert.deepEqual(rechecked(date), []);
+});
+
+test('#508: a busy or failed recheck keeps no key and is retried; a head change records nothing', () => {
+  const date = '2026-12-13';
+  const open = [pr({ number: 162, comments: [ciFail(A)] })];
+  assert.deepEqual(recheckTick(date, open, { check: () => ({ status: 'busy' }) }).checked, [162]);
+  assert.deepEqual(recheckTick(date, open, { check: () => { throw new Error('network'); } }).checked, [162], 'busy is retried');
+  assert.deepEqual(recheckTick(date, open, { check: () => ({ status: 'ci-pending' }) }).checked, [162], 'a throw is retried');
+  assert.deepEqual(recheckTick(date, open, { check: () => ({ status: 'busy' }) }).checked, [162], 'ci-pending is retried');
+  assert.deepEqual(rechecked(date), []);
+  const moved = { ...plannedGh(open, date), pr: () => ({ ...structuredClone(open[0]), headRefOid: B }) };
+  assert.deepEqual(recheckTick(date, open, { gh: moved }).checked, [162]);
+  assert.deepEqual(rechecked(date), [], 'the head moved during the check: nothing recorded');
+  assert.deepEqual(recheckTick(date, open).checked, [162]);
+  assert.deepEqual(rechecked(date), [`162@${A}#5.2`]);
+});
+
+test('#508: two older REQUEST_CHANGES verdicts add a repeat note but the green re-run is still rechecked', () => {
+  const date = '2026-12-14';
+  const rc = owner(`Review verdict: REQUEST_CHANGES @ ${B}`);
+  const open = [pr({ number: 163, comments: [rc, owner(`Review verdict: REQUEST_CHANGES @ ${B}`), ciFail(A)] })];
+  const [turn] = turnsFor(open, { preflight: {} });
+  assert.match(turn.reason, /lần REQUEST_CHANGES/, 'the display reason carries the repeat note');
+  assert.deepEqual(recheckTick(date, open).checked, [163], 'rechecked despite the note');
+  assert.equal(turn.cause, 'author-fail', 'the routing cause survives the note');
+  assert.deepEqual(rechecked(date), [`163@${A}#5.2`]);
+});
+
+test('#508: a preflight FAIL on a recheck holds only that body; a body-only fix is rechecked', () => {
+  const date = '2026-12-15';
+  const noG1 = goodBody.replace(/^.*G1 Tài liệu:.*\n/m, '');
+  const before = [pr({ number: 164, body: noG1, comments: [ciFail(A)] })];
+  const pre = n => preflightMod.runPreflight(before.find(p => p.number === n));
+  assert.equal(pre(164).status, 'FAIL', 'the synthetic body misses G1');
+  const key = `164@${A}#5.2|body:${turnsFor(before, { preflight: {} })[0].bodyHash}`;
+  assert.deepEqual(recheckTick(date, before, { preflight: pre }).checked, [], 'preflight stops before the check');
+  assert.deepEqual(rechecked(date), [key], 'the key is spent for this body only');
+  assert.deepEqual(recheckTick(date, before, { preflight: pre }).checked, [], 'the same body is not rechecked');
+  const after = [{ ...before[0], body: goodBody }];
+  const fixed = recheckTick(date, after, { preflight: n => preflightMod.runPreflight(after.find(p => p.number === n)) });
+  assert.deepEqual(fixed.checked, [164], 'a body-only correction is rechecked');
+  assert.deepEqual(rechecked(date), [key, `164@${A}#5.2`]);
+});
+
+// ---- L25: the tick holds a disputed PR and a timeout still needs a new check and review ----
+test('L25: the tick never runs a disputed PR, and after a timeout the PR needs a new check and review at its head', async () => {
+  const L25 = await import('./collab-disagree.mjs');
+  const date = '2026-11-14';
+  const at = (hour, minute) => Date.UTC(2026, 10, 14, hour - 7, minute);
+  const open = [pr({ number: 7, comments: [check(A), owner(`Review verdict: APPROVE @ ${A}`)] })];
+  const gh = plannedGh(open, date);
+  try {
+    const first = L25.openRound({ pr: 7, round: 1, claude: 'giữ', codex: 'bỏ', head: A, nowMs: at(15, 0) });
+    L25.openRound({ id: first.id, round: 2, claude: 'giữ, có số đo', codex: 'bỏ, vì rủi ro', head: A, nowMs: at(15, 0) });
+    assert.equal(L25.escalate({ id: first.id, gh, notify: () => {}, nowMs: at(15, 0) }).clock, 'started');
+    assert.equal(turnsFor(open)[0].turn, 'hold', 'held by the dispute even without the label');
+    assert.match(mergeGate(open[0]).reasons.join(' '), /bất đồng pr7-1/);
+    const done = { merge: [], review: [], check: [] };
+    const run = minute => tick({ gh, now: { date, hour: 15, minute }, settle: o => L25.settleDisputes({ ...o, notify: () => {}, nowMs: at(15, minute) }),
+      merge: n => { done.merge.push(n); return { status: 'merged' }; }, review: n => { done.review.push(n); return { status: 'posted' }; }, check: n => { done.check.push(n); return { status: 'FAIL' }; } });
+    run(10);
+    assert.deepEqual(done, { merge: [], review: [], check: [] }, 'nothing runs on a PR while its dispute waits for the owner');
+    run(31);
+    assert.equal(L25.disputes().get(first.id).decided.decidedBy, 'timeout');
+    assert.deepEqual(done.merge, [], 'the old APPROVE no longer counts after the decision');
+    assert.deepEqual(done.check, [7], 'a new author check comes first');
+    assert.ok(!mergeGate(open[0]).ok);
+    // Production wiring: runTick passes no settle, so tick() falls back to settleDisputes.
+    const { runTick } = await import('./collab-tick.mjs');
+    assert.equal(runTick(fakeGh({ pr: pr(), open: [] }), () => [], { run: given => given }).settle, undefined, 'runTick leaves settle to the default');
+    const { defaultSettle } = await import('./collab-turn.mjs');
+    assert.equal(defaultSettle, L25.settleDisputes, 'the default is the real settleDisputes');
+  } finally {
+    rmSync(L25.disputePath, { force: true });
+    rmSync(L25.logPath, { force: true });
+  }
+});
+
+test('L25: after a timeout and a new PASS at the same head, the review command takes its turn and a newer APPROVE merges', async () => {
+  const L25 = await import('./collab-disagree.mjs');
+  const at = (hour, minute) => Date.UTC(2026, 10, 14, hour - 7, minute);
+  const stamp = (hour, minute) => new Date(at(hour, minute)).toISOString();
+  const state = { pr: pr({ number: 7, comments: [check(A), owner(`Review verdict: APPROVE @ ${A}`)] }) };
+  const gh = fakeGh(state);
+  try {
+    const first = L25.openRound({ pr: 7, round: 1, claude: 'giữ', codex: 'bỏ', head: A, nowMs: at(15, 0) });
+    L25.openRound({ id: first.id, round: 2, claude: 'giữ, có số đo', codex: 'bỏ, vì rủi ro', head: A, nowMs: at(15, 0) });
+    L25.escalate({ id: first.id, gh, notify: () => {}, nowMs: at(15, 0) });
+    L25.settleDisputes({ gh, notify: () => {}, nowMs: at(15, 31) });
+    assert.equal(L25.disputes().get(first.id).decided.decidedBy, 'timeout');
+    assert.equal(prTurn(state.pr).turn, 'claude-check', 'the check and APPROVE from before the decision no longer count');
+    state.pr.comments.push({ ...check(A), createdAt: stamp(15, 40) });
+    assert.equal(prTurn(state.pr).turn, 'codex-review', 'every caller of prTurn reads the dispute state by default');
+    const result = review.runReview(7, { gh, run: fakeRun().run, readOut: () => JSON.stringify(output()), now: { date: '2026-11-14', hour: 15, minute: 45 } });
+    assert.equal(result.status, 'posted', 'the review command accepts the turn the tick asked for');
+    assert.ok(!mergeGate(state.pr).ok, 'no merge until the new APPROVE is newer than the decision');
+    state.pr.comments.at(-1).createdAt = stamp(15, 50);
+    assert.match(state.pr.comments.at(-1).body, new RegExp(`^Review verdict: APPROVE @ ${A}`));
+    assert.deepEqual(mergeGate(state.pr).reasons, []);
+    assert.equal(mergeGate(state.pr).ok, true);
+  } finally {
+    rmSync(L25.disputePath, { force: true });
+    rmSync(L25.logPath, { force: true });
+  }
 });
