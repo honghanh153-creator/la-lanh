@@ -79,7 +79,7 @@
    "from": "thỏa thuận 12.11 mục D",
    "who": "claude",
    "due": "2026-11-17",
-   "status": "waiting-owner",
+   "status": "open",
    "note": "gate merged 71a3673 (#542); installed by the owner 15.11, verify ok; real sub-agent probe 15.11: blocked write denied, allowed write also denied (guard-list-empty: ~/.cache/la-lanh-collab/private-guard.txt missing); removed 15.11 16:01 by owner choice until private-guard.txt exists; reinstall with --install-agent-gate, rerun the probe, then close"
   },
   {
