@@ -134,7 +134,7 @@ export function renderSnapshot(s) {
     `- Lượt Codex hôm nay: ${or(s.day, d => `${d.codexRuns}/${d.cap ?? codexDailyCap}; lỗi liên tiếp: ${d.failures}`, src.day)}.`,
     `- ${s.lessons ?? `Lời hứa sửa quy trình: ${or(null, null, src.lessons)}.`}`,
     `Nguồn: bản chụp ${s.date} khung ${s.slot}, lấy lúc ${s.takenVn}${s.base ? `, integration ${String(s.base).slice(0, 7)}` : ''} · snapshot ${s.digest}`,
-  ];
+  ].flatMap(line => line.split('\n'));
 }
 
 if (isMain(import.meta.url)) {
