@@ -4,7 +4,7 @@ Owner quyết ngày 15.11.2026 (hub #2): ngày nào nhánh chung có thay đổi
 
 ## Chạy khi nào
 
-- Tác vụ hẹn giờ trên máy owner, khoảng 23:00, trước mốc 23:35 vòng tự động ngừng nhận việc mới. Sau 23:35 lệnh `prepare` từ chối chạy.
+- Tác vụ hẹn giờ trên máy owner, khoảng 23:00, trước mốc 23:35 vòng tự động ngừng nhận việc mới. Sau 23:35 lệnh `prepare` từ chối chạy, kể cả khi vừa chờ xong khóa; mỗi lượt mô phỏng bị cắt ở 23:59.
 - Chỉ chạy khi diff từ đầu ngày tới cuối ngày của `collab/integration` có file chạm app: `apps/web/src`, `apps/web/public`, `apps/api/app`, migration, `apps/mobile`, `packages`, assets, file cấu hình web, dependency (`package.json`, lockfile, `pyproject.toml`, `uv.lock`), `vendor/`, `infra/`, `Dockerfile`. File không phân loại được cũng chạy. Chỉ đổi docs, scripts, qa, test thì không chạy; báo cáo ghi lý do.
 - Đầu ngày: `git rev-list -1 --first-parent --before="<ngày> 00:00 +0700" origin/collab/integration`. Cuối ngày: tip lúc chạy. Cả hai SHA ghi trong báo cáo.
 
@@ -20,11 +20,11 @@ Owner quyết ngày 15.11.2026 (hub #2): ngày nào nhánh chung có thay đổi
 
 - Nội dung mới (chưa có điểm theo hash) được chia thành `judge-NN.jsonl`, mỗi tệp tối đa 75 mục. Mỗi tệp giao cho một Claude subagent **mới**, mù với ngưỡng, theo `qa/personas/judge-prompt.md` mục A.
 - Điểm đã chấm được giữ qua các đêm ở `personas-nightly/labels/`, nên đêm sau chỉ chấm phần mới.
-- Codex chấm đối chiếu 10 mục mới chọn trước theo hạt (`<hạt>:codex`), 1 lượt mỗi đêm, tính vào `codexRuns` của ngày. Hết trần thì bỏ qua và báo cáo ghi rõ.
+- Codex chấm đối chiếu 10 mục mới chọn trước theo hạt (`<hạt>:codex`), tối đa 1 lượt mỗi đêm. Lượt gọi giữ khóa `review.lock` như các lần review Codex khác, được tính vào `codexRuns` **trước khi** gọi (gọi lỗi vẫn tính), chừa `auditReserve`, và không chạy quá 23:59. Hết trần hoặc khóa đang bận thì bỏ qua; báo cáo ghi rõ.
 
 ## Báo ngay
 
-`finish` mở hoặc cộng dồn issue `[ops-alert] người giả hằng đêm` khi có một trong các điều sau:
+Ngay sau hai lượt mô phỏng, trước bước chấm, `prepare` mở hoặc cộng dồn issue `[ops-alert] người giả hằng đêm` khi có một trong các điều sau (các kiểm này không cần giám khảo, nên chấm chậm hay Codex lỗi cũng không làm trễ cảnh báo). `finish` kiểm lại trên báo cáo cuối và chỉ báo lý do mới:
 
 - một ngưỡng nhóm "An toàn" đạt ở đầu ngày nhưng trượt ở cuối ngày;
 - số câu khủng hoảng được chuyển sang hỗ trợ giảm, hoặc số lần báo nhầm (câu "chết" nghĩa bóng, câu hỏi Tarot thường) tăng;
@@ -47,9 +47,9 @@ Báo cáo 07:00 (`la-lanh-bao-cao-7h`) đọc thư mục này.
 Dán nguyên văn khi tạo tác vụ (owner duyệt việc tạo tác vụ):
 
 > Chạy người giả hằng đêm của Lá Lành. Repo: thư mục ops clone `~/.cache/la-lanh-collab/ops` (đã ở `origin/collab/integration`; nếu chưa có thì `git clone https://github.com/honghanh153-creator/la-lanh.git` vào đó, rồi `git fetch origin collab/integration && git checkout --detach FETCH_HEAD`). PATH: `$HOME/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin:$HOME/.local/bin:/usr/bin:/bin`.
-> 1. `node scripts/personas-nightly.mjs prepare`. Nếu `status` là `skipped`, `refused` hoặc `busy` thì dừng; với `busy` hoặc `error` gửi thông báo đẩy một câu cho owner.
-> 2. Với mỗi tên trong `chunks`, giao một Claude subagent mới, song song tối đa 12, theo `qa/personas/judge-prompt.md` mục A. `<PACKETS>` là `~/.cache/la-lanh-collab/personas-nightly/<ngày>/<tên>.jsonl`, `<OUT>` là `.../<ngày>/out/<tên>.json`, rubric là `judge-rubric.md` trong cùng thư mục. Mỗi subagent chạy `node scripts/personas-nightly.mjs check --date <ngày> <tên>` tới khi in `ok`. Nếu `labelPackets` > 0, làm tương tự với `label-01.jsonl` theo mục B.
+> 1. `node scripts/personas-nightly.mjs prepare`. Nếu `alert` là true, gửi ngay thông báo đẩy: "Người giả hằng đêm: <reasons>. Xem issue ops-alert." Nếu `status` là `skipped`, `refused` hoặc `busy` thì dừng; với `busy` hoặc `error` gửi thông báo đẩy một câu cho owner.
+> 2. Với mỗi tên trong `chunks`, giao một Claude subagent mới, song song tối đa 12, theo `qa/personas/judge-prompt.md` mục A. `<PACKETS>` là `~/.cache/la-lanh-collab/personas-nightly/<ngày>/<tên>.jsonl`, `<OUT>` là `.../<ngày>/out/<tên>.json`, rubric là `judge-rubric.md` trong cùng thư mục. Mỗi subagent chạy `node scripts/personas-nightly.mjs check --date <ngày> <tên>` tới khi in `ok`. Nếu `labelPackets` > 0, làm tương tự với `label-01.jsonl` theo mục B (`check ... label-01` kiểm dạng nhãn `light`/`not_light`).
 > 3. `node scripts/personas-nightly.mjs merge --date <ngày> <các tệp out>`.
 > 4. `node scripts/personas-nightly.mjs codex --date <ngày>`.
-> 5. `node scripts/personas-nightly.mjs finish --date <ngày>`. Nếu `alert` là true, gửi thông báo đẩy: "Người giả hằng đêm: <reasons>. Xem issue ops-alert."
+> 5. `node scripts/personas-nightly.mjs finish --date <ngày>`. Nếu `alert` là true (lý do mới chưa báo ở bước 1), gửi thông báo đẩy như bước 1.
 > Không đăng chữ người giả, ảnh hay dữ liệu cá nhân lên GitHub. Không merge, không deploy.

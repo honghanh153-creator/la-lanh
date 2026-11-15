@@ -23,7 +23,7 @@ import { machineBusy } from './collab-check.mjs';
 import { auditReserve } from './collab-audit.mjs';
 import { codexBin, codexModel } from './codex-review.mjs';
 import { opsAlert } from './collab-turn.mjs';
-import { dayCap, dayStatePath, hhmmOf, integration, lastStartAt, makeGh, readJson, repo, stateDir, vnNow, writeJson } from './collab-trust.mjs';
+import { cutoffMs, dayCap, dayStatePath, hhmmOf, integration, lastStartAt, makeGh, readJson, repo, stateDir, vnNow, writeJson } from './collab-trust.mjs';
 import { isMain } from './is-main.mjs';
 
 export const sampleSize = 200;
@@ -123,6 +123,20 @@ export function checkJudgeOutput(packetLines, out) {
     if (!Number.isInteger(r?.score) || r.score < 1 || r.score > 5) problems.push(`${r?.item_id}: score must be an integer 1-5`);
     if (typeof r?.reason !== 'string' || !r.reason.trim()) problems.push(`${r?.item_id}: reason is empty`);
   }
+  return problems;
+}
+
+export function checkLabelOutput(packetLines, out) {
+  const want = packetLines.filter(l => l.trim()).map(l => JSON.parse(l).action);
+  if (!Array.isArray(out)) return ['output is not a JSON array'];
+  const got = out.map(r => r?.action);
+  const problems = [];
+  const missing = want.filter(a => !got.includes(a));
+  const extra = got.filter(a => !want.includes(a));
+  if (missing.length || extra.length || new Set(got).size !== got.length) {
+    problems.push(`actions differ: missing ${missing.length}, extra ${extra.length}, duplicates ${got.length - new Set(got).size}`);
+  }
+  for (const r of out) if (!['light', 'not_light'].includes(r?.label)) problems.push(`${String(r?.action).slice(0, 40)}: label must be light or not_light`);
   return problems;
 }
 
@@ -239,11 +253,11 @@ function writeSkip(date, reason, extra = {}) {
   return { status: 'skipped', reason, report: join(out, 'report.md') };
 }
 
-export async function prepare({ date = vnNow().date, anyTime = false } = {}) {
-  const now = vnNow();
-  if (!anyTime && date === now.date && now.hour * 60 + now.minute >= lastStartAt) {
-    return { status: 'refused', reason: `quá ${hhmmOf(lastStartAt)}, không bắt đầu việc mới` };
-  }
+const pastStart = (date, now = vnNow()) => date === now.date && now.hour * 60 + now.minute >= lastStartAt;
+const refusedLate = { status: 'refused', reason: `quá ${hhmmOf(lastStartAt)}, không bắt đầu việc mới` };
+
+export async function prepare({ date = vnNow().date, anyTime = false, alerting = {} } = {}) {
+  if (!anyTime && pastStart(date)) return refusedLate;
   const dir = dayDir(date);
   rmSync(dir, { recursive: true, force: true });
   mkdirSync(dir, { recursive: true });
@@ -260,6 +274,8 @@ export async function prepare({ date = vnNow().date, anyTime = false } = {}) {
   if (!kinds.run) return writeSkip(date, start === end ? 'hôm nay không có commit mới trên nhánh chung' : 'hôm nay không có thay đổi chạm tới app', base);
 
   return withHeavyLock(async () => {
+    if (!anyTime && pastStart(date)) return refusedLate;
+    const limitMs = () => (anyTime ? 30 * 60000 : Math.min(30 * 60000, cutoffMs(date) - Date.now()));
     const endClone = prepareClone('end', end, end);
     const startClone = prepareClone('start', start, end);
     const all = JSON.parse(readFileSync(join(endClone, 'qa', 'personas', 'personas-1000.json'), 'utf8')).personas;
@@ -267,11 +283,13 @@ export async function prepare({ date = vnNow().date, anyTime = false } = {}) {
     const personasPath = join(dir, 'personas-200.json');
     writeFileSync(personasPath, `${JSON.stringify({ seed: seedOf(date), personas: all.filter(p => ids.includes(p.id)) }, null, 1)}\n`);
     const runs = {};
+    const metrics = {};
     for (const [role, clone] of [['start', startClone], ['end', endClone]]) {
       const out = join(dir, role);
-      runs[role] = await runSim(clone, personasPath, out);
+      if (limitMs() <= 0) throw new Error('hết giờ trong ngày trước khi chạy xong');
+      runs[role] = await runSim(clone, personasPath, out, { limitMs: limitMs() });
       if (runs[role].code !== 0) throw new Error(`persona_sim ${role} exit ${runs[role].code}: ${runs[role].tail}`);
-      report(endClone, out, personasPath, `${role} ${date}`);
+      metrics[role] = report(endClone, out, personasPath, `${role} ${date}`);
     }
     const packets = new Map();
     const labels = new Set();
@@ -291,16 +309,20 @@ export async function prepare({ date = vnNow().date, anyTime = false } = {}) {
     const codexItems = pickCodexItems(date, [...packets.keys()]);
     writeFileSync(join(dir, 'codex-sample.jsonl'), codexItems.map(id => packets.get(id)).join('\n') + (codexItems.length ? '\n' : ''));
     mkdirSync(join(dir, 'out'), { recursive: true });
-    const state = { ...base, seed: seedOf(date), ids, runs, chunks, labelPackets: labels.size, codexItems, preparedAt: new Date().toISOString() };
+    const state = { ...base, seed: seedOf(date), ids, runs, chunks, labelPackets: labels.size, codexItems, preparedAt: new Date().toISOString(), alerted: [] };
+    const safety = safetyReasons(metrics.start, metrics.end, transcriptRows(dir, 'end'));
     writeState(date, state);
-    return { status: 'prepared', dir, chunks, labelPackets: labels.size, codexItems: codexItems.length };
+    const raised = raiseNew(date, state, safety.reasons, alerting);
+    writeState(date, state);
+    return { status: 'prepared', dir, chunks, labelPackets: labels.size, codexItems: codexItems.length, alert: raised.raised.length > 0, reasons: raised.raised };
   });
 }
 
 export function check(date, chunk) {
   const lines = readFileSync(join(dayDir(date), `${chunk}.jsonl`), 'utf8').split('\n');
   const out = readMaybe(join(dayDir(date), 'out', `${chunk}.json`));
-  return out === null ? ['output file is missing or not JSON'] : checkJudgeOutput(lines, out);
+  if (out === null) return ['output file is missing or not JSON'];
+  return chunk.startsWith('label-') ? checkLabelOutput(lines, out) : checkJudgeOutput(lines, out);
 }
 
 export function merge(date, files) {
@@ -317,24 +339,41 @@ Tệp \`codex-sample.jsonl\` có mỗi dòng một mục JSON: \`profile\` là m
 Chấm từng mục độc lập, từ góc nhìn người đó, theo thang 1–5 của rubric. Không đọc file nào khác.
 Trả lời CHỈ một mảng JSON \`[{"item_id": "...", "score": 1-5, "reason": "một câu tiếng Việt ngắn"}]\`, đủ mọi mục, đúng item_id.`;
 
-export function codex(date, { run = execFileSync } = {}) {
+export function codex(date, { run = execFileSync, now = vnNow, nowMs = Date.now } = {}) {
   const state = readState(date);
   const dir = dayDir(date);
   if (!state.codexItems?.length) return { status: 'skipped', reason: 'không có nội dung mới để Codex chấm đối chiếu' };
-  const today = vnNow().date;
-  const dayPath = dayStatePath(today);
-  const day = readJson(dayPath, { codexRuns: 0, failures: 0 });
-  if ((day.codexRuns ?? 0) >= dayCap(day) - auditReserve) return { status: 'skipped', reason: 'hết lượt Codex trong ngày' };
-  const outPath = join(dir, 'codex-out.txt');
-  run(codexBin, ['exec', '--skip-git-repo-check', '-s', 'read-only', '--ephemeral', '-m', codexModel, '-c', 'model_reasoning_effort="high"',
-    '-C', dir, '-o', outPath, '--color', 'never', '-'], { input: codexPrompt, encoding: 'utf8', timeout: 20 * 60000, maxBuffer: 16 * 1024 * 1024 });
-  const fresh = readJson(dayPath, { codexRuns: 0, failures: 0 });
-  writeJson(dayPath, { ...fresh, codexRuns: (fresh.codexRuns ?? 0) + 1, personasNightlyRuns: (fresh.personasNightlyRuns ?? 0) + 1 });
-  const text = readFileSync(outPath, 'utf8');
-  const parsed = JSON.parse(text.slice(text.indexOf('['), text.lastIndexOf(']') + 1));
-  const problems = checkJudgeOutput(readFileSync(join(dir, 'codex-sample.jsonl'), 'utf8').split('\n'), parsed);
-  writeFileSync(join(dir, 'codex-scores.json'), `${JSON.stringify(parsed, null, 1)}\n`);
-  return { status: problems.length ? 'incomplete' : 'scored', items: parsed.length, problems };
+  if (state.codexAttempt) return { status: 'skipped', reason: 'đêm nay đã gọi Codex một lần' };
+  const leftMs = cutoffMs(now().date) - nowMs();
+  if (leftMs <= 60000) return { status: 'refused', reason: 'hết giờ trong ngày' };
+  // Same lock as codex-review, copy review and the night audit: admission, the call and the
+  // counter update are one critical section, so two callers cannot both pass the cap check.
+  mkdirSync(stateDir, { recursive: true });
+  const release = acquireLock(join(stateDir, 'review.lock'), { staleMs: 45 * 60000 });
+  if (!release) return { status: 'busy', reason: 'một review Codex khác đang chạy' };
+  try {
+    const dayPath = dayStatePath(now().date);
+    const day = readJson(dayPath, { codexRuns: 0, failures: 0 });
+    if ((day.codexRuns ?? 0) >= dayCap(day) - auditReserve) return { status: 'skipped', reason: 'hết lượt Codex trong ngày' };
+    // Count the call before it starts: a timeout or crash still spent it.
+    writeJson(dayPath, { ...day, codexRuns: (day.codexRuns ?? 0) + 1, personasNightlyRuns: (day.personasNightlyRuns ?? 0) + 1 });
+    state.codexAttempt = { startedAt: new Date(nowMs()).toISOString() };
+    writeState(date, state);
+    const outPath = join(dir, 'codex-out.txt');
+    try {
+      run(codexBin, ['exec', '--skip-git-repo-check', '-s', 'read-only', '--ephemeral', '-m', codexModel, '-c', 'model_reasoning_effort="high"',
+        '-C', dir, '-o', outPath, '--color', 'never', '-'], { input: codexPrompt, encoding: 'utf8', timeout: Math.min(20 * 60000, leftMs), maxBuffer: 16 * 1024 * 1024 });
+    } catch (error) {
+      state.codexAttempt.error = String(error?.message ?? error).slice(0, 300);
+      writeState(date, state);
+      return { status: 'failed', reason: state.codexAttempt.error };
+    }
+    const text = readFileSync(outPath, 'utf8');
+    const parsed = JSON.parse(text.slice(text.indexOf('['), text.lastIndexOf(']') + 1));
+    const problems = checkJudgeOutput(readFileSync(join(dir, 'codex-sample.jsonl'), 'utf8').split('\n'), parsed);
+    writeFileSync(join(dir, 'codex-scores.json'), `${JSON.stringify(parsed, null, 1)}\n`);
+    return { status: problems.length ? 'incomplete' : 'scored', items: parsed.length, problems };
+  } finally { release(); }
 }
 
 function codexComparison(date) {
@@ -382,6 +421,22 @@ export function renderNightly({ state, cmp, leaks, codexCmp, judged, endMetrics 
   return lines.join('\n');
 }
 
+// Safety and leak checks need no judge, so they run as soon as both simulations exist; finish
+// repeats them on the final reports and only raises reasons that were not raised yet.
+export function safetyReasons(start, end, endRows) {
+  const cmp = compareRuns(start, end);
+  const leaks = crossLeaks(endRows);
+  return { cmp, leaks, reasons: [...cmp.safety, ...(leaks.length ? [`lộ dữ liệu giữa người dùng: ${leaks.length} lần`] : [])] };
+}
+export function raiseNew(date, state, reasons, { alert = opsAlert, gh = () => makeGh() } = {}) {
+  const fresh = reasons.filter(r => !(state.alerted ?? []).includes(r));
+  if (!fresh.length) return { raised: [], issue: null };
+  const issue = alert(gh(), `Người giả hằng đêm ${date} (${state.start.slice(0, 7)}..${state.end.slice(0, 7)}): ${fresh.join('; ')}. Báo cáo trên máy owner: la-lanh-bao-cao/${nextDay(date)}/personas/report.md`, 'người giả hằng đêm');
+  state.alerted = [...(state.alerted ?? []), ...fresh];
+  return { raised: fresh, issue };
+}
+const transcriptRows = (dir, role) => readFileSync(join(dir, role, 'transcript.jsonl'), 'utf8').split('\n').filter(Boolean).map(l => JSON.parse(l));
+
 export function finish(date, { alert = opsAlert, gh = () => makeGh() } = {}) {
   const state = readState(date);
   const dir = dayDir(date);
@@ -389,9 +444,7 @@ export function finish(date, { alert = opsAlert, gh = () => makeGh() } = {}) {
   const personasPath = join(dir, 'personas-200.json');
   const start = report(clone, join(dir, 'start'), personasPath, `start ${date}`);
   const end = report(clone, join(dir, 'end'), personasPath, `end ${date}`);
-  const cmp = compareRuns(start, end);
-  const rows = role => readFileSync(join(dir, role, 'transcript.jsonl'), 'utf8').split('\n').filter(Boolean).map(l => JSON.parse(l));
-  const leaks = crossLeaks(rows('end'));
+  const { cmp, leaks, reasons } = safetyReasons(start, end, transcriptRows(dir, 'end'));
   const judged = { needed: end.understood.items_needed + start.understood.items_needed, scored: end.understood.items_scored + start.understood.items_scored };
   const codexCmp = codexComparison(date);
   const out = join(reportRoot(), nextDay(date), 'personas');
@@ -399,13 +452,10 @@ export function finish(date, { alert = opsAlert, gh = () => makeGh() } = {}) {
   writeFileSync(join(out, 'report.md'), renderNightly({ state, cmp, leaks, codexCmp, judged, endMetrics: end }));
   writeFileSync(join(out, 'start.md'), readFileSync(join(dir, 'start', 'report.md')));
   writeFileSync(join(out, 'end.md'), readFileSync(join(dir, 'end', 'report.md')));
-  const reasons = [...cmp.safety, ...(leaks.length ? [`lộ dữ liệu giữa người dùng: ${leaks.length} lần`] : [])];
   writeFileSync(join(out, 'metrics.json'), `${JSON.stringify({ date, seed: state.seed, start: state.start, end: state.end, ids: state.ids, appChanges: state.appChanges, unknownChanges: state.unknownChanges, comparison: cmp.rows, safety: cmp.safety, leaks: leaks.length, judged, codex: codexCmp, runs: state.runs }, null, 1)}\n`);
-  let issue = null;
-  if (reasons.length) {
-    issue = alert(gh(), `Người giả hằng đêm ${date} (${state.start.slice(0, 7)}..${state.end.slice(0, 7)}): ${reasons.join('; ')}. Báo cáo trên máy owner: la-lanh-bao-cao/${nextDay(date)}/personas/report.md`, 'người giả hằng đêm');
-  }
-  return { status: 'finished', report: join(out, 'report.md'), alert: reasons.length > 0, reasons, issue };
+  const raised = raiseNew(date, state, reasons, { alert, gh });
+  writeState(date, state);
+  return { status: 'finished', report: join(out, 'report.md'), alert: raised.raised.length > 0, reasons: raised.raised, allReasons: reasons, issue: raised.issue };
 }
 
 if (isMain(import.meta.url)) {

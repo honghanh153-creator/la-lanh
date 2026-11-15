@@ -3,7 +3,11 @@
 import './collab-test-home.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { checkJudgeOutput, classifyChanges, compareRuns, crossLeaks, nextDay, pickCodexItems, pickIds, renderNightly, seedOf, unionLabels } from './personas-nightly.mjs';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { acquireLock } from './collab-lock.mjs';
+import { dayStatePath, readJson, stateDir, writeJson } from './collab-trust.mjs';
+import { checkJudgeOutput, checkLabelOutput, classifyChanges, codex, compareRuns, crossLeaks, dayDir, nextDay, pickCodexItems, pickIds, raiseNew, renderNightly, safetyReasons, seedOf, unionLabels } from './personas-nightly.mjs';
 
 test('only app-facing or unknown changes trigger a run', () => {
   assert.equal(classifyChanges(['docs/a.md', 'scripts/x.mjs', 'qa/personas/r.md', 'apps/api/tests/t.py']).run, false);
@@ -81,4 +85,55 @@ test('the report names both commits, the seed and puts safety first', () => {
   assert.ok(text.indexOf('Cảnh báo an toàn') < text.indexOf('So với đầu ngày'));
   assert.match(text, /8\/10 mục/);
   assert.match(text, /không thay QA trình duyệt/);
+});
+
+test('action-label outputs are checked against the label schema, not the score schema', () => {
+  const packets = ['{"action":"đi bộ 5 phút"}', '{"action":"gọi cho mẹ"}'];
+  assert.deepEqual(checkLabelOutput(packets, [{ action: 'đi bộ 5 phút', label: 'light' }, { action: 'gọi cho mẹ', label: 'not_light' }]), []);
+  assert.match(checkLabelOutput(packets, [{ action: 'đi bộ 5 phút', label: 'nhẹ' }]).join('|'), /missing 1.*light or not_light/s);
+});
+
+test('a safety reason is raised once, as soon as it is known, and only new reasons later', () => {
+  const calls = [];
+  const alert = (_gh, text) => { calls.push(text); return { number: 7 }; };
+  const state = { start: 'a'.repeat(40), end: 'b'.repeat(40), alerted: [] };
+  const first = safetyReasons(metrics(5, 0, true), metrics(3, 0, true), [
+    { persona: 'P1', day: 0, tarot: [{ text: 'Câu hỏi riêng của người một về chỗ làm' }] },
+    { persona: 'P2', day: 1, headline: 'Câu hỏi riêng của người một về chỗ làm' },
+  ]);
+  assert.equal(first.reasons.length, 2);
+  assert.equal(raiseNew('2026-11-16', state, first.reasons, { alert, gh: () => null }).raised.length, 2);
+  assert.equal(calls.length, 1);
+  assert.equal(raiseNew('2026-11-16', state, first.reasons, { alert, gh: () => null }).raised.length, 0, 'finish does not repeat it');
+  assert.equal(calls.length, 1);
+  assert.deepEqual(raiseNew('2026-11-16', state, [...first.reasons, 'mới'], { alert, gh: () => null }).raised, ['mới']);
+});
+
+const codexDay = '2026-11-16';
+const now = () => ({ date: codexDay, hour: 23, minute: 10 });
+const nowMs = () => Date.parse(`${codexDay}T23:10:00+07:00`);
+function seedState(extra = {}) {
+  mkdirSync(dayDir(codexDay), { recursive: true });
+  writeJson(join(dayDir(codexDay), 'state.json'), { date: codexDay, start: 'a'.repeat(40), end: 'b'.repeat(40), codexItems: ['x'], ...extra });
+}
+test('the nightly Codex call is counted before it runs, even when it fails, and runs once a night', () => {
+  writeJson(dayStatePath(codexDay), { codexRuns: 3, failures: 0 });
+  seedState();
+  const failed = codex(codexDay, { run: () => { throw new Error('timeout'); }, now, nowMs });
+  assert.equal(failed.status, 'failed');
+  assert.equal(readJson(dayStatePath(codexDay), {}).codexRuns, 4);
+  assert.equal(codex(codexDay, { run: () => { throw new Error('should not run'); }, now, nowMs }).status, 'skipped');
+  assert.equal(readJson(dayStatePath(codexDay), {}).codexRuns, 4);
+});
+
+test('the nightly Codex call waits for the shared review lock and respects the cap and the cutoff', () => {
+  seedState();
+  const release = acquireLock(join(stateDir, 'review.lock'), { staleMs: 60000 });
+  try { assert.equal(codex(codexDay, { run: () => { throw new Error('no'); }, now, nowMs }).status, 'busy'); }
+  finally { release(); }
+  writeJson(dayStatePath(codexDay), { codexRuns: 59, failures: 0 });
+  assert.equal(codex(codexDay, { run: () => { throw new Error('no'); }, now, nowMs }).reason, 'hết lượt Codex trong ngày');
+  assert.equal(readJson(dayStatePath(codexDay), {}).codexRuns, 59);
+  writeFileSync(join(dayDir(codexDay), 'unused'), '');
+  assert.equal(codex(codexDay, { run: () => { throw new Error('no'); }, now, nowMs: () => Date.parse(`${codexDay}T23:59:30+07:00`) }).status, 'refused');
 });
