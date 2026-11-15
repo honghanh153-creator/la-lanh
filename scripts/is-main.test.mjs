@@ -37,3 +37,12 @@ test('no script keeps the old entry check', () => {
   const left = readdirSync(scripts, { recursive: true }).filter(f => !f.includes('node_modules') && f.endsWith('.mjs') && !f.endsWith('.test.mjs')).filter(f => old.test(readFileSync(join(scripts, f), 'utf8')));
   assert.deepEqual(left, []);
 });
+
+// 15.11.2026: research-sources.test.mjs took the .pathname of a module URL as a folder. On the
+// owner's Mac the checkout path has a space, .pathname keeps it as %20, no file was found and the
+// test failed only there (CI paths have no space). Use fileURLToPath.
+test('no script or test turns a module URL into a path with .pathname', () => {
+  const bad = /import\.meta\.url\)\.pathname/;
+  const files = readdirSync(scripts, { recursive: true }).filter(f => !f.includes('node_modules') && f.endsWith('.mjs'));
+  assert.deepEqual(files.filter(f => bad.test(readFileSync(join(scripts, f), 'utf8'))), []);
+});
