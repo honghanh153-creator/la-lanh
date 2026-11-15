@@ -18,7 +18,8 @@
 // Limits (same machine rights as L24): Claude can remove the hook or start without it; the verify
 // in collab-ops-wrapper.mjs and the tick alert only detect that. Bash is checked by the working
 // directory of each part (cd included), absolute paths, relative paths with a slash and redirection
-// targets; paths built at run time ($VAR, $(…)) are not seen. The gate stops accidents, not a child
+// targets, `git -C` dirs and existing bare names; paths built at run time ($VAR, $(…)), chained -C and
+// destinations attached to an option (--output=link) are not seen (accepted limits, #553). The gate stops accidents, not a child
 // that crafts a command to run a program through an allowed read tool. The main session is not gated.
 // Usage (from the hook): node scripts/collab-agent-gate.mjs            (PreToolUse, JSON on stdin)
 //                         node scripts/collab-agent-gate.mjs --release  (SubagentStop, JSON on stdin)
