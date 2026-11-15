@@ -333,7 +333,7 @@ test('tick: reviews stop one run short of the cap, which is kept for the night a
   writeJson(dayStatePath(date), { codexRuns: codexDailyCap - auditReserve - 1 });
   tick({ gh: plannedGh(date), now: { date, hour: 12, minute: 10 }, merge: () => ({}), review: number => { started.push(number); return { status: 'posted' }; } });
   assert.deepEqual(started, [7]);
-  assert.ok(readFileSync(new URL('./codex-review.mjs', import.meta.url), 'utf8').includes('codexDailyCap - auditReserve'), 'direct automatic reviews keep the reserve too');
+  assert.ok(readFileSync(new URL('./codex-review.mjs', import.meta.url), 'utf8').includes('dayCap(day) - auditReserve'), 'direct automatic reviews keep the reserve too');
 });
 
 // L23: the 11–13.11 baseline with the same collector.
@@ -515,4 +515,33 @@ test('L22: the tick night audit reads the disagreement log written by collab-dis
   assert.equal(M8.value, 1, JSON.stringify(M8));
   assert.equal(M8.codex, 1);
   assert.match(codex.calls[0], /"winner":"codex"/, 'Codex sees the log to find unrecorded disagreements');
+});
+
+// Owner 15.11.2026 ("thêm 20 lượt nữa cho codex nhé"): a day grant raises every cap; the night
+// audit keeps its reserve.
+test('owner grant: 20 extra runs let the tick review at 60 and the audit run at 79, reserve kept', () => {
+  const date = '2026-12-04';
+  const grant = { ownerExtraCodex: { granted: 20, used: 0, log: [] } };
+  const started = [];
+  writeJson(dayStatePath(date), { codexRuns: codexDailyCap, ...grant });
+  tick({ gh: plannedGh(date), now: { date, hour: 12, minute: 0 }, merge: () => ({}), review: number => { started.push(number); return { status: 'posted' }; } });
+  assert.deepEqual(started, [7], 'past the base cap, inside the grant');
+  writeJson(dayStatePath(date), { codexRuns: codexDailyCap + 20 - auditReserve, ...grant });
+  tick({ gh: plannedGh(date), now: { date, hour: 12, minute: 10 }, merge: () => ({}), review: number => { started.push(number); return { status: 'posted' }; } });
+  assert.deepEqual(started, [7], 'the last run of the grant stays reserved for the night audit');
+  // The audit itself may use that reserved run, and no more.
+  const auditDate = '2026-11-14';
+  writeJson(dayStatePath(auditDate), { codexRuns: codexDailyCap + 20 - 1, ...grant });
+  const codex = fakeCodex();
+  runNightAudit({ gh: fakeGh(), now: at('2026-11-14T16:05:00Z'), dir: fresh(), codex, ...deps() });
+  assert.equal(codex.calls.length, 1, 'the reserve run is spent by the audit');
+  writeJson(dayStatePath(auditDate), { codexRuns: codexDailyCap + 20, ...grant });
+  const codex2 = fakeCodex();
+  const dir2 = fresh();
+  runNightAudit({ gh: fakeGh(), now: at('2026-11-14T16:05:00Z'), dir: dir2, codex: codex2, ...deps() });
+  assert.equal(codex2.calls.length, 0);
+  assert.ok(readRecord(auditDate, dir2).metrics.M1.missing.includes(`hết lượt Codex (${codexDailyCap + 20}/${codexDailyCap + 20})`));
+  // Without a grant nothing changes.
+  assert.equal(trust.dayCap({}), codexDailyCap);
+  assert.equal(trust.dayCap({ ownerExtraCodex: { granted: -5 } }), codexDailyCap);
 });

@@ -65,7 +65,7 @@ function copyLines(committed) {
   return rows.length ? ['', '**Câu chữ cần duyệt cùng plan** (`Duyệt` là duyệt luôn các câu này; `Bỏ #N` nếu chưa muốn):', ...rows, ''] : [];
 }
 
-export function renderPlan(now, turns, { codexLeft, gap = null, health = [] }) {
+export function renderPlan(now, turns, { codexLeft, cap = codexDailyCap, gap = null, health = [] }) {
   const label = { 'claude-check': 'Claude chạy author check', 'codex-review': 'Codex review', 'claude-fix': 'Claude sửa', merge: 'Merge integration', hold: 'Giữ' };
   const committed = committedTurns(turns);
   const short = planMin - committed.length;
@@ -79,7 +79,7 @@ export function renderPlan(now, turns, { codexLeft, gap = null, health = [] }) {
     `## Plan ${now.date}`,
     '',
     'Thứ tự ưu tiên: quy trình (ops) → content → privacy → tính năng mới. Trong nhóm, PR cũ trước.',
-    `Lượt Codex tự động còn hôm nay: ${codexLeft}/${codexDailyCap}. Chạy tới ${hhmmOf(cutoffAt)} (không bắt đầu lượt mới sau ${hhmmOf(lastStartAt)}), không merge vào main, không deploy.`,
+    `Lượt Codex tự động còn hôm nay: ${codexLeft}/${cap}. Chạy tới ${hhmmOf(cutoffAt)} (không bắt đầu lượt mới sau ${hhmmOf(lastStartAt)}), không merge vào main, không deploy.`,
     // A long pause before the plan means the Mac slept or was off (retro D3, 31.10.2026).
     ...(gap ? [`**Máy không chạy tick từ ${gap.from} tới ${gap.to}** (Mac ngủ hoặc tắt), nên plan có thể trễ.`] : []),
     // Health of the unattended Claude runs (watchdog, owner 03.11.2026): a stall shows every morning.
@@ -131,9 +131,9 @@ export function readPlanStatus(gh, now = vnNow()) {
   return { issue: number, comments: issue.comments ?? [], ...planState(now, issue.comments ?? []) };
 }
 
-export function makePlan(gh, now, turns, { codexLeft, gap = null, health = [] }) {
+export function makePlan(gh, now, turns, { codexLeft, cap = codexDailyCap, gap = null, health = [] }) {
   const number = planIssue(gh);
-  gh.comment('issue', number, renderPlan(now, turns, { codexLeft, gap, health }));
+  gh.comment('issue', number, renderPlan(now, turns, { codexLeft, cap, gap, health }));
   return number;
 }
 
