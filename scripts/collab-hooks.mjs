@@ -13,7 +13,16 @@ import { isMain } from './is-main.mjs';
 
 export const claudeClone = process.env.LA_LANH_CLAUDE_CLONE || join(homedir(), 'Documents', 'New project', 'la-lanh-claude');
 export const hookMarker = '# la-lanh pre-push';
-const hookVersion = `${hookMarker} v2`;
+const hookVersion = `${hookMarker} v3`;
+
+// L30 (15.11.2026): the private-guard list may be missing (it was, unnoticed). The guard then
+// prints "private-guard: list missing", the push is not blocked (owner's call), and the tick shows
+// a warning. A list that exists but has no terms counts as missing too.
+export const guardListPath = () => join(process.env.LA_LANH_COLLAB_HOME || join(homedir(), '.cache', 'la-lanh-collab'), 'private-guard.txt');
+export function guardListState(path = guardListPath()) {
+  try { return readFileSync(path, 'utf8').split('\n').some(l => l.trim() && !l.trim().startsWith('#')) ? 'ready' : 'missing'; }
+  catch (error) { return error?.code === 'ENOENT' ? 'missing' : 'unreadable'; }
+}
 
 export const prePushHook = [
   '#!/bin/bash',
@@ -29,10 +38,11 @@ export const prePushHook = [
   'refs="$(cat)"',
   '# Private-data guard: every commit the remote does not have yet.',
   '# Fail closed: only an explicit "private-guard: ok" lets the push through (a script that ran',
-  '# nothing and exited 0 must not count as a pass).',
+  '# nothing and exited 0 must not count as a pass). "list missing" passes too, by owner choice',
+  '# (L30), and the tick warns about it.',
   'guard="$(printf \'%s\\n\' "$refs" | node "$ops/scripts/collab-check.mjs" --guard)" || { printf \'%s\\n\' "$guard"; exit 1; }',
   'printf \'%s\\n\' "$guard"',
-  'case "$guard" in *"private-guard: ok"*) ;; *) echo "pre-push: quét dữ liệu riêng tư không trả kết quả rõ ràng; chặn push" >&2; exit 1 ;; esac',
+  'case "$guard" in *"private-guard: ok"*|*"private-guard: list missing"*) ;; *) echo "pre-push: quét dữ liệu riêng tư không trả kết quả rõ ràng; chặn push" >&2; exit 1 ;; esac',
   '# Ruff and mypy on changed Python files, with the locked tool versions CI uses.',
   'node "$ops/scripts/collab-preflight.mjs" --lint || { echo "pre-push: lint trượt, sửa rồi push lại" >&2; exit 1; }',
   '',
@@ -74,7 +84,9 @@ export function installHook(clone = claudeClone, { dir = () => hooksDir(clone) }
 export function hookHealth(clone = claudeClone, opts) {
   try {
     const bad = verifyHook(clone, opts);
-    return bad.length ? [`- ⚠️ Hook trước push ở clone Claude: ${bad.join('; ')}`] : ['- ✅ Hook trước push ở clone Claude: đã cài'];
+    const list = guardListState(opts?.guardList);
+    const listLine = list === 'ready' ? [] : [`- ⚠️ Danh sách mục cấm (private-guard.txt) ${list === 'missing' ? 'chưa có' : 'không đọc được'}: push không được quét dữ liệu riêng tư; owner tạo file để bật lại`];
+    return [...(bad.length ? [`- ⚠️ Hook trước push ở clone Claude: ${bad.join('; ')}`] : ['- ✅ Hook trước push ở clone Claude: đã cài']), ...listLine];
   } catch (error) { return [`- ⚠️ Hook trước push ở clone Claude: chưa kiểm được (${error.message})`]; }
 }
 
