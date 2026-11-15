@@ -7,7 +7,8 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { acquireLock } from './collab-lock.mjs';
 import { agentMarker, bindReceipt, boundedTimeout, clean, cutoffAt, cutoffMs, dayStatePath, DeadlineError, hhmmOf, integration, isOwnPr, isSha, lastStartAt, makeGh, planOpensAt, readJson, repo, reviewState, signReceipt, stateDir, trustedComments, verdictSeal, vnNow, writeJson } from './collab-trust.mjs';
-import { codexDailyCap, prTurn } from './collab-turn.mjs';
+import { prTurn } from './collab-turn.mjs';
+import { dayCap } from './collab-trust.mjs';
 import { groupExec } from './collab-heal.mjs';
 import { applyPolicy, isBlocking, validateOutput } from './collab-review-policy.mjs';
 import { isMain } from './is-main.mjs';
@@ -138,7 +139,7 @@ function reviewOnce(number, { auto = false, gh: ghIn = makeGh(), run = execFileS
   if (turn.turn !== 'codex-review') return { status: 'refused', reason: `lượt hiện tại là ${turn.turn}: ${turn.reason}` };
   const dayPath = dayStatePath(now.date);
   const day = readJson(dayPath, { codexRuns: 0, failures: 0 });
-  if (auto && day.codexRuns >= codexDailyCap - auditReserve) return { status: 'refused', reason: `hết ${codexDailyCap - auditReserve} lượt Codex tự động hôm nay (1 lượt giữ cho soát đêm)` };
+  if (auto && day.codexRuns >= dayCap(day) - auditReserve) return { status: 'refused', reason: `hết ${dayCap(day) - auditReserve} lượt Codex tự động hôm nay (1 lượt giữ cho soát đêm)` };
 
   const trusted = trustedComments(pr.comments);
   // Only a signed earlier review narrows the re-review to a delta: an unsigned one could be forged to

@@ -1,8 +1,9 @@
 // Whose turn is it on each open PR? `--report` replaces the registry PRs; `--tick` is the launchd safety net.
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { areaOrder, classifyArea, clean, codexDailyCap, dayStatePath, integration, isOwnPr, makeGh, readJson, repo, reviewState, sortByPriority, stateDir, trustedComments, vnNow, writeJson } from './collab-trust.mjs';
-import { autoStartAt, committedTurns, lastStartAt, makePlan, readPlanStatus } from './collab-plan.mjs';
+import { agentMarker, areaOrder, classifyArea, clean, codexDailyCap, dayCap, dayStatePath, integration, isOwnPr, makeGh, readJson, repo, reviewState, sortByPriority, stateDir, trustedComments, vnNow, writeJson } from './collab-trust.mjs';
+import { autoStartAt, committedTurns, lastStartAt, makePlan, planIssue, readPlanStatus } from './collab-plan.mjs';
+import { dayList, min7w, pickPlan, planCap, plannedEntry, quotaIssues, unitKey, workUnits } from './collab-quota.mjs';
 import { auditReserve } from './collab-audit.mjs';
 import { ownerNotes } from './collab-status.mjs';
 import { bodyHash } from './collab-heal.mjs';
@@ -78,6 +79,101 @@ export function prTurn(pr, { dropped = [], open = [], preflight = {}, baseFiles,
   if (last.verdict === 'REQUEST_CHANGES') return out('claude-fix', 'REQUEST_CHANGES @ head');
   if (state.stale) return out('codex-review', `review lại: ${clean(state.stale, 200)}`);
   return out('merge', 'APPROVE @ head');
+}
+
+// The day's list (collab-quota.mjs). A failed label read leaves the quota unknown and says so; the
+// machine then picks as before, never as if there were no 7-week items.
+export function planList({ gh, turns, prs, comments, date, issues = () => quotaIssues(gh) }) {
+  try {
+    return dayList({ units: workUnits({ turns, prs, issues: issues() }), comments, date });
+  } catch (error) {
+    const units = workUnits({ turns, prs, issues: [] });
+    return { source: 'machine', unknown: true, note: `Chưa xác định được chỗ cho kế hoạch 7 tuần (${clean(error.message, 120)}); máy chọn theo thứ tự cũ.`, ...pickPlan(units, { need: 0 }) };
+  }
+}
+// Selections are recorded by stable key (item:N or pr:N), so execution follows an item to whatever
+// PR does it later, and a re-pick keeps entries that already finished (Codex r1 on #544).
+export function recordList(list, carried = []) {
+  const all = [...(list.incidents ?? []), ...list.items];
+  const entries = [...carried.map(c => c.entry), ...all.map(plannedEntry)];
+  const keys7w = [...carried.filter(c => c.entry.plan7w).map(c => c.key), ...list.items.filter(u => u.plan7w).map(u => u.key)];
+  return {
+    planned: all.flatMap(u => u.prs), plannedItems: entries, plannedKeys: [...carried.map(c => c.key), ...list.items.map(u => u.key)],
+    planned7wKeys: keys7w, incidentKeys: (list.incidents ?? []).map(u => u.key), planSource: list.source, planNote: list.note,
+    quota7w: list.unknown ? null : { want: list.want, picked: keys7w.length, available: list.available7w },
+  };
+}
+const entryKey = e => (e.item ? `item:${e.item}` : `pr:${e.pr}`);
+// The day's dropped work, as keys: `Bỏ #N` names a PR or an item; a PR dropped by number also
+// drops the item it works on.
+// The day's drops, kept in the day state, so an item stays dropped after its PR closes; held
+// turns for dropped work never reach the active area, a queue or a re-pick (Codex r3 on #544).
+// Codex r4 on #544: drops become PR numbers before turnsFor, so prTurn holds them and fileBlocker
+// lets work behind them move, at every call (tick, re-pick, queue refresh, --status).
+export function dropSet(plan, prs, dayPath = null, day = {}) {
+  const d = dayPath ? readJson(dayPath, day) : day;
+  const dropped = plan?.dropped ?? [];
+  const keys = new Set([...(d.droppedKeys ?? []), ...dropped.flatMap(n => [`pr:${n}`, `item:${n}`])]);
+  for (const p of prs ?? []) if (dropped.includes(p.number)) { const item = workRef(p.body); keys.add(item ? `item:${item}` : `pr:${p.number}`); }
+  if (dayPath && keys.size !== (d.droppedKeys ?? []).length) writeJson(dayPath, { ...d, droppedKeys: [...keys].sort() });
+  const numbers = (prs ?? []).filter(p => keys.has(`pr:${p.number}`) || (workRef(p.body) && keys.has(`item:${workRef(p.body)}`))).map(p => p.number);
+  return { keys, prs: [...new Set([...dropped, ...numbers])] };
+}
+export function dayDrops(plan, turns, dayPath, day) {
+  const d = readJson(dayPath, day);
+  const keys = new Set([...(d.droppedKeys ?? []), ...droppedKeysOf(plan, turns)]);
+  if (keys.size !== (d.droppedKeys ?? []).length) writeJson(dayPath, { ...d, droppedKeys: [...keys].sort() });
+  return keys;
+}
+export const applyDrops = (turns, keys) => turns.map(t => (t.turn !== 'hold' && keys.has(unitKey(t)) ? { ...t, turn: 'hold', reason: 'owner bỏ việc này khỏi plan hôm nay' } : t));
+export function droppedKeysOf(plan, turns) {
+  const dropped = plan?.dropped ?? [];
+  const keys = new Set(dropped.flatMap(n => [`pr:${n}`, `item:${n}`]));
+  for (const t of turns) if (dropped.includes(t.number)) keys.add(unitKey(t));
+  return keys;
+}
+
+// Replacement after `Bỏ #N` (a PR or an item number): dropped selections leave; the rest stay,
+// finished ones included; pickPlan fills the freed seats (7-week first while short). The note is
+// saved before posting and retried until it is delivered.
+export function replan({ gh, plan, dayPath, day, date, issues = () => quotaIssues(gh) }) {
+  let d = readJson(dayPath, day);
+  if (d.replanNote) {
+    gh.comment('issue', planIssue(gh), d.replanNote);
+    writeJson(dayPath, { ...readJson(dayPath, d), replanNote: null });
+    return { delivered: true };
+  }
+  if (!Array.isArray(d.plannedKeys)) return null;
+  const prs = gh.openPrs();
+  // Codex r2–r4 on #544: every drop of the day (by PR or item number) stays dropped, for selection
+  // and execution alike, also after the dropped PR closes.
+  const drops = dropSet(plan, prs, dayPath, d);
+  d = readJson(dayPath, d);
+  const all = drops.keys;
+  const turns = applyDrops(turnsFor(prs, { dropped: drops.prs, baseFiles: gh.compareFiles }), all);
+  const droppedKeys = d.plannedKeys.filter(k => all.has(k));
+  const dropKey = droppedKeys.sort().join(',');
+  if (!dropKey || d.replannedFor === dropKey) return null;
+  const units = workUnits({ turns, prs, issues: issues() }).filter(u => !all.has(u.key));
+  const keep = d.plannedKeys.filter(k => !all.has(k));
+  // Every kept selection keeps its original entry and class; only replacements are classified
+  // now (Codex r2/r3 on #544).
+  const original = k => (d.plannedItems ?? []).find(e => entryKey(e) === k) ?? { [k.split(':')[0]]: Number(k.split(':')[1]), plan7w: (d.planned7wKeys ?? []).includes(k) };
+  const carried = keep.map(k => ({ key: k, entry: original(k) }));
+  const carried7w = carried.filter(c => c.entry.plan7w).length;
+  const list = { source: 'replan', note: `Chọn bù sau khi bỏ ${droppedKeys.map(k => `#${k.split(':')[1]}`).join(', ')}.`,
+    // Only the dropped seats are refilled: the day keeps its original size (Codex r2 on #544).
+    ...pickPlan(units.filter(u => !keep.includes(u.key)), { cap: Math.min(planCap, d.plannedKeys.length) - carried.length, need: Math.max(0, min7w - carried7w) }) };
+  const added = list.items.filter(u => !d.plannedKeys.includes(u.key));
+  const lines = added.map(u => `- ${u.prs.length ? u.prs.map(n => `#${n}`).join(', ') : `việc #${u.item} (chưa có PR)`} ${clean(u.title, 80)}${u.plan7w ? ' [Kế hoạch 7 tuần]' : ''}`);
+  const base = recordList(list, carried);
+  const record = { ...base, planned: turns.filter(t => base.plannedKeys.includes(unitKey(t)) || (base.incidentKeys ?? []).includes(unitKey(t))).map(t => t.number) };
+  const note = [`Cập nhật plan ${date}: ${list.note}`, ...(lines.length ? ['Việc thêm vào:', ...lines] : ['Không còn việc sẵn sàng để chọn bù.']),
+    `Kế hoạch 7 tuần: ${record.planned7wKeys.length} việc (mục tiêu ${min7w}).`, '', `${agentMarker} replan date=${date} drop=${dropKey} -->`].join('\n');
+  writeJson(dayPath, { ...d, ...record, replannedFor: dropKey, planVersion: (d.planVersion ?? 1) + 1, replanNote: note });
+  gh.comment('issue', planIssue(gh), note);
+  writeJson(dayPath, { ...readJson(dayPath, d), replanNote: null });
+  return { added: added.map(u => u.key) };
 }
 
 export function turnsFor(prs, options = {}) {
@@ -170,7 +266,7 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
     const readIncidents = () => { if (openIncidents === undefined) { try { openIncidents = incidents ? incidents() : []; } catch { openIncidents = null; } } return openIncidents; };
     const show = info => {
       const counts = readJson(dayPath, day);
-      try { board({ now: time(), codexRuns: counts.codexRuns ?? 0, failures: counts.failures ?? 0, metrics: metricLines, health: readHealth(), incidents: readIncidents(), ...info }); } catch {}
+      try { board({ now: time(), codexRuns: counts.codexRuns ?? 0, cap: dayCap(counts), failures: counts.failures ?? 0, metrics: metricLines, health: readHealth(), incidents: readIncidents(), ...info }); } catch {}
     };
     // Owner notes (collab-status.mjs): a new comment only for merges, a 2-tick failure streak,
     // a new needs-owner and the 12:00/22:00 digest. Never breaks a tick.
@@ -212,17 +308,22 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
         measure(prs, turns);
         // Progress is items done / items picked (owner 12.11.2026): remember what was picked.
         // L11: the items picked are recorded now, so a PR body edited later cannot change the count.
-        writeJson(dayPath, { ...readJson(dayPath, day), planned: committedTurns(turns).map(t => t.number), plannedItems: plannedWork(committedTurns(turns)) });
-        makePlan(gh, now, turns, { codexLeft: Math.max(0, codexDailyCap - day.codexRuns), gap: tickGap(readJson(join(stateDir, 'heartbeat.json'), null)), health: readHealth() });
+        // Owner 15.11: one list a day, with at least 2 seats kept for the 7-week plan (collab-quota.mjs).
+        const list = planList({ gh, turns, prs, comments: plan.comments, date: now.date });
+        writeJson(dayPath, { ...readJson(dayPath, day), ...recordList(list) });
+        makePlan(gh, now, turns, { codexLeft: Math.max(0, dayCap(day) - day.codexRuns), cap: dayCap(day), gap: tickGap(readJson(join(stateDir, 'heartbeat.json'), null)), health: readHealth(), list });
         heartbeat('plan-made');
         show({ status: 'plan-made', turns });
         return { status: 'plan-made' };
       }
+      // Owner `Bỏ #N` on a picked item: pick a replacement with the same rules, once per drop set.
+      if (plan.state !== 'closed') { try { replan({ gh, plan, dayPath, day, date: now.date }); } catch (error) { log(`replan failed, retry next run: ${clean(error.message, 200)}`); } }
       if (plan.state !== 'open') {
         heartbeat(plan.state);
         if (plan.state === 'closed') { show({ status: plan.state, turns: [] }); return { status: plan.state }; }
         const prs = gh.openPrs();
-        const turns = turnsFor(prs, { dropped: plan.dropped, baseFiles: gh.compareFiles });
+        const drops = dropSet(plan, prs, dayPath, day);
+        const turns = applyDrops(turnsFor(prs, { dropped: drops.prs, baseFiles: gh.compareFiles }), drops.keys);
         measure(prs, turns);
         show({ status: plan.state, turns });
         tell({ turns, comments: plan.comments, dropped: plan.dropped });
@@ -231,7 +332,9 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       // Every tick works when the plan is open (retro D1, 31.10.2026): the locks keep heavy jobs
       // serial and the state on GitHub keeps work from repeating, so an hourly gate only cost time.
       const prs = gh.openPrs();
-      const turns = ciRechecks(turnsFor(prs, { dropped: plan.dropped, baseFiles: gh.compareFiles }), prs, { ci: ciStatus, seen: recheckedKeys(now.date), log });
+      const drops = dropSet(plan, prs, dayPath, day);
+      const gone = drops.keys;
+      const turns = applyDrops(ciRechecks(turnsFor(prs, { dropped: drops.prs, baseFiles: gh.compareFiles }), prs, { ci: ciStatus, seen: recheckedKeys(now.date), log }), gone);
       // Labels follow the final turns, after a green CI re-run may have moved a PR to claude-check.
       try { if (gh.raw) syncStatusLabels(gh, prs, turns); } catch (error) { log(`status labels: ${String(error.message ?? error).slice(0, 200)}`); }
       // #253: the scheduled tick samples the flow metric and owns the buffer top-up, so the
@@ -239,7 +342,23 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       const { queue: startBuffer } = bufferStatus(prs, turns);
       measure(prs, turns);
       const area = activeArea(turns);
-      const work = turns.filter(t => t.area === area);
+      // Owner 15.11: the kept 7-week items are worked first, whatever area is active, or the seats
+      // are empty words; the active area follows in its usual order.
+      // Codex r1 on #544: by stable key, so a PR opened later for a picked item counts; serious
+      // incidents first, then the kept 7-week items, then the active area.
+      const dayNow = readJson(dayPath, day);
+      // Codex r5 on #544: a serious incident opened after the plan also goes first; the day's
+      // selections and drops stay as they are. A failed read keeps the planned incidents only.
+      let liveIncidents = [];
+      try { liveIncidents = workUnits({ turns, prs, issues: quotaIssues(gh) }).filter(u => u.ready && u.incident).map(u => u.key); }
+      catch (error) { log(`incident refresh failed, planned incidents only: ${clean(error.message, 200)}`); }
+      const incidentKeys = new Set([...(dayNow.incidentKeys ?? []), ...liveIncidents]);
+      const kept = new Set(dayNow.planned7wKeys ?? []);
+      // A dropped item is not worked, even through another PR that names it (Codex r2 on #544).
+      const live = turns.filter(t => !gone.has(unitKey(t)));
+      const first = live.filter(t => incidentKeys.has(unitKey(t)));
+      const second = live.filter(t => !incidentKeys.has(unitKey(t)) && kept.has(unitKey(t)));
+      const work = [...first, ...second, ...live.filter(t => t.area === area && !first.includes(t) && !second.includes(t))];
       const done = [];
       const late = () => { const t = time(); return t.hour * 60 + t.minute >= lastStartAt; };
       for (const t of work.filter(t => t.turn === 'merge').slice(0, 2)) {
@@ -299,7 +418,7 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       }
       for (const t of [...checked, ...work.filter(t => t.turn === 'codex-review')]) {
         const fresh = readJson(dayPath, day);
-        if (done.filter(d => d.review).length >= 2 || fresh.codexRuns >= codexDailyCap - auditReserve || late()) break;
+        if (done.filter(d => d.review).length >= 2 || fresh.codexRuns >= dayCap(fresh) - auditReserve || late()) break;
         show({ status: 'running', doing: `Codex review #${t.number}`, expectMinutes: 30, area, turns, done });
         const result = review(t.number, { auto: true, now: time() });
         done.push({ pr: t.number, review: result });
@@ -320,7 +439,7 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
         // told. An error now retries on later ticks, up to copyBatchAttempts a day.
         const retry = today.copyBatch?.status === 'error' && (today.copyBatch.attempts ?? 1) < copyBatchAttempts;
         // Publishing saved decisions calls no Codex, so it may run after the cap is spent (Codex 13.11).
-        const budgetOk = (today.codexRuns ?? 0) < codexDailyCap - auditReserve || copySaved();
+        const budgetOk = (today.codexRuns ?? 0) < dayCap(today) - auditReserve || copySaved();
         if ((!today.copyBatch || retry) && budgetOk && !batchOpen) {
           try { pending = copyPending(); } catch (error) { log(`copy batch: registry unreadable: ${clean(error.message, 200)}`); }
         }
@@ -365,7 +484,7 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       // #158/#159: after merges, checks or reviews the queue and buffer are read again, so the
       // top-up describes what is left now, not the list fetched before this run's work.
       const left = done.length ? gh.openPrs() : prs;
-      const leftTurns = done.length ? turnsFor(left, { dropped: plan.dropped, baseFiles: gh.compareFiles }) : turns;
+      const leftTurns = done.length ? applyDrops(turnsFor(left, { dropped: dropSet(plan, left, null, readJson(dayPath, day)).prs, baseFiles: gh.compareFiles }), gone) : turns;
       const buffer = done.length ? queueTopUp(wipCount(left, leftTurns)) : startBuffer;
       writeJson(join(stateDir, 'claude-queue.json'), {
         at: new Date().toISOString(), plan: plan.state, area, items: leftTurns.filter(t => t.turn === 'claude-fix'),
@@ -391,7 +510,7 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       const red = errors.length || stuck;
       heartbeat(red ? 'ran-with-errors' : 'ran');
       // A review waiting while the daily Codex cap is spent is a budget stop, not "no work" (#145 r2).
-      const capped = !done.length && work.some(t => t.turn === 'codex-review') && (readJson(dayPath, day).codexRuns ?? 0) >= codexDailyCap - auditReserve;
+      const capped = !done.length && work.some(t => t.turn === 'codex-review') && (readJson(dayPath, day).codexRuns ?? 0) >= dayCap(readJson(dayPath, day)) - auditReserve;
       show({ status: red ? 'ran-with-errors' : done.length ? 'ran' : capped ? 'cap' : 'idle', area, turns, done, error: red ? [errors.length ? JSON.stringify(errors) : null, stuck].filter(Boolean).join(' · ') : null });
       if (failures === 2 && alert) alert(`collab tick có lỗi 2 lần liên tiếp (${now.date} ${now.hour}h): ${clean(JSON.stringify(errors), 300)}`);
       tell({ turns: leftTurns, comments: plan.comments, dropped: plan.dropped });
@@ -423,7 +542,8 @@ export function tickGap(last, nowMs = Date.now()) {
 export function planTurns(gh, now) {
   const plan = readPlanStatus(gh, now);
   const prs = gh.openPrs();
-  return { plan, prs, turns: turnsFor(prs, { dropped: plan.dropped, baseFiles: gh.compareFiles }) };
+  const drops = dropSet(plan, prs, null, readJson(dayStatePath((now ?? vnNow()).date), {}));
+  return { plan, prs, turns: applyDrops(turnsFor(prs, { dropped: drops.prs, baseFiles: gh.compareFiles }), drops.keys) };
 }
 
 // S8 (retro 08.11, K35): one open ops-alert per subject. A repeat becomes a comment on the open
