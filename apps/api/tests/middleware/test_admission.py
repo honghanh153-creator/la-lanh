@@ -1,9 +1,34 @@
 import asyncio
+from types import SimpleNamespace
 
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from app.middleware import admission
 from app.middleware.admission import AdmissionControlMiddleware, AdmissionPolicy
+
+
+@pytest.fixture(autouse=True)
+def _one_window(frozen_admission_window: None) -> None:
+    """Counting tests below must not straddle a minute boundary of the admission clock."""
+
+
+def test_a_burst_across_a_minute_boundary_starts_a_new_count(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Why the counting tests freeze the clock: PR #354's CI refused nothing at the 6th
+    export because the burst crossed a minute, and the new window started from zero."""
+    ticks = iter([1_000_079.0, 1_000_081.0])
+    monkeypatch.setattr(admission, "time", SimpleNamespace(monotonic=lambda: next(ticks)))
+    middleware = AdmissionControlMiddleware(FastAPI(), window_seconds=60)
+    policy = AdmissionPolicy("boundary-test", per_peer=1, global_limit=10)
+
+    async def exercise() -> None:
+        assert (await middleware._admit(policy, "peer-a"))[0] is True
+        assert (await middleware._admit(policy, "peer-a"))[0] is True
+
+    asyncio.run(exercise())
 
 
 def test_radar_create_families_are_bounded_without_blocking_erasure() -> None:
