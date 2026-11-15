@@ -80,7 +80,7 @@
    "who": "claude",
    "due": "2026-11-17",
    "status": "open",
-   "note": "helper and copy-batch wiring merged; child-agent dispatch still unchecked"
+   "note": "helper and copy-batch wiring merged; sub-agent write gate (collab-agent-gate.mjs, PreToolUse + SubagentStop) in PR; closes after install and a receipt from a real Agent-tool event"
   },
   {
    "id": "L07",

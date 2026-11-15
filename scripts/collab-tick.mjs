@@ -16,7 +16,7 @@ import { healthLines, readBeats, watch } from './collab-watchdog.mjs';
 import { alertMissed, ghIssues } from './collab-missed-run.mjs';
 import { pendingCount, readSaved, runCopyBatch, savedPath } from './codex-copy-review.mjs';
 import { hookHealth } from './collab-hooks.mjs';
-import { wrapperHealth } from './collab-ops-wrapper.mjs';
+import { agentGateWatch, gateAlertSubject, wrapperHealth } from './collab-ops-wrapper.mjs';
 import { runMergeAudit } from './collab-merge-audit.mjs';
 import { isMain } from './is-main.mjs';
 import { loadAuditDeps } from './collab-audit.mjs';
@@ -43,11 +43,13 @@ export function tickLog(line, write = text => process.stderr.write(text)) {
 
 const watchdogSubject = 'tác vụ hẹn giờ bị treo';
 
-export function runTick(gh = makeGh(), preflight = () => missingTools(), { run = tick, log = tickLog } = {}) {
+export function runTick(gh = makeGh(), preflight = () => missingTools(), { run = tick, log = tickLog, gateWatch = agentGateWatch } = {}) {
   const board = info => upsertBoard(gh, planIssue(gh), renderBoard(info));
   return run({ gh, preflight, log, prPreflight: n => runPreflight(gh.pr(n)), heavyFree: () => heavyJobFree(), board, check: (n, o) => runCheckInClone(n, { ...o, gh }), ciStatus: head => ciCheck(gh, head), review: (n, o) => runReview(n, { ...o, gh }), merge: n => runMerge(n, { gh }), alert: text => opsAlert(gh, text),
     watchdog: () => {
       try { alertMissed({ beats: readBeats(), issues: ghIssues(gh.raw) }); } catch {}
+      // L06: the sub-agent gate hooks are still installed and on (one alert a day, closed when fixed).
+      try { gateWatch({ alert: text => opsAlert(gh, text, gateAlertSubject), resolve: text => resolveOpsAlert(gh, text, gateAlertSubject), today: vnNow().date }); } catch {}
       return watch({ alert: text => opsAlert(gh, text, watchdogSubject), resolve: text => resolveOpsAlert(gh, text, watchdogSubject) });
     }, health: () => [...healthLines(readBeats()), ...hookHealth(), ...wrapperHealth()], copyPending: () => pendingCount(), copyBatch: () => runCopyBatch(), copySaved: () => Boolean(readSaved(savedPath, vnNow().date)),
     notify: (notes, comments) => postOwnerNotes(gh, planIssue(gh), notes, comments),

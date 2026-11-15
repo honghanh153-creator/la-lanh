@@ -160,6 +160,16 @@ Mỗi lúc chỉ một review chạy (khóa `review.lock`), vì mọi review dù
 
   > Chỉ chạy test qua `node scripts/collab-test-guard.mjs -- <lệnh test>`; không chạy test trực tiếp, không chạy `pnpm check`.
 
+- **Cổng dev con (L06, 15.11.2026):** dev con mở bằng Agent tool không do chương trình mở, nên việc kiểm nằm ở chính lần ghi.
+  - **Cách kiểm:** hook `PreToolUse` (Edit/Write/NotebookEdit/Bash) chạy `scripts/collab-agent-gate.mjs` từ clone ops, `onFailure: "block"`. Hook chỉ áp cho tool call có `agent_id` (dev con); phiên chính không bị kiểm.
+  - **Ghi vào clone của repo Lá Lành:** nơi ghi được tính theo đường dẫn thật. Lần ghi đầu phải qua preflight đầy đủ: worktree riêng, nhánh `agent/claude/*` hoặc `worktree-agent-*`, cây sạch, `git` và `node` có trên máy, hook `pre-push` chặn được mục giả. Qua thì dev con được nhận workspace (claim). Các lần ghi sau kiểm lại nhánh và chủ claim mỗi lần.
+  - **Claim:** nằm cạnh khóa của `collab-dispatch.mjs`, nên hai bên loại trừ nhau. Claim chỉ hết khi dev con đã dừng (`SubagentStop`) và không còn tiến trình nào có thư mục làm việc trong workspace. Quá 6 giờ chỉ đánh dấu nghi bỏ dở, không tự mở khóa.
+  - **Được phép:** Bash chỉ đọc chạy ở đâu cũng được. Lệnh dựng workspace (`git -C <clone> fetch`, `git -C <clone> worktree add <đường> -b agent/claude/...`) được chạy trên clone dùng chung.
+  - **Cài và kiểm:** cài bằng `node scripts/collab-ops-wrapper.mjs --install-agent-gate`. `--verify` và tick kiểm mục hook, kiểm `onFailure` và kiểm `disableAllHooks`. Lệch thì mở `ops-alert` mỗi ngày một lần, sửa xong thì tự đóng.
+  - **Giới hạn** (cùng quyền máy như L24):
+    - Claude vẫn gỡ được hook; kiểm tra chỉ phát hiện, không ngăn được.
+    - Bash chỉ được kiểm theo thư mục làm việc và các đường dẫn tuyệt đối có trong lệnh.
+    - Worktree của checkout cũ `la-lanh` chưa có hook `pre-push`, nên dev con phải làm trong worktree của `la-lanh-claude`.
 - **Dữ liệu:** chỉ code public; không dữ liệu người dùng. Log ở máy owner.
 - **Code chạy theo lịch:** launchd chạy script từ clone ops ở `origin/collab/integration` (chỉ code đã review).
 
