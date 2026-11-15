@@ -464,7 +464,18 @@
    "from": "thử cổng dev con thật 15.11 (L06): ~/.cache/la-lanh-collab/private-guard.txt không tồn tại, hook pre-push vẫn báo ok",
    "who": "claude",
    "due": "2026-11-17",
-   "status": "open"
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-hooks.test.mjs",
+    "name": "L30: a missing guard list prints \"list missing\", does not block the push, and warns on tick health"
+   },
+   "caller": {
+    "file": "scripts/collab-check.mjs",
+    "contains": "private-guard: list missing"
+   },
+   "closedBy": {
+    "pr": 558
+   }
   }
  ]
 }

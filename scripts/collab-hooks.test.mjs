@@ -6,7 +6,7 @@ import { homedir, tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
-import { hookHealth, hookMarker, hooksDir, installHook, prePushHook, verifyHook } from './collab-hooks.mjs';
+import { guardListState, hookHealth, hookMarker, hooksDir, installHook, prePushHook, verifyHook } from './collab-hooks.mjs';
 
 const repoDir = () => {
   const dir = mkdtempSync(join(tmpdir(), 'hooks-test-'));
@@ -131,7 +131,7 @@ test('a guard reached through a symlink now runs; a guard that prints nothing is
   symlinkSync(repoRoot, join(home, 'ops'));
   const guard = spawnSync(process.execPath, [join(home, 'ops', 'scripts', 'collab-check.mjs'), '--guard'], { cwd: repoDir(), input: '', encoding: 'utf8' });
   assert.equal(guard.status, 0, guard.stderr);
-  assert.match(guard.stdout, /private-guard: ok/, 'the symlinked guard ran and answered');
+  assert.match(guard.stdout, /private-guard: (ok|list missing)/, 'the symlinked guard ran and answered');
 
   const silent = mkdtempSync(join(tmpdir(), 'hooks-silent-'));
   mkdirSync(join(silent, 'ops', 'scripts'), { recursive: true });
@@ -161,4 +161,36 @@ test('the loop plan describes the author check the cron really runs', async () =
   // L07: the doc promises a pre-push hook with the locked lint; the hook really runs it.
   assert.match(doc, /collab-hooks\.mjs --install/);
   assert.match(prePushHook, /collab-preflight\.mjs" --lint/);
+});
+
+// L30 (15.11.2026): with no private-guard list the guard says so instead of "ok", the push is not
+// blocked (owner's call), and the tick health shows a warning.
+test('L30: a missing guard list prints "list missing", does not block the push, and warns on tick health', () => {
+  const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
+  const home = realpathSync(mkdtempSync(join(tmpdir(), 'hooks-l30-')));
+  mkdirSync(join(home, 'ops'));
+  cpSync(join(repoRoot, 'scripts'), join(home, 'ops', 'scripts'), { recursive: true });
+  const clone = repoDir();
+  const git = args => execFileSync('/usr/bin/git', ['-c', 'user.name=t', '-c', 'user.email=t@example.invalid', ...args], { cwd: clone, encoding: 'utf8' }).trim();
+  writeFileSync(join(clone, 'a.txt'), 'x\n');
+  git(['add', 'a.txt']);
+  git(['commit', '-q', '-m', 'a']);
+  const hook = join(home, 'pre-push');
+  writeFileSync(hook, prePushHook);
+  chmodSync(hook, 0o755);
+  const push = () => spawnSync(hook, ['origin', 'https://example.invalid/repo.git'], { cwd: clone, input: `refs/heads/x ${git(['rev-parse', 'HEAD'])} refs/heads/x ${'0'.repeat(40)}\n`, encoding: 'utf8', env: { ...process.env, LA_LANH_COLLAB_HOME: home } });
+  const missing = push();
+  assert.match(missing.stdout, /private-guard: list missing/);
+  assert.doesNotMatch(missing.stdout, /private-guard: ok/, 'no plain "ok" when nothing was scanned');
+  // The guard step lets it through (the lint step after it may still stop a push in this bare repo).
+  assert.doesNotMatch(missing.stderr, /quét dữ liệu riêng tư không trả kết quả rõ ràng/, 'not blocked by the guard, by owner choice');
+  writeFileSync(join(home, 'private-guard.txt'), '# only a comment\n');
+  assert.match(push().stdout, /private-guard: list missing/, 'a list with no terms counts as missing');
+  writeFileSync(join(home, 'private-guard.txt'), 'ZZ-SYNTHETIC-VALUE\n');
+  assert.match(push().stdout, /private-guard: ok/, 'with a list the plain ok comes back');
+  assert.equal(guardListState(join(home, 'nope.txt')), 'missing');
+  assert.equal(guardListState(join(home, 'private-guard.txt')), 'ready');
+  const lines = hookHealth(clone, { dir: () => join(home, 'no-hooks'), guardList: join(home, 'nope.txt') });
+  assert.ok(lines.some(l => /⚠️ Danh sách mục cấm \(private-guard\.txt\) chưa có/.test(l)), lines.join(' | '));
+  assert.ok(!hookHealth(clone, { dir: () => join(home, 'no-hooks'), guardList: join(home, 'private-guard.txt') }).some(l => /Danh sách mục cấm/.test(l)));
 });

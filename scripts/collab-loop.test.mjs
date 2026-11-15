@@ -302,12 +302,15 @@ test('a pre-push hook removed after the plan shows on the next tick board', asyn
   const clone = mkdtempSync(join(tmpdir(), 'tick-hook-'));
   execFileSync('/usr/bin/git', ['init', '-q', clone]);
   const hook = installHook(clone);
+  // L30: a guard list exists here, so the only warning this test can see is the hook's.
+  const guardList = join(clone, 'guard-list.txt');
+  writeFileSync(guardList, 'ZZ-SYNTHETIC-VALUE\n');
   const comments = [];
   const gh = { ...fakeGh({ pr: null, open: [] }),
     json: args => args[0] === 'issue' && args[1] === 'list' ? [{ number: 50, title: 'Kế hoạch chạy tự động hằng ngày' }] : { comments },
     comment: (kind, number, body) => { trust.assertAgentBody(body); comments.push({ authorAssociation: 'OWNER', createdAt: '2026-12-08T01:50:00Z', body }); } };
   const boards = [];
-  const deps = now => ({ gh, now: { date: '2026-12-08', ...now }, merge: () => ({}), review: () => ({}), health: () => hookHealth(clone), board: info => boards.push(renderBoard(info)) });
+  const deps = now => ({ gh, now: { date: '2026-12-08', ...now }, merge: () => ({}), review: () => ({}), health: () => hookHealth(clone, { guardList }), board: info => boards.push(renderBoard(info)) });
   assert.equal(tick(deps({ hour: 8, minute: 52 })).status, 'plan-made');
   assert.doesNotMatch(boards.at(-1), /Cần xem/, 'healthy: nothing to look at');
   unlinkSync(hook);
