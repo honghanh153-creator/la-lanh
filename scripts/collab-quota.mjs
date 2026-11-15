@@ -19,6 +19,7 @@ import { isMain } from './is-main.mjs';
 export const label7w = 'ke-hoach-7-tuan';
 export const min7w = 2;
 export const planCap = 5;
+export const planFloor = 3;
 const names = labels => (labels ?? []).map(l => l?.name ?? l);
 const serious = labels => { const n = names(labels); return n.includes('incident') && (n.includes('severity:P0') || n.includes('severity:P1')); };
 
@@ -73,7 +74,8 @@ export function pickPlan(units, { cap = planCap, need = min7w, fixed = [] } = {}
   for (const u of rest) if (!picked.includes(u) && picked.length < cap) picked.push(u);
   const order = new Map(pool.map((u, i) => [u.key, i]));
   picked.sort((a, b) => order.get(a.key) - order.get(b.key));
-  return { items: picked, incidents, available7w, want, short7w: Math.max(0, want - picked.filter(p => p.plan7w).length) };
+  // Shortage is against the owner's target (2), not the feasible count (Codex r1 on #544).
+  return { items: picked, incidents, available7w, want, short7w: Math.max(0, need - picked.filter(p => p.plan7w).length) };
 }
 
 // The morning list (trusted comment with `morning-prep date=D` and `items=pr:N,item:M,...`), checked
@@ -87,7 +89,7 @@ export function prepRefs(comments, date) {
   return { refs: m[1].split(',').filter(Boolean) };
 }
 
-export function checkPrep(refs, units, { cap = planCap, need = min7w } = {}) {
+export function checkPrep(refs, units, { cap = planCap, need = min7w, min = planFloor } = {}) {
   const reasons = [];
   if (!Array.isArray(refs) || !refs.length) return { ok: false, reasons: ['danh sách sáng không có phần máy đọc được (items=)'] };
   const picked = [];
@@ -103,11 +105,15 @@ export function checkPrep(refs, units, { cap = planCap, need = min7w } = {}) {
   }
   const counted = picked.filter(u => !u.incident);
   if (counted.length > cap) reasons.push(`quá ${cap} việc`);
+  // At least 3 items when 3 are ready (Codex r1 on #544).
+  const readyCount = units.filter(u => u.ready && !u.incident).length;
+  if (counted.length < Math.min(min, readyCount)) reasons.push(`chỉ có ${counted.length} việc, cần ${Math.min(min, readyCount)}`);
   const available7w = units.filter(u => u.ready && !u.incident && u.plan7w).length;
   const want = Math.min(need, available7w);
   const have = counted.filter(u => u.plan7w).length;
   if (have < want) reasons.push(`chỉ có ${have} việc kế hoạch 7 tuần, cần ${want}`);
-  return { ok: reasons.length === 0, reasons, items: counted, incidents: picked.filter(u => u.incident), available7w, want, short7w: Math.max(0, want - have) };
+  // Every ready serious incident goes first, listed or not (Codex r1 on #544).
+  return { ok: reasons.length === 0, reasons, items: counted, incidents: units.filter(u => u.ready && u.incident), available7w, want, short7w: Math.max(0, need - have) };
 }
 
 // The one list of the day: the morning list when it passes, else the machine's pick, with a note.
@@ -122,6 +128,8 @@ export function dayList({ units, comments, date }) {
 }
 
 // What is recorded in the day state (L11: fixed at plan time).
+// A unit's stable key (item:N, or pr:N when the PR names no item).
+export const unitKey = t => (t.item ? `item:${t.item}` : `pr:${t.number}`);
 export const plannedEntry = u => ({ ...(u.item ? { item: u.item } : { pr: u.prs[0] }), plan7w: Boolean(u.plan7w), ...(u.incident ? { incident: true } : {}), ...(u.start ? { start: true } : {}) });
 
 if (isMain(import.meta.url)) {

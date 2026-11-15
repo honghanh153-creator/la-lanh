@@ -46,7 +46,7 @@ test('7-week: two PRs of one item take one seat; holds, needs-owner and trackers
 test('7-week: fewer ready items than seats takes all of them; none leaves the old pick', () => {
   const one = workUnits({ turns: [turn(1), turn(2), turn(3), turn(4), turn(5), turn(6), turn(9, { area: 'feature' })], prs: [prOf(9, [label7w])], issues: [] });
   const list = pickPlan(one);
-  assert.deepEqual([list.want, list.items.filter(u => u.plan7w).length, list.short7w], [1, 1, 0]);
+  assert.deepEqual([list.want, list.items.filter(u => u.plan7w).length, list.short7w], [1, 1, 1], 'one seat short of the target of 2');
   const none = pickPlan(workUnits({ turns: [1, 2, 3, 4, 5, 6].map(n => turn(n)), prs: [], issues: [] }));
   assert.deepEqual(keys(none), ['pr:1', 'pr:2', 'pr:3', 'pr:4', 'pr:5']);
 });
@@ -109,4 +109,10 @@ test('7-week: removing the kept seats makes the floor test fail (red check of th
   const units = workUnits(base());
   const plain = pickPlan(units, { need: 0 });
   assert.ok(plain.items.filter(u => u.plan7w).length < 2, 'without the reservation the old order starves the plan');
+});
+
+test('7-week: a morning list shorter than 3 is refused when 3 are ready', () => {
+  const units = workUnits(base());
+  assert.match(checkPrep(['pr:10', 'pr:12'], units).reasons.join(), /chỉ có 2 việc, cần 3/);
+  assert.equal(checkPrep(['pr:1', 'pr:10', 'pr:12'], units).ok, true);
 });

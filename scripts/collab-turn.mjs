@@ -3,7 +3,7 @@ import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { agentMarker, areaOrder, classifyArea, clean, codexDailyCap, dayStatePath, integration, isOwnPr, makeGh, readJson, repo, reviewState, sortByPriority, stateDir, trustedComments, vnNow, writeJson } from './collab-trust.mjs';
 import { autoStartAt, committedTurns, lastStartAt, makePlan, planIssue, readPlanStatus } from './collab-plan.mjs';
-import { dayList, pickPlan, plannedEntry, quotaIssues, workUnits } from './collab-quota.mjs';
+import { dayList, min7w, pickPlan, planCap, plannedEntry, quotaIssues, unitKey, workUnits } from './collab-quota.mjs';
 import { auditReserve } from './collab-audit.mjs';
 import { ownerNotes } from './collab-status.mjs';
 import { bodyHash } from './collab-heal.mjs';
@@ -88,33 +88,53 @@ export function planList({ gh, turns, prs, comments, date, issues = () => quotaI
     return { source: 'machine', unknown: true, note: `Chưa xác định được chỗ cho kế hoạch 7 tuần (${clean(error.message, 120)}); máy chọn theo thứ tự cũ.`, ...pickPlan(units, { need: 0 }) };
   }
 }
-export function recordList(list) {
+// Selections are recorded by stable key (item:N or pr:N), so execution follows an item to whatever
+// PR does it later, and a re-pick keeps entries that already finished (Codex r1 on #544).
+export function recordList(list, carried = []) {
   const all = [...(list.incidents ?? []), ...list.items];
+  const entries = [...carried.map(c => c.entry), ...all.map(plannedEntry)];
+  const keys7w = [...carried.filter(c => c.entry.plan7w).map(c => c.key), ...list.items.filter(u => u.plan7w).map(u => u.key)];
   return {
-    planned: all.flatMap(u => u.prs), plannedItems: all.map(plannedEntry), plannedKeys: list.items.map(u => u.key),
-    planned7w: list.items.filter(u => u.plan7w).flatMap(u => u.prs), planSource: list.source, planNote: list.note,
-    quota7w: list.unknown ? null : { want: list.want, picked: list.items.filter(u => u.plan7w).length, available: list.available7w },
+    planned: all.flatMap(u => u.prs), plannedItems: entries, plannedKeys: [...carried.map(c => c.key), ...list.items.map(u => u.key)],
+    planned7wKeys: keys7w, incidentKeys: (list.incidents ?? []).map(u => u.key), planSource: list.source, planNote: list.note,
+    quota7w: list.unknown ? null : { want: list.want, picked: keys7w.length, available: list.available7w },
   };
 }
+const entryKey = e => (e.item ? `item:${e.item}` : `pr:${e.pr}`);
 
-// Replacement after `Bỏ #N`: the dropped units leave, the rest stay fixed, pickPlan fills the seats
-// (7-week first while short). One agent note per drop set; the plan comment and the owner's
-// commands stay where they are (planState reads replies after the plan comment).
+// Replacement after `Bỏ #N` (a PR or an item number): dropped selections leave; the rest stay,
+// finished ones included; pickPlan fills the freed seats (7-week first while short). The note is
+// saved before posting and retried until it is delivered.
 export function replan({ gh, plan, dayPath, day, date, issues = () => quotaIssues(gh) }) {
-  const d = readJson(dayPath, day);
-  const dropped = (plan.dropped ?? []).filter(n => (d.planned ?? []).includes(n));
-  const keyOfDrop = dropped.join(',');
-  if (!dropped.length || d.replannedFor === keyOfDrop || !Array.isArray(d.plannedKeys)) return null;
+  let d = readJson(dayPath, day);
+  if (d.replanNote) {
+    gh.comment('issue', planIssue(gh), d.replanNote);
+    writeJson(dayPath, { ...readJson(dayPath, d), replanNote: null });
+    return { delivered: true };
+  }
+  if (!Array.isArray(d.plannedKeys)) return null;
+  const droppedKeys = d.plannedKeys.filter(k => (plan.dropped ?? []).some(n => k === `item:${n}` || k === `pr:${n}`)).concat(
+    (plan.dropped ?? []).filter(n => (d.planned ?? []).includes(n)).map(n => `pr:${n}`).filter(k => !d.plannedKeys.includes(k)));
+  // A PR dropped by number whose item is planned drops that item.
   const prs = gh.openPrs();
   const turns = turnsFor(prs, { dropped: plan.dropped, baseFiles: gh.compareFiles });
-  const units = workUnits({ turns, prs, issues: issues() });
-  const fixed = d.plannedKeys.filter(k => units.some(u => u.key === k && u.ready));
-  const list = { source: 'replan', note: `Chọn bù sau khi bỏ ${dropped.map(n => `#${n}`).join(', ')}.`, ...pickPlan(units, { fixed }) };
+  for (const t of turns) if ((plan.dropped ?? []).includes(t.number) && d.plannedKeys.includes(unitKey(t))) droppedKeys.push(unitKey(t));
+  const dropKey = [...new Set(droppedKeys)].sort().join(',');
+  if (!dropKey || d.replannedFor === dropKey) return null;
+  const units = workUnits({ turns, prs, issues: issues() }).filter(u => !droppedKeys.includes(u.key));
+  const keep = d.plannedKeys.filter(k => !droppedKeys.includes(k));
+  const carried = keep.filter(k => !units.some(u => u.key === k)).map(k => ({ key: k, entry: (d.plannedItems ?? []).find(e => entryKey(e) === k) ?? { [k.split(':')[0]]: Number(k.split(':')[1]), plan7w: (d.planned7wKeys ?? []).includes(k) } }));
+  const carried7w = carried.filter(c => c.entry.plan7w).length;
+  const list = { source: 'replan', note: `Chọn bù sau khi bỏ ${droppedKeys.map(k => `#${k.split(':')[1]}`).join(', ')}.`,
+    ...pickPlan(units, { fixed: keep, cap: planCap - carried.length, need: Math.max(0, min7w - carried7w) }) };
   const added = list.items.filter(u => !d.plannedKeys.includes(u.key));
-  writeJson(dayPath, { ...d, ...recordList(list), replannedFor: keyOfDrop, planVersion: (d.planVersion ?? 1) + 1 });
   const lines = added.map(u => `- ${u.prs.length ? u.prs.map(n => `#${n}`).join(', ') : `việc #${u.item} (chưa có PR)`} ${clean(u.title, 80)}${u.plan7w ? ' [Kế hoạch 7 tuần]' : ''}`);
-  gh.comment('issue', planIssue(gh), [`Cập nhật plan ${date}: ${list.note}`, ...(lines.length ? ['Việc thêm vào:', ...lines] : ['Không còn việc sẵn sàng để chọn bù.']),
-    `Kế hoạch 7 tuần: ${list.items.filter(u => u.plan7w).length} việc (cần ${list.want}).`, '', `${agentMarker} replan date=${date} drop=${keyOfDrop} -->`].join('\n'));
+  const record = recordList(list, carried);
+  const note = [`Cập nhật plan ${date}: ${list.note}`, ...(lines.length ? ['Việc thêm vào:', ...lines] : ['Không còn việc sẵn sàng để chọn bù.']),
+    `Kế hoạch 7 tuần: ${record.planned7wKeys.length} việc (mục tiêu ${min7w}).`, '', `${agentMarker} replan date=${date} drop=${dropKey} -->`].join('\n');
+  writeJson(dayPath, { ...d, ...record, replannedFor: dropKey, planVersion: (d.planVersion ?? 1) + 1, replanNote: note });
+  gh.comment('issue', planIssue(gh), note);
+  writeJson(dayPath, { ...readJson(dayPath, d), replanNote: null });
   return { added: added.map(u => u.key) };
 }
 
@@ -281,8 +301,14 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       const area = activeArea(turns);
       // Owner 15.11: the kept 7-week items are worked first, whatever area is active, or the seats
       // are empty words; the active area follows in its usual order.
-      const kept = new Set(readJson(dayPath, day).planned7w ?? []);
-      const work = [...turns.filter(t => kept.has(t.number)), ...turns.filter(t => t.area === area && !kept.has(t.number))];
+      // Codex r1 on #544: by stable key, so a PR opened later for a picked item counts; serious
+      // incidents first, then the kept 7-week items, then the active area.
+      const dayNow = readJson(dayPath, day);
+      const incidentKeys = new Set(dayNow.incidentKeys ?? []);
+      const kept = new Set(dayNow.planned7wKeys ?? []);
+      const first = turns.filter(t => incidentKeys.has(unitKey(t)));
+      const second = turns.filter(t => !incidentKeys.has(unitKey(t)) && kept.has(unitKey(t)));
+      const work = [...first, ...second, ...turns.filter(t => t.area === area && !first.includes(t) && !second.includes(t))];
       const done = [];
       const late = () => { const t = time(); return t.hour * 60 + t.minute >= lastStartAt; };
       for (const t of work.filter(t => t.turn === 'merge').slice(0, 2)) {

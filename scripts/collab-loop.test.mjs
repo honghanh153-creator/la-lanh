@@ -1454,7 +1454,7 @@ test('7-week: the production tick keeps 2 seats, records the class and tags the 
   assert.equal(r.status, 'plan-made');
   const d = trust.readJson(trust.dayStatePath('2026-12-20'), {});
   assert.deepEqual(d.plannedItems.filter(p => p.plan7w), [{ item: 300, plan7w: true }, { pr: 32, plan7w: true }]);
-  assert.deepEqual(d.planned7w, [31, 32]);
+  assert.deepEqual(d.planned7wKeys, ['item:300', 'pr:32']);
   assert.deepEqual(d.quota7w, { want: 2, picked: 2, available: 2 });
   const plan = comments.at(-1).body;
   assert.equal(plan.match(/\[Kế hoạch 7 tuần\]/g).length, 2);
@@ -1493,7 +1493,7 @@ test('7-week: "Bỏ #N" on a picked item re-picks once with the same rules; owne
   const before = comments.length;
   tick({ gh, now: { date, hour: 7, minute: 10 }, merge: () => ({}), review: () => ({}) });
   const d = trust.readJson(trust.dayStatePath(date), {});
-  assert.equal(d.replannedFor, '21');
+  assert.equal(d.replannedFor, 'pr:21');
   assert.ok(!d.planned.includes(21));
   assert.equal(d.plannedItems.filter(p => p.plan7w).length, 2, 'the kept seats survive the re-pick');
   assert.equal(comments.length, before + 1);
@@ -1512,4 +1512,63 @@ test('7-week: in the open plan the kept 7-week PRs are checked first, before the
   const checked = [];
   tick({ gh, now: { date, hour: 8, minute: 10 }, prPreflight: () => ({ status: 'PASS' }), heavyFree: () => true, check: n => { checked.push(n); return { status: 'FAIL' }; }, merge: () => ({}), review: () => ({}) });
   assert.deepEqual(checked.slice(0, 2), [31, 32], `checked ${checked.join(',')}`);
+});
+
+// Codex r1 on #544 (3 P1, 3 P2): lifecycle cases through the production tick.
+test('7-week: a picked issue-only item is worked first once Claude opens its PR', () => {
+  const date = '2026-12-26';
+  const comments = Object.assign([], { date });
+  const issues = [{ number: 301, title: 'việc A', labels: w7Label, body: '## Tiêu chí đạt\n- AC1 x\n' }, { number: 302, title: 'việc B', labels: w7Label, body: '## Tiêu chí đạt\n- AC1 x\n' }];
+  const ops = [21, 22, 23, 24, 25].map(n => pr({ number: n, title: `ops(collab): việc ${n}` }));
+  const gh = w7Gh({ comments, open: ops, issues });
+  tick({ gh, now: { date, hour: 6, minute: 52 }, merge: () => ({}), review: () => ({}) });
+  const d = trust.readJson(trust.dayStatePath(date), {});
+  assert.deepEqual(d.planned7wKeys, ['item:301', 'item:302']);
+  comments.push({ authorAssociation: 'OWNER', createdAt: `${date}T01:59:30Z`, body: 'Duyệt' });
+  const later = [...ops, pr({ number: 41, title: 'feat(web): việc A', body: `${goodBody}\nViệc: #301` })];
+  const checked = [];
+  tick({ gh: w7Gh({ comments, open: later, issues }), now: { date, hour: 8, minute: 10 }, prPreflight: () => ({ status: 'PASS' }), heavyFree: () => true, check: n => { checked.push(n); return { status: 'FAIL' }; }, merge: () => ({}), review: () => ({}) });
+  assert.equal(checked[0], 41, `checked ${checked.join(',')}`);
+});
+
+test('7-week: a serious incident is planned first on both paths and worked first', () => {
+  const date = '2026-12-27';
+  const incident = { number: 900, title: 'sự cố', labels: [{ name: 'incident' }, { name: 'severity:P1' }], body: '## Tiêu chí đạt\n- AC1 x\n' };
+  const open = [...w7Open(), pr({ number: 51, title: 'feat(web): sửa sự cố', body: `${goodBody}\nViệc: #900` })];
+  const prep = { authorAssociation: 'OWNER', createdAt: `${date}T00:00:00Z`, body: `x\n\n${trust.agentMarker} morning-prep date=${date} items=pr:21,pr:22,pr:31,pr:32 -->` };
+  const comments = Object.assign([prep], { date });
+  const gh = { ...w7Gh({ comments, open, issues: [w7Issue] }), json: args => (args[0] === 'issue' && args[1] === 'list' ? (args.includes('incident') ? [incident] : args.includes('ke-hoach-7-tuan') ? [w7Issue] : [{ number: 50, title: 'Kế hoạch chạy tự động hằng ngày' }]) : { comments }) };
+  tick({ gh, now: { date, hour: 6, minute: 52 }, merge: () => ({}), review: () => ({}) });
+  const d = trust.readJson(trust.dayStatePath(date), {});
+  assert.equal(d.planSource, 'prep');
+  assert.deepEqual(d.incidentKeys, ['item:900'], 'the morning list did not name it, it is still first');
+  comments.push({ authorAssociation: 'OWNER', createdAt: `${date}T01:59:30Z`, body: 'Duyệt' });
+  const checked = [];
+  tick({ gh, now: { date, hour: 8, minute: 10 }, prPreflight: () => ({ status: 'PASS' }), heavyFree: () => true, check: n => { checked.push(n); return { status: 'FAIL' }; }, merge: () => ({}), review: () => ({}) });
+  assert.equal(checked[0], 51, `checked ${checked.join(',')}`);
+});
+
+test('7-week: a re-pick keeps a finished item, replaces only the dropped one, and retries its note', () => {
+  const date = '2026-12-28';
+  const comments = Object.assign([], { date });
+  const gh = w7Gh({ comments, open: w7Open() });
+  tick({ gh, now: { date, hour: 6, minute: 52 }, merge: () => ({}), review: () => ({}) });
+  const before = trust.readJson(trust.dayStatePath(date), {});
+  assert.equal(before.plannedKeys.length, 5);
+  // pr:21 merged (gone from the open list); pr:22 dropped by the owner.
+  const open = w7Open().filter(p => p.number !== 21).concat([pr({ number: 26, title: 'ops(collab): việc 26' })]);
+  comments.push({ authorAssociation: 'OWNER', createdAt: `${date}T01:59:30Z`, body: 'Bỏ #22' });
+  let fail = true;
+  const flaky = { ...w7Gh({ comments, open }), comment: (kind, number, body) => { if (fail) { fail = false; throw new Error('gh down'); } trust.assertAgentBody(body); comments.push({ authorAssociation: 'OWNER', createdAt: `${date}T02:0${comments.length % 10}:00Z`, body }); } };
+  tick({ gh: flaky, now: { date, hour: 7, minute: 10 }, merge: () => ({}), review: () => ({}) });
+  const d = trust.readJson(trust.dayStatePath(date), {});
+  assert.ok(d.plannedKeys.includes('pr:21'), 'the finished item stays in the day');
+  assert.ok(!d.plannedKeys.includes('pr:22'));
+  assert.equal(d.plannedKeys.length, 5);
+  assert.ok(d.replanNote, 'the undelivered note is kept');
+  const posted = comments.length;
+  tick({ gh: flaky, now: { date, hour: 7, minute: 20 }, merge: () => ({}), review: () => ({}) });
+  assert.equal(comments.length, posted + 1);
+  assert.match(comments.at(-1).body, /Chọn bù sau khi bỏ #22/);
+  assert.equal(trust.readJson(trust.dayStatePath(date), {}).replanNote, null);
 });
