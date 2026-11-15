@@ -1,0 +1,500 @@
+{
+ "about": "Sổ lời hứa sửa quy trình (owner 13.11.2026). Mỗi mục chỉ được ghi done khi có test bắt lại lỗi cũ (file nằm trong pnpm collab:test), chỗ gọi trong vòng tự động và PR đã đóng nó; tick kiểm trên GitHub rằng PR đó đã merge vào collab/integration với Codex APPROVE. Kiểm: node scripts/collab-lessons.mjs. Nguồn: thỏa thuận Claude–Codex 12.11 (A–L) và rà soát của Codex 13.11.",
+ "lessons": [
+  {
+   "id": "L01",
+   "title": "Lô duyệt câu hằng ngày lỗi thì giữ quyết định của Codex, thử lại và báo owner, không bỏ cả ngày",
+   "from": "Codex rà soát 13.11, mục 3",
+   "who": "claude",
+   "due": "2026-11-15",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-loop.test.mjs",
+    "name": "copy batch: a failed batch alerts, retries on later ticks"
+   },
+   "caller": {
+    "file": "scripts/collab-turn.mjs",
+    "contains": "copyBatchAttempts"
+   },
+   "closedBy": {
+    "pr": 480
+   }
+  },
+  {
+   "id": "L02",
+   "title": "Sổ lời hứa này: mục ghi xong phải có test, chỗ gọi và PR đã merge có Codex duyệt; mục quá hạn hiện trong báo cáo",
+   "from": "thỏa thuận 12.11 mục I và K; Codex rà soát 13.11, đề xuất 1",
+   "who": "claude",
+   "due": "2026-11-15",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-lessons.test.mjs",
+    "name": "a lesson cannot be closed by editing the register"
+   },
+   "caller": {
+    "file": "scripts/collab-metrics.mjs",
+    "contains": "lessonsLine"
+   },
+   "closedBy": {
+    "pr": 481
+   }
+  },
+  {
+   "id": "L03",
+   "title": "Kiểm trang qua API thật với dữ liệu giả: mất phần tổng hợp hoặc còn chữ tạm thì kiểm trượt (chế độ báo cáo trước)",
+   "from": "thỏa thuận 12.11 mục A",
+   "who": "claude",
+   "due": "2026-11-20",
+   "status": "done",
+   "test": {
+    "file": "scripts/qa-journey-lib.test.mjs",
+    "name": "a dropped synthesis or placeholder text fails; valid sparse data passes"
+   },
+   "caller": {
+    "file": "scripts/qa-cli-smoke.mjs",
+    "contains": "contentVerdict("
+   },
+   "closedBy": {
+    "pr": 498
+   }
+  },
+  {
+   "id": "L04",
+   "title": "Đối chiếu tiêu chí nghiệm thu với màn hình: test xanh nhưng màn hình thiếu nội dung thì ghi chưa đạt (nối #457)",
+   "from": "thỏa thuận 12.11 mục B",
+   "who": "codex",
+   "due": "2026-11-20",
+   "status": "open"
+  },
+  {
+   "id": "L05",
+   "title": "Đổi luật chặn lỗi nội dung theo từng nhóm lỗi",
+   "from": "thỏa thuận 12.11 mục C",
+   "who": "owner",
+   "status": "waiting-owner"
+  },
+  {
+   "id": "L06",
+   "title": "Trước khi giao việc cho dev con: kiểm thư mục, nhánh và công cụ; sai thì dừng trước khi ghi",
+   "from": "thỏa thuận 12.11 mục D",
+   "who": "claude",
+   "due": "2026-11-17",
+   "status": "open",
+   "note": "gate merged 71a3673 (#542); installed by the owner 15.11, verify ok; real sub-agent probe 15.11: blocked write denied, allowed write also denied (guard-list-empty: ~/.cache/la-lanh-collab/private-guard.txt missing); removed 15.11 16:01 by owner choice until private-guard.txt exists; reinstall with --install-agent-gate, rerun the probe, then close"
+  },
+  {
+   "id": "L07",
+   "title": "Kiểm Ruff bằng đúng bản khóa của CI trước khi đẩy code",
+   "from": "thỏa thuận 12.11 mục E",
+   "who": "claude",
+   "due": "2026-11-15",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-loop.test.mjs",
+    "name": "fix A: ruff and mypy run only on the changed Python files of apps/api"
+   },
+   "caller": {
+    "file": "scripts/collab-hooks.mjs",
+    "contains": "collab-preflight.mjs\" --lint"
+   },
+   "closedBy": {
+    "pr": 482
+   }
+  },
+  {
+   "id": "L08",
+   "title": "Thử chân dung Khám phá với chữ thật ở 360/390 px, chữ 200% và giảm chuyển động",
+   "from": "thỏa thuận 12.11 mục F",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-lessons.test.mjs",
+    "name": "an e2e spec is accepted as a lesson test only when CI runs it, and rejected otherwise"
+   },
+   "check": {
+    "file": "apps/web/tests/e2e/kham-pha-portrait.spec.ts",
+    "name": "Khám phá reads, opens a claim and its evidence, and comes back at 360/390px, 200% text, reduced motion"
+   },
+   "caller": {
+    "file": "scripts/collab-lessons.mjs",
+    "contains": "for (const f of playwrightCiFiles(pkg, { base })) files.add(f);"
+   },
+   "closedBy": {
+    "pr": 500
+   }
+  },
+  {
+   "id": "L09",
+   "title": "Báo cáo nghiên cứu: mỗi kết luận phải trỏ tới nguồn đã đọc; kết luận không có nguồn bị bác",
+   "from": "thỏa thuận 12.11 mục G",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "done",
+   "test": {
+    "file": "scripts/research-sources.test.mjs",
+    "name": "a conclusion without a read source is rejected even with many URLs"
+   },
+   "caller": {
+    "file": ".github/workflows/pr-check.yml",
+    "contains": "research-sources.mjs"
+   },
+   "closedBy": {
+    "pr": 499
+   }
+  },
+  {
+   "id": "L10",
+   "title": "Đưa ops-run.sh vào repo, có test chạy được từ thư mục bất kỳ và đường dẫn có khoảng trắng",
+   "from": "thỏa thuận 12.11 mục H",
+   "who": "claude",
+   "due": "2026-11-16",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-ops-wrapper.test.mjs",
+    "name": "ops wrapper runs from another cwd with spaced paths and preserves failures"
+   },
+   "caller": {
+    "file": "scripts/collab-tick.mjs",
+    "contains": "wrapperHealth()"
+   },
+   "closedBy": {
+    "pr": 487
+   }
+  },
+  {
+   "id": "L11",
+   "title": "Đếm việc theo tiêu chí đạt: nhiều PR cho cùng một việc chỉ tính một việc",
+   "from": "thỏa thuận 12.11 mục J",
+   "who": "claude",
+   "due": "2026-11-20",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-status.test.mjs",
+    "name": "the production tick digest counts two merged PRs of one item as one item, not two"
+   },
+   "caller": {
+    "file": "scripts/collab-turn.mjs",
+    "contains": "work: progress ? () => renderProgress(progress("
+   },
+   "closedBy": {
+    "pr": 496
+   }
+  },
+  {
+   "id": "L12",
+   "title": "Tài liệu vòng tự động khớp cách kiểm hiện tại (đọc kết quả CI, không chạy pnpm check trên Mac)",
+   "from": "thỏa thuận 12.11 mục L",
+   "who": "claude",
+   "due": "2026-11-15",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-hooks.test.mjs",
+    "name": "the loop plan describes the author check the cron really runs"
+   },
+   "caller": {
+    "file": "scripts/collab-cron.sh",
+    "contains": "LA_LANH_CHECK_SOURCE=ci"
+   },
+   "closedBy": {
+    "pr": 482
+   }
+  },
+  {
+   "id": "L13",
+   "title": "Bằng chứng merge gắn với đúng base và biên nhận có chữ ký (#456, Autopilot v2 P0)",
+   "from": "Autopilot v2 P0; Codex rà soát 13.11, đề xuất 3",
+   "who": "claude",
+   "due": "2026-11-16",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-merge-gate.test.mjs",
+    "name": "L13: runMerge issues no merge for stale-base, base-drift, unsigned or replayed evidence; valid evidence merges"
+   },
+   "caller": {
+    "file": "scripts/collab-merge.mjs",
+    "contains": "mergeGate(pr, { baseFiles: gh.compareFiles })"
+   },
+   "closedBy": {
+    "pr": 456
+   }
+  },
+  {
+   "id": "L14",
+   "title": "Chỉ đồng bộ PR đang tới lượt, không merge integration vào mọi PR chờ ở mỗi tick",
+   "from": "retro 12.11 S25",
+   "who": "claude",
+   "due": "2026-11-20",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-loop.test.mjs",
+    "name": "only the front PR of the area is synced before its check; waiting PRs get no merge commit"
+   },
+   "caller": {
+    "file": "scripts/collab-turn.mjs",
+    "contains": "sync: t.number === front"
+   },
+   "closedBy": {
+    "pr": 495
+   }
+  },
+  {
+   "id": "L15",
+   "title": "Lô câu chữ dùng commit thật trong Git tạm không có danh tính (không chỉ giả lập lệnh)",
+   "from": "Codex rà soát 13.11, mục 4 (#462)",
+   "who": "claude",
+   "due": "2026-11-17",
+   "status": "done",
+   "test": {
+    "file": "scripts/codex-copy-review.test.mjs",
+    "name": "the batch commit works in a real git with no configured identity"
+   },
+   "caller": {
+    "file": "scripts/codex-copy-review.mjs",
+    "contains": "commitArgs(date)"
+   },
+   "closedBy": {
+    "pr": 480
+   }
+  },
+  {
+   "id": "L16",
+   "title": "Script vận hành gọi qua đường dẫn tắt (symlink) thì không chạy gì mà vẫn báo thành công; mọi điểm vào phải chặn khi không chạy",
+   "from": "test đầu–cuối hook trước push, 13.11",
+   "who": "claude",
+   "due": "2026-11-17",
+   "status": "done",
+   "test": {
+    "file": "scripts/is-main.test.mjs",
+    "name": "symlinked CLI executes and preserves exit status"
+   },
+   "caller": {
+    "file": "scripts/collab-tick.mjs",
+    "contains": "isMain(import.meta.url)"
+   },
+   "closedBy": {
+    "pr": 484
+   }
+  },
+  {
+   "id": "L17",
+   "title": "Broker tối thiểu: chương trình riêng gọi Codex, giữ biên nhận và quyền merge; Claude không nộp kết quả thay Codex (lát 3 thiết kế Codex kiểm soát)",
+   "from": "owner 13.11: Codex kiểm soát, Claude thực thi",
+   "who": "owner",
+   "status": "declined-owner",
+   "declined": {
+    "on": "2026-11-14",
+    "reason": "Owner 14.11: không cài gì, không tạo ứng dụng; giao Claude và Codex tự thống nhất.",
+    "risk": "Không có ranh giới quyền: Claude vẫn đọc được khóa, tự đăng verdict và merge. Cách 2-nhẹ chỉ kiểm toán sau merge, không chặn trước (P1 của Codex 14.11 còn nguyên)."
+   }
+  },
+  {
+   "id": "L18",
+   "title": "Người lập plan ngày đổi theo tuần: Claude 16–22.11, Codex 23–29.11; Q1–Q5, ưu tiên nợ, luật vòng review ≥3 giống nhau cả hai tuần (owner 14.11, Codex SỬA)",
+   "from": "owner 13.11: Codex kiểm soát, Claude thực thi",
+   "who": "claude",
+   "status": "open",
+   "due": "2026-11-23"
+  },
+  {
+   "id": "L19",
+   "title": "Báo cáo 08/14/22 và retro lấy dữ kiện từ một bản chụp nguồn chung; sự cố giữ trạng thái tới khi có bằng chứng phục hồi (lát 5)",
+   "from": "owner 13.11: báo cáo trung thực",
+   "who": "claude",
+   "due": "2026-11-18",
+   "status": "open",
+   "note": "prompts pointed 15.11 07:52; tick health now checks both prompts call the snapshot step (#552); 14:00 receipt https://github.com/honghanh153-creator/la-lanh/issues/133#issuecomment-6890824794 (snapshot 336e56277e1e); closes after the 15.11 retro shows its snapshot line"
+  },
+  {
+   "id": "L20",
+   "title": "Kiểm chính Codex mỗi tuần: review một bản chụp cài lại lỗi #451/#462 ngoài mọi đường merge; lỗi lọt ghi riêng (không cộng M3), mở lại bài học gốc (owner 14.11, Codex SỬA)",
+   "from": "Codex tự nhận 13.11",
+   "who": "claude",
+   "status": "open",
+   "due": "2026-11-21"
+  },
+  {
+   "id": "L21",
+   "title": "Soát đêm: Codex ghi số đo M1–M10 của thử nghiệm từ nguồn gốc, chạy lần đầu tối 14.11",
+   "from": "thử nghiệm 3+3 (owner 13.11), docs/operations/workflow-experiment-2026-11.md",
+   "who": "claude",
+   "due": "2026-11-14",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-audit-night.test.mjs",
+    "name": "23:00 judges once, counts the run, posts one comment; later ticks do nothing"
+   },
+   "caller": {
+    "file": "scripts/collab-tick.mjs",
+    "contains": "runNightAudit("
+   },
+   "closedBy": {
+    "pr": 493
+   }
+  },
+  {
+   "id": "L22",
+   "title": "Sổ bất đồng bản Claude cho cách 1 (scripts/collab-disagree.mjs)",
+   "from": "thử nghiệm 3+3 (owner 13.11)",
+   "who": "claude",
+   "due": "2026-11-14",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-audit-night.test.mjs",
+    "name": "L22: the tick night audit reads the disagreement log written by collab-disagree"
+   },
+   "caller": {
+    "file": "scripts/collab-tick.mjs",
+    "contains": "runNightAudit({ gh, issue: () => planIssue(gh), ...auditDeps, ...opts })"
+   },
+   "closedBy": {
+    "pr": 493
+   }
+  },
+  {
+   "id": "L23",
+   "title": "Đo nền 11–13.11 theo M1–M10",
+   "from": "thử nghiệm 3+3 (owner 13.11)",
+   "who": "claude",
+   "due": "2026-11-16",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-audit-night.test.mjs",
+    "name": "baseline: each day goes through the night collector once, one summary comment, re-runs cost nothing"
+   },
+   "caller": {
+    "file": "docs/operations/workflow-experiment-2026-11.md",
+    "contains": "collab-audit-night.mjs --baseline"
+   },
+   "closedBy": {
+    "pr": 493
+   }
+  },
+  {
+   "id": "L24",
+   "title": "Chương trình giữ biên nhận review, đường merge và trạng thái xong cho cách 2 (nối #456)",
+   "from": "thử nghiệm 3+3 (owner 13.11): điều kiện bắt đầu cách 2",
+   "who": "claude",
+   "status": "declined-owner",
+   "declined": {
+    "on": "2026-11-14",
+    "reason": "Owner 14.11: không cài gì, không tạo ứng dụng; giao Claude và Codex tự thống nhất.",
+    "risk": "Không có ranh giới quyền: Claude vẫn đọc được khóa, tự đăng verdict và merge. Cách 2-nhẹ chỉ kiểm toán sau merge, không chặn trước (P1 của Codex 14.11 còn nguyên)."
+   }
+  },
+  {
+   "id": "L25",
+   "title": "Luật bất đồng mới (owner 14.11, Codex SỬA): tối đa hai vòng, còn khác ý thì giữ bước đó và hỏi owner một lần; ban ngày 30 phút không trả lời thì theo kết luận của Codex, ghi \"chốt do hết giờ\"; ban đêm giữ tới sáng",
+   "from": "owner 14.11 + Codex 14.11",
+   "who": "claude",
+   "due": "2026-11-17",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-loop.test.mjs",
+    "name": "L25: the tick never runs a disputed PR, and after a timeout the PR needs a new check and review at its head"
+   },
+   "caller": {
+    "file": "scripts/collab-turn.mjs",
+    "contains": "try { settle({ gh, log }); }"
+   },
+   "closedBy": {
+    "pr": 520
+   }
+  },
+  {
+   "id": "L26",
+   "title": "Cách 2-nhẹ: kiểm toán sau merge, merge vào integration thiếu verdict tự động đúng head thì ops-alert và ghi M2 đúng một lần, kể cả khi soát lỗi rồi chạy lại",
+   "from": "owner 14.11 + Codex 14.11",
+   "who": "claude",
+   "due": "2026-11-17",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-merge-audit.test.mjs",
+    "name": "a merge into integration without an automatic APPROVE receipt"
+   },
+   "caller": {
+    "file": "scripts/collab-turn.mjs",
+    "contains": "mergeAudit"
+   },
+   "closedBy": {
+    "pr": 517
+   }
+  },
+  {
+   "id": "L27",
+   "title": "FAIL do CI cũ, chạy lại xanh ở cùng head thì check lại (#508)",
+   "from": "sự cố 14.11 (#508)",
+   "who": "claude",
+   "due": "2026-11-16",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-loop.test.mjs",
+    "name": "a CI FAIL that turns green on a re-run at the same head"
+   },
+   "caller": {
+    "file": "scripts/collab-turn.mjs",
+    "contains": "ciRechecks(turnsFor("
+   },
+   "closedBy": {
+    "pr": 516
+   }
+  },
+  {
+   "id": "L28",
+   "title": "Soát đêm: báo động cũ được cập nhật vào ngày sau vẫn vào bằng chứng M3 của đúng ngày nó xảy ra (#530)",
+   "from": "Codex review #493 (fix-forward #530, #536)",
+   "who": "claude",
+   "due": "2026-11-16",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-audit-night.test.mjs",
+    "name": "M3: an alert of a past day stays a candidate after it is updated on a later day"
+   },
+   "caller": {
+    "file": "scripts/collab-audit-night.mjs",
+    "contains": "updated:>="
+   },
+   "closedBy": {
+    "pr": 531
+   }
+  },
+  {
+   "id": "L30",
+   "title": "Thiếu danh sách mục cấm thì bước quét trước push không được in \"private-guard: ok\": in dòng riêng (\"private-guard: list missing\") và tick hiện cảnh báo; có chặn push hay không do owner quyết (đề xuất: không chặn, có cảnh báo)",
+   "from": "thử cổng dev con thật 15.11 (L06): ~/.cache/la-lanh-collab/private-guard.txt không tồn tại, hook pre-push vẫn báo ok",
+   "who": "claude",
+   "due": "2026-11-17",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-hooks.test.mjs",
+    "name": "L30: a missing guard list prints \"list missing\", does not block the push, and warns on tick health"
+   },
+   "caller": {
+    "file": "scripts/collab-check.mjs",
+    "contains": "private-guard: list missing"
+   },
+   "closedBy": {
+    "pr": 558
+   }
+  },
+  {
+   "id": "L29",
+   "title": "Một ngày chỉ một danh sách việc: danh sách buổi sáng được máy kiểm bằng cùng luật, không đạt thì máy chọn lại; giữ 2 chỗ cho kế hoạch 7 tuần (sự cố 15.11: hai danh sách khác nhau)",
+   "from": "báo cáo 08:00 15.11; owner 15.11 \"Bắt đầu\"; Codex r1 trên #544",
+   "who": "claude",
+   "due": "2026-11-16",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-loop.test.mjs",
+    "name": "7-week: the tick uses the morning list when it passes and re-picks when it is short"
+   },
+   "caller": {
+    "file": "scripts/collab-turn.mjs",
+    "contains": "dayList({ units: workUnits({ turns, prs, issues: issues() }), comments, date })"
+   },
+   "closedBy": {
+    "pr": 544
+   }
+  }
+ ]
+}

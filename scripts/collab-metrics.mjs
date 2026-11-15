@@ -3,10 +3,11 @@
 // pinned to collab/integration), git refs and merged PRs on GitHub. A source that cannot be read
 // prints "chưa đo được (lý do)"; nothing is estimated.
 import { execFileSync } from 'node:child_process';
-import { pathToFileURL } from 'node:url';
 import { digest, ownerOnly, readLocalRegistry, root } from './codex-copy-review.mjs';
 import { wipCount, wipLimit } from './collab-buffer.mjs';
 import { clean, integration, makeGh, repo } from './collab-trust.mjs';
+import { isMain } from './is-main.mjs';
+import { lessonsLine, prFields } from './collab-lessons.mjs';
 
 // Same rule as CopyEntry.servable and approved_bundles() in apps/api/app/domains/content/copy_approval.py.
 export const bundlePrefix = 'daily.bundle.';
@@ -46,7 +47,8 @@ const reason = error => clean(String(error?.message ?? error).split('\n')[0], 12
 const measure = fn => { try { return fn(); } catch (error) { return { error: reason(error) }; } };
 
 // Sources. `run` is execFileSync-shaped; tests pass their own.
-export function collectMetrics({ registry = readLocalRegistry, run = execFileSync, gh = makeGh(), prs = [], turns = [], nowMs = Date.now() } = {}) {
+export function collectMetrics({ registry = readLocalRegistry, run = execFileSync, gh = makeGh(), prs = [], turns = [], nowMs = Date.now(),
+  lessons = () => lessonsLine({ view: n => gh.json(['pr', 'view', String(n), '--repo', repo, '--json', prFields]) }) } = {}) {
   const git = args => String(run('/usr/bin/git', args, { cwd: root, encoding: 'utf8', timeout: 60000, stdio: ['ignore', 'pipe', 'pipe'] })).trim();
   const reg = measure(() => ({ value: registry() }));
   const fromRegistry = fn => (reg.error ? { error: `không đọc được kho câu chữ: ${reg.error}` } : measure(() => fn(reg.value)));
@@ -70,6 +72,8 @@ export function collectMetrics({ registry = readLocalRegistry, run = execFileSyn
     leadTime: measure(() => leadTimeMetric(gh.json(['pr', 'list', '--repo', repo, '--base', integration, '--state', 'merged',
       '--search', `merged:>=${since}`, '--limit', '200', '--json', 'number,createdAt,mergedAt,baseRefName']), nowMs)),
     wip: measure(() => wipCount(prs, turns)),
+    // Owner 13.11.2026: workflow promises (scripts/collab-lessons.mjs), with overdue items named.
+    lessons: lessons(),
   };
 }
 
@@ -86,10 +90,11 @@ export function renderMetrics(m) {
     `Khoảng cách tới người dùng: ${a?.error ? unmeasured(a) : `${a.commits} commit ở integration chưa lên main`}; ${g?.error ? `ngày cập nhật main ${unmeasured(g)}` : `main cập nhật lần cuối ${g.days} ngày trước`}.`,
     `Thời gian từ mở PR tới merge vào integration (7 ngày qua): ${l?.error ? unmeasured(l) : `trung vị ${oneDecimal(l.hours)} giờ (${l.count} PR)`}.`,
     `Việc đang làm: ${w?.error ? unmeasured(w) : `${w.inProgress}/${wipLimit.inProgress}, đang chờ review: ${w.inReview}/${wipLimit.inReview}`}.`,
+    ...(typeof m.lessons === 'string' ? [m.lessons] : []),
   ];
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (isMain(import.meta.url)) {
   try {
     const gh = makeGh();
     const { turnsFor } = await import('./collab-turn.mjs');

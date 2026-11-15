@@ -1,0 +1,1878 @@
+[
+ {
+  "persona": "P099",
+  "idea": 1,
+  "help": 2,
+  "return": 2,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Chủ đề toàn chuyện sinh viên, không dính gì tới người bố đi dạy như mình.",
+  "checks": {
+   "reason_vs_interpretation_clear": true,
+   "feels_relevant": false
+  }
+ },
+ {
+  "persona": "P099",
+  "idea": 2,
+  "help": 4,
+  "return": 4,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Chọn xong không được nhớ, nên app không biết mình hay căng cuối tuần.",
+  "checks": {
+   "fits_after_change": true,
+   "contradiction_fixed": true
+  }
+ },
+ {
+  "persona": "P099",
+  "idea": 3,
+  "help": 4,
+  "return": 4,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Thêm một màn hỏi trước khi vào note, hơi tốn mấy phút ít ỏi buổi tối.",
+  "checks": {
+   "found_right_path": true,
+   "could_stop": true,
+   "felt_blamed_for_absence": false
+  }
+ },
+ {
+  "persona": "P099",
+  "idea": 4,
+  "help": 3,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Vắng hai tuần mà thẻ ghi 'hôm qua' thì nghe không khớp.",
+  "checks": {
+   "asked_once_no_penalty": true,
+   "answer_changes_next": true
+  }
+ },
+ {
+  "persona": "P099",
+  "idea": 5,
+  "help": 2,
+  "return": 2,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Chuyện năm nhất ăn trưa một mình không liên quan tới mình.",
+  "checks": {
+   "mistook_for_real_testimony": false,
+   "felt_difficulty_denied": false,
+   "felt_false_promise": false
+  }
+ },
+ {
+  "persona": "P099",
+  "idea": 6,
+  "help": 2,
+  "return": 2,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Mình không tin bói nên chẳng muốn gửi lá cho ai.",
+  "checks": {
+   "saw_preview": true,
+   "worried_private_info_attached": false,
+   "recipient_needs_account": false,
+   "would_send": false
+  }
+ },
+ {
+  "persona": "P099",
+  "idea": 7,
+  "help": 3,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Mỗi tối có vài phút, chắc ít khi mở lại danh sách.",
+  "checks": {
+   "could_find_again": true,
+   "could_remove": true,
+   "worried_auto_saved": false
+  }
+ },
+ {
+  "persona": "P099",
+  "idea": 8,
+  "help": 2,
+  "return": 2,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Trò chuyện sinh viên, không phải chuyện của người bố bận như mình.",
+  "checks": {
+   "understood_how_to_play": true,
+   "joke_hurt": false,
+   "could_stop": true
+  }
+ },
+ {
+  "persona": "P037",
+  "idea": 1,
+  "help": 3,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Mệt quá mà việc nhỏ vẫn là nhắn nhóm, giá mà nhẹ hơn.",
+  "checks": {
+   "reason_vs_interpretation_clear": true,
+   "feels_relevant": true
+  }
+ },
+ {
+  "persona": "P037",
+  "idea": 2,
+  "help": 4,
+  "return": 4,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Hàng mood với góc đọc nhiều nút, mệt thì ngại bấm.",
+  "checks": {
+   "fits_after_change": true,
+   "contradiction_fixed": true
+  }
+ },
+ {
+  "persona": "P037",
+  "idea": 3,
+  "help": 5,
+  "return": 4,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "",
+  "checks": {
+   "found_right_path": true,
+   "could_stop": true,
+   "felt_blamed_for_absence": false
+  }
+ },
+ {
+  "persona": "P037",
+  "idea": 4,
+  "help": 3,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Đang mệt thì thêm một thẻ hỏi cũng thấy phiền.",
+  "checks": {
+   "asked_once_no_penalty": true,
+   "answer_changes_next": true
+  }
+ },
+ {
+  "persona": "P037",
+  "idea": 5,
+  "help": 3,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Mệt rồi mà đọc chuyện buồn thì càng thấy nặng.",
+  "checks": {
+   "mistook_for_real_testimony": false,
+   "felt_difficulty_denied": false,
+   "felt_false_promise": false
+  }
+ },
+ {
+  "persona": "P037",
+  "idea": 6,
+  "help": 1,
+  "return": 2,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Mệt muốn nằm, không có sức gửi gì cho ai.",
+  "checks": {
+   "saw_preview": true,
+   "worried_private_info_attached": false,
+   "recipient_needs_account": false,
+   "would_send": false
+  }
+ },
+ {
+  "persona": "P037",
+  "idea": 7,
+  "help": 2,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Hôm nay mệt quá, không nghĩ tới việc đánh dấu.",
+  "checks": {
+   "could_find_again": true,
+   "could_remove": true,
+   "worried_auto_saved": false
+  }
+ },
+ {
+  "persona": "P037",
+  "idea": 8,
+  "help": 3,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Hết sức rồi thì chơi cũng không vui lắm.",
+  "checks": {
+   "understood_how_to_play": true,
+   "joke_hurt": false,
+   "could_stop": true
+  }
+ },
+ {
+  "persona": "P082",
+  "idea": 1,
+  "help": 2,
+  "return": 2,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Toàn chuyện sinh viên, mình 30 tuổi làm tự do thấy lạc chỗ.",
+  "checks": {
+   "reason_vs_interpretation_clear": true,
+   "feels_relevant": false
+  }
+ },
+ {
+  "persona": "P082",
+  "idea": 2,
+  "help": 4,
+  "return": 4,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Không lưu lại nên không thành chỗ ghi tâm trạng như mình muốn.",
+  "checks": {
+   "fits_after_change": true,
+   "contradiction_fixed": true
+  }
+ },
+ {
+  "persona": "P082",
+  "idea": 3,
+  "help": 3,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Bấm 'Gỡ một chuyện' tưởng được kể ra, hóa ra chỉ là note có sẵn.",
+  "checks": {
+   "found_right_path": false,
+   "could_stop": true,
+   "felt_blamed_for_absence": false
+  }
+ },
+ {
+  "persona": "P082",
+  "idea": 4,
+  "help": 3,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Chỉ hỏi việc nhỏ, không giúp gì chuyện gia đình đang căng.",
+  "checks": {
+   "asked_once_no_penalty": true,
+   "answer_changes_next": true
+  }
+ },
+ {
+  "persona": "P082",
+  "idea": 5,
+  "help": 3,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Chuyện năm nhất ở căng tin xa với nỗi lạc lõng của mình với gia đình.",
+  "checks": {
+   "mistook_for_real_testimony": false,
+   "felt_difficulty_denied": false,
+   "felt_false_promise": false
+  }
+ },
+ {
+  "persona": "P082",
+  "idea": 6,
+  "help": 3,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Mẫu câu mở lời hơi chung, tự viết vẫn hơn.",
+  "checks": {
+   "saw_preview": true,
+   "worried_private_info_attached": false,
+   "recipient_needs_account": false,
+   "would_send": true
+  }
+ },
+ {
+  "persona": "P082",
+  "idea": 7,
+  "help": 3,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Chỉ lưu câu của app, không có chỗ ghi điều riêng của mình.",
+  "checks": {
+   "could_find_again": true,
+   "could_remove": true,
+   "worried_auto_saved": false
+  }
+ },
+ {
+  "persona": "P082",
+  "idea": 8,
+  "help": 3,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Chuyện nhóm bài tập sinh viên, không còn là đời mình nữa.",
+  "checks": {
+   "understood_how_to_play": true,
+   "joke_hurt": false,
+   "could_stop": true
+  }
+ },
+ {
+  "persona": "P030",
+  "idea": 1,
+  "help": 3,
+  "return": 4,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Chưa có chủ đề nhớ nhà hay cuối tuần ở lại ký túc.",
+  "checks": {
+   "reason_vs_interpretation_clear": true,
+   "feels_relevant": true
+  }
+ },
+ {
+  "persona": "P030",
+  "idea": 2,
+  "help": 3,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Không lưu nên mấy cuối tuần liền chọn lạc trôi app cũng chẳng nhận ra.",
+  "checks": {
+   "fits_after_change": true,
+   "contradiction_fixed": true
+  }
+ },
+ {
+  "persona": "P030",
+  "idea": 3,
+  "help": 3,
+  "return": 4,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Không có lối nào để kể chuyện hôm nay như mình muốn.",
+  "checks": {
+   "found_right_path": false,
+   "could_stop": true,
+   "felt_blamed_for_absence": false
+  }
+ },
+ {
+  "persona": "P030",
+  "idea": 4,
+  "help": 4,
+  "return": 4,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Chỉ hỏi việc, không hỏi mình dạo này thấy sao.",
+  "checks": {
+   "asked_once_no_penalty": true,
+   "answer_changes_next": true
+  }
+ },
+ {
+  "persona": "P030",
+  "idea": 5,
+  "help": 5,
+  "return": 4,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Đọc xong muốn kể chuyện của mình mà không có chỗ.",
+  "checks": {
+   "mistook_for_real_testimony": false,
+   "felt_difficulty_denied": false,
+   "felt_false_promise": false
+  }
+ },
+ {
+  "persona": "P030",
+  "idea": 6,
+  "help": 3,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Gửi xong không biết người kia có mở không.",
+  "checks": {
+   "saw_preview": true,
+   "worried_private_info_attached": false,
+   "recipient_needs_account": false,
+   "would_send": true
+  }
+ },
+ {
+  "persona": "P030",
+  "idea": 7,
+  "help": 3,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": true,
+  "dependence": false,
+  "quote": "Ai mở được app trên máy này thì cũng thấy danh sách này.",
+  "complaint": "Bạn cùng phòng cầm máy là đọc được hết mấy câu mình đánh dấu.",
+  "checks": {
+   "could_find_again": true,
+   "could_remove": true,
+   "worried_auto_saved": false
+  }
+ },
+ {
+  "persona": "P030",
+  "idea": 8,
+  "help": 3,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Vui nhưng không giúp gì cho cuối tuần ở lại một mình.",
+  "checks": {
+   "understood_how_to_play": true,
+   "joke_hurt": false,
+   "could_stop": true
+  }
+ },
+ {
+  "persona": "P076",
+  "idea": 1,
+  "help": 2,
+  "return": 2,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Toàn chuyện học nhóm sinh viên, mà phần chiêm tinh lại bảo chỉ cho vui.",
+  "checks": {
+   "reason_vs_interpretation_clear": true,
+   "feels_relevant": false
+  }
+ },
+ {
+  "persona": "P076",
+  "idea": 2,
+  "help": 4,
+  "return": 4,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Không có chỗ chọn mình đang làm ca đêm.",
+  "checks": {
+   "fits_after_change": true,
+   "contradiction_fixed": true
+  }
+ },
+ {
+  "persona": "P076",
+  "idea": 3,
+  "help": 4,
+  "return": 4,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Mình mở app để xem cung, lại phải qua thêm một màn hỏi.",
+  "checks": {
+   "found_right_path": true,
+   "could_stop": true,
+   "felt_blamed_for_absence": false
+  }
+ },
+ {
+  "persona": "P076",
+  "idea": 4,
+  "help": 3,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Hỏi chuyện ngủ trước 12 giờ với người làm ca đêm thì không hợp.",
+  "checks": {
+   "asked_once_no_penalty": true,
+   "answer_changes_next": true
+  }
+ },
+ {
+  "persona": "P076",
+  "idea": 5,
+  "help": 2,
+  "return": 2,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Chuyện sinh viên ở căng tin không phải chuyện công nhân như mình.",
+  "checks": {
+   "mistook_for_real_testimony": false,
+   "felt_difficulty_denied": false,
+   "felt_false_promise": false
+  }
+ },
+ {
+  "persona": "P076",
+  "idea": 6,
+  "help": 3,
+  "return": 4,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Mệt quá, để hôm khác mới gửi cho chị em.",
+  "checks": {
+   "saw_preview": true,
+   "worried_private_info_attached": false,
+   "recipient_needs_account": false,
+   "would_send": true
+  }
+ },
+ {
+  "persona": "P076",
+  "idea": 7,
+  "help": 2,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Mệt quá chẳng muốn bấm đánh dấu gì.",
+  "checks": {
+   "could_find_again": true,
+   "could_remove": true,
+   "worried_auto_saved": false
+  }
+ },
+ {
+  "persona": "P076",
+  "idea": 8,
+  "help": 2,
+  "return": 2,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Chuyện nộp bài sinh viên không vui với mình lúc đang mệt.",
+  "checks": {
+   "understood_how_to_play": true,
+   "joke_hurt": false,
+   "could_stop": true
+  }
+ },
+ {
+  "persona": "P016",
+  "idea": 1,
+  "help": 4,
+  "return": 4,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Việc nhỏ hôm nay không giúp mình bình tĩnh lại.",
+  "checks": {
+   "reason_vs_interpretation_clear": true,
+   "feels_relevant": true
+  }
+ },
+ {
+  "persona": "P016",
+  "idea": 2,
+  "help": 5,
+  "return": 4,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "",
+  "checks": {
+   "fits_after_change": true,
+   "contradiction_fixed": true
+  }
+ },
+ {
+  "persona": "P016",
+  "idea": 3,
+  "help": 4,
+  "return": 4,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Chưa có lối nào cho lúc vừa cãi nhau với mẹ.",
+  "checks": {
+   "found_right_path": true,
+   "could_stop": true,
+   "felt_blamed_for_absence": false
+  }
+ },
+ {
+  "persona": "P016",
+  "idea": 4,
+  "help": 3,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": true,
+  "dependence": false,
+  "quote": "Hôm qua bạn giữ việc: Đi ngủ trước 12 giờ. Thử được chưa?",
+  "complaint": "Thẻ hỏi hiện ngay Home, chị họ cầm máy cũng thấy.",
+  "checks": {
+   "asked_once_no_penalty": true,
+   "answer_changes_next": true
+  }
+ },
+ {
+  "persona": "P016",
+  "idea": 5,
+  "help": 3,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Chuyện lạc nhóm không trúng chuyện bị ba mẹ hỏi điểm của mình.",
+  "checks": {
+   "mistook_for_real_testimony": false,
+   "felt_difficulty_denied": false,
+   "felt_false_promise": false
+  }
+ },
+ {
+  "persona": "P016",
+  "idea": 6,
+  "help": 3,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Sợ người nhận hỏi lại sao tự nhiên gửi cái này.",
+  "checks": {
+   "saw_preview": true,
+   "worried_private_info_attached": false,
+   "recipient_needs_account": false,
+   "would_send": true
+  }
+ },
+ {
+  "persona": "P016",
+  "idea": 7,
+  "help": 2,
+  "return": 2,
+  "blame": false,
+  "pressure": false,
+  "privacy": true,
+  "dependence": false,
+  "quote": "Ai mở được app trên máy này thì cũng thấy danh sách này.",
+  "complaint": "Chị họ cầm máy là đọc hết mấy câu mình đánh dấu rồi kể với mẹ.",
+  "checks": {
+   "could_find_again": true,
+   "could_remove": true,
+   "worried_auto_saved": false
+  }
+ },
+ {
+  "persona": "P016",
+  "idea": 8,
+  "help": 3,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Chỉ 3 chuyện một ngày, sợ mai lại lặp.",
+  "checks": {
+   "understood_how_to_play": true,
+   "joke_hurt": false,
+   "could_stop": true
+  }
+ },
+ {
+  "persona": "P051",
+  "idea": 1,
+  "help": 3,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Vừa hết ca đêm mà việc nhỏ vẫn là nhắn nhóm.",
+  "checks": {
+   "reason_vs_interpretation_clear": true,
+   "feels_relevant": true
+  }
+ },
+ {
+  "persona": "P051",
+  "idea": 2,
+  "help": 5,
+  "return": 4,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Phải tự bấm mood mới được việc nhẹ, mệt thì dễ quên bấm.",
+  "checks": {
+   "fits_after_change": true,
+   "contradiction_fixed": true
+  }
+ },
+ {
+  "persona": "P051",
+  "idea": 3,
+  "help": 5,
+  "return": 4,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "",
+  "checks": {
+   "found_right_path": true,
+   "could_stop": true,
+   "felt_blamed_for_absence": false
+  }
+ },
+ {
+  "persona": "P051",
+  "idea": 4,
+  "help": 3,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Việc ngủ trước 12 giờ không hợp người làm ca đêm.",
+  "checks": {
+   "asked_once_no_penalty": true,
+   "answer_changes_next": true
+  }
+ },
+ {
+  "persona": "P051",
+  "idea": 5,
+  "help": 2,
+  "return": 2,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Mệt quá, không cần đọc chuyện năm nhất lúc này.",
+  "checks": {
+   "mistook_for_real_testimony": false,
+   "felt_difficulty_denied": false,
+   "felt_false_promise": false
+  }
+ },
+ {
+  "persona": "P051",
+  "idea": 6,
+  "help": 1,
+  "return": 2,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Hết sức rồi, không muốn gửi gì cho ai.",
+  "checks": {
+   "saw_preview": true,
+   "worried_private_info_attached": false,
+   "recipient_needs_account": false,
+   "would_send": false
+  }
+ },
+ {
+  "persona": "P051",
+  "idea": 7,
+  "help": 3,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Ngày mệt mà app gợi xem lại cũng là thêm một bước.",
+  "checks": {
+   "could_find_again": true,
+   "could_remove": true,
+   "worried_auto_saved": false
+  }
+ },
+ {
+  "persona": "P051",
+  "idea": 8,
+  "help": 2,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Đọc chuyện nhóm thức tới 2 giờ chỉ làm nhớ bài chưa ôn.",
+  "checks": {
+   "understood_how_to_play": true,
+   "joke_hurt": false,
+   "could_stop": true
+  }
+ },
+ {
+  "persona": "P048",
+  "idea": 1,
+  "help": 4,
+  "return": 4,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Giọng hơi nghiêm, chưa vui như bạn bè nói.",
+  "checks": {
+   "reason_vs_interpretation_clear": true,
+   "feels_relevant": true
+  }
+ },
+ {
+  "persona": "P048",
+  "idea": 2,
+  "help": 4,
+  "return": 4,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Không có góc đọc riêng cho chuyện đi làm thêm.",
+  "checks": {
+   "fits_after_change": true,
+   "contradiction_fixed": true
+  }
+ },
+ {
+  "persona": "P048",
+  "idea": 3,
+  "help": 4,
+  "return": 4,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Muốn có chỗ kể chuyện mà chỉ có note sẵn.",
+  "checks": {
+   "found_right_path": true,
+   "could_stop": true,
+   "felt_blamed_for_absence": false
+  }
+ },
+ {
+  "persona": "P048",
+  "idea": 4,
+  "help": 3,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Mình ít làm theo gợi ý nên thẻ hỏi lại hơi thừa.",
+  "checks": {
+   "asked_once_no_penalty": true,
+   "answer_changes_next": true
+  }
+ },
+ {
+  "persona": "P048",
+  "idea": 5,
+  "help": 4,
+  "return": 4,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Đọc xong không có chỗ nói lại cảm giác của mình.",
+  "checks": {
+   "mistook_for_real_testimony": false,
+   "felt_difficulty_denied": false,
+   "felt_false_promise": false
+  }
+ },
+ {
+  "persona": "P048",
+  "idea": 6,
+  "help": 4,
+  "return": 5,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "",
+  "checks": {
+   "saw_preview": true,
+   "worried_private_info_attached": false,
+   "recipient_needs_account": false,
+   "would_send": true
+  }
+ },
+ {
+  "persona": "P048",
+  "idea": 7,
+  "help": 3,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Mình ít khi quay lại đọc câu cũ.",
+  "checks": {
+   "could_find_again": true,
+   "could_remove": true,
+   "worried_auto_saved": false
+  }
+ },
+ {
+  "persona": "P048",
+  "idea": 8,
+  "help": 4,
+  "return": 4,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Chỉ 3 chuyện một ngày thì hơi ít.",
+  "checks": {
+   "understood_how_to_play": true,
+   "joke_hurt": false,
+   "could_stop": true
+  }
+ },
+ {
+  "persona": "P089",
+  "idea": 1,
+  "help": 1,
+  "return": 2,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Toàn chuyện sinh viên học nhóm, chẳng dính gì tới bà.",
+  "checks": {
+   "reason_vs_interpretation_clear": true,
+   "feels_relevant": false
+  }
+ },
+ {
+  "persona": "P089",
+  "idea": 2,
+  "help": 2,
+  "return": 2,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Mấy chữ Rực, Chill, Lạc trôi bà không hiểu.",
+  "checks": {
+   "fits_after_change": false,
+   "contradiction_fixed": true
+  }
+ },
+ {
+  "persona": "P089",
+  "idea": 3,
+  "help": 3,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Bấm gỡ chuyện mà không có chỗ nói chuyện lo cho con.",
+  "checks": {
+   "found_right_path": false,
+   "could_stop": true,
+   "felt_blamed_for_absence": false
+  }
+ },
+ {
+  "persona": "P089",
+  "idea": 4,
+  "help": 4,
+  "return": 4,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Chỉ nhớ việc nhỏ, không nhớ chuyện bà lo cho con.",
+  "checks": {
+   "asked_once_no_penalty": true,
+   "answer_changes_next": true
+  }
+ },
+ {
+  "persona": "P089",
+  "idea": 5,
+  "help": 1,
+  "return": 2,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Chuyện sinh viên ăn trưa một mình không phải chuyện của bà.",
+  "checks": {
+   "mistook_for_real_testimony": false,
+   "felt_difficulty_denied": false,
+   "felt_false_promise": false
+  }
+ },
+ {
+  "persona": "P089",
+  "idea": 6,
+  "help": 3,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Mấy bước chọn câu rồi gửi link hơi rối với bà.",
+  "checks": {
+   "saw_preview": true,
+   "worried_private_info_attached": false,
+   "recipient_needs_account": false,
+   "would_send": true
+  }
+ },
+ {
+  "persona": "P089",
+  "idea": 7,
+  "help": 2,
+  "return": 2,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Bà ít khi tìm vào mục Mình để xem lại.",
+  "checks": {
+   "could_find_again": true,
+   "could_remove": true,
+   "worried_auto_saved": false
+  }
+ },
+ {
+  "persona": "P089",
+  "idea": 8,
+  "help": 1,
+  "return": 2,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Chuyện nộp bài với tên file bà đọc không hiểu vui ở đâu.",
+  "checks": {
+   "understood_how_to_play": true,
+   "joke_hurt": false,
+   "could_stop": true
+  }
+ },
+ {
+  "persona": "P055",
+  "idea": 1,
+  "help": 3,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Không nhắc gì tới khóa luận mình đang lo.",
+  "checks": {
+   "reason_vs_interpretation_clear": true,
+   "feels_relevant": true
+  }
+ },
+ {
+  "persona": "P055",
+  "idea": 2,
+  "help": 4,
+  "return": 4,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Không lưu lại nên mai app lại không biết mình đang đuối.",
+  "checks": {
+   "fits_after_change": true,
+   "contradiction_fixed": true
+  }
+ },
+ {
+  "persona": "P055",
+  "idea": 3,
+  "help": 4,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Nghỉ một phút xong bảo đóng app, mình vẫn muốn có việc cụ thể.",
+  "checks": {
+   "found_right_path": true,
+   "could_stop": true,
+   "felt_blamed_for_absence": false
+  }
+ },
+ {
+  "persona": "P055",
+  "idea": 4,
+  "help": 4,
+  "return": 4,
+  "blame": false,
+  "pressure": true,
+  "privacy": false,
+  "dependence": false,
+  "quote": "Thử được chưa?",
+  "complaint": "Hôm mệt mà bị hỏi 'Thử được chưa?' vẫn thấy như bị kiểm tra.",
+  "checks": {
+   "asked_once_no_penalty": true,
+   "answer_changes_next": true
+  }
+ },
+ {
+  "persona": "P055",
+  "idea": 5,
+  "help": 3,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Chuyện năm nhất, không giống chuyện so sánh với bạn cùng khóa của mình.",
+  "checks": {
+   "mistook_for_real_testimony": false,
+   "felt_difficulty_denied": false,
+   "felt_false_promise": false
+  }
+ },
+ {
+  "persona": "P055",
+  "idea": 6,
+  "help": 2,
+  "return": 2,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Mệt rồi, không có tâm trạng gửi gì.",
+  "checks": {
+   "saw_preview": true,
+   "worried_private_info_attached": false,
+   "recipient_needs_account": false,
+   "would_send": false
+  }
+ },
+ {
+  "persona": "P055",
+  "idea": 7,
+  "help": 4,
+  "return": 4,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "",
+  "checks": {
+   "could_find_again": true,
+   "could_remove": true,
+   "worried_auto_saved": false
+  }
+ },
+ {
+  "persona": "P055",
+  "idea": 8,
+  "help": 2,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Mệt quá thì trò chơi cũng không giúp được gì.",
+  "checks": {
+   "understood_how_to_play": true,
+   "joke_hurt": false,
+   "could_stop": true
+  }
+ },
+ {
+  "persona": "P075",
+  "idea": 1,
+  "help": 2,
+  "return": 2,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Toàn chuyện sinh viên, mình đi làm rồi.",
+  "checks": {
+   "reason_vs_interpretation_clear": true,
+   "feels_relevant": false
+  }
+ },
+ {
+  "persona": "P075",
+  "idea": 2,
+  "help": 3,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Nhiều nút để bấm quá, mình chỉ muốn đọc thôi.",
+  "checks": {
+   "fits_after_change": true,
+   "contradiction_fixed": true
+  }
+ },
+ {
+  "persona": "P075",
+  "idea": 3,
+  "help": 4,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Thêm một màn hỏi trước khi đọc.",
+  "checks": {
+   "found_right_path": true,
+   "could_stop": true,
+   "felt_blamed_for_absence": false
+  }
+ },
+ {
+  "persona": "P075",
+  "idea": 4,
+  "help": 2,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Mình không muốn bị hỏi lại chuyện đã làm việc gì.",
+  "checks": {
+   "asked_once_no_penalty": true,
+   "answer_changes_next": true
+  }
+ },
+ {
+  "persona": "P075",
+  "idea": 5,
+  "help": 2,
+  "return": 2,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Chuyện sinh viên, không gần với mình.",
+  "checks": {
+   "mistook_for_real_testimony": false,
+   "felt_difficulty_denied": false,
+   "felt_false_promise": false
+  }
+ },
+ {
+  "persona": "P075",
+  "idea": 6,
+  "help": 2,
+  "return": 2,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Mình không có nhu cầu gửi mấy cái này.",
+  "checks": {
+   "saw_preview": true,
+   "worried_private_info_attached": false,
+   "recipient_needs_account": false,
+   "would_send": false
+  }
+ },
+ {
+  "persona": "P075",
+  "idea": 7,
+  "help": 2,
+  "return": 2,
+  "blame": false,
+  "pressure": false,
+  "privacy": true,
+  "dependence": false,
+  "quote": "Ai mở được app trên máy này thì cũng thấy danh sách này.",
+  "complaint": "Ba mẹ cầm máy là thấy danh sách của mình.",
+  "checks": {
+   "could_find_again": true,
+   "could_remove": true,
+   "worried_auto_saved": false
+  }
+ },
+ {
+  "persona": "P075",
+  "idea": 8,
+  "help": 2,
+  "return": 2,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Mình không thích chơi, chỉ muốn đọc ngắn rồi ngủ.",
+  "checks": {
+   "understood_how_to_play": true,
+   "joke_hurt": false,
+   "could_stop": true
+  }
+ },
+ {
+  "persona": "P020",
+  "idea": 1,
+  "help": 4,
+  "return": 4,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Note chưa nói gì tới chuyện mình phải gánh tiền cho em.",
+  "checks": {
+   "reason_vs_interpretation_clear": true,
+   "feels_relevant": true
+  }
+ },
+ {
+  "persona": "P020",
+  "idea": 2,
+  "help": 4,
+  "return": 4,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Bấm qua bấm lại nhiều nút trong lúc chờ đơn thì hơi lâu.",
+  "checks": {
+   "fits_after_change": true,
+   "contradiction_fixed": true
+  }
+ },
+ {
+  "persona": "P020",
+  "idea": 3,
+  "help": 3,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Mình không có thời gian nghỉ, nút nghỉ chẳng dùng tới.",
+  "checks": {
+   "found_right_path": true,
+   "could_stop": true,
+   "felt_blamed_for_absence": false
+  }
+ },
+ {
+  "persona": "P020",
+  "idea": 4,
+  "help": 3,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Ít việc thì tốt, nhưng thẻ hỏi lại cũng thêm một bước.",
+  "checks": {
+   "asked_once_no_penalty": true,
+   "answer_changes_next": true
+  }
+ },
+ {
+  "persona": "P020",
+  "idea": 5,
+  "help": 3,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Chuyện ăn trưa một mình không trúng chuyện lo tiền nhà của mình.",
+  "checks": {
+   "mistook_for_real_testimony": false,
+   "felt_difficulty_denied": false,
+   "felt_false_promise": false
+  }
+ },
+ {
+  "persona": "P020",
+  "idea": 6,
+  "help": 2,
+  "return": 2,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Lúc này mình không có ai để gửi mấy cái này.",
+  "checks": {
+   "saw_preview": true,
+   "worried_private_info_attached": false,
+   "recipient_needs_account": false,
+   "would_send": false
+  }
+ },
+ {
+  "persona": "P020",
+  "idea": 7,
+  "help": 3,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Ít khi có thời gian xem lại danh sách.",
+  "checks": {
+   "could_find_again": true,
+   "could_remove": true,
+   "worried_auto_saved": false
+  }
+ },
+ {
+  "persona": "P020",
+  "idea": 8,
+  "help": 3,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Vui nhưng mình hiếm khi rảnh để chơi.",
+  "checks": {
+   "understood_how_to_play": true,
+   "joke_hurt": false,
+   "could_stop": true
+  }
+ },
+ {
+  "persona": "P081",
+  "idea": 1,
+  "help": 2,
+  "return": 2,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Toàn chuyện học hành sinh viên, không có xem ngày cho việc nhà.",
+  "checks": {
+   "reason_vs_interpretation_clear": true,
+   "feels_relevant": false
+  }
+ },
+ {
+  "persona": "P081",
+  "idea": 2,
+  "help": 3,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Không có chỗ chọn mình đang làm ca đêm, lần nào cũng phải chọn lại.",
+  "checks": {
+   "fits_after_change": true,
+   "contradiction_fixed": true
+  }
+ },
+ {
+  "persona": "P081",
+  "idea": 3,
+  "help": 3,
+  "return": 4,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Không có lối vào xem ngày như mình cần.",
+  "checks": {
+   "found_right_path": false,
+   "could_stop": true,
+   "felt_blamed_for_absence": false
+  }
+ },
+ {
+  "persona": "P081",
+  "idea": 4,
+  "help": 3,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Vắng hai tuần mà vẫn hỏi chuyện 'hôm qua' thì lạ.",
+  "checks": {
+   "asked_once_no_penalty": true,
+   "answer_changes_next": true
+  }
+ },
+ {
+  "persona": "P081",
+  "idea": 5,
+  "help": 1,
+  "return": 2,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Chuyện sinh viên năm nhất chẳng liên quan tới người có vợ con như mình.",
+  "checks": {
+   "mistook_for_real_testimony": false,
+   "felt_difficulty_denied": false,
+   "felt_false_promise": false
+  }
+ },
+ {
+  "persona": "P081",
+  "idea": 6,
+  "help": 3,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Mẫu câu toàn giọng bạn bè, gửi vợ thấy không hợp.",
+  "checks": {
+   "saw_preview": true,
+   "worried_private_info_attached": false,
+   "recipient_needs_account": false,
+   "would_send": true
+  }
+ },
+ {
+  "persona": "P081",
+  "idea": 7,
+  "help": 2,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Mình không cần lưu câu, cần xem ngày hơn.",
+  "checks": {
+   "could_find_again": true,
+   "could_remove": true,
+   "worried_auto_saved": false
+  }
+ },
+ {
+  "persona": "P081",
+  "idea": 8,
+  "help": 2,
+  "return": 2,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Chuyện nhóm bài tập sinh viên không hợp với mình.",
+  "checks": {
+   "understood_how_to_play": true,
+   "joke_hurt": false,
+   "could_stop": true
+  }
+ },
+ {
+  "persona": "P085",
+  "idea": 1,
+  "help": 2,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Phần chiêm tinh quá mỏng, lại bảo chỉ cho vui.",
+  "checks": {
+   "reason_vs_interpretation_clear": true,
+   "feels_relevant": false
+  }
+ },
+ {
+  "persona": "P085",
+  "idea": 2,
+  "help": 4,
+  "return": 4,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Không có chỗ viết suy nghĩ của mình.",
+  "checks": {
+   "fits_after_change": true,
+   "contradiction_fixed": true
+  }
+ },
+ {
+  "persona": "P085",
+  "idea": 3,
+  "help": 3,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Không có lối vào đọc Tarot hay viết ra suy nghĩ.",
+  "checks": {
+   "found_right_path": false,
+   "could_stop": true,
+   "felt_blamed_for_absence": false
+  }
+ },
+ {
+  "persona": "P085",
+  "idea": 4,
+  "help": 3,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Chỉ hỏi việc nhỏ, không hỏi chuyện mình đang nghĩ.",
+  "checks": {
+   "asked_once_no_penalty": true,
+   "answer_changes_next": true
+  }
+ },
+ {
+  "persona": "P085",
+  "idea": 5,
+  "help": 3,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Chuyện minh họa không có ai giống mình.",
+  "checks": {
+   "mistook_for_real_testimony": false,
+   "felt_difficulty_denied": false,
+   "felt_false_promise": false
+  }
+ },
+ {
+  "persona": "P085",
+  "idea": 6,
+  "help": 4,
+  "return": 5,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Mẫu câu mở lời chưa có câu nào hợp để gửi người mình thích.",
+  "checks": {
+   "saw_preview": true,
+   "worried_private_info_attached": false,
+   "recipient_needs_account": false,
+   "would_send": true
+  }
+ },
+ {
+  "persona": "P085",
+  "idea": 7,
+  "help": 3,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": true,
+  "dependence": false,
+  "quote": "Ai mở được app trên máy này thì cũng thấy danh sách này.",
+  "complaint": "Mẹ hay bà cầm máy là đọc được danh sách của mình.",
+  "checks": {
+   "could_find_again": true,
+   "could_remove": true,
+   "worried_auto_saved": false
+  }
+ },
+ {
+  "persona": "P085",
+  "idea": 8,
+  "help": 3,
+  "return": 3,
+  "blame": false,
+  "pressure": false,
+  "privacy": false,
+  "dependence": false,
+  "quote": "",
+  "complaint": "Mình muốn trò về Tarot hơn là chuyện nộp bài.",
+  "checks": {
+   "understood_how_to_play": true,
+   "joke_hurt": false,
+   "could_stop": true
+  }
+ }
+]

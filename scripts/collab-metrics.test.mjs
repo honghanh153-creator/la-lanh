@@ -44,7 +44,8 @@ test('every metric comes from its source and prints one plain line each', () => 
   };
   const gh = { json: args => { calls.push(args.join(' ')); return [{ createdAt: hoursAgo(10), mergedAt: hoursAgo(7), baseRefName: 'collab/integration' }]; } };
   const prs = [{ number: 1, author: { login: 'honghanh153-creator' }, isCrossRepository: false, baseRefName: 'collab/integration', headRefName: 'agent/claude/x', labels: [] }];
-  const m = collectMetrics({ registry: () => registry, run, gh, prs, turns: [{ number: 1, turn: 'codex-review' }], nowMs });
+  const m = collectMetrics({ registry: () => registry, run, gh, prs, turns: [{ number: 1, turn: 'codex-review' }], nowMs,
+    lessons: () => 'Lời hứa sửa quy trình: 1/3 đã chạy thật (đã merge, Codex duyệt), 2 đang làm, **1 quá hạn** (L02).' });
   assert.ok(calls.includes('rev-list --count origin/main..origin/collab/integration'));
   assert.ok(calls.some(c => c.startsWith('fetch --quiet origin main collab/integration')));
   assert.ok(calls.some(c => c.includes('--state merged') && c.includes('merged:>=2026-11-05')));
@@ -55,6 +56,7 @@ test('every metric comes from its source and prints one plain line each', () => 
     'Khoảng cách tới người dùng: 42 commit ở integration chưa lên main; main cập nhật lần cuối 3 ngày trước.',
     'Thời gian từ mở PR tới merge vào integration (7 ngày qua): trung vị 3,0 giờ (1 PR).',
     'Việc đang làm: 0/1, đang chờ review: 1/1.',
+    'Lời hứa sửa quy trình: 1/3 đã chạy thật (đã merge, Codex duyệt), 2 đang làm, **1 quá hạn** (L02).',
   ]);
 });
 

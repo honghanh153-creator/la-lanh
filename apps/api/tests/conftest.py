@@ -1,4 +1,5 @@
 from collections.abc import Iterator
+from types import SimpleNamespace
 
 import pytest
 from fastapi import FastAPI
@@ -22,3 +23,17 @@ def test_app() -> FastAPI:
 def client(test_app: FastAPI) -> Iterator[TestClient]:
     with TestClient(test_app) as test_client:
         yield test_client
+
+
+@pytest.fixture
+def frozen_admission_window(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep every request of a rate-limit test in one admission window.
+
+    The admission windows are fixed minutes of time.monotonic(). A burst that crossed a minute
+    boundary started a fresh count, so "the 6th export is refused" failed on a slow CI run
+    (PR #354, 15.11.2026). Only the admission module's clock is frozen.
+    """
+
+    from app.middleware import admission
+
+    monkeypatch.setattr(admission, "time", SimpleNamespace(monotonic=lambda: 1_000_020.0))

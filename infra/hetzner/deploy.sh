@@ -112,4 +112,18 @@ if [[ "${EUID}" -eq 0 ]] && command -v systemctl >/dev/null; then
   install -m 0755 "${SCRIPT_DIR}/run-retention-job.sh" /usr/local/sbin/la-lanh-retention-job
 fi
 
+# Point the active-release link at this release's source tree. On 2026-11-13 it was set by hand one
+# level too high; the backup and retention units run from current/infra/hetzner, so a wrong link
+# breaks them silently. Only a release unpacked as <releases root>/<id>/source moves the link.
+RELEASES_ROOT="${LA_LANH_RELEASES_ROOT:-/opt/la-lanh/releases}"
+CURRENT_LINK="${LA_LANH_CURRENT_LINK:-/opt/la-lanh/current}"
+if [[ "$REPO_ROOT" == "$RELEASES_ROOT"/*/source ]]; then
+  ln -sfn "$REPO_ROOT" "$CURRENT_LINK"
+  [[ -x "$CURRENT_LINK/infra/hetzner/backup-database.sh" ]] || {
+    echo "Active-release link $CURRENT_LINK does not hold infra/hetzner; fix it before the next timer run." >&2
+    exit 2
+  }
+  echo "Active release link: $CURRENT_LINK -> $REPO_ROOT"
+fi
+
 echo "Release ${LA_LANH_RELEASE_ID} is running for https://${APP_HOSTNAME}"

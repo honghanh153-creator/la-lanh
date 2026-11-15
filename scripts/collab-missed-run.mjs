@@ -17,7 +17,7 @@ const vnOffsetMs = 7 * hourMs; // Asia/Ho_Chi_Minh has no daylight saving.
 // Times are Vietnam time, same as the Claude scheduled-task cron. jitterMinutes covers Claude's
 // start jitter (autopilot up to ~11 minutes).
 export const schedules = {
-  'la-lanh-autopilot': { label: 'Autopilot (mỗi giờ, :37 từ 9 đến 23 giờ)', minute: 37, hours: [9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23], jitterMinutes: 12 },
+  'la-lanh-autopilot': { label: 'Autopilot (mỗi giờ, :37 từ 7 đến 23 giờ)', minute: 37, hours: [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23], jitterMinutes: 12 },
   'la-lanh-ops-watch': { label: 'Kiểm tra server (4:20, 10:20, 16:20, 22:20)', minute: 20, hours: [4, 10, 16, 22], jitterMinutes: 8 },
   'la-lanh-retro': { label: 'Báo cáo cuối ngày (23:35)', minute: 35, hours: [23], jitterMinutes: 2 },
 };

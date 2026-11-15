@@ -456,7 +456,9 @@ test("guest can add exact birth time and place only after explicit deep-data con
 
   await page.getByRole("button", { name: "Bỏ giữ việc này" }).click();
   await expect(page.getByRole("button", { name: "Giữ để thử hôm nay" })).toBeVisible();
-  expect(undoExperimentBody).toMatchObject({
+  // Undo is optimistic: the button comes back before the DELETE reaches the route, so wait for
+  // the request instead of reading it once (desktop CI run of 14.11.2026 read null).
+  await expect.poll(() => undoExperimentBody).toMatchObject({
     experiment_id: "00000000-0000-4000-8000-000000000030",
     expected_version: 1,
   });
