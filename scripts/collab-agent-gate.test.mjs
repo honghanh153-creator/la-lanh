@@ -270,3 +270,44 @@ test('L06 gate: a dangling symlink counts where it points, not where the link si
   symlinkSync(join(scratch, 'loop-a'), join(scratch, 'loop-b'));
   assert.throws(() => realBase(join(scratch, 'loop-a')), /resolve-error/);
 });
+
+// Codex auto-2 on #542 (P1 ×2, P2 repeat class): every exemption is listed here with the forms that
+// write or run a program, so a new exemption without its row is visible in review.
+test('L06 gate: exemption matrix — each read-only form next to the forms that must count as writes', () => {
+  const matrix = {
+    git: [['git log --oneline', 'git -C /x status', 'git branch --show-current', 'git branch -a', 'git config --get remote.origin.url', 'git diff HEAD~1'],
+      ['git branch -C main', 'git branch -D x', 'git branch -m a b', 'git branch new', 'git -cdiff.external=/tmp/w diff', 'git -c core.pager=sh log', 'git --exec-path=/tmp log',
+        'git -p log', 'git diff --output=/tmp/x', 'git log --output /tmp/x', 'git grep -Ox', 'git diff --ext-diff', 'git config user.name x', 'git config --get', 'git commit -m x', 'git -C']],
+    env: [[], ['GIT_EXTERNAL_DIFF=/tmp/w git diff', 'PAGER=/tmp/w git log', 'X=1 cat f']],
+    sort: [['sort -n f', 'sort -u f'], ['sort -o /tmp/x f', 'sort -no/tmp/x f', 'sort --output=/tmp/x f', 'sort --compress-program=/tmp/w f']],
+    sed: [["sed -n '1,5p' f", "sed -n '$p' f"], ["sed -n 'w /tmp/x' f", "sed -n '1p;w /tmp/x' f", "sed -n -i '1p' f", "sed '1p' f", "sed -n 'e /tmp/w' f"]],
+    find: [['find . -name x'], ['find . -delete', 'find . -exec rm {} ;', 'find . -fprint /tmp/x', 'find . -fls /tmp/x']],
+    rg: [['rg -n x'], ['rg --pre /tmp/w x', 'rg --pre=/tmp/w x']],
+    date: [['date +%F'], ['date -s 2020-01-01', 'date --set=x']],
+    other: [['cat a', 'ls -la', 'head -5 f', 'wc -l f', 'grep -rn x .', 'jq . f', 'cut -d, -f1 f', 'echo x', 'stat f', 'diff a b'],
+      ['uniq a b', 'tee x', 'cat a | tee b', 'echo x > f', 'cat <<EOF', 'echo $(rm x)', 'touch f', 'node x.mjs', 'cp a b']],
+  };
+  for (const [name, [reads, writes]] of Object.entries(matrix)) {
+    for (const c of reads) assert.equal(readOnlyBash(c), true, `${name}: ${c}`);
+    for (const c of writes) assert.equal(readOnlyBash(c), false, `${name}: ${c}`);
+  }
+});
+
+test('L06 gate: workspace setup accepts only a plain fetch of one branch and worktree add on an agent branch', () => {
+  const C = '"/Users/x/Documents/New project/la-lanh-claude"';
+  for (const ok of [`git -C ${C} fetch origin collab/integration`, `git -C ${C} fetch -q origin collab/integration`, `git -C ${C} worktree add /tmp/w -b agent/claude/x FETCH_HEAD`, `cd /tmp && git -C ${C} worktree add /tmp/w -b agent/claude/x`])
+    assert.equal(setupCommand(ok), true, ok);
+  for (const bad of [`git -C ${C} fetch origin collab/integration:collab/integration`, `git -C ${C} fetch origin collab/integration --update-head-ok`, `git -C ${C} fetch --update-head-ok origin x`,
+    `git -C ${C} fetch origin +refs/heads/x:refs/heads/x`, `git -C ${C} fetch upstream x`, `git -C ${C} worktree add /tmp/w -b main`, `git -C ${C} worktree add /tmp/w -B agent/claude/x`, `git -C ${C} reset --hard`])
+    assert.equal(setupCommand(bad), false, bad);
+});
+
+test('L06 gate: every named path is checked; more than 100 is denied, never cut', () => {
+  const s = setup();
+  const scratch = realpathSync(mkdtempSync(join(tmpdir(), 'gate-many-')));
+  const sources = Array.from({ length: 30 }, (_, i) => `/tmp/synthetic-${i}.txt`).join(' ');
+  const r = gate(call('q3', 'Bash', { cwd: scratch, input: { command: `cp ${sources} ${s.repo}/a.txt` } }), opts);
+  assert.equal(r.allow, false, 'the 31st path, in the main checkout, is still checked');
+  const huge = Array.from({ length: 101 }, (_, i) => `/tmp/p${i}`).join(' ');
+  assert.throws(() => targets({ tool_name: 'Bash', cwd: scratch, tool_input: { command: `cp ${huge} /tmp/z` } }), /too-many-paths/);
+});

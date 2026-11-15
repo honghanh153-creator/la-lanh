@@ -136,10 +136,10 @@ export function readOnlyBash(command) {
   if (words.some(w => typeof w === 'object' && /[<>]/.test(w.op))) return false;
   return segmentsOf(words).every(segment => {
     if (segment.some(w => typeof w === 'object')) return false;
-    const plain = segment.filter(w => !/^[A-Z_][A-Z0-9_]*=/.test(w));
-    const [cmd, ...rest] = plain;
+    // An environment prefix (GIT_EXTERNAL_DIFF=…, PAGER=…) can run a program: never read-only.
+    if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(segment[0] ?? '')) return false;
+    const [cmd, ...rest] = segment;
     if (!cmd) return true;
-    if (cmd === 'tee') return false;
     if (readers.has(cmd)) return !rest.some(w => writingOption[cmd]?.(w));
     if (cmd === 'sed') {
       // Only print-by-line-number scripts: no w/W/e/r commands, no in-place.
@@ -148,15 +148,27 @@ export function readOnlyBash(command) {
       return flags.length > 0 && flags.every(f => f === '-n') && args.length >= 1 && /^(\d+|\$)(,(\d+|\$))?p$/.test(args[0]);
     }
     if (cmd === 'find') return !rest.some(w => /^-(delete|exec|execdir|ok|okdir|fprint|fprint0|fprintf|fls)$/.test(w));
-    if (cmd === 'git') {
-      if (rest.some(w => w === '-c' || /^--(output|ext-diff|open-files-in-pager|exec-path)/.test(w) || /^-O/.test(w) || /^--config-env/.test(w))) return false;
-      const sub = rest.filter((w, i) => !(w.startsWith('-') || rest[i - 1] === '-C'))[0];
-      if (sub === 'config') return rest.includes('--get') || rest.includes('--list');
-      if (sub === 'branch') return rest.every((w, i) => ['branch', '--show-current', '-a', '-r', '--list', '-v', '-vv', '-C'].includes(w) || rest[i - 1] === '-C');
-      return gitReaders.has(sub);
-    }
+    if (cmd === 'git') return readOnlyGit(rest);
     return false;
   });
+}
+
+// Git by argument position (Codex auto-2 on #542): before the subcommand only `-C <dir>` is
+// allowed (no -c/--exec-path/-p or any other global option); after it, options that write or run a
+// program refuse the exemption, and `branch` takes only listing flags (`branch -C` force-copies).
+export function readOnlyGit(args) {
+  let i = 0;
+  while (i < args.length && args[i].startsWith('-')) {
+    if (args[i] !== '-C' || i + 1 >= args.length) return false;
+    i += 2;
+  }
+  const sub = args[i];
+  const opts = args.slice(i + 1);
+  if (!sub) return false;
+  if (opts.some(w => /^--(output|ext-diff|open-files-in-pager|exec|upload-pack|receive-pack)/.test(w) || /^-O/.test(w))) return false;
+  if (sub === 'config') return opts.length === 2 && opts[0] === '--get' || (opts.length === 1 && opts[0] === '--list');
+  if (sub === 'branch') return opts.every(w => ['--show-current', '-a', '-r', '--list', '-v', '-vv'].includes(w));
+  return gitReaders.has(sub);
 }
 
 // Workspace setup a sub-agent may run against a shared clone: it writes only Git metadata there and
@@ -166,10 +178,12 @@ export function setupCommand(command) {
   try { words = shellWords(command); } catch { return false; }
   if (words.some(w => typeof w === 'object' && !['&&', ';'].includes(w.op))) return false;
   const segs = segmentsOf(words);
-  const ref = /^[\w./:+-]+$/;
+  const ref = /^[\w./-]+$/;
   return segs.length > 0 && segs.every(w =>
     (w.length === 2 && w[0] === 'cd')
-    || (w[0] === 'git' && w[1] === '-C' && w.length >= 5 && w[3] === 'fetch' && w.slice(4).every(x => ['-q', '--quiet'].includes(x) || x === 'origin' || ref.test(x)) && w.includes('origin'))
+    // fetch: only `git -C <clone> fetch [-q] origin <branch>`; no refspec with ':' (it can move a
+    // checked-out branch), no other option such as --update-head-ok (Codex auto-2 on #542).
+    || (w[0] === 'git' && w[1] === '-C' && w[3] === 'fetch' && (w.length === 6 || (w.length === 7 && ['-q', '--quiet'].includes(w[4]))) && w.at(-2) === 'origin' && /^[\w./-]+$/.test(w.at(-1)) && !w.at(-1).startsWith('-'))
     || (w[0] === 'git' && w[1] === '-C' && w[3] === 'worktree' && w[4] === 'add' && w[6] === '-b' && /^agent\/claude\/[\w./-]+$/.test(w[7] ?? '') && (w.length === 8 || (w.length === 9 && ref.test(w[8])))));
 }
 
@@ -185,7 +199,10 @@ const absPaths = command => {
       else if (part.startsWith('~/')) out.push(join(homedir(), part.slice(2)));
     }
   }
-  return [...new Set(out)].slice(0, 25);
+  const unique = [...new Set(out)];
+  // Every path is checked; a command naming more than 100 is denied, never cut (Codex auto-2 on #542).
+  if (unique.length > 100) throw new Error('too-many-paths');
+  return unique;
 };
 
 // The directories a tool call writes in, or [] for a read-only Bash call.
