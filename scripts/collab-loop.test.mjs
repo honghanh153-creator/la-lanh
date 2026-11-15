@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -7,8 +7,9 @@ import { execFileSync, spawnSync } from 'node:child_process';
 
 process.env.LA_LANH_COLLAB_HOME = mkdtempSync(join(tmpdir(), 'collab-loop-'));
 const trust = await import('./collab-trust.mjs');
-const { checksPerTick, copyBatchAttempts, fileBlocker, planTurns, prTurn, tickGap, turnsFor, tick } = await import('./collab-turn.mjs');
+const { checksPerTick, ciFailAtHead, copyBatchAttempts, fileBlocker, planTurns, prTurn, tickGap, turnsFor, tick } = await import('./collab-turn.mjs');
 const preflightMod = await import('./collab-preflight.mjs');
+const { renderBoard } = await import('./collab-status.mjs');
 const { committedTurns, copyReview, planMax, planMin, planState, renderPlan } = await import('./collab-plan.mjs');
 const review = await import('./codex-review.mjs');
 const { mergeGate, runMerge } = await import('./collab-merge.mjs');
@@ -95,22 +96,24 @@ test('queue order is ops → content → privacy → feature, oldest first', () 
   assert.deepEqual(order, [1, 5, 4, 6, 3, 2]);
 });
 
-test('daily gate: 08:50 plan, owner window, 10:00 auto start, 23:30 stop', () => {
+test('daily gate (owner 14.11): 06:50 plan, owner window, 08:00 auto start, nothing new from 23:35', () => {
   const date = '2026-10-30';
   const at = (hour, minute) => ({ date, hour, minute });
   const plan = { authorAssociation: 'OWNER', createdAt: '2026-10-30T01:50:00Z', body: `${trust.agentMarker} daily-plan date=${date} -->` };
   const reply = (body, createdAt = '2026-10-30T02:05:00Z', extra = {}) => ({ authorAssociation: 'OWNER', createdAt, body, ...extra });
-  assert.equal(planState(at(8, 40), []).state, 'closed');
-  assert.equal(planState(at(8, 55), []).state, 'not-made');
-  assert.equal(planState(at(9, 10), [plan]).state, 'waiting');
-  assert.equal(planState(at(9, 10), [plan, reply('Duyệt')]).state, 'open');
-  assert.equal(planState(at(10, 30), [plan, reply('Giữ')]).state, 'held');
-  assert.equal(planState(at(10, 5), [plan]).state, 'open');
-  assert.equal(planState(at(9, 10), [plan, reply(`Duyệt\n${trust.agentMarker} x -->`)]).state, 'waiting', 'agent-marked text is not the owner');
-  assert.equal(planState(at(9, 10), [reply('Duyệt', '2026-10-30T01:00:00Z'), plan]).state, 'waiting', 'replies before the plan do not count');
-  assert.equal(planState(at(9, 10), [plan, reply('Duyệt', undefined, { authorAssociation: 'NONE' })]).state, 'waiting');
-  assert.deepEqual(planState(at(10, 5), [plan, reply('Bỏ #5')]).dropped, [5]);
+  assert.equal(planState(at(6, 40), []).state, 'closed');
+  assert.equal(planState(at(6, 55), []).state, 'not-made');
+  assert.equal(planState(at(7, 10), [plan]).state, 'waiting');
+  assert.equal(planState(at(7, 10), [plan, reply('Duyệt')]).state, 'open');
+  assert.equal(planState(at(8, 30), [plan, reply('Giữ')]).state, 'held');
+  assert.equal(planState(at(8, 5), [plan]).state, 'open');
+  assert.equal(planState(at(7, 10), [plan, reply(`Duyệt\n${trust.agentMarker} x -->`)]).state, 'waiting', 'agent-marked text is not the owner');
+  assert.equal(planState(at(7, 10), [reply('Duyệt', '2026-10-30T01:00:00Z'), plan]).state, 'waiting', 'replies before the plan do not count');
+  assert.equal(planState(at(7, 10), [plan, reply('Duyệt', undefined, { authorAssociation: 'NONE' })]).state, 'waiting');
+  assert.deepEqual(planState(at(8, 5), [plan, reply('Bỏ #5')]).dropped, [5]);
+  assert.equal(planState(at(23, 34), [plan, reply('Duyệt')]).state, 'open', 'the day now runs until 23:35');
   assert.equal(planState(at(23, 35), [plan, reply('Duyệt')]).state, 'closed');
+  assert.equal(planState(at(9, 55), [plan]).state, 'open', 'no owner reply: open from 08:00, not 10:00');
   assert.doesNotThrow(() => trust.assertAgentBody(renderPlan(at(8, 50), turnsFor([pr()]), { codexLeft: 12 })));
 });
 
@@ -257,6 +260,43 @@ test('merge gate needs APPROVE and PASS on head, integration base and a fix-forw
   assert.ok(gh.calls.some(c => c[0] === 'raw' && c[1][1] === 'edit' && c[1][2] === '8' && c[1].includes('collab/integration')));
 });
 
+// L11 (Codex 14.11): the items picked are recorded when the plan is made; a PR body edited later
+// does not change them.
+test('the plan records the picked items once; a later body edit changes nothing', () => {
+  const comments = [];
+  const ghFor = open => ({ ...fakeGh({ pr: open[0], open }),
+    json: args => args[0] === 'issue' && args[1] === 'list' ? [{ number: 50, title: 'Kế hoạch chạy tự động hằng ngày' }] : { comments },
+    comment: (kind, number, body) => { trust.assertAgentBody(body); comments.push({ authorAssociation: 'OWNER', createdAt: '2026-12-09T01:50:00Z', body }); } });
+  const date = '2026-12-09';
+  const open = [pr({ number: 81, body: `${goodBody}\nViệc: #12` }), pr({ number: 82, body: `${goodBody}\nViệc: #12` }), pr({ number: 83 })];
+  assert.equal(tick({ gh: ghFor(open), now: { date, hour: 8, minute: 52 }, merge: () => ({}), review: () => ({}) }).status, 'plan-made');
+  const day = () => trust.readJson(trust.dayStatePath(date), {});
+  assert.deepEqual(day().plannedItems, [{ item: 12 }, { pr: 83 }]);
+  const edited = open.map(p => p.number === 83 ? { ...p, body: `${goodBody}\nViệc: #99` } : p);
+  tick({ gh: ghFor(edited), now: { date, hour: 9, minute: 20 }, merge: () => ({}), review: () => ({}) });
+  assert.deepEqual(day().plannedItems, [{ item: 12 }, { pr: 83 }]);
+});
+
+// Codex r1 on #482 (P2): health reached only the morning plan, so a hook removed later in the day
+// was never shown. Every tick's board now lists what needs a look.
+test('a pre-push hook removed after the plan shows on the next tick board', async () => {
+  const { hookHealth, installHook } = await import('./collab-hooks.mjs');
+  const clone = mkdtempSync(join(tmpdir(), 'tick-hook-'));
+  execFileSync('/usr/bin/git', ['init', '-q', clone]);
+  const hook = installHook(clone);
+  const comments = [];
+  const gh = { ...fakeGh({ pr: null, open: [] }),
+    json: args => args[0] === 'issue' && args[1] === 'list' ? [{ number: 50, title: 'Kế hoạch chạy tự động hằng ngày' }] : { comments },
+    comment: (kind, number, body) => { trust.assertAgentBody(body); comments.push({ authorAssociation: 'OWNER', createdAt: '2026-12-08T01:50:00Z', body }); } };
+  const boards = [];
+  const deps = now => ({ gh, now: { date: '2026-12-08', ...now }, merge: () => ({}), review: () => ({}), health: () => hookHealth(clone), board: info => boards.push(renderBoard(info)) });
+  assert.equal(tick(deps({ hour: 8, minute: 52 })).status, 'plan-made');
+  assert.doesNotMatch(boards.at(-1), /Cần xem/, 'healthy: nothing to look at');
+  unlinkSync(hook);
+  tick(deps({ hour: 9, minute: 20 }));
+  assert.match(boards.at(-1), /Cần xem[\s\S]*⚠️ Hook trước push ở clone Claude: chưa cài/);
+});
+
 test('tick makes the plan once, waits for the owner, then runs merges and capped reviews', () => {
   const comments = [];
   const ghFor = open => ({
@@ -268,12 +308,12 @@ test('tick makes the plan once, waits for the owner, then runs merges and capped
   const date = '2026-11-02';
   const done = { merge: [], review: [] };
   const deps = now => ({ gh: ghFor(open), now: { date, ...now }, merge: n => { done.merge.push(n); return { status: 'merged' }; }, review: n => { done.review.push(n); return { status: 'posted' }; } });
-  assert.equal(tick(deps({ hour: 8, minute: 52 })).status, 'plan-made');
+  assert.equal(tick(deps({ hour: 6, minute: 52 })).status, 'plan-made');
   assert.match(comments[0].body, /## Plan 2026-11-02/);
-  assert.equal(tick(deps({ hour: 9, minute: 20 })).status, 'waiting');
-  assert.equal(tick(deps({ hour: 10, minute: 1 })).status, 'ran');
+  assert.equal(tick(deps({ hour: 7, minute: 20 })).status, 'waiting');
+  assert.equal(tick(deps({ hour: 8, minute: 1 })).status, 'ran');
   assert.deepEqual(done, { merge: [1], review: [2, 3] });
-  assert.equal(tick(deps({ hour: 10, minute: 11 })).status, 'ran', 'the next tick keeps working (retro D1)');
+  assert.equal(tick(deps({ hour: 8, minute: 11 })).status, 'ran', 'the next tick keeps working (retro D1)');
   const queue = JSON.parse(readFileSync(join(trust.stateDir, 'claude-queue.json'), 'utf8'));
   assert.deepEqual(queue.items, [], 'author checks are the tick\'s job, not Claude\'s queue');
 });
@@ -303,7 +343,7 @@ const plannedGh = (open, date) => {
   return { ...fakeGh({ pr: open[0], open }), json: args => args[0] === 'issue' && args[1] === 'list' ? [{ number: 50, title: 'Kế hoạch chạy tự động hằng ngày' }] : { comments } };
 };
 
-test('r1: the clock is re-read before each review, so nothing new starts after 23:30', () => {
+test('r1: the clock is re-read before each review, so nothing new starts from 23:35', () => {
   const date = '2026-11-03';
   const open = [pr({ number: 1, comments: [check(A)] }), pr({ number: 2, comments: [check(A)] })];
   const times = [{ hour: 23, minute: 20 }, { hour: 23, minute: 20 }, { hour: 23, minute: 41 }];
@@ -355,14 +395,14 @@ test('r2: every CLI entry loads and exits without hanging on an import cycle', (
 });
 
 test('r2 (#131): scheduled reviews read the clock after preparing the clone', () => {
-  const late = review.runReview(7, { auto: true, gh: fakeGh({ pr: pr({ comments: [check(A)] }) }), run: fakeRun().run, now: { date: '2026-11-06', hour: 23, minute: 29 }, nowMs: () => Date.parse('2026-11-06T12:00:00+07:00'), clock: () => ({ date: '2026-11-06', hour: 23, minute: 33 }) });
+  const late = review.runReview(7, { auto: true, gh: fakeGh({ pr: pr({ comments: [check(A)] }) }), run: fakeRun().run, now: { date: '2026-11-06', hour: 23, minute: 29 }, nowMs: () => Date.parse('2026-11-06T12:00:00+07:00'), clock: () => ({ date: '2026-11-06', hour: 23, minute: 37 }) });
   assert.equal(late.status, 'refused');
   const runner = fakeRun();
-  review.runReview(7, { auto: true, gh: fakeGh({ pr: pr({ comments: [check(A)] }) }), run: runner.run, readOut: () => JSON.stringify(output()), now: { date: '2026-11-06', hour: 23, minute: 0 }, nowMs: () => Date.parse('2026-11-06T12:00:00+07:00'), clock: () => ({ date: '2026-11-06', hour: 23, minute: 25 }) });
-  // #243: Codex ends early enough to publish the verdict before 23:55.
+  review.runReview(7, { auto: true, gh: fakeGh({ pr: pr({ comments: [check(A)] }) }), run: runner.run, readOut: () => JSON.stringify(output()), now: { date: '2026-11-06', hour: 23, minute: 0 }, nowMs: () => Date.parse('2026-11-06T12:00:00+07:00'), clock: () => ({ date: '2026-11-06', hour: 23, minute: 29 }) });
+  // #243: Codex ends early enough to publish the verdict before 23:59.
   assert.equal(runner.calls.find(c => c[0] === review.codexBin)[2].timeout, 30 * 60000 - review.reviewFinalizeReserveMs);
   const tight = fakeRun();
-  review.runReview(8, { auto: true, gh: fakeGh({ pr: pr({ number: 8, comments: [check(A)] }) }), run: tight.run, readOut: () => JSON.stringify(output()), now: { date: '2026-11-07', hour: 23, minute: 0 }, nowMs: () => Date.parse('2026-11-07T12:00:00+07:00'), clock: () => ({ date: '2026-11-07', hour: 23, minute: 29 }) });
+  review.runReview(8, { auto: true, gh: fakeGh({ pr: pr({ number: 8, comments: [check(A)] }) }), run: tight.run, readOut: () => JSON.stringify(output()), now: { date: '2026-11-07', hour: 23, minute: 0 }, nowMs: () => Date.parse('2026-11-07T12:00:00+07:00'), clock: () => ({ date: '2026-11-07', hour: 23, minute: 33 }) });
   assert.equal(tight.calls.find(c => c[0] === review.codexBin)[2].timeout, 26 * 60000 - review.reviewFinalizeReserveMs);
   const none = fakeRun();
   assert.equal(review.runReview(9, { auto: true, gh: fakeGh({ pr: pr({ number: 9, comments: [check(A)] }) }), run: none.run, now: { date: '2026-11-07', hour: 23, minute: 0 }, nowMs: () => Date.parse('2026-11-07T12:00:00+07:00'), clock: () => ({ date: '2026-11-07', hour: 23, minute: 50 }) }).status, 'refused');
@@ -489,15 +529,15 @@ test('r4 (P0): fork or outside PRs are never checked, reviewed or merged', () =>
   assert.deepEqual(turnsFor([pr({ number: 9, title: 'ops(collab): x', isCrossRepository: true })]).map(t => t.turn), ['hold'], 'an ops title from a fork gets no priority');
 });
 
-test('r4 (P1): automatic checks start nothing after 23:30 and end by 23:55', () => {
+test('r4 (P1): automatic checks start nothing from 23:35 and end by 23:59', () => {
   const at = (hour, minute) => () => ({ date: 'd', hour, minute });
   assert.equal(checkBudgetMs({ auto: true, clock: at(11, 0) }), 90 * 60000 - 15000);
-  assert.equal(checkBudgetMs({ auto: true, clock: at(23, 20) }), 35 * 60000 - 15000);
-  assert.equal(checkBudgetMs({ auto: true, clock: at(23, 30) }), 0);
-  assert.equal(checkBudgetMs({ auto: true, clock: at(8, 0) }), 0);
+  assert.equal(checkBudgetMs({ auto: true, clock: at(23, 24) }), 35 * 60000 - 15000);
+  assert.equal(checkBudgetMs({ auto: true, clock: at(23, 35) }), 0);
+  assert.equal(checkBudgetMs({ auto: true, clock: at(6, 40) }), 0);
   assert.equal(checkBudgetMs({ auto: false, clock: at(23, 50) }), 90 * 60000);
-  // Selected at 23:20, ready after a slow clone/install at 23:33: refused before pnpm check starts.
-  const times = [at(23, 20)(), at(23, 33)()];
+  // Selected at 23:24, ready after a slow clone/install at 23:37: refused before pnpm check starts.
+  const times = [at(23, 24)(), at(23, 37)()];
   const spawned = [];
   const run = (cmd, args) => (cmd === '/usr/bin/git' && args[0] === 'rev-parse' ? `${A}\n` : '');
   const result = runCheckInClone(7, { gh: fakeGh({ pr: pr() }), run, group: () => ({ status: 0 }), auto: true, clock: () => times.shift() ?? at(23, 40)(), busy: () => null, spawn: (...a) => { spawned.push(a); return { status: 0 }; } });
@@ -522,7 +562,7 @@ test('r5 (#137 r2 P1): clone preparation is bounded by the nightly deadline', ()
   // Worst case: every build step uses its whole budget and times out.
   const group = (cmd, args, opts) => { calls.push({ cmd, ms: opts.timeoutMs, left: 26 * minute - fake }); fake += opts.timeoutMs; return { status: 124 }; };
   const run = (cmd, args) => (args[0] === 'rev-parse' ? A : '');
-  // Selected at 23:29: 26 minutes to 23:55.
+  // Selected at 23:29: 26 minutes to the old 23:55 cutoff; the deadline here is given directly.
   assert.throws(() => prepareAuthorClone(7, A, run, { deadlineMs: 26 * minute, nowMs: () => fake, group }), /hết giờ/);
   assert.ok(calls.length >= 1);
   assert.ok(calls.every(c => c.ms <= c.left), 'no step may run past the deadline');
@@ -541,12 +581,12 @@ test('r5 (#137 r2 P1): members that ignore SIGTERM are force-killed before the s
   assert.equal(spawnSync('pgrep', ['-f', `^sleep ${marker}`], { encoding: 'utf8' }).stdout.trim(), '', 'nothing survives');
 });
 
-test('#140: the budget ends at the exact 23:55:00 instant, with room for cleanup', () => {
-  const nowMs = () => Date.parse('2026-11-09T23:29:59+07:00');
-  const budget = checkBudgetMs({ auto: true, clock: () => ({ date: '2026-11-09', hour: 23, minute: 29 }), nowMs });
-  const cutoff = Date.parse('2026-11-09T23:55:00+07:00');
+test('#140: the budget ends at the exact cutoff instant (23:59 since 14.11), with room for cleanup', () => {
+  const nowMs = () => Date.parse('2026-11-09T23:33:59+07:00');
+  const budget = checkBudgetMs({ auto: true, clock: () => ({ date: '2026-11-09', hour: 23, minute: 33 }), nowMs });
+  const cutoff = Date.parse('2026-11-09T23:59:00+07:00');
   // Deadline plus the 5 s grace and the kill poll stay before the cutoff.
-  assert.ok(nowMs() + budget + 5000 + 1000 <= cutoff, `budget ${budget} runs past 23:55`);
+  assert.ok(nowMs() + budget + 5000 + 1000 <= cutoff, `budget ${budget} runs past 23:59`);
   assert.ok(budget > 24 * 60000);
 });
 
@@ -570,7 +610,7 @@ test('owner 12.11: the plan picks 3–5 work items with a source and what the us
   assert.match(body, /\*\*Việc chọn hôm nay \(3–5 việc\):\*\*/);
   assert.match(body, /1\. #20 feat\(tarot\): plain summary\n {3}- Nguồn \/ AC: US-20 AC2\n {3}- Người dùng thấy gì: câu số 20 dễ đọc hơn/);
   assert.match(body, /Tiến độ hôm nay = việc xong \/ việc đã chọn/);
-  assert.match(body, /Lượt Codex tự động còn hôm nay: 12\/32\./);
+  assert.match(body, /Lượt Codex tự động còn hôm nay: 12\/60\./);
   assert.doesNotMatch(body, /16|20 PR|% hôm nay|Cam kết/, 'no PR quota and no % of committed PRs');
   const few = renderPlan({ date: '2026-11-03', hour: 8, minute: 50 }, turnsFor([pr()]), { codexLeft: 12 });
   assert.match(few, /1\. #7 [^\n]*\n {3}- Nguồn \/ AC: plan §3\n {3}- Người dùng thấy gì: không trực tiếp \(vận hành\)/);
@@ -622,7 +662,7 @@ test('busy check matches the running program, not a command line that mentions i
   for (const heavy of [
     'sh -c pnpm contracts:check && pnpm verify:runtime && pnpm grammar:check',
     '/Users/x/apps/api/.venv/bin/python /Users/x/apps/api/.venv/bin/pytest -q',
-    'uv run --directory apps/api pytest',
+    'uv run --locked --directory apps/api pytest',
     '/x/node/bin/node /x/node_modules/.bin/../vitest/vitest.mjs run',
     '/x/node/bin/node /x/node_modules/@playwright/test/cli.js test',
     // #142 r1: the current check wrapper and bare interpreters.
@@ -733,7 +773,7 @@ test('fix A: ruff and mypy run only on the changed Python files of apps/api', ()
   const runs = [];
   const spawn = (cmd, args) => { runs.push([cmd, ...args].join(' ')); return { status: args.includes('mypy') ? 1 : 0, stdout: 'app/x.py:3: error: bad' }; };
   const result = preflightMod.runPreflight({ body: goodBody, files: [{ path: 'apps/api/app/x.py' }, { path: 'README.md' }] }, { cwd: '/repo', spawn, exists: () => true });
-  assert.deepEqual(runs, ['uv run --directory apps/api ruff check app/x.py', 'uv run --directory apps/api ruff format --check app/x.py', 'uv run --directory apps/api mypy app/x.py']);
+  assert.deepEqual(runs, ['uv run --locked --directory apps/api ruff check app/x.py', 'uv run --locked --directory apps/api ruff format --check app/x.py', 'uv run --locked --directory apps/api mypy app/x.py']);
   assert.equal(result.status, 'FAIL');
   assert.match(result.reasons[0], /^mypy lỗi: app\/x\.py:3/);
   const none = [];
@@ -807,6 +847,8 @@ test('12.11 trial: ciCheck passes only a completed success of the pr-check check
   assert.equal(ciCheck(at([]), A).state, 'pending');
   assert.equal(ciCheck(at([w({ status: 'in_progress' })], { 1: [j({ status: 'in_progress', conclusion: null })] }), A).state, 'pending');
   assert.equal(ciCheck(at([w()], { 1: [j()] }), A).state, 'PASS');
+  const ids = ciCheck(at([w({ run_attempt: 2 })], { 1: [j({ completed_at: '2026-11-12T01:20:00Z' })] }), A);
+  assert.deepEqual([ids.runId, ids.attempt, ids.completedAt], [1, 2, '2026-11-12T01:20:00Z'], '#508: run, attempt and the job end time');
   for (const conclusion of ['failure', 'cancelled', 'skipped', 'timed_out', 'neutral', 'action_required']) assert.equal(ciCheck(at([w()], { 1: [j({ conclusion })] }), A).state, 'FAIL', conclusion);
   assert.equal(ciCheck(at([w()], { 1: [j({ name: 'scope' })] }), A).conclusion, 'missing', 'a finished run without a check job fails');
   assert.equal(ciCheck(at([w({ head_sha: C })], { 1: [j()] }), A).state, 'pending', 'another head does not count');
@@ -905,6 +947,56 @@ test('fix C: the plan lists committed PRs with new copy or a clarity-ratchet cha
   assert.doesNotMatch(body, /#33 \*\*cần duyệt câu/);
   assert.doesNotThrow(() => trust.assertAgentBody(body));
   assert.doesNotMatch(renderPlan({ date: '2026-11-04', hour: 8, minute: 50 }, turnsFor([pr()]), { codexLeft: 10 }), /cần duyệt câu/);
+});
+
+// L14 (retro 12.11 S25): every waiting PR was merged with integration on every tick.
+test('only the front PR of the area is synced before its check; waiting PRs get no merge commit', () => {
+  const date = '2026-11-16';
+  const open = Array.from({ length: 3 }, (_, i) => pr({ number: 60 + i, createdAt: `2026-11-0${i + 1}T00:00:00Z` }));
+  const calls = [];
+  const check = (n, o) => { calls.push([n, o.sync]); return { status: 'ci-pending' }; };
+  tick({ gh: plannedGh(open, date), now: { date, hour: 11, minute: 5 }, merge: () => ({}), review: () => ({ status: 'posted' }), check });
+  assert.deepEqual(calls, [[60, true], [61, false], [62, false]]);
+  // The front got a new head: the PRs behind it still read their CI in the same tick.
+  const after = [];
+  tick({ gh: plannedGh(open, date), now: { date, hour: 11, minute: 15 }, merge: () => ({}), review: () => ({ status: 'posted' }),
+    check: (n, o) => { after.push([n, o.sync]); return n === 60 ? { status: 'synced' } : { status: 'ci-pending' }; } });
+  assert.deepEqual(after, [[60, true], [61, false], [62, false]]);
+  // The check itself: sync=false never merges integration into the branch, even when it is behind.
+  const gitCalls = [];
+  const run = (cmd, args) => { gitCalls.push(args.join(' ')); if (args[0] === 'merge-base') throw new Error('behind'); return args[0] === 'rev-parse' ? A : ''; };
+  const never = () => { throw new Error('nothing of the PR may run on the Mac in CI mode'); };
+  const gh = { ...fakeGh({ pr: pr({ headRefName: 'agent/claude/x' }) }), comment: () => {} };
+  const waiting = runCheckInClone(7, { gh, run, group: never, spawn: never, busy: never, terms: () => [], preflight: () => null, source: 'ci', ci: () => ({ state: 'pending' }), sync: false });
+  assert.equal(waiting.status, 'ci-pending');
+  assert.ok(!gitCalls.some(c => /^merge\b|^-c .*merge|push/.test(c) || c.includes('auto-sync')), gitCalls.join(' | '));
+  const front = runCheckInClone(7, { gh, run, group: never, spawn: never, busy: never, terms: () => [], preflight: () => null, source: 'ci', ci: () => ({ state: 'pending' }), sync: true });
+  assert.equal(front.status, 'synced', 'the front PR behind integration is merged and pushed');
+});
+
+test('#524: a held or conflicting older PR is not the front; the first actionable PR is synced', () => {
+  const date = '2026-11-18';
+  for (const older of [{ labels: [{ name: 'needs-owner' }] }, { mergeable: 'CONFLICTING' }]) {
+    const open = [pr({ number: 160, createdAt: '2026-11-01T00:00:00Z', ...older }), pr({ number: 161, createdAt: '2026-11-02T00:00:00Z' }), pr({ number: 162, createdAt: '2026-11-03T00:00:00Z' })];
+    const calls = [];
+    tick({ gh: plannedGh(open, date), now: { date, hour: 11, minute: 5 }, merge: () => ({}), review: () => ({ status: 'posted' }),
+      check: (n, o) => { calls.push([n, o.sync]); return { status: 'ci-pending' }; } });
+    assert.deepEqual(calls, [[161, true], [162, false]], JSON.stringify(older));
+  }
+});
+
+test('after a merge in the same tick, the next PR becomes the front', () => {
+  const date = '2026-11-17';
+  const open = [pr({ number: 70, createdAt: '2026-11-01T00:00:00Z', comments: [check(A), owner(`Review verdict: APPROVE @ ${A}`)] }),
+    pr({ number: 71, createdAt: '2026-11-02T00:00:00Z' }), pr({ number: 72, createdAt: '2026-11-03T00:00:00Z' })];
+  const calls = [];
+  tick({ gh: plannedGh(open, date), now: { date, hour: 11, minute: 5 }, merge: () => ({ status: 'merged' }), review: () => ({ status: 'posted' }),
+    check: (n, o) => { calls.push([n, o.sync]); return { status: 'ci-pending' }; } });
+  assert.deepEqual(calls, [[71, true], [72, false]]);
+  const failed = [];
+  tick({ gh: plannedGh(open, date), now: { date, hour: 11, minute: 15 }, merge: () => ({ status: 'error' }), review: () => ({ status: 'posted' }),
+    check: (n, o) => { failed.push([n, o.sync]); return { status: 'ci-pending' }; } });
+  assert.deepEqual(failed, [[71, true], [72, false]], 'a PR waiting to merge is never synced (its approval is for its head); the next PR to check is the front');
 });
 
 test('fix E: one heavy job at a time — no new check while the lock is busy, at most checksPerTick', () => {
@@ -1016,50 +1108,50 @@ test('#253: report turns leave out PRs dropped from today\'s plan', () => {
 });
 
 // ---- owner 06.11 / 12.11: the tick runs the Codex copy batch once a day ----
-test('copy batch: once a day after 10:00, only with pending copy, inside the Codex cap and the review lock', () => {
+test('copy batch: once a day after the 08:00 auto-start, only with pending copy, inside the Codex cap and the review lock', () => {
   const date = '2026-11-20';
   const runs = [];
   const at = (hour, minute, extra = {}) => tick({ gh: plannedGh(extra.open ?? [], extra.date ?? date), now: { date: extra.date ?? date, hour, minute }, merge: () => ({}), review: () => ({}),
     copyPending: () => extra.pending ?? 12, copyBatch: () => { runs.push(`${extra.date ?? date} ${hour}:${minute}`); return extra.result ?? { status: 'opened' }; } });
   const day = d => trust.readJson(trust.dayStatePath(d), {});
-  at(9, 40);
+  at(7, 40);
   assert.deepEqual(runs, [], 'nothing before the plan opens');
-  at(10, 5);
-  assert.deepEqual(runs, ['2026-11-20 10:5']);
+  at(8, 5);
+  assert.deepEqual(runs, ['2026-11-20 8:5']);
   assert.equal(day(date).codexRuns, 1, 'the batch spends one Codex run of the daily cap');
   assert.equal(day(date).copyBatch.status, 'opened');
-  at(10, 15);
+  at(8, 15);
   at(14, 5);
   assert.equal(runs.length, 1, 'at most once per day');
-  at(10, 5, { date: '2026-11-21' });
+  at(8, 5, { date: '2026-11-21' });
   assert.equal(runs.length, 2, 'the next day runs again');
 
   const empty = '2026-11-22';
-  at(10, 5, { date: empty, pending: 0 });
+  at(8, 5, { date: empty, pending: 0 });
   assert.equal(runs.length, 2, 'nothing pending outside the owner-only groups: skipped');
   assert.equal(day(empty).copyBatch, undefined, 'a skip does not use up the day');
   assert.equal(day(empty).codexRuns ?? 0, 0);
 
   const busy = '2026-11-23';
-  at(10, 5, { date: busy, result: { status: 'busy' } });
+  at(8, 5, { date: busy, result: { status: 'busy' } });
   assert.equal(day(busy).copyBatch, undefined, 'a busy review lock retries on the next tick');
   assert.equal(day(busy).codexRuns ?? 0, 0);
-  at(10, 15, { date: busy });
+  at(8, 15, { date: busy });
   assert.equal(day(busy).copyBatch.status, 'opened');
 
   const capped = '2026-11-24';
   trust.writeJson(trust.dayStatePath(capped), { codexRuns: trust.codexDailyCap, failures: 0 });
   const before = runs.length;
-  at(10, 5, { date: capped });
+  at(8, 5, { date: capped });
   assert.equal(runs.length, before, 'no batch once the Codex cap is spent');
 
   const stillOpen = '2026-11-25';
-  at(10, 5, { date: stillOpen, open: [pr({ number: 61, headRefName: 'agent/claude/copy-batch-20261124', comments: [check(A)] })] });
+  at(8, 5, { date: stillOpen, open: [pr({ number: 61, headRefName: 'agent/claude/copy-batch-20261124', comments: [check(A)] })] });
   assert.equal(runs.length, before, 'yesterday\'s batch PR still open: no second batch on the same file');
   at(23, 35, { date: '2026-11-26' });
-  assert.equal(runs.length, before, 'nothing after 23:30');
+  assert.equal(runs.length, before, 'nothing from 23:35');
   // Codex #451 P2: a fork branch with the batch name must not stop the daily review.
-  at(10, 5, { date: '2026-11-28', open: [pr({ number: 62, headRefName: 'agent/claude/copy-batch-x', isCrossRepository: true })] });
+  at(8, 5, { date: '2026-11-28', open: [pr({ number: 62, headRefName: 'agent/claude/copy-batch-x', isCrossRepository: true })] });
   assert.equal(runs.length, before + 1, 'a fork PR named like a batch does not block the batch');
 });
 
@@ -1153,15 +1245,162 @@ test('copy batch: a successful retry does not erase an alert that was not delive
   assert.deepEqual(day().copyAlerts, []);
 });
 
-test('copy batch: an owner "Duyệt" before 10:00 still waits for the 10:00 auto-start', () => {
+test('copy batch: an owner "Duyệt" before 08:00 still waits for the 08:00 auto-start', () => {
   const date = '2026-11-27';
   const gh = plannedGh([], date);
   const base = gh.json;
   gh.json = args => { const out = base(args); return Array.isArray(out) ? out : { comments: [...out.comments, { authorAssociation: 'OWNER', createdAt: `${date}T02:10:00Z`, body: 'Duyệt' }] }; };
   const runs = [];
   const deps = (hour, minute) => ({ gh, now: { date, hour, minute }, merge: () => ({}), review: () => ({}), copyPending: () => 3, copyBatch: () => { runs.push(hour); return { status: 'no-approvals' }; } });
-  assert.equal(tick(deps(9, 30)).status, 'ran', 'the plan is open early');
+  assert.equal(tick(deps(7, 30)).status, 'ran', 'the plan is open early');
   assert.deepEqual(runs, []);
-  tick(deps(10, 0));
-  assert.deepEqual(runs, [10]);
+  tick(deps(8, 0));
+  assert.deepEqual(runs, [8]);
+});
+
+// #508 (Codex 14.11): synthetic CI results; the fake check posts nothing, so only the key stops a repeat.
+const ciFail = (sha, extra = {}) => owner(renderCheck({ head: sha, status: 'FAIL', date: 'x', ci: { conclusion: 'failure', url: 'u' }, ...extra }));
+const green = (extra = {}) => () => ({ state: 'PASS', conclusion: 'success', url: 'u', runId: 5, attempt: 2, completedAt: '2026-11-14T03:00:00Z', ...extra });
+const recheckTick = (date, open, { ci = green(), check = () => ({ status: 'PASS' }), gh = plannedGh(open, date), preflight } = {}) => {
+  const checked = [];
+  const result = tick({ gh, now: { date, hour: 11, minute: 5 }, merge: () => ({}), review: () => ({ status: 'posted' }), ciStatus: ci, ...(preflight ? { prPreflight: preflight } : {}), check: (n, o) => { checked.push(n); return check(n, o); } });
+  return { checked, result };
+};
+const rechecked = date => JSON.parse(readFileSync(trust.dayStatePath(date), 'utf8')).rechecked ?? [];
+
+test('a CI FAIL that turns green on a re-run at the same head is checked again, not left in claude-fix', async () => {
+  // The launchd entry hands tick() a ciStatus that reads the real pr-check job (Codex: prove the
+  // production caller, not only an injected one).
+  const { runTick } = await import('./collab-tick.mjs');
+  const asked = [];
+  const gh = { ...fakeGh({ pr: pr(), open: [] }), json: args => { asked.push(args.join(' ')); return { workflow_runs: [] }; } };
+  const opts = runTick(gh, () => [], { run: given => given });
+  assert.equal(typeof opts.ciStatus, 'function', 'runTick wires ciStatus');
+  assert.equal(opts.ciStatus(A).state, 'pending');
+  assert.ok(asked.some(a => a.includes(`pr-check.yml/runs?head_sha=${A}`)), asked.join(' | '));
+  const open = [pr({ number: 160, comments: [ciFail(A)] })];
+  assert.equal(prTurn(open[0]).turn, 'claude-fix');
+  assert.ok(ciFailAtHead(open[0]));
+  assert.deepEqual(recheckTick('2026-12-10', open).checked, [160], 'rechecked exactly once');
+  assert.deepEqual(rechecked('2026-12-10'), [`160@${A}#5.2`]);
+  assert.deepEqual(recheckTick('2026-12-10', open).checked, [], 'the same run and attempt never rechecks twice');
+  assert.deepEqual(recheckTick('2026-12-10', open, { ci: green({ attempt: 3 }) }).checked, [160], 'a new attempt of the same run rechecks');
+  assert.deepEqual(recheckTick('2026-12-11', open, { ci: green({ attempt: 3 }) }).checked, [], 'the key survives midnight');
+});
+
+test('#508: a local FAIL, a CI still red or unfinished, an older green run and a guard hit stay in claude-fix', () => {
+  const date = '2026-12-12';
+  const one = comments => [pr({ number: 161, comments })];
+  assert.deepEqual(recheckTick(date, one([check(A, 'FAIL')])).checked, [], 'a local FAIL stays');
+  assert.deepEqual(recheckTick(date, one([ciFail(A)]), { ci: green({ state: 'FAIL', conclusion: 'failure' }) }).checked, [], 'CI still failure');
+  assert.deepEqual(recheckTick(date, one([ciFail(A)]), { ci: () => ({ state: 'pending', url: 'u' }) }).checked, [], 'CI not done');
+  assert.deepEqual(recheckTick(date, one([ciFail(A)]), { ci: green({ completedAt: '2026-10-01T00:00:00Z' }) }).checked, [], 'a green run older than the FAIL');
+  assert.deepEqual(recheckTick(date, one([ciFail(A, { guard: ['notes/x.md:3'] })])).checked, [], 'a guard hit in the receipt');
+  assert.deepEqual(recheckTick(date, one([ciFail(A)]), { ci: () => { throw new Error('network'); } }).checked, [], 'an unreadable CI changes nothing');
+  assert.equal(recheckTick(date, one([ciFail(A)]), { ci: () => { throw new Error('network'); } }).result.status, 'ran', 'and never breaks the tick');
+  assert.deepEqual(rechecked(date), []);
+});
+
+test('#508: a busy or failed recheck keeps no key and is retried; a head change records nothing', () => {
+  const date = '2026-12-13';
+  const open = [pr({ number: 162, comments: [ciFail(A)] })];
+  assert.deepEqual(recheckTick(date, open, { check: () => ({ status: 'busy' }) }).checked, [162]);
+  assert.deepEqual(recheckTick(date, open, { check: () => { throw new Error('network'); } }).checked, [162], 'busy is retried');
+  assert.deepEqual(recheckTick(date, open, { check: () => ({ status: 'ci-pending' }) }).checked, [162], 'a throw is retried');
+  assert.deepEqual(recheckTick(date, open, { check: () => ({ status: 'busy' }) }).checked, [162], 'ci-pending is retried');
+  assert.deepEqual(rechecked(date), []);
+  const moved = { ...plannedGh(open, date), pr: () => ({ ...structuredClone(open[0]), headRefOid: B }) };
+  assert.deepEqual(recheckTick(date, open, { gh: moved }).checked, [162]);
+  assert.deepEqual(rechecked(date), [], 'the head moved during the check: nothing recorded');
+  assert.deepEqual(recheckTick(date, open).checked, [162]);
+  assert.deepEqual(rechecked(date), [`162@${A}#5.2`]);
+});
+
+test('#508: two older REQUEST_CHANGES verdicts add a repeat note but the green re-run is still rechecked', () => {
+  const date = '2026-12-14';
+  const rc = owner(`Review verdict: REQUEST_CHANGES @ ${B}`);
+  const open = [pr({ number: 163, comments: [rc, owner(`Review verdict: REQUEST_CHANGES @ ${B}`), ciFail(A)] })];
+  const [turn] = turnsFor(open, { preflight: {} });
+  assert.match(turn.reason, /lần REQUEST_CHANGES/, 'the display reason carries the repeat note');
+  assert.deepEqual(recheckTick(date, open).checked, [163], 'rechecked despite the note');
+  assert.equal(turn.cause, 'author-fail', 'the routing cause survives the note');
+  assert.deepEqual(rechecked(date), [`163@${A}#5.2`]);
+});
+
+test('#508: a preflight FAIL on a recheck holds only that body; a body-only fix is rechecked', () => {
+  const date = '2026-12-15';
+  const noG1 = goodBody.replace(/^.*G1 Tài liệu:.*\n/m, '');
+  const before = [pr({ number: 164, body: noG1, comments: [ciFail(A)] })];
+  const pre = n => preflightMod.runPreflight(before.find(p => p.number === n));
+  assert.equal(pre(164).status, 'FAIL', 'the synthetic body misses G1');
+  const key = `164@${A}#5.2|body:${turnsFor(before, { preflight: {} })[0].bodyHash}`;
+  assert.deepEqual(recheckTick(date, before, { preflight: pre }).checked, [], 'preflight stops before the check');
+  assert.deepEqual(rechecked(date), [key], 'the key is spent for this body only');
+  assert.deepEqual(recheckTick(date, before, { preflight: pre }).checked, [], 'the same body is not rechecked');
+  const after = [{ ...before[0], body: goodBody }];
+  const fixed = recheckTick(date, after, { preflight: n => preflightMod.runPreflight(after.find(p => p.number === n)) });
+  assert.deepEqual(fixed.checked, [164], 'a body-only correction is rechecked');
+  assert.deepEqual(rechecked(date), [key, `164@${A}#5.2`]);
+});
+
+// ---- L25: the tick holds a disputed PR and a timeout still needs a new check and review ----
+test('L25: the tick never runs a disputed PR, and after a timeout the PR needs a new check and review at its head', async () => {
+  const L25 = await import('./collab-disagree.mjs');
+  const date = '2026-11-14';
+  const at = (hour, minute) => Date.UTC(2026, 10, 14, hour - 7, minute);
+  const open = [pr({ number: 7, comments: [check(A), owner(`Review verdict: APPROVE @ ${A}`)] })];
+  const gh = plannedGh(open, date);
+  try {
+    const first = L25.openRound({ pr: 7, round: 1, claude: 'giữ', codex: 'bỏ', head: A, nowMs: at(15, 0) });
+    L25.openRound({ id: first.id, round: 2, claude: 'giữ, có số đo', codex: 'bỏ, vì rủi ro', head: A, nowMs: at(15, 0) });
+    assert.equal(L25.escalate({ id: first.id, gh, notify: () => {}, nowMs: at(15, 0) }).clock, 'started');
+    assert.equal(turnsFor(open)[0].turn, 'hold', 'held by the dispute even without the label');
+    assert.match(mergeGate(open[0]).reasons.join(' '), /bất đồng pr7-1/);
+    const done = { merge: [], review: [], check: [] };
+    const run = minute => tick({ gh, now: { date, hour: 15, minute }, settle: o => L25.settleDisputes({ ...o, notify: () => {}, nowMs: at(15, minute) }),
+      merge: n => { done.merge.push(n); return { status: 'merged' }; }, review: n => { done.review.push(n); return { status: 'posted' }; }, check: n => { done.check.push(n); return { status: 'FAIL' }; } });
+    run(10);
+    assert.deepEqual(done, { merge: [], review: [], check: [] }, 'nothing runs on a PR while its dispute waits for the owner');
+    run(31);
+    assert.equal(L25.disputes().get(first.id).decided.decidedBy, 'timeout');
+    assert.deepEqual(done.merge, [], 'the old APPROVE no longer counts after the decision');
+    assert.deepEqual(done.check, [7], 'a new author check comes first');
+    assert.ok(!mergeGate(open[0]).ok);
+    // Production wiring: runTick passes no settle, so tick() falls back to settleDisputes.
+    const { runTick } = await import('./collab-tick.mjs');
+    assert.equal(runTick(fakeGh({ pr: pr(), open: [] }), () => [], { run: given => given }).settle, undefined, 'runTick leaves settle to the default');
+    const { defaultSettle } = await import('./collab-turn.mjs');
+    assert.equal(defaultSettle, L25.settleDisputes, 'the default is the real settleDisputes');
+  } finally {
+    rmSync(L25.disputePath, { force: true });
+    rmSync(L25.logPath, { force: true });
+  }
+});
+
+test('L25: after a timeout and a new PASS at the same head, the review command takes its turn and a newer APPROVE merges', async () => {
+  const L25 = await import('./collab-disagree.mjs');
+  const at = (hour, minute) => Date.UTC(2026, 10, 14, hour - 7, minute);
+  const stamp = (hour, minute) => new Date(at(hour, minute)).toISOString();
+  const state = { pr: pr({ number: 7, comments: [check(A), owner(`Review verdict: APPROVE @ ${A}`)] }) };
+  const gh = fakeGh(state);
+  try {
+    const first = L25.openRound({ pr: 7, round: 1, claude: 'giữ', codex: 'bỏ', head: A, nowMs: at(15, 0) });
+    L25.openRound({ id: first.id, round: 2, claude: 'giữ, có số đo', codex: 'bỏ, vì rủi ro', head: A, nowMs: at(15, 0) });
+    L25.escalate({ id: first.id, gh, notify: () => {}, nowMs: at(15, 0) });
+    L25.settleDisputes({ gh, notify: () => {}, nowMs: at(15, 31) });
+    assert.equal(L25.disputes().get(first.id).decided.decidedBy, 'timeout');
+    assert.equal(prTurn(state.pr).turn, 'claude-check', 'the check and APPROVE from before the decision no longer count');
+    state.pr.comments.push({ ...check(A), createdAt: stamp(15, 40) });
+    assert.equal(prTurn(state.pr).turn, 'codex-review', 'every caller of prTurn reads the dispute state by default');
+    const result = review.runReview(7, { gh, run: fakeRun().run, readOut: () => JSON.stringify(output()), now: { date: '2026-11-14', hour: 15, minute: 45 } });
+    assert.equal(result.status, 'posted', 'the review command accepts the turn the tick asked for');
+    assert.ok(!mergeGate(state.pr).ok, 'no merge until the new APPROVE is newer than the decision');
+    state.pr.comments.at(-1).createdAt = stamp(15, 50);
+    assert.match(state.pr.comments.at(-1).body, new RegExp(`^Review verdict: APPROVE @ ${A}`));
+    assert.deepEqual(mergeGate(state.pr).reasons, []);
+    assert.equal(mergeGate(state.pr).ok, true);
+  } finally {
+    rmSync(L25.disputePath, { force: true });
+    rmSync(L25.logPath, { force: true });
+  }
 });

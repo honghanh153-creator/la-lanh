@@ -1,6 +1,6 @@
 // Codex approves the daily batch of pending copy (owner decision 06.11.2026).
 // Usage: node scripts/codex-copy-review.mjs [--dry-run] [--fake-codex decisions.json]
-// The scheduled tick (collab-turn.mjs) runs it once a day after 10:00 through runCopyBatch (12.11.2026).
+// The scheduled tick (collab-turn.mjs) runs it once a day after the auto-start (autoStartAt) through runCopyBatch (12.11.2026).
 // Codex runs read-only, the same way scripts/codex-review.mjs calls it. Privacy, consent, crisis
 // and safety copy is never sent: it stays owner-only. The result goes into a PR on
 // agent/claude/copy-batch-YYYYMMDD; the script never writes main or collab/integration and
@@ -10,9 +10,11 @@ import { createHash, randomBytes } from 'node:crypto';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import { acquireLock } from './collab-lock.mjs';
+import { dispatch } from './collab-dispatch.mjs';
 import { agentMarker, assertAgentBody, clean, integration, repo, stateDir, vnNow } from './collab-trust.mjs';
+import { isMain } from './is-main.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const root = join(here, '..');
@@ -153,14 +155,14 @@ function runCodex(prompt, outPath, run) {
 export const batchBranch = (at = vnNow(), nonce = randomBytes(3).toString('hex')) =>
   `agent/claude/copy-batch-${at.date.replaceAll('-', '')}-${String(at.hour).padStart(2, '0')}${String(at.minute).padStart(2, '0')}-${nonce}`;
 
-function openBatchPr(registry, body, date, base, run, at) {
+function openBatchPr(registry, body, date, base, run, at, gate = {}) {
   const branch = batchBranch(at);
   const dir = mkdtempSync(join(tmpdir(), 'copy-batch-'));
   const git = args => run('git', args, { cwd: root, encoding: 'utf8' });
   git(['worktree', 'add', '-q', '-b', branch, join(dir, 'w'), base]);
   const work = join(dir, 'w');
   // The tick runs this daily from the ops clone: drop the worktree (and its venv) when done.
-  try { return publishBatch(registry, body, date, branch, work, dir, run); }
+  try { return publishBatch(registry, body, date, branch, work, dir, run, { base, gate }); }
   finally {
     try { git(['worktree', 'remove', '--force', work]); } catch {}
     try { git(['branch', '-D', branch]); } catch {}
@@ -171,7 +173,16 @@ function openBatchPr(registry, body, date, base, run, at) {
 // batch failed here). Exported so a test commits with these exact arguments in a real repository.
 export const commitArgs = date => ['-c', 'user.name=la-lanh-agent', '-c', 'user.email=la-lanh-agent@users.noreply.github.com', 'commit', '-q', '-m', `content(copy): Codex copy batch ${date}\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`];
 
-function publishBatch(registry, body, date, branch, work, dir, run) {
+// L06: the batch worktree is checked before the first write (its own branch, on the reviewed
+// commit, clean, not a shared clone, tools present, nobody else in it); a failed check writes
+// nothing and the tick reports the error. `gate` is for tests.
+export function publishBatch(registry, body, date, branch, work, dir, run, { base = null, gate = {} } = {}) {
+  const pass = dispatch({ dir: work, branch, profile: 'batch', expectHead: base, ...gate, worker: () => writeBatch(registry, body, date, branch, work, dir, run) });
+  if (pass.status !== 'PASS') throw new Error(`kiểm trước khi ghi trượt: ${pass.reasons.join(', ')}`);
+  return pass.result;
+}
+
+function writeBatch(registry, body, date, branch, work, dir, run) {
   writeFileSync(join(work, registryRel), `${JSON.stringify(registry, null, 1)}\n`);
   run('uv', ['run', 'python', '-m', 'scripts.fallback_approval'], { cwd: join(work, 'apps/api'), encoding: 'utf8' });
   const at = args => run('git', args, { cwd: work, encoding: 'utf8' });
@@ -186,7 +197,7 @@ function publishBatch(registry, body, date, branch, work, dir, run) {
 }
 
 export function main(argv, { run = execFileSync, out = process.stdout, registryPath = null, rejectedFile = registryPath ? null : rejectedPath,
-  savedFile = registryPath ? null : savedPath, progress = {}, at = vnNow() } = {}) {
+  savedFile = registryPath ? null : savedPath, progress = {}, at = vnNow(), gate = {} } = {}) {
   const dryRun = argv.includes('--dry-run');
   const fakeAt = argv.indexOf('--fake-codex');
   // Review a pinned integration snapshot unless a test passes its own registry file.
@@ -229,7 +240,7 @@ export function main(argv, { run = execFileSync, out = process.stdout, registryP
     out.write('no copy approved in this batch\n'); return { status: 'no-approvals', registry: next, body };
   }
   if (!base) throw new Error('publishing needs the integration snapshot (no --registry file)');
-  const url = openBatchPr(next, body, date, base, run, at);
+  const url = openBatchPr(next, body, date, base, run, at, gate);
   if (savedFile) dropSaved(savedFile);
   out.write(`${url}\n`);
   return { status: 'opened', url };
@@ -251,6 +262,6 @@ export function runCopyBatch({ lock = () => { mkdirSync(stateDir, { recursive: t
   finally { release(); }
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
+if (isMain(import.meta.url)) {
   try { main(process.argv.slice(2)); } catch (error) { process.stderr.write(`codex-copy-review failed: ${error.message}\n`); process.exitCode = 1; }
 }

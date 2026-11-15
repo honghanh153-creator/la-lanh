@@ -1,14 +1,13 @@
-// Daily plan gate: 08:50 plan, owner replies Duyệt/Giữ/Bỏ #N between 9 and 10, 10:00 auto start, stop at 23:30.
-import { pathToFileURL } from 'node:url';
+// Daily plan gate: plan at planOpensAt, owner replies Duyệt/Giữ/Bỏ #N before autoStartAt, then auto start,
+// nothing new after lastStartAt (hours in collab-trust.mjs; owner 14.11.2026: 06:50, 08:00, 23:35, end 23:59).
 import { join } from 'node:path';
-import { agentMarker, clean, codexDailyCap, isTrusted, makeGh, parseOwnerReply, readJson, repo, stateDir, vnNow, writeJson } from './collab-trust.mjs';
+import { agentMarker, autoStartAt, clean, codexDailyCap, cutoffAt, hhmmOf, isTrusted, lastStartAt, makeGh, parseOwnerReply, planOpensAt, readJson, repo, stateDir, vnNow, writeJson } from './collab-trust.mjs';
+import { isMain } from './is-main.mjs';
 
 export const planTitle = 'Kế hoạch chạy tự động hằng ngày';
 const planMarker = date => `${agentMarker} daily-plan date=${date} -->`;
 const minutes = now => now.hour * 60 + now.minute;
-export const planOpensAt = 8 * 60 + 50;
-export const autoStartAt = 10 * 60;
-export const lastStartAt = 23 * 60 + 30;
+export { autoStartAt, lastStartAt, planOpensAt };
 // Owner 12.11.2026: no PR quota. The plan picks 3–5 work items, each with its source (US/AC) and
 // what the user sees; progress is items done / items picked. Claude works under WIP 1 + 1
 // (collab-buffer.mjs), so the plan is a short list, not a count to reach.
@@ -54,7 +53,7 @@ export function planState(now, comments = []) {
     if (reply.action !== 'drop') action = reply.action;
   }
   const state = action === 'hold' ? 'held' : action === 'approve' ? 'open' : at >= autoStartAt ? 'open' : 'waiting';
-  return { state, reason: action ?? (state === 'open' ? 'auto-10h' : 'waiting-owner'), plan, dropped: [...dropped].sort((a, b) => a - b) };
+  return { state, reason: action ?? (state === 'open' ? 'auto-start' : 'waiting-owner'), plan, dropped: [...dropped].sort((a, b) => a - b) };
 }
 
 function copyLines(committed) {
@@ -80,7 +79,7 @@ export function renderPlan(now, turns, { codexLeft, gap = null, health = [] }) {
     `## Plan ${now.date}`,
     '',
     'Thứ tự ưu tiên: quy trình (ops) → content → privacy → tính năng mới. Trong nhóm, PR cũ trước.',
-    `Lượt Codex tự động còn hôm nay: ${codexLeft}/${codexDailyCap}. Chạy tới 23:30, không merge vào main, không deploy.`,
+    `Lượt Codex tự động còn hôm nay: ${codexLeft}/${codexDailyCap}. Chạy tới ${hhmmOf(cutoffAt)} (không bắt đầu lượt mới sau ${hhmmOf(lastStartAt)}), không merge vào main, không deploy.`,
     // A long pause before the plan means the Mac slept or was off (retro D3, 31.10.2026).
     ...(gap ? [`**Máy không chạy tick từ ${gap.from} tới ${gap.to}** (Mac ngủ hoặc tắt), nên plan có thể trễ.`] : []),
     // Health of the unattended Claude runs (watchdog, owner 03.11.2026): a stall shows every morning.
@@ -98,11 +97,11 @@ export function renderPlan(now, turns, { codexLeft, gap = null, health = [] }) {
     '',
     'Khi hàng đợi review trống, Claude làm tiếp việc `auto: yes` trong backlog theo cùng thứ tự ưu tiên.',
     '',
-    'Trả lời bằng một comment mới trên issue này (trước 10:00 nếu muốn chặn):',
+    `Trả lời bằng một comment mới trên issue này (trước ${hhmmOf(autoStartAt)} nếu muốn chặn):`,
     '- chữ `Duyệt` để chạy ngay;',
     '- chữ `Giữ` để hôm nay không chạy tự động;',
     '- dòng `Bỏ #N` để bỏ PR N khỏi hôm nay.',
-    'Không trả lời: 10:00 tự chạy.',
+    `Không trả lời: ${hhmmOf(autoStartAt)} tự chạy.`,
     '',
     planMarker(now.date),
   ].join('\n');
@@ -138,7 +137,7 @@ export function makePlan(gh, now, turns, { codexLeft, gap = null, health = [] })
   return number;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (isMain(import.meta.url)) {
   try {
     const status = readPlanStatus(makeGh());
     process.stdout.write(`${JSON.stringify({ issue: status.issue, state: status.state, reason: status.reason, dropped: status.dropped })}\n`);
