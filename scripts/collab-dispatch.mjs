@@ -32,6 +32,9 @@ export const protectedBranches = new Set(['main', integration]);
 export const profiles = {
   agent: { tools: ['node', 'git', 'gh', 'pnpm', 'uv'], hook: true, branch: /^agent\/claude\/[\w./-]+$/ },
   batch: { tools: ['git', 'uv', 'gh'], hook: false, branch: /^agent\/claude\/copy-batch-[\w-]+$/ },
+  // Claude Code sub-agents (collab-agent-gate.mjs): their own worktree, on an agent branch or the
+  // branch the Agent tool's worktree isolation creates.
+  subagent: { tools: ['git', 'node'], hook: true, branch: /^(?:agent\/claude\/[\w./-]+|worktree-agent-[\w-]+)$/ },
 };
 
 const real = path => { try { return realpathSync(path); } catch { return null; } };
@@ -116,14 +119,42 @@ export const lockFor = at => join(stateDir, 'dispatch', `${createHash('sha256').
 // A worker has no deadline, so the lock never expires by age while its dispatcher (which waits for
 // the worker) is alive; it is reclaimed only when that PID is dead (Codex on #494). An owner that
 // cannot be read stays busy: this fails closed and needs a manual look.
+// A sub-agent's claim on a workspace (collab-agent-gate.mjs) sits next to the dispatcher's lock, under
+// the same real-path hash; both are read and written only while holding that lock.
+export const claimPath = at => lockFor(at).replace(/\.lock$/, '.claim.json');
+const insideDir = (path, root) => path === root || path.startsWith(root.endsWith('/') ? root : `${root}/`);
+// PIDs (other than this hook and its parent) whose working directory is inside `at`. Throws when
+// lsof cannot be read, so the caller keeps the claim.
+export function procsIn(at, run = () => execFileSync('/usr/sbin/lsof', ['-a', '-d', 'cwd', '-Fpn', '-u', String(process.getuid())], { encoding: 'utf8', timeout: 20000, stdio: ['ignore', 'pipe', 'ignore'] })) {
+  let out;
+  try { out = run(); } catch (error) { if (error?.status === 1 && !error.stdout) out = ''; else throw new Error('lsof-error'); }
+  const found = [];
+  let pid = null;
+  for (const line of String(out).split('\n')) {
+    if (line.startsWith('p')) pid = Number(line.slice(1));
+    else if (line.startsWith('n') && pid && pid !== process.pid && pid !== process.ppid && insideDir(line.slice(1), at)) found.push(pid);
+  }
+  return [...new Set(found)];
+}
+
+// A claim another agent may take over: its agent stopped and nothing still runs in the workspace.
+export const claimFree = (claim, at, procs = procsIn) => Boolean(claim?.stoppedAt) && procs(at).length === 0;
+
 const defaultLock = at => { mkdirSync(join(stateDir, 'dispatch'), { recursive: true }); return acquireLock(lockFor(at), { staleMs: Infinity }); };
+// A claim blocks the dispatcher unless its agent stopped and nothing runs in the workspace; an
+// unreadable claim or process list blocks too (fail closed).
+export function liveClaim(at, { path = claimPath(at), procs = procsIn } = {}) {
+  let claim;
+  try { claim = JSON.parse(readFileSync(path, 'utf8')); } catch (error) { return error?.code !== 'ENOENT'; }
+  try { return !claimFree(claim, at, procs); } catch { return true; }
+}
 const record = (line, path) => { try { mkdirSync(dirname(path), { recursive: true }); appendFileSync(path, `${JSON.stringify(line)}\n`); } catch {} };
 
 // An exclusive lock on the real path, then the preflight under that lock, then the worker. The check
 // runs while the lock is held, so a dispatch that finished just before cannot move HEAD or dirty
 // the tree between the check and the worker (Codex on #494). FAIL: the worker is never called and
 // the only write is one log line outside the worktree.
-export function dispatch({ dir, branch, profile = 'agent', worker, lock = defaultLock, log = dispatchLog(), now = () => new Date(), preflight = preflightWorkspace, ...checks }) {
+export function dispatch({ dir, branch, profile = 'agent', worker, lock = defaultLock, claimed = liveClaim, log = dispatchLog(), now = () => new Date(), preflight = preflightWorkspace, ...checks }) {
   const base = { at: now().toISOString(), profile, branch: String(branch ?? '').slice(0, 120) };
   const fail = reasons => { record({ ...base, status: 'FAIL', reasons }, log); return { status: 'FAIL', reasons }; };
   // A missing directory is locked by its given name; the preflight then fails it with no-dir.
@@ -131,6 +162,7 @@ export function dispatch({ dir, branch, profile = 'agent', worker, lock = defaul
   const release = lock(at);
   if (!release) return fail(['busy']);
   try {
+    if (claimed(at)) return fail(['claimed-by-agent']);
     const pre = preflight({ dir, branch, profile, ...checks });
     if (pre.status !== 'PASS') return fail(pre.reasons);
     if (pre.dir !== at) return fail(['dir-moved']);
