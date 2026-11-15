@@ -103,7 +103,8 @@ class AccountStatus(BaseModel):
     history_days: int = 30
     daily_note_hours: int = 24
     account_inactivity_days: int = ACCOUNT_DAYS
-    # Shown while Google sign-in is off; null until the owner approves the sentence.
+    # Shown to guests while Google sign-in is off; null until the owner approves the sentence,
+    # and always null for a signed-in account (its retention is 365 days, not 30).
     guest_storage_note: str | None = None
 
 
@@ -307,7 +308,8 @@ async def status(request: Request, response: Response) -> AccountStatus:
         masked_email=email,
         profile_expires_at=expiry.isoformat() if expiry else None,
         guest_inactivity_days=settings.guest_ttl_days,
-        guest_storage_note=approved_copy(GUEST_STORAGE_NOTE_ID),
+        # Guest-only sentence (30-day guest retention): a signed-in account keeps 365 days.
+        guest_storage_note=None if signed_in else approved_copy(GUEST_STORAGE_NOTE_ID),
     )
 
 

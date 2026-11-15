@@ -537,6 +537,8 @@ def test_disabled_status_and_logout_still_resolve_real_account(tmp_path: Path) -
         status = client.get("/v1/account")
         assert status.json()["login_enabled"] is False
         assert status.json()["signed_in"] is True
+        # The guest retention sentence never reaches an account (Codex auto-1 on #503).
+        assert status.json()["guest_storage_note"] is None
         denied = client.post("/v1/account/logout", headers=headers("wrong"))
         assert denied.status_code == 403
         assert client.get("/v1/session").status_code == 200
