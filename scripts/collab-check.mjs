@@ -150,7 +150,9 @@ export function ciCheck(gh, head) {
   const job = jobs[0];
   if (!job) return { state: 'FAIL', conclusion: 'missing', url: run.html_url ?? '' };
   if (job.status !== 'completed') return { state: 'pending', url: job.html_url ?? '' };
-  return { state: job.conclusion === 'success' ? 'PASS' : 'FAIL', conclusion: String(job.conclusion ?? 'unknown'), url: job.html_url ?? '' };
+  // #508: the run id, attempt and the job's own end time let the tick spot a green re-run.
+  return { state: job.conclusion === 'success' ? 'PASS' : 'FAIL', conclusion: String(job.conclusion ?? 'unknown'), url: job.html_url ?? '',
+    runId: Number(run.id), attempt: Number(run.run_attempt ?? 1), completedAt: String(job.completed_at ?? '') };
 }
 
 // CI mode keeps only the metadata preflight (body, level, size). ruff and mypy read config and
@@ -339,7 +341,9 @@ export function runCheckInClone(number, { gh = makeGh(), run = execFileSync, aut
     // Every gh and git call after the clone is bounded by the same deadline (05.11.2026).
     const ghD = gh.withDeadline?.(leftMs) ?? gh;
     const gitD = args => git(args, cwd, run, boundedTimeout(600000, leftMs));
-    const synced = syncWithIntegration(pr, { git: (args, ms) => git(args, cwd, run, ms), gh: ghD, left: leftMs });
+    // L14: the tick passes sync=false for every PR except the front of its area queue; a manual
+    // `--clone` run keeps the old behaviour.
+    const synced = rest.sync === false ? null : syncWithIntegration(pr, { git: (args, ms) => git(args, cwd, run, ms), gh: ghD, left: leftMs });
     if (synced) return synced;
     // The clock is read again after the clone and install, which can take minutes.
     // pnpm stops early enough that the receipt still fits inside leftMs (#243).

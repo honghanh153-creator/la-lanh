@@ -1,9 +1,10 @@
 import './collab-test-home.mjs';
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
+import * as lessons from './collab-lessons.mjs';
 import { ciTestFiles, confirmClosed, lessonsLine, problems, readRegister, renderLessons, summarize, verify } from './collab-lessons.mjs';
 
 const sha = 'c'.repeat(40);
@@ -86,6 +87,42 @@ test('the board line never throws and says when the register is broken', () => {
   assert.match(lessonsLine({ online: false }), /^Lời hứa sửa quy trình: /);
 });
 
+test('owner 14.11: a lesson the owner declined is neither done nor open, and keeps its risk in view', () => {
+  const declined = extra => ({ id: 'L05', title: 'Người gác cổng riêng', who: 'owner', status: 'declined-owner', declined: { on: '2026-11-14', reason: 'owner không cài', risk: 'Claude vẫn tự merge được' }, ...extra });
+  assert.deepEqual(problems({ lessons: [declined()] }, { base: fixture(), ciFiles: ci }), []);
+  assert.deepEqual(problems({ lessons: [declined({ declined: { on: '2026-11-14', reason: 'owner không cài' } })] }, { base: fixture(), ciFiles: ci }), ['lesson L05: declined-owner needs the risk that stays']);
+  assert.equal(problems({ lessons: [declined({ declined: undefined })] }, { base: fixture(), ciFiles: ci }).length, 3);
+  const reg = { lessons: [declined(), { id: 'L06', title: 'b', who: 'claude', due: '2026-11-20', status: 'open' }] };
+  const s = summarize(reg, { today: '2026-11-21', verified: {} });
+  assert.deepEqual({ open: s.open, done: s.done, declined: s.declined, overdue: s.overdue }, { open: 1, done: 0, declined: ['L05'], overdue: ['L06'] });
+  assert.match(renderLessons(s), /1 owner quyết không làm, rủi ro vẫn còn \(L05\)/);
+});
+
 test('the lessons test itself runs in CI', () => {
   assert.ok(ciTestFiles().has('scripts/collab-lessons.test.mjs'));
+});
+
+// L08 (Codex 14.11): a Playwright spec counts only through the chain CI runs, and only unskipped.
+test('an e2e spec is accepted as a lesson test only when CI runs it, and rejected otherwise', () => {
+  const pkg = JSON.parse(readFileSync(join(lessons.root, 'package.json'), 'utf8'));
+  const files = lessons.ciTestFiles(pkg);
+  assert.ok(files.has('apps/web/tests/e2e/kham-pha-portrait.spec.ts'), 'the real chain: check -> web:e2e -> playwright test -> tests/e2e');
+  assert.ok(files.has('scripts/collab-lessons.test.mjs'));
+  assert.deepEqual(lessons.playwrightCiFiles({ scripts: { ...pkg.scripts, check: 'pnpm collab:test' } }), [], 'not run by pnpm check: not counted');
+  const base = mkdtempSync(join(tmpdir(), 'lessons-pw-'));
+  mkdirSync(join(base, 'apps/web/tests/e2e'), { recursive: true });
+  writeFileSync(join(base, 'apps/web/package.json'), JSON.stringify({ scripts: { e2e: 'playwright test' } }));
+  writeFileSync(join(base, 'apps/web/playwright.config.ts'), 'export default { testDir: "./tests/e2e" };');
+  writeFileSync(join(base, 'apps/web/tests/e2e/a.spec.ts'), 'test("works at 360px", async () => {});\n');
+  assert.deepEqual(lessons.playwrightCiFiles(pkg, { base }), ['apps/web/tests/e2e/a.spec.ts']);
+  writeFileSync(join(base, 'apps/web/playwright.config.ts'), 'export default { testDir: "./tests/e2e", testIgnore: "a.spec.ts" };');
+  assert.deepEqual(lessons.playwrightCiFiles(pkg, { base }), [], 'a config that can drop specs proves nothing');
+  writeFileSync(join(base, 'apps/web/playwright.config.ts'), 'export default { testDir: "./tests/e2e" };');
+  const done = { lessons: [{ id: 'L99', title: 't', who: 'claude', due: '2026-11-20', status: 'done',
+    test: { file: 'apps/web/tests/e2e/a.spec.ts', name: 'works at 360px' }, caller: { file: 'apps/web/playwright.config.ts', contains: 'tests/e2e' }, closedBy: { pr: 1 } }] };
+  assert.deepEqual(lessons.problems(done, { base, ciFiles: lessons.ciTestFiles(pkg, { base }) }), []);
+  const noE2e = { scripts: { ...pkg.scripts, check: 'pnpm collab:test' } };
+  assert.match(lessons.problems(done, { base, ciFiles: lessons.ciTestFiles(noE2e, { base }) })[0], /CI never runs it/, 'a spec CI does not run is rejected');
+  writeFileSync(join(base, 'apps/web/tests/e2e/a.spec.ts'), 'test.skip("works at 360px", async () => {});\ntest("works at 360px", async () => {});\n');
+  assert.match(lessons.problems(done, { base, ciFiles: lessons.ciTestFiles(pkg, { base }) })[0], /skips, marks fixme or focuses a test/);
 });
