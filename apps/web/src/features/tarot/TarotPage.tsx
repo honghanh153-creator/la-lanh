@@ -202,6 +202,9 @@ export function TarotPage() {
   const [question, setQuestion] = useState(initialQuestion);
   const recommendation = useMemo(() => recommendSpread(question), [question]);
   const questionTooShort = question.trim().length < 8;
+  // A short question still goes to the server when tapped: the crisis check runs there before
+  // the 8-character minimum, so "tự tử" gets the support notice instead of a locked button.
+  const questionEmpty = question.trim().length === 0;
   const [spreadOverride, setSpreadOverride] = useState<TarotSpread | null>(null);
   const spread = spreadOverride ?? recommendation;
   const selectedSpreadCopy = SPREAD_COPY[spread];
@@ -275,6 +278,9 @@ export function TarotPage() {
       }
     },
   });
+  // The server checked a short question and found nothing to flag: show the length hint, not a
+  // network error.
+  const shortRejected = questionTooShort && start.error instanceof ApiProblem && start.error.code === "INPUT_INVALID";
 
   const select = useMutation({
     mutationFn: ({ active, index }: { active: TarotSession; index: number }) => (
@@ -427,6 +433,7 @@ export function TarotPage() {
               setQuestion(event.target.value);
               setSpreadOverride(null);
               setReframe(null);
+              if (start.error instanceof ApiProblem && start.error.code === "INPUT_INVALID") start.reset();
             }}
             placeholder="Ví dụ: Mình nên nói rõ hay chờ thêm?"
             rows={3}
@@ -486,16 +493,16 @@ export function TarotPage() {
       </section>
 
       {crisis ? <CrisisNotice className="tarot-error" text={crisis} /> : null}
-      {start.isError && !reframe && !crisis ? <p className="tarot-error" role="alert">Chưa xòe bài được. Câu hỏi vẫn ở đây; kiểm tra mạng rồi thử lại.</p> : null}
+      {start.isError && !reframe && !crisis && !shortRejected ? <p className="tarot-error" role="alert">Chưa xòe bài được. Câu hỏi vẫn ở đây; kiểm tra mạng rồi thử lại.</p> : null}
       <footer className="tarot-start-actions">
         <button
           aria-describedby={questionTooShort && !start.isPending ? "tarot-start-hint" : undefined}
           className="tarot-primary"
-          disabled={start.isPending || questionTooShort}
+          disabled={start.isPending || questionEmpty}
           onClick={() => start.mutate()}
           type="button"
         ><Sparkle aria-hidden="true" />{start.isPending ? "Đang khóa bộ bài…" : `Xòe ${spread === "one_card" ? "1" : spread === "three_card" ? "3" : "5"} lá`}<ArrowRight aria-hidden="true" /></button>
-        {questionTooShort && !start.isPending ? <p className="tarot-start-hint" id="tarot-start-hint">Nhập câu hỏi từ 8 ký tự trở lên, hoặc chọn một gợi ý ở “Mình chưa biết hỏi gì”.</p> : null}
+        {questionTooShort && !start.isPending ? <p className="tarot-start-hint" id="tarot-start-hint" role={shortRejected ? "alert" : undefined}>Nhập câu hỏi từ 8 ký tự trở lên, hoặc chọn một gợi ý ở “Mình chưa biết hỏi gì”.</p> : null}
         <p><LockKey aria-hidden="true" /> Không cần đăng nhập · chỉ gửi khi bạn bấm Xòe bài · mã hóa tối đa 30 ngày · không vào analytics.</p>
       </footer>
       <button

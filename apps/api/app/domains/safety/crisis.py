@@ -100,7 +100,7 @@ _SELF = r"(?:toi|minh|em|tao|to|tui|anh|chi|con|chau)"
 # muốn sống ở Hà Nội" or "sống chung với bố mẹ" is about where and with whom.
 _LIVE_TAIL = (
     r"(?=\s*(?:$|\.|(?:nua|tiep|them|tren|lam|roi|chut|day|qua|luon|that|ma|nhung|va|thi|a|ah|"
-    r"ha|nhe|ne|di|kieu nay|nhu the nay|o doi|o tren doi|o the gian|vl|vcl|vai|ghe)\b))"
+    r"ha|nhe|ne|di|kieu nay|nhu the nay|o doi|o tren doi|o the gian|vl|vcl|vai|ghe|r|ri|lun)\b))"
 )
 # A benign word right after an unaccented "tu tu" reads as "từ từ" (slowly): "muốn từ từ tìm hiểu".
 _SLOWLY_TAIL = (
@@ -141,14 +141,20 @@ _RULES: tuple[_Rule, ...] = (
     # Words that name suicide or self-harm.
     _rule(r"\b(?P<key>tu sat)\b"),
     _rule(r"\b(?P<key>tu tu)\b", ("tự tử", "tự tữ"), bare=False),
-    _rule(rf"\b{_INTENT} (?:{_SELF} )?(?P<key>tu tu)\b{_SLOWLY_TAIL}", ("tự tử", "tự tữ")),
+    _rule(
+        rf"\b{_INTENT} (?:{_SELF} )?(?:chuyen |viec )?(?P<key>tu tu)\b{_SLOWLY_TAIL}",
+        ("tự tử", "tự tữ"),
+    ),
     _rule(r"\b(?P<key>tu tu) (?:cho xong|cho roi|chet|luon)\b", ("tự tử", "tự tữ")),
     _rule(r"\b(?P<key>tu (?:van|vang))\b", ("tự vẫn", "tự vận"), bare=False),
     _rule(r"\b(?P<key>tu hai)\b", ("tự hại",), bare=False),
     _rule(r"\b(?P<key>tu hai) (?:ban than|chinh minh)\b"),
     _rule(r"\b(?P<key>tu (?:lam|gay) (?:dau|hai|thuong|ton thuong))\b"),
     _rule(r"\b(?P<key>(?:lam|gay) (?:dau|hai|ton thuong)) (?:ban than|chinh minh)\b"),
-    _rule(r"(?<!\bbi )\b(?P<key>(?:rach|cat|cua) (?:co )?tay)\b(?! ao)"),
+    _rule(
+        r"(?<!\bbi )\b(?P<key>(?:rach|cat|cua) (?:co )?tay)\b(?! (?:ao|ninh|nguyen|bac|do)\b)",
+        ("rạch tay", "cắt tay", "cứa tay", "rạch cổ tay", "cắt cổ tay", "cứa cổ tay"),
+    ),
     _rule(r"\b(?P<key>chan song)\b", ("chán sống",)),
     # Methods.
     _rule(r"\b(?P<key>nhay lau)\b", ("nhảy lầu",), bare=False),
@@ -182,6 +188,7 @@ _RULES: tuple[_Rule, ...] = (
     ),
     _rule(r"\b(?P<key>chet) quach\b", ("chết",)),
     _rule(r"\btha (?P<key>chet)\b", ("chết",)),
+    _rule(rf"\b{_SELF} (?:nen|phai) (?P<key>chet) (?:di|luon|cho)\b", ("chết",)),
     _rule(rf"\buoc (?:gi |chi )?(?:{_SELF} )?(?:duoc )?(?P<key>chet|die)\b", ("chết",)),
     _rule(rf"\bmong (?:{_SELF} )?(?:duoc )?(?P<key>chet|die)\b", ("chết",)),
     _rule(r"\b(?:tim|nghi) (?:den |toi |ve )?(?P<key>cai chet)\b", ("cái chết",)),
@@ -194,12 +201,81 @@ _RULES: tuple[_Rule, ...] = (
         r"(?=\s*(?:$|\.|cho xong|di\b|luon\b))"
     ),
     _rule(r"\b(?P<key>ket lieu) (?:ban than|chinh minh|minh|doi minh)\b", ("kết liễu",)),
+    # Said around the edges (week 1 target, 15.11): ending everything, not waking up, being a
+    # burden, "everyone is better off without me", slang for leaving life, farewell signs.
+    _rule(
+        rf"\b(?:{_INTENT} |cho )?(?P<key>(?:ket thuc|cham dut) (?:moi thu|tat ca|het))"
+        r"(?! voi)(?=\s*(?:$|\.|cho xong|cho roi|luon|di\b))"
+    ),
+    _rule(
+        r"\b(?:muon|mun) (?:moi thu|tat ca|cuoc doi|cuoc song) (?P<key>(?:dung lai|ket thuc|"
+        r"cham dut)) (?:han|mai mai|vinh vien|luon)\b"
+    ),
+    _rule(
+        r"\bkhong (?:phai|can|con phai) (?P<key>song)"
+        r"(?: (?:tiep |them )?nua\b| tiep(?=\s*(?:$|\.)))",
+        ("sống",),
+    ),
+    _rule(
+        r"\b(?P<key>song) (?:them|tiep|nua)(?: \.)? (?:cung |de |thi )?(?:chang|cha|khong|chi)"
+        r"(?: \S+){0,2} (?:gi|kho|ganh|phien|met|ich|y nghia)\b",
+        ("sống",),
+    ),
+    _rule(r"\b(?:khong|chang|ko) nen (?P<key>ton tai)\b", ("tồn tại",)),
+    _rule(
+        rf"\b(?:khong bao gio|vinh vien khong|mai mai khong|{_NOT}) (?:muon |mun )?"
+        r"(?:thuc |tinh )?(?P<key>day) nua\b",
+        ("dậy",),
+    ),
+    _rule(r"\b(?P<key>ngu) (?:mai mai|vinh vien|luon khong (?:thuc|tinh|day))\b", ("ngủ",)),
+    _rule(
+        rf"\b{_SELF} (?:se )?khong (?P<key>(?:tru|song|cam cu)) (?:duoc|noi) (?:toi|den|qua) "
+        r"(?:cuoi tuan|mai|ngay mai|sang mai|toi mai|het (?:tuan|thang|nam))\b",
+        ("trụ", "sống", "cầm cự"),
+    ),
+    _rule(
+        rf"\b{_SELF} (?:la|chi la|nhu|thay {_SELF} la) (?:mot )?(?P<key>ganh nang) (?:cho|cua) ",
+        ("gánh nặng",),
+    ),
+    _rule(
+        rf"\b(?:(?:neu|khi) {_SELF} (?:bien mat|chet|khong con|di mai)|khong co {_SELF})"
+        r"(?: \S+){0,7} "
+        r"(?:do (?:kho|met|ganh|lo|phien|nang)|nhe nhom|nhe nguoi|vui|tot|hanh phuc|thanh than)"
+        r"(?: \S+)? (?P<key>hon)\b"
+    ),
+    _rule(
+        r"\b(?:(?:out|ra|thoat|bien|di|roi) khoi|nghi choi(?: voi)?) (?P<key>(?:cuoc doi|the "
+        r"gian|doi nay|trai dat))(?: nay)?(?! (?:cua|anh|chi|em|ho|nguoi|ban|ong|ba|no|ay)\b)"
+    ),
+    _rule(
+        r"\bdi (?P<key>ban muoi)\b(?! (?:o|tai|cho (?:khach|nguoi)|kiem|online|lai)\b)",
+        ("bán muối",),
+    ),
+    _rule(r"\b(?P<key>unalive)\b"),
+    _rule(r"\b(?P<key>thu (?:tuyet menh|vinh biet|tu biet))\b"),
+    _rule(r"\bviet san (?P<key>thu) cho (?:tung|moi|tat ca|ca)\b", ("thư",)),
+    _rule(r"\bchao (?P<key>vinh biet)\b", ("vĩnh biệt",)),
+    _rule(
+        r"\bchao (?P<key>tam biet|tu biet) (?:moi nguoi|tat ca|ca nha|gia dinh)(?: \S+){0,3} "
+        r"(?:theo cach (?:cua )?(?:minh|rieng)|lan cuoi|mai mai)\b",
+        ("tạm biệt", "từ biệt"),
+    ),
+    _rule(
+        r"\b(?P<key>di xa)(?: \.)? (?:mai mai|vinh vien|(?:va )?(?:khong|chang) (?:bao gio )?"
+        r"(?:quay lai|tro lai|tro ve|ve nua))(?=\s*(?:$|\.|(?:nua|dau|luon|bai|nhe|day)\b))"
+        # Moving away for good is not a farewell: "đi xa, không quay lại, chuyển hẳn vào Nam".
+        r"(?!.*\b(?:chuyen (?:han|nha|vao|ra|den|toi)|du hoc|lap nghiep|vao nam|ra bac|ve que)\b)"
+    ),
+    # A "last time" next to a farewell sign: giving things away, letters, nothing after today.
+    _rule(
+        r"^(?=.*\blan cuoi\b).*\b(?P<key>(?:cho|tang) het do(?: dac)?\b|"
+        r"sau hom nay (?:khong|chang|se khong) (?:can|con))"
+    ),
     # English basics.
     _rule(r"\b(?P<key>kill(?:ing)? my ?self)\b"),
     _rule(r"\b(?P<key>kms|kys myself)\b"),
     _rule(r"\b(?P<key>suicid(?:e|al))\b(?! squad)"),
     _rule(r"\b(?P<key>self ?harm(?:ing)?)\b"),
-    _rule(r"\b(?P<key>unalive (?:my ?self|me))\b"),
     _rule(
         r"\b(?:want|wanna|wanting|going|gonna|plan|planning|try|trying|thinking about|"
         r"thought about) (?:to )?(?P<key>die|end my life|hurt(?:ing)? my ?self|"
@@ -300,6 +376,13 @@ _INTENSIFIERS = (
     "đau chân",
     "đau họng",
     "nóng ruột",
+    "mỏi lưng",
+    "mỏi tay",
+    "mỏi vai",
+    "mỏi chân",
+    "mỏi mắt",
+    "nhức",
+    "ê ẩm",
 )
 
 

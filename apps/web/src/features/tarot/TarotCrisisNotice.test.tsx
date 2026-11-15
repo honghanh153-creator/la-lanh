@@ -98,6 +98,63 @@ describe("Tarot crisis notice (owner decision 14.11.2026)", () => {
   });
 });
 
+describe("Tarot short questions reach the server check (week 1, 15.11)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    sessionStorage.clear();
+    vi.mocked(getSession).mockRejectedValue(new ApiProblem(401, "GUEST_SESSION_MISSING", "missing"));
+    vi.mocked(createTarotGuest).mockResolvedValue({
+      state: "active",
+      onboarding_status: "birth_pending",
+      expires_at: "2026-10-27T12:00:00Z",
+      resumed: false,
+      session_epoch: "tarot-epoch",
+    });
+  });
+
+  it("keeps the button locked only while the field is empty", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    const button = screen.getByRole("button", { name: /^Xòe \d lá/ });
+    expect(button).toBeDisabled();
+    await user.type(screen.getByPlaceholderText("Ví dụ: Mình nên nói rõ hay chờ thêm?"), "   ");
+    expect(button).toBeDisabled();
+    await user.type(screen.getByPlaceholderText("Ví dụ: Mình nên nói rõ hay chờ thêm?"), "kms");
+    expect(button).toBeEnabled();
+  });
+
+  it("sends a five-letter crisis word and shows the notice", async () => {
+    const user = userEvent.setup();
+    vi.mocked(startTarotSession).mockRejectedValue(crisisProblem());
+    renderPage();
+
+    await user.type(screen.getByPlaceholderText("Ví dụ: Mình nên nói rõ hay chờ thêm?"), "tự tử");
+    await user.click(screen.getByRole("button", { name: /^Xòe \d lá/ }));
+
+    expect(startTarotSession).toHaveBeenCalledWith(expect.objectContaining({ question: "tự tử" }));
+    expect(await screen.findByText(NOTICE)).toBeInTheDocument();
+    expect(screen.getAllByRole("alert")).toHaveLength(1);
+    expect(screen.queryByText(/kiểm tra mạng/)).not.toBeInTheDocument();
+  });
+
+  it("answers a short ordinary question with the length hint, not a network error", async () => {
+    const user = userEvent.setup();
+    vi.mocked(startTarotSession).mockRejectedValue(new ApiProblem(422, "INPUT_INVALID", "Invalid input", { code: "INPUT_INVALID" }));
+    renderPage();
+    const field = screen.getByPlaceholderText("Ví dụ: Mình nên nói rõ hay chờ thêm?");
+
+    await user.type(field, "học");
+    await user.click(screen.getByRole("button", { name: /^Xòe \d lá/ }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Nhập câu hỏi từ 8 ký tự trở lên");
+    expect(screen.queryByText(/kiểm tra mạng/)).not.toBeInTheDocument();
+    expect(screen.queryByText(NOTICE)).not.toBeInTheDocument();
+
+    await user.type(field, " gì bây giờ");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+});
+
 describe("crisisNoticeFrom", () => {
   it("reads only a well-formed crisis problem", () => {
     expect(crisisNoticeFrom(crisisProblem())).toBe(NOTICE);
