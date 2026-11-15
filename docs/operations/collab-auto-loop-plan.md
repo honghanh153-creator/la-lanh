@@ -38,7 +38,7 @@ Claude xong việc trên branch, push (hook trước push: quét dữ liệu ri�
   → node scripts/codex-review.mjs --pr N        (Claude chờ, cùng session)
       ├─ APPROVE @ SHA   → node scripts/collab-merge.mjs --pr N → merge integration
       └─ REQUEST_CHANGES → Claude sửa → author check → push → review lại (chỉ phần đổi)
-           vòng REQUEST_CHANGES tự động thứ 2 → nhãn needs-owner, dừng
+           vòng REQUEST_CHANGES tự động thứ 2 → nhãn needs-owner; từ vòng 3 Claude quyết theo §4.1 mục 11
 ```
 
 ### 3.1 Lịch ngày (giờ Việt Nam)
@@ -126,7 +126,11 @@ Session mà owner đang trực tiếp trò chuyện không bị lịch này ch�
 8. Áp chính sách; script **chỉ nâng** verdict, không hạ.
 9. Đăng comment PR: dòng đầu `Review verdict: … @ <SHA>`, `Reviewer: Codex (auto)`, bảng finding, SHA-256 của JSON, số vòng, đánh dấu ẩn `<!-- la-lanh-agent codex-auto-review sha=… p2=… base=… receipt=… -->` (dòng cuối; biên nhận cục bộ ghi trước khi đăng, §4.2).
 10. P2 không chặn → mở issue `fix-forward`, gắn link vào comment.
-11. REQUEST_CHANGES tự động thứ 2 trên PR → gắn `needs-owner`.
+11. REQUEST_CHANGES tự động thứ 2 trên PR → gắn `needs-owner`. **Từ vòng thứ 3, Claude quyết** (owner 31.10.2026: "kể cả có ping pong qua lại nếu bạn đánh giá rất critical thì có thể sửa, và ảnh hưởng tới người dùng. còn không thì cứ dựa trên check list để quyết định cho việc review lần >=3. ko cần chờ tôi"):
+    - phát hiện nghiêm trọng hoặc ảnh hưởng người dùng → Claude sửa, gỡ `needs-owner`, review lại, bao nhiêu vòng cũng được;
+    - còn lại thì đi qua checklist Q1–Q5 (`decision-checklist.md`): cả năm câu "không" thì sửa và đi tiếp; có câu "có" (câu chữ mới, dữ liệu cá nhân, hướng sản phẩm) thì vẫn chờ owner;
+    - quyết định ghi trên PR, kèm lý do gỡ nhãn.
+    Nhãn `needs-owner` sau vòng 2 vì thế không có nghĩa là luôn chờ owner.
 12. JSON và log lưu ở `~/.cache/la-lanh-collab/logs/`, không vào repo.
 
 ### 4.2 `collab-merge.mjs` — điều kiện merge (tất cả phải đúng)
