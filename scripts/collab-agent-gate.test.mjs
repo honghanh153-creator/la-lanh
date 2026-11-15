@@ -353,3 +353,20 @@ test('L06 gate: 60 named paths are allowed outside Git (the symlink depth is not
   assert.ok(targets({ tool_name: 'Bash', cwd: scratch, tool_input: { command: `touch ${many}` } }).length > 60, 'no resolve-error past 41 paths');
   assert.equal(gate(call('q6', 'Bash', { cwd: scratch, input: { command: `touch ${many}` } }), opts).allow, true);
 });
+
+// Codex auto-6 on #542 (in scope): `git -C <dir>` from a parent folder, and a bare destination that
+// is an existing symlink into a checkout.
+test('L06 gate: git -C <dir> from a parent folder is checked against that checkout', () => {
+  const s = setup();
+  const r = gate(call('q7', 'Bash', { cwd: s.root, input: { command: 'git -C repo add a.txt' } }), opts);
+  assert.equal(r.allow, false);
+  assert.ok(r.reasons.includes('branch-not-allowed'), r.reasons.join());
+});
+
+test('L06 gate: a bare destination that is an existing symlink counts where it points', () => {
+  const s = setup();
+  const scratch = realpathSync(mkdtempSync(join(tmpdir(), 'gate-bare-')));
+  symlinkSync(join(s.repo, 'a.txt'), join(scratch, 'link'));
+  assert.equal(gate(call('q8', 'Bash', { cwd: scratch, input: { command: 'cp synthetic.txt link' } }), opts).allow, false);
+  assert.equal(gate(call('q8', 'Bash', { cwd: scratch, input: { command: 'cp synthetic.txt plain' } }), opts).allow, true, 'a new plain file outside Git');
+});

@@ -251,6 +251,10 @@ export function bashPaths(command, cwd) {
     }
     segStart = false;
     if (redirect) { out.push(at(w)); redirect = false; continue; }
+    // Codex auto-6 on #542: `git -C shared …` and a bare word naming an existing file or symlink
+    // (`cp x link`, link → a protected checkout) are destinations too.
+    if (words[i - 1] === '-C') { out.push(at(w)); continue; }
+    if (!w.includes('/') && !w.startsWith('-')) { try { lstatSync(at(w)); out.push(at(w)); } catch {} continue; }
     for (const part of [w, ...(w.includes('=') ? [w.slice(w.indexOf('=') + 1)] : [])]) {
       if (part.startsWith('/') || part.startsWith('~/')) out.push(at(part));
       else if (part.includes('/') && !part.startsWith('-') && !/^[a-z][\w+.-]*:\/\//i.test(part)) out.push(at(part));

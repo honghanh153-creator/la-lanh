@@ -173,7 +173,7 @@ Mỗi lúc chỉ một review chạy (khóa `review.lock`), vì mọi review dù
   - **Cài và kiểm:** cài bằng `node scripts/collab-ops-wrapper.mjs --install-agent-gate`. `--verify` và tick kiểm mục hook, kiểm `onFailure` và kiểm `disableAllHooks`. Lệch thì mở `ops-alert` mỗi ngày một lần, sửa xong thì tự đóng.
   - **Giới hạn** (cùng quyền máy như L24):
     - Claude vẫn gỡ được hook; kiểm tra chỉ phát hiện, không ngăn được.
-    - Bash được kiểm theo thư mục làm việc của từng phần lệnh (kể cả sau `cd`), các đường dẫn tuyệt đối, các đường dẫn tương đối có dấu `/`, và mọi đích chuyển hướng `>`. Đường dẫn chỉ sinh ra lúc lệnh chạy (biến, `$(…)`) thì không thấy được.
+    - Bash được kiểm theo thư mục làm việc của từng phần lệnh (kể cả sau `cd`), các đường dẫn tuyệt đối, các đường dẫn tương đối có dấu `/`, thư mục sau `git -C`, tên không có `/` nhưng đang tồn tại trên đĩa (kể cả symlink), và mọi đích chuyển hướng `>`. Đường dẫn chỉ sinh ra lúc lệnh chạy (biến, `$(…)`) thì không thấy được.
     - Cổng chống ghi nhầm do vô tình. Một lệnh được soạn có chủ ý để chạy chương trình qua một công cụ đọc được phép không nằm trong phạm vi chặn; danh sách cho phép chặn mặc định giúp giảm rủi ro này.
     - Worktree của checkout cũ `la-lanh` chưa có hook `pre-push`, nên dev con phải làm trong worktree của `la-lanh-claude`.
 - **Dữ liệu:** chỉ code public; không dữ liệu người dùng. Log ở máy owner.
