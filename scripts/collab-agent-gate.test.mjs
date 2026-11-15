@@ -370,3 +370,20 @@ test('L06 gate: a bare destination that is an existing symlink counts where it p
   assert.equal(gate(call('q8', 'Bash', { cwd: scratch, input: { command: 'cp synthetic.txt link' } }), opts).allow, false);
   assert.equal(gate(call('q8', 'Bash', { cwd: scratch, input: { command: 'cp synthetic.txt plain' } }), opts).allow, true, 'a new plain file outside Git');
 });
+
+// Codex auto-7/8 on #542 (agreed in scope, #553): chained -C like Git, and values attached to options.
+test('L06 gate: chained git -C resolves like Git and is checked', () => {
+  const s = setup();
+  const r = gate(call('q9', 'Bash', { cwd: s.root, input: { command: 'git -C work -C ../repo add a.txt' } }), opts);
+  assert.equal(r.allow, false, 'work/../repo is the main checkout');
+  assert.ok(bashPaths('git -C a -C ../b status', '/base').includes('/base/b'));
+});
+
+test('L06 gate: a destination attached to an option (--output=link, -olink) is checked', () => {
+  const s = setup();
+  const scratch = realpathSync(mkdtempSync(join(tmpdir(), 'gate-att-')));
+  symlinkSync(join(s.repo, 'a.txt'), join(scratch, 'link'));
+  for (const command of ['sort --output=link synthetic.txt', 'sort -olink synthetic.txt', `sort -o${s.repo}/a.txt x`])
+    assert.equal(gate(call('q10', 'Bash', { cwd: scratch, input: { command } }), opts).allow, false, command);
+  assert.equal(gate(call('q10', 'Bash', { cwd: scratch, input: { command: 'sort --output=fresh.txt synthetic.txt' } }), opts).allow, true, 'a new file outside Git');
+});

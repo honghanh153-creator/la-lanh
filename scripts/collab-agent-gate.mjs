@@ -18,8 +18,8 @@
 // Limits (same machine rights as L24): Claude can remove the hook or start without it; the verify
 // in collab-ops-wrapper.mjs and the tick alert only detect that. Bash is checked by the working
 // directory of each part (cd included), absolute paths, relative paths with a slash and redirection
-// targets, `git -C` dirs and existing bare names; paths built at run time ($VAR, $(…)), chained -C and
-// destinations attached to an option (--output=link) are not seen (accepted limits, #553). The gate stops accidents, not a child
+// targets, `git -C` dirs (chained like Git), existing bare names and values attached to options;
+// paths built at run time ($VAR, $(…)) are not seen. The gate stops accidents, not a child
 // that crafts a command to run a program through an allowed read tool. The main session is not gated.
 // Usage (from the hook): node scripts/collab-agent-gate.mjs            (PreToolUse, JSON on stdin)
 //                         node scripts/collab-agent-gate.mjs --release  (SubagentStop, JSON on stdin)
@@ -239,6 +239,7 @@ export function bashPaths(command, cwd) {
   const at = p => (p.startsWith('~/') ? join(homedir(), p.slice(2)) : isAbsolute(p) ? p : resolve(here, p));
   let segStart = true;
   let redirect = false;
+  let gitDir = cwd;
   for (let i = 0; i < words.length; i += 1) {
     const w = words[i];
     if (typeof w === 'object') {
@@ -247,19 +248,21 @@ export function bashPaths(command, cwd) {
       continue;
     }
     if (segStart) {
+      gitDir = here;
       out.push(here);
-      if (w === 'cd' && typeof words[i + 1] === 'string') { here = at(words[i + 1]); out.push(here); i += 1; segStart = false; continue; }
+      if (w === 'cd' && typeof words[i + 1] === 'string') { here = at(words[i + 1]); gitDir = here; out.push(here); i += 1; segStart = false; continue; }
     }
     segStart = false;
     if (redirect) { out.push(at(w)); redirect = false; continue; }
     // Codex auto-6 on #542: `git -C shared …` and a bare word naming an existing file or symlink
     // (`cp x link`, link → a protected checkout) are destinations too.
-    if (words[i - 1] === '-C') { out.push(at(w)); continue; }
-    if (!w.includes('/') && !w.startsWith('-')) { try { lstatSync(at(w)); out.push(at(w)); } catch {} continue; }
-    for (const part of [w, ...(w.includes('=') ? [w.slice(w.indexOf('=') + 1)] : [])]) {
-      if (part.startsWith('/') || part.startsWith('~/')) out.push(at(part));
-      else if (part.includes('/') && !part.startsWith('-') && !/^[a-z][\w+.-]*:\/\//i.test(part)) out.push(at(part));
-    }
+    // Codex auto-7/8: chained `-C` resolves like Git (each from the previous), and a value attached to
+    // an option (`--output=link`, `-olink`) is a destination like a separate word.
+    if (words[i - 1] === '-C') { gitDir = w.startsWith('~/') || isAbsolute(w) ? at(w) : resolve(gitDir, w); out.push(gitDir); continue; }
+    const value = w.startsWith('--') ? (w.includes('=') ? w.slice(w.indexOf('=') + 1) : null) : /^-[A-Za-z]./.test(w) ? w.slice(2) : w;
+    if (!value || /^[a-z][\w+.-]*:\/\//i.test(value)) continue;
+    if (value.startsWith('/') || value.startsWith('~/') || value.includes('/')) out.push(at(value));
+    else { try { lstatSync(at(value)); out.push(at(value)); } catch {} }
   }
   const unique = [...new Set(out)];
   // Every path is checked; a command naming more than 100 is denied, never cut (Codex auto-2 on #542).
