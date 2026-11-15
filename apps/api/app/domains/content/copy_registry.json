@@ -9152,6 +9152,15 @@
    "approver": "owner",
    "date": "2026-11-14",
    "digest": "8035992f7ac5142cf7daea5a242e02c432f3ef0912829d1938f83de79806ea63"
+  },
+  {
+   "id": "privacy.crisis-check-disclosure",
+   "category": "privacy",
+   "text": "Khi bạn gõ câu hỏi hoặc tên, Lá Lành đọc qua để xem bạn có đang muốn làm hại bản thân không. Nếu có, Lá không trả bài đọc mà chỉ gửi bạn một lời nhắn hỗ trợ. Câu đó không được lưu lại và không gửi cho ai khác. Lá có thể nhận nhầm hoặc bỏ sót.",
+   "status": "approved",
+   "approver": "owner",
+   "date": "2026-11-15",
+   "digest": "5724a4363b67c1ada609437198bfe1d0aa110ac8af973deab580c7fe53a1c576"
   }
  ],
  "version": "copy-registry/v1"
