@@ -9,7 +9,11 @@ const { ownerNotes } = await import('./collab-status.mjs');
 
 // Synthetic issue and PRs only.
 const sha = n => String(n).repeat(40).slice(0, 40);
-const approved = n => ({ authorAssociation: 'OWNER', createdAt: '2026-11-14T01:00:00Z', body: `Review verdict: APPROVE @ ${sha(n)}\nReviewer: Codex\n<!-- la-lanh-agent codex-auto-review sha=${sha(n)} -->` });
+const trust = await import('./collab-trust.mjs');
+const { asPosted } = await import('./collab-test-post.mjs');
+// #456 P1-B: the APPROVE is signed for its PR and bound to its comment URL, as codex-review.mjs posts it.
+const approved = n => asPosted(trust, { authorAssociation: 'OWNER', createdAt: '2026-11-14T01:00:00Z',
+  body: `Review verdict: APPROVE @ ${sha(n)}\nReviewer: Codex\n${trust.verdictSeal({ head: sha(n), p2: 0, base: null, receipt: trust.signReceipt({ kind: 'verdict', pr: n, head: sha(n), base: null, result: 'APPROVE', p2: 0 }) })}` });
 const merged = (number, body, mergedAt, { reviewed = true } = {}) => ({ number, body, mergedAt, state: 'MERGED', baseRefName: 'collab/integration', headRefOid: sha(number), comments: reviewed ? [approved(number)] : [] });
 const issue = '## Mục tiêu cho người dùng\n\nx\n\n## Tiêu chí đạt\n\n- [ ] Người dùng thấy tóm tắt\n- [x] AC07 mở được căn cứ\n- [ ]\n\n## Phối hợp hiện tại\n\n- Trạng thái: đang làm\n';
 
