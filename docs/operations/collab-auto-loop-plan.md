@@ -178,6 +178,17 @@ Mỗi lúc chỉ một review chạy (khóa `review.lock`), vì mọi review dù
 
   > Chỉ chạy test qua `node scripts/collab-test-guard.mjs -- <lệnh test>`; không chạy test trực tiếp, không chạy `pnpm check`.
 
+- **Cổng dev con (L06, 15.11.2026):** dev con mở bằng Agent tool không do chương trình mở, nên việc kiểm nằm ở chính lần ghi.
+  - **Cách kiểm:** hook `PreToolUse` (Edit/Write/NotebookEdit/Bash) chạy `scripts/collab-agent-gate.mjs` từ clone ops, `onFailure: "block"`. Hook chỉ áp cho tool call có `agent_id` (dev con); phiên chính không bị kiểm.
+  - **Ghi vào clone của repo Lá Lành:** nơi ghi được tính theo đường dẫn thật. Lần ghi đầu phải qua preflight đầy đủ: worktree riêng, nhánh `agent/claude/*` hoặc `worktree-agent-*`, cây sạch, `git` và `node` có trên máy, hook `pre-push` chặn được mục giả. Qua thì dev con được nhận workspace (claim). Các lần ghi sau kiểm lại nhánh và chủ claim mỗi lần.
+  - **Claim:** nằm cạnh khóa của `collab-dispatch.mjs`, nên hai bên loại trừ nhau. Claim chỉ hết khi dev con đã dừng (`SubagentStop`) và không còn tiến trình nào có thư mục làm việc trong workspace. Quá 6 giờ chỉ đánh dấu nghi bỏ dở, không tự mở khóa.
+  - **Được phép:** Bash chỉ đọc chạy ở đâu cũng được. "Chỉ đọc" là danh sách cho phép: mỗi lệnh và mỗi lệnh con của git chỉ nhận đúng các tùy chọn đã liệt kê, so khớp nguyên chữ; tùy chọn khác (kể cả viết tắt) bị coi là ghi. Git chỉ được miễn với các lệnh không thể chạy chương trình theo cấu hình (`rev-parse`, `merge-base`, `rev-list --count`, `branch --show-current`, `config --get`). `diff`, `log`, `show`, `status`, `grep`, `blame`, `ls-files` và `find` phải qua kiểm workspace, vì cấu hình có thể làm chúng chạy diff.external, textconv, gpg, fsmonitor, hoặc `-exec`. Lệnh dựng workspace (`git -C <clone> fetch`, `git -C <clone> worktree add <đường> -b agent/claude/...`) được chạy trên clone dùng chung.
+  - **Cài và kiểm:** cài bằng `node scripts/collab-ops-wrapper.mjs --install-agent-gate`. `--verify` và tick kiểm mục hook, kiểm `onFailure` và kiểm `disableAllHooks`. Lệch thì mở `ops-alert` mỗi ngày một lần, sửa xong thì tự đóng.
+  - **Giới hạn** (cùng quyền máy như L24):
+    - Claude vẫn gỡ được hook; kiểm tra chỉ phát hiện, không ngăn được.
+    - Bash được kiểm theo thư mục làm việc của từng phần lệnh (kể cả sau `cd`), các đường dẫn tuyệt đối, các đường dẫn tương đối có dấu `/`, thư mục sau `git -C` (nhiều `-C` nối tiếp được tính như Git), tên không có `/` nhưng đang tồn tại trên đĩa (kể cả symlink), giá trị dính trong tùy chọn (`--output=link`, `-olink`), và mọi đích chuyển hướng `>`. Cổng không kiểm được mọi dạng lệnh: đường dẫn chỉ sinh ra lúc chạy thì không thấy. Đường dẫn chỉ sinh ra lúc lệnh chạy (biến, `$(…)`) thì không thấy được.
+    - Cổng chống ghi nhầm do vô tình. Một lệnh được soạn có chủ ý để chạy chương trình qua một công cụ đọc được phép không nằm trong phạm vi chặn; danh sách cho phép chặn mặc định giúp giảm rủi ro này.
+    - Worktree của checkout cũ `la-lanh` chưa có hook `pre-push`, nên dev con phải làm trong worktree của `la-lanh-claude`.
 - **Dữ liệu:** chỉ code public; không dữ liệu người dùng. Log ở máy owner.
 - **Code chạy theo lịch:** launchd chạy script từ clone ops ở `origin/collab/integration` (chỉ code đã review).
 

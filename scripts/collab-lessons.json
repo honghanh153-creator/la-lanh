@@ -80,7 +80,7 @@
    "who": "claude",
    "due": "2026-11-17",
    "status": "open",
-   "note": "helper and copy-batch wiring merged; child-agent dispatch still unchecked"
+   "note": "helper and copy-batch wiring merged; sub-agent write gate (collab-agent-gate.mjs, PreToolUse + SubagentStop) in PR; closes after install and a receipt from a real Agent-tool event"
   },
   {
    "id": "L07",
@@ -303,7 +303,7 @@
    "who": "claude",
    "due": "2026-11-18",
    "status": "open",
-   "note": "wrapper step snapshot SLOT added (#534); owner report and retro prompts still to be pointed at it and their use verified"
+   "note": "prompts pointed 15.11 07:52; tick health now checks both prompts call the snapshot step (#552); 14:00 receipt https://github.com/honghanh153-creator/la-lanh/issues/133#issuecomment-6890824794 (snapshot 336e56277e1e); closes after the 15.11 retro shows its snapshot line"
   },
   {
    "id": "L20",
