@@ -302,8 +302,19 @@
    "from": "owner 13.11: báo cáo trung thực",
    "who": "claude",
    "due": "2026-11-18",
-   "status": "open",
-   "note": "wrapper step snapshot SLOT added (#534); owner report and retro prompts still to be pointed at it and their use verified"
+   "status": "done",
+   "note": "prompts pointed 15.11 07:52; receipt: the 14:00 owner report https://github.com/honghanh153-creator/la-lanh/issues/133#issuecomment-6890824794 and the 14:00 tick digest cite the same snapshot 336e56277e1e (khung 14)",
+   "test": {
+    "file": "scripts/collab-ops-wrapper.test.mjs",
+    "name": "L19: the wrapper exposes the shared slot snapshot step and refuses any other slot"
+   },
+   "caller": {
+    "file": "scripts/ops-run.sh",
+    "contains": "collab-snapshot.mjs\" --slot"
+   },
+   "closedBy": {
+    "pr": 534
+   }
   },
   {
    "id": "L20",
