@@ -209,7 +209,7 @@
    "status": "done",
    "test": {
     "file": "scripts/collab-merge-gate.test.mjs",
-    "name": "runMerge reads the live integration tip and the base-file diff through gh"
+    "name": "L13: runMerge issues no merge for stale-base, base-drift, unsigned or replayed evidence; valid evidence merges"
    },
    "caller": {
     "file": "scripts/collab-merge.mjs",
