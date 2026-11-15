@@ -103,6 +103,15 @@ export function recordList(list, carried = []) {
 const entryKey = e => (e.item ? `item:${e.item}` : `pr:${e.pr}`);
 // The day's dropped work, as keys: `Bỏ #N` names a PR or an item; a PR dropped by number also
 // drops the item it works on.
+// The day's drops, kept in the day state, so an item stays dropped after its PR closes; held
+// turns for dropped work never reach the active area, a queue or a re-pick (Codex r3 on #544).
+export function dayDrops(plan, turns, dayPath, day) {
+  const d = readJson(dayPath, day);
+  const keys = new Set([...(d.droppedKeys ?? []), ...droppedKeysOf(plan, turns)]);
+  if (keys.size !== (d.droppedKeys ?? []).length) writeJson(dayPath, { ...d, droppedKeys: [...keys].sort() });
+  return keys;
+}
+export const applyDrops = (turns, keys) => turns.map(t => (t.turn !== 'hold' && keys.has(unitKey(t)) ? { ...t, turn: 'hold', reason: 'owner bỏ việc này khỏi plan hôm nay' } : t));
 export function droppedKeysOf(plan, turns) {
   const dropped = plan?.dropped ?? [];
   const keys = new Set(dropped.flatMap(n => [`pr:${n}`, `item:${n}`]));
@@ -122,25 +131,29 @@ export function replan({ gh, plan, dayPath, day, date, issues = () => quotaIssue
   }
   if (!Array.isArray(d.plannedKeys)) return null;
   const prs = gh.openPrs();
-  const turns = turnsFor(prs, { dropped: plan.dropped, baseFiles: gh.compareFiles });
-  // Codex r2 on #544: every drop of the day (by PR or item number) stays dropped, for selection
-  // and execution alike.
-  const all = droppedKeysOf(plan, turns);
+  const raw = turnsFor(prs, { dropped: plan.dropped, baseFiles: gh.compareFiles });
+  // Codex r2/r3 on #544: every drop of the day (by PR or item number) stays dropped, for selection
+  // and execution alike, also after the dropped PR closes.
+  const all = dayDrops(plan, raw, dayPath, d);
+  d = readJson(dayPath, d);
+  const turns = applyDrops(raw, all);
   const droppedKeys = d.plannedKeys.filter(k => all.has(k));
   const dropKey = droppedKeys.sort().join(',');
   if (!dropKey || d.replannedFor === dropKey) return null;
   const units = workUnits({ turns, prs, issues: issues() }).filter(u => !all.has(u.key));
   const keep = d.plannedKeys.filter(k => !all.has(k));
-  // A kept selection that is gone (finished) or held now keeps its entry; readiness only affects
-  // execution (Codex r2 on #544).
-  const carried = keep.filter(k => !units.some(u => u.key === k && u.ready)).map(k => ({ key: k, entry: (d.plannedItems ?? []).find(e => entryKey(e) === k) ?? { [k.split(':')[0]]: Number(k.split(':')[1]), plan7w: (d.planned7wKeys ?? []).includes(k) } }));
+  // Every kept selection keeps its original entry and class; only replacements are classified
+  // now (Codex r2/r3 on #544).
+  const original = k => (d.plannedItems ?? []).find(e => entryKey(e) === k) ?? { [k.split(':')[0]]: Number(k.split(':')[1]), plan7w: (d.planned7wKeys ?? []).includes(k) };
+  const carried = keep.map(k => ({ key: k, entry: original(k) }));
   const carried7w = carried.filter(c => c.entry.plan7w).length;
   const list = { source: 'replan', note: `Chọn bù sau khi bỏ ${droppedKeys.map(k => `#${k.split(':')[1]}`).join(', ')}.`,
     // Only the dropped seats are refilled: the day keeps its original size (Codex r2 on #544).
-    ...pickPlan(units, { fixed: keep, cap: Math.min(planCap, d.plannedKeys.length) - carried.length, need: Math.max(0, min7w - carried7w) }) };
+    ...pickPlan(units.filter(u => !keep.includes(u.key)), { cap: Math.min(planCap, d.plannedKeys.length) - carried.length, need: Math.max(0, min7w - carried7w) }) };
   const added = list.items.filter(u => !d.plannedKeys.includes(u.key));
   const lines = added.map(u => `- ${u.prs.length ? u.prs.map(n => `#${n}`).join(', ') : `việc #${u.item} (chưa có PR)`} ${clean(u.title, 80)}${u.plan7w ? ' [Kế hoạch 7 tuần]' : ''}`);
-  const record = recordList(list, carried);
+  const base = recordList(list, carried);
+  const record = { ...base, planned: turns.filter(t => base.plannedKeys.includes(unitKey(t)) || (base.incidentKeys ?? []).includes(unitKey(t))).map(t => t.number) };
   const note = [`Cập nhật plan ${date}: ${list.note}`, ...(lines.length ? ['Việc thêm vào:', ...lines] : ['Không còn việc sẵn sàng để chọn bù.']),
     `Kế hoạch 7 tuần: ${record.planned7wKeys.length} việc (mục tiêu ${min7w}).`, '', `${agentMarker} replan date=${date} drop=${dropKey} -->`].join('\n');
   writeJson(dayPath, { ...d, ...record, replannedFor: dropKey, planVersion: (d.planVersion ?? 1) + 1, replanNote: note });
@@ -295,7 +308,8 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
         heartbeat(plan.state);
         if (plan.state === 'closed') { show({ status: plan.state, turns: [] }); return { status: plan.state }; }
         const prs = gh.openPrs();
-        const turns = turnsFor(prs, { dropped: plan.dropped, baseFiles: gh.compareFiles });
+        const raw = turnsFor(prs, { dropped: plan.dropped, baseFiles: gh.compareFiles });
+        const turns = applyDrops(raw, dayDrops(plan, raw, dayPath, day));
         measure(prs, turns);
         show({ status: plan.state, turns });
         tell({ turns, comments: plan.comments, dropped: plan.dropped });
@@ -304,7 +318,9 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       // Every tick works when the plan is open (retro D1, 31.10.2026): the locks keep heavy jobs
       // serial and the state on GitHub keeps work from repeating, so an hourly gate only cost time.
       const prs = gh.openPrs();
-      const turns = ciRechecks(turnsFor(prs, { dropped: plan.dropped, baseFiles: gh.compareFiles }), prs, { ci: ciStatus, seen: recheckedKeys(now.date), log });
+      const rechecked = ciRechecks(turnsFor(prs, { dropped: plan.dropped, baseFiles: gh.compareFiles }), prs, { ci: ciStatus, seen: recheckedKeys(now.date), log });
+      const gone = dayDrops(plan, rechecked, dayPath, day);
+      const turns = applyDrops(rechecked, gone);
       // #253: the scheduled tick samples the flow metric and owns the buffer top-up, so the
       // persisted queue and --status agree and the metric does not depend on report reads.
       const { queue: startBuffer } = bufferStatus(prs, turns);
@@ -318,7 +334,6 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       const incidentKeys = new Set(dayNow.incidentKeys ?? []);
       const kept = new Set(dayNow.planned7wKeys ?? []);
       // A dropped item is not worked, even through another PR that names it (Codex r2 on #544).
-      const gone = droppedKeysOf(plan, turns);
       const live = turns.filter(t => !gone.has(unitKey(t)));
       const first = live.filter(t => incidentKeys.has(unitKey(t)));
       const second = live.filter(t => !incidentKeys.has(unitKey(t)) && kept.has(unitKey(t)));
@@ -506,7 +521,9 @@ export function tickGap(last, nowMs = Date.now()) {
 export function planTurns(gh, now) {
   const plan = readPlanStatus(gh, now);
   const prs = gh.openPrs();
-  return { plan, prs, turns: turnsFor(prs, { dropped: plan.dropped, baseFiles: gh.compareFiles }) };
+  const raw = turnsFor(prs, { dropped: plan.dropped, baseFiles: gh.compareFiles });
+  const kept = readJson(dayStatePath((now ?? vnNow()).date), {}).droppedKeys ?? [];
+  return { plan, prs, turns: applyDrops(raw, new Set([...kept, ...droppedKeysOf(plan, raw)])) };
 }
 
 // S8 (retro 08.11, K35): one open ops-alert per subject. A repeat becomes a comment on the open

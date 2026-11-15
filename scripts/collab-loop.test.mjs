@@ -1609,3 +1609,37 @@ test('7-week: a re-pick keeps a held selection and refills only the dropped seat
   assert.ok(d.plannedKeys.includes('item:300'), 'the held selection stays');
   assert.ok(!d.plannedKeys.includes('pr:21'));
 });
+
+// Codex r3 on #544: drops apply before routing and survive the PR closing; kept selections keep
+// the class they had when picked.
+test('7-week: dropping the only active-area item lets the next area run; the drop outlives its PR', () => {
+  const date = '2026-12-31';
+  const issue300 = { number: 300, title: 'việc 300', labels: w7Label, body: '## Tiêu chí đạt\n- AC1 x\n' };
+  const ops = pr({ number: 61, title: 'ops(collab): làm việc 300', body: `${goodBody}\nViệc: #300` });
+  const content = pr({ number: 62, title: 'content(copy): câu mới' });
+  const comments = Object.assign([], { date });
+  tick({ gh: w7Gh({ comments, open: [ops, content], issues: [issue300] }), now: { date, hour: 6, minute: 52 }, merge: () => ({}), review: () => ({}) });
+  comments.push({ authorAssociation: 'OWNER', createdAt: `${date}T01:59:30Z`, body: 'Duyệt\nBỏ #300' });
+  const checked = [];
+  tick({ gh: w7Gh({ comments, open: [ops, content], issues: [issue300] }), now: { date, hour: 8, minute: 10 }, prPreflight: () => ({ status: 'PASS' }), heavyFree: () => true, check: n => { checked.push(n); return { status: 'FAIL' }; }, merge: () => ({}), review: () => ({}) });
+  assert.deepEqual(checked, [62], 'the dropped ops item no longer holds the active area');
+  assert.ok(trust.readJson(trust.dayStatePath(date), {}).droppedKeys.includes('item:300'));
+  // PR #61 closes; item #300 is issue-only again, and a later drop must not bring it back.
+  comments.push({ authorAssociation: 'OWNER', createdAt: `${date}T03:00:00Z`, body: 'Bỏ #62' });
+  tick({ gh: w7Gh({ comments, open: [content], issues: [issue300] }), now: { date, hour: 10, minute: 0 }, prPreflight: () => ({ status: 'PASS' }), heavyFree: () => true, check: () => ({ status: 'FAIL' }), merge: () => ({}), review: () => ({}) });
+  assert.ok(!trust.readJson(trust.dayStatePath(date), {}).plannedKeys.includes('item:300'));
+});
+
+test('7-week: a re-pick keeps the 7-week class a selection had when it was picked', () => {
+  const date = '2027-01-01';
+  const comments = Object.assign([], { date });
+  tick({ gh: w7Gh({ comments, open: w7Open() }), now: { date, hour: 6, minute: 52 }, merge: () => ({}), review: () => ({}) });
+  assert.ok(trust.readJson(trust.dayStatePath(date), {}).planned7wKeys.includes('pr:32'));
+  // The label leaves PR #32; the owner drops an unrelated item.
+  const open = w7Open().map(p => (p.number === 32 ? { ...p, labels: [] } : p));
+  comments.push({ authorAssociation: 'OWNER', createdAt: `${date}T01:59:30Z`, body: 'Bỏ #21' });
+  tick({ gh: w7Gh({ comments, open }), now: { date, hour: 7, minute: 10 }, merge: () => ({}), review: () => ({}) });
+  const d = trust.readJson(trust.dayStatePath(date), {});
+  assert.ok(d.planned7wKeys.includes('pr:32'), 'classified at plan time');
+  assert.equal(d.plannedItems.find(e => e.pr === 32)?.plan7w, true);
+});
