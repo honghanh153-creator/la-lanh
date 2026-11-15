@@ -145,22 +145,15 @@ const readers = {
   diff: spec(['-u', '-q', '-r', '--brief']),
   date: spec(['-u'], [], { patterns: [/^\+/] }),
 };
+// Git (Codex auto-4 on #542): only plumbing that cannot start a configured program. diff, log,
+// show, grep, status, blame and ls-files can run diff.external, textconv, gpg (log.showSignature,
+// %G formats) or core.fsmonitor from configuration, so they get no exemption and go through the
+// workspace check like any write.
 const gitSubs = {
-  log: spec(['--oneline', '--stat', '--name-only', '--name-status', '--graph', '--decorate', '--no-decorate', '--all', '--reverse', '--first-parent', '--no-merges', '--merges', '--no-color', '-p'], ['-n'], { patterns: [num, /^--(format|pretty|since|until|author|grep|max-count)=[^=]*$/] }),
-  show: spec(['--stat', '--name-only', '--name-status', '--oneline', '-s', '--no-patch', '--no-color'], [], { patterns: [/^--(format|pretty)=[^=]*$/] }),
-  diff: spec(['--stat', '--name-only', '--name-status', '--cached', '--staged', '--shortstat', '--numstat', '--no-color', '--check'], [], { patterns: [/^-U\d+$/] }),
-  status: spec(['--porcelain', '-s', '-b', '--short', '--branch', '-uno', '-unormal', '-uall'], [], { patterns: [/^--untracked-files=(no|normal|all)$/] }),
-  grep: spec(['-n', '-i', '-l', '-c', '-w', '-E', '-F', '-h', '-I', '--count', '--name-only'], ['-e']),
   'rev-parse': spec(['--show-toplevel', '--abbrev-ref', '--short', '--verify', '--git-dir', '--git-common-dir', '--is-inside-work-tree', '-q']),
-  'ls-files': spec(['-m', '-o', '--others', '--exclude-standard', '--modified', '--deleted']),
-  'ls-tree': spec(['-r', '--name-only', '-l']),
-  blame: spec(['-w', '-s', '-e'], ['-L']),
-  'cat-file': spec(['-p', '-t', '-s', '-e']),
   'merge-base': spec(['--is-ancestor']),
-  describe: spec(['--tags', '--always'], [], { patterns: [/^--abbrev=\d+$/] }),
-  shortlog: spec([], [], { patterns: [/^-[sne]+$/] }),
-  'rev-list': spec(['--count', '--all'], ['-n'], { patterns: [/^--max-count=\d+$/] }),
-  branch: spec(['--show-current', '-a', '-r', '--list', '-v', '-vv']),
+  'rev-list': spec(['--count'], ['-n'], { patterns: [/^--max-count=\d+$/] }),
+  branch: spec(['--show-current']),
 };
 // True when every word after the command fits its spec.
 export function argsFit(sp, args) {
@@ -195,14 +188,13 @@ export function readOnlyBash(command) {
       const args = rest.filter(w => !w.startsWith('-'));
       return flags.length > 0 && flags.every(f => f === '-n') && args.length >= 1 && /^(\d+|\$)(,(\d+|\$))?p$/.test(args[0]);
     }
-    if (cmd === 'find') return rest.every((w, i) => !w.startsWith('-') || ['-name', '-iname', '-path', '-type', '-maxdepth', '-mindepth', '-newer', '-print', '-o', '-not', '-and'].includes(w) || (i > 0 && ['-name', '-iname', '-path', '-type', '-maxdepth', '-mindepth', '-newer'].includes(rest[i - 1])));
     if (cmd === 'git') return readOnlyGit(rest);
     return argsFit(readers[cmd], rest);
   });
 }
 
 // Git by argument position: before the subcommand only `-C <dir>`; after it, only the options
-// listed for that subcommand, matched exactly (so `--open-files-in` or `--textconv` never pass).
+// listed for that subcommand, matched exactly; only subcommands that start no configured program.
 export function readOnlyGit(args) {
   let i = 0;
   while (i < args.length && args[i].startsWith('-')) {
@@ -212,7 +204,7 @@ export function readOnlyGit(args) {
   const sub = args[i];
   const opts = args.slice(i + 1);
   if (sub === 'config') return (opts.length === 2 && opts[0] === '--get' && !opts[1].startsWith('-')) || (opts.length === 1 && opts[0] === '--list');
-  if (sub === 'branch') return opts.every(w => gitSubs.branch.flags.has(w));
+  if (sub === 'branch') return opts.length === 1 && opts[0] === '--show-current';
   return argsFit(gitSubs[sub], opts);
 }
 

@@ -147,11 +147,11 @@ test('L06 gate: the dispatcher and the gate exclude each other on the same real 
 });
 
 test('L06 gate: read-only Bash passes anywhere; writes, redirects and unknown commands are checked', () => {
-  for (const c of ['git log --oneline -3', 'git -C /x status --porcelain', 'cat a | grep b | wc -l', "sed -n '1,5p' f", 'ls -la 2>/dev/null', 'git config --get remote.origin.url', 'cd /tmp && git diff', 'find . -name x'])
+  for (const c of ['git rev-parse HEAD', 'git -C /x rev-parse --show-toplevel', 'cat a | grep b | wc -l', "sed -n '1,5p' f", 'ls -la 2>/dev/null', 'git config --get remote.origin.url', 'cd /tmp && git rev-parse HEAD'])
     assert.equal(readOnlyBash(c), true, c);
   for (const c of ['touch a', 'echo x > a', 'sed -i s/a/b/ f', 'git commit -m x', 'find . -delete', 'cat a | tee b', 'echo $(rm -rf x)', 'node build.mjs', 'git branch -D x', 'npm test', 'git config user.name x'])
     assert.equal(readOnlyBash(c), false, c);
-  assert.deepEqual(targets({ tool_name: 'Bash', cwd: '/', tool_input: { command: 'git status' } }), []);
+  assert.deepEqual(targets({ tool_name: 'Bash', cwd: '/', tool_input: { command: 'git rev-parse HEAD' } }), []);
   assert.equal(setupCommand('git -C /a/la-lanh-claude fetch -q origin collab/integration && git -C /a/la-lanh-claude worktree add /tmp/w -b agent/claude/x FETCH_HEAD'), true);
   assert.equal(setupCommand('git -C /a/la-lanh-claude worktree add /tmp/w -b main'), false);
   assert.equal(setupCommand('git -C /a/la-lanh-claude reset --hard'), false);
@@ -238,7 +238,7 @@ test('L06 gate: "read-only" commands with a writing option or script are writes'
   for (const c of ['sort -o /tmp/protected/file input', 'sort --output=/tmp/p f', "sed -n 'w /tmp/protected/file' input", "sed -n '1p;w /tmp/x' f", "sed -n -e '1p' -i f",
     'git diff --output=/tmp/protected/file', 'git log --output /tmp/x', 'git -c core.pager=sh log', 'git grep -Ovi x', 'rg --pre ./run.sh x', 'uniq a b', 'date -s 2020-01-01', 'cat <<EOF', 'cat "a" > "b c"'])
     assert.equal(readOnlyBash(c), false, c);
-  for (const c of ["sed -n '10,20p' f", "sed -n '$p' f", 'git log --oneline', 'sort -n f', 'rg -n x', 'cat "/tmp/a b/c"'])
+  for (const c of ["sed -n '10,20p' f", "sed -n '$p' f", 'git rev-parse HEAD', 'sort -n f', 'rg -n x', 'cat "/tmp/a b/c"'])
     assert.equal(readOnlyBash(c), true, c);
 });
 
@@ -275,15 +275,18 @@ test('L06 gate: a dangling symlink counts where it points, not where the link si
 // write or run a program, so a new exemption without its row is visible in review.
 test('L06 gate: exemption matrix — each read-only form next to the forms that must count as writes', () => {
   const matrix = {
-    git: [['git log --oneline', 'git -C /x status', 'git branch --show-current', 'git branch -a', 'git config --get remote.origin.url', 'git diff HEAD~1'],
+    git: [['git rev-parse --show-toplevel', 'git -C /x rev-parse HEAD', 'git branch --show-current', 'git config --get remote.origin.url', 'git merge-base --is-ancestor a b', 'git rev-list --count HEAD'],
       ['git branch -C main', 'git branch -D x', 'git branch -m a b', 'git branch new', 'git -cdiff.external=/tmp/w diff', 'git -c core.pager=sh log', 'git --exec-path=/tmp log',
         'git -p log', 'git diff --output=/tmp/x', 'git log --output /tmp/x', 'git grep -Ox', 'git diff --ext-diff', 'git config user.name x', 'git config --get', 'git commit -m x', 'git -C',
         // auto-3: abbreviations and converters
-        'git grep --open-files-in=/tmp/w x', 'git grep --open x', 'git log --textconv -p', 'git show --textconv HEAD', 'git cat-file --filters HEAD:a', 'git cat-file --textconv HEAD:a', 'git diff --ext', 'git log --outp=/tmp/x']],
+        'git grep --open-files-in=/tmp/w x', 'git grep --open x', 'git log --textconv -p', 'git show --textconv HEAD', 'git cat-file --filters HEAD:a', 'git cat-file --textconv HEAD:a', 'git diff --ext', 'git log --outp=/tmp/x',
+        // auto-4: configured programs (diff.external, textconv, gpg, fsmonitor) run without any option
+        'git diff /dev/null f', 'git diff HEAD~1', 'git log --oneline', 'git log -p', 'git show HEAD', 'git status', 'git grep x', 'git blame f', 'git ls-files', 'git branch -a', 'git cat-file -p HEAD:a']],
     env: [[], ['GIT_EXTERNAL_DIFF=/tmp/w git diff', 'PAGER=/tmp/w git log', 'X=1 cat f']],
     sort: [['sort -n f', 'sort -u f'], ['sort -o /tmp/x f', 'sort -no/tmp/x f', 'sort --output=/tmp/x f', 'sort --compress-program=/tmp/w f']],
     sed: [["sed -n '1,5p' f", "sed -n '$p' f"], ["sed -n 'w /tmp/x' f", "sed -n '1p;w /tmp/x' f", "sed -n -i '1p' f", "sed '1p' f", "sed -n 'e /tmp/w' f"]],
-    find: [['find . -name x'], ['find . -delete', 'find . -exec rm {} ;', 'find . -fprint /tmp/x', 'find . -fls /tmp/x']],
+    // auto-4: find has no exemption at all (predicate arguments made -exec look like a pattern).
+    find: [[], ['find . -name x', 'find . -delete', 'find /dev/null -not -name -name -exec /bin/echo synthetic {} \\;', 'find . -fprint /tmp/x']],
     rg: [['rg -n x', 'rg -g *.mjs x .', 'rg --files'], ['rg --pre /tmp/w x', 'rg --pre=/tmp/w x', 'rg --hostname-bin=/tmp/w --hyperlink-format=default x .', 'rg --search-zip x', 'rg --unknown x']],
     // auto-3: every exemption is an allowlist, so an option nobody listed is a write.
     unknown: [['head -n5 f', 'tail -n +3 f', 'grep -rn --include=*.mjs x .', 'wc -l f'], ['cat --show-all f', 'ls --color=always', 'head --bytes=1 f', 'grep --pre x', 'jq --rawfile a b .', 'diff --to-file=x a', 'stat --printf=x f', 'wc --files0-from=f', 'tr --unknown a b']],
@@ -314,4 +317,17 @@ test('L06 gate: every named path is checked; more than 100 is denied, never cut'
   assert.equal(r.allow, false, 'the 31st path, in the main checkout, is still checked');
   const huge = Array.from({ length: 101 }, (_, i) => `/tmp/p${i}`).join(' ');
   assert.throws(() => targets({ tool_name: 'Bash', cwd: scratch, tool_input: { command: `cp ${huge} /tmp/z` } }), /too-many-paths/);
+});
+
+// Codex auto-4 on #542: behaviour, not option strings. In a checkout the agent may not write to, a
+// configured diff program or a find -exec reaches the workspace check and is denied before it runs.
+test('L06 gate: git diff with a configured external program and find -exec are checked, then denied', () => {
+  const s = setup();
+  git(s.repo, 'config', 'diff.external', '/bin/echo');
+  for (const command of ['git diff /dev/null a.txt', 'git log -p', 'find /dev/null -not -name -name -exec /bin/echo synthetic {} \;', 'git status']) {
+    const seen = [];
+    const r = gate(call('q4', 'Bash', { cwd: s.repo, input: { command } }), { ...opts, decideFor: args => { seen.push(args.at); return decide({ ...args, procs: noProcs, shared: [] }); } });
+    assert.deepEqual(seen, [s.repo], `${command}: the workspace check ran`);
+    assert.equal(r.allow, false, command);
+  }
 });
