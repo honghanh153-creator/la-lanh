@@ -208,6 +208,33 @@ test('runMerge reads the live integration tip and the base-file diff through gh'
   assert.deepEqual(merged[0], ['compare', B1, B2]);
 });
 
+// L13 closure (Codex auto-1 on #543): the production entry runMerge itself refuses every unsafe
+// case the pre-#456 gate accepted, and issues no merge call for any of them.
+test('L13: runMerge issues no merge for stale-base, base-drift, unsigned or replayed evidence; valid evidence merges', () => {
+  const attempt = (state, changed = []) => {
+    const calls = [];
+    const gh = { pr: () => structuredClone(state), openPrs: () => [], compareFiles: () => changed, raw: args => { calls.push(args); return ''; }, comment: () => {} };
+    const r = runMerge(N, { gh });
+    return { status: r.status, merges: calls.filter(a => a[0] === 'pr' && a[1] === 'merge').length };
+  };
+  const refused = { status: 'refused', merges: 0 };
+  // Stale base: PASS and APPROVE signed for B1 while integration is at B2.
+  assert.deepEqual(attempt(pr({ baseTipOid: B2, comments: [sealedCheck(), sealedVerdict()] })), refused, 'stale base');
+  // Base drift over the PR's own files: a fresh PASS on B2, but the APPROVE was for B1.
+  assert.deepEqual(attempt(pr({ baseTipOid: B2, comments: [sealedCheck({ base: B2 }), sealedVerdict()] }), ['scripts/a.mjs']), refused, 'base drift');
+  // Unsigned: an OWNER APPROVE or PASS whose receipt does not exist.
+  assert.deepEqual(attempt(pr({ comments: [sealedCheck(), owner(verdictBody({ receipt: 'f'.repeat(32) }))] })), refused, 'unsigned APPROVE');
+  assert.deepEqual(attempt(pr({ comments: [owner(checkBody({ receipt: 'e'.repeat(32) })), sealedVerdict()] })), refused, 'unsigned PASS');
+  assert.deepEqual(attempt(pr({ comments: [sealedCheck(), owner(`Review verdict: APPROVE @ ${H}\nReviewer: Codex`)] })), refused, 'manual verdict');
+  // Replay: copies of a signed PASS and APPROVE posted after a newer FAIL and REQUEST_CHANGES.
+  const pass = sealedCheck();
+  const approve = sealedVerdict();
+  const copy = c => ({ ...c, url: freshUrl(), createdAt: stamp() });
+  assert.deepEqual(attempt(pr({ comments: [pass, approve, sealedCheck({ status: 'FAIL' }), sealedVerdict({ verdict: 'REQUEST_CHANGES' }), copy(pass), copy(approve)] })), refused, 'replay');
+  // The same gate merges valid evidence, so the refusals above are not a gate that refuses everything.
+  assert.deepEqual(attempt(pr({ comments: [sealedCheck(), sealedVerdict()] })), { status: 'merged', merges: 1 });
+});
+
 test('makeGh attaches the live tip of collab/integration, not the stale baseRefOid', () => {
   const calls = [];
   const gh = trust.makeGh((cmd, args) => {
