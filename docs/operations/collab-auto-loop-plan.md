@@ -9,7 +9,7 @@ Trạng thái: **ĐÃ CHỐT với owner ngày 30.10.2026.** Code xây theo đú
 | Thời gian một vòng review | ≤ vài giờ (chờ owner chuyển lời) | ≤ 15 phút |
 | Mở PR → merge integration (trung vị) | 22 giờ | ≤ 2 giờ |
 | PR có ≥ 3 vòng verdict | 32 / 106 | ≤ 10% |
-| Owner phải chuyển lời giữa hai agent | mỗi vòng | 0 (chỉ duyệt plan 9h và buổi review sâu mỗi đợt) |
+| Owner phải chuyển lời giữa hai agent | mỗi vòng | 0 (chỉ duyệt plan buổi sáng, trước 08:00 từ 14.11.2026, và buổi review sâu mỗi đợt) |
 | PR chỉ để ghi registry | ~10 | 0 |
 
 Ngoài phạm vi: merge vào `main`, release, deploy, server/DB thật, provider, IAM, secret, budget. Những việc này giữ nguyên quyền owner.
@@ -19,14 +19,14 @@ Ngoài phạm vi: merge vào `main`, release, deploy, server/DB thật, provider
 1. Claude gọi Codex trực tiếp để review; lịch mỗi giờ là lưới an toàn.
 2. Merge tự động vào `collab/integration` khi đủ điều kiện ở mục 4.2, **bắt buộc có `Author check: PASS @ <SHA>`**.
 3. Chính sách P2: P2 về **privacy, bảo mật, lời văn gửi người dùng** chặn merge; P2 khác được APPROVE kèm issue sửa tiếp (fix-forward); P3 không chặn; P0/P1 luôn chặn.
-4. **Lịch ngày:** 9h owner xem plan trong ngày. Owner duyệt thì chạy ngay; 10h chưa có trả lời thì tự chạy; chạy đến 24h.
+4. **Lịch ngày:** 9h owner xem plan trong ngày. Owner duyệt thì chạy ngay; 10h chưa có trả lời thì tự chạy; chạy đến 24h. *Đổi 14.11.2026:* plan 06:50, 08:00 tự chạy, không bắt đầu lượt mới từ 23:35, dừng 23:59 (§3.1).
 5. **Model Codex:** `gpt-6.1-sol`, mức suy nghĩ `high`. Hết hạn mức thì chờ reset và chạy tiếp nếu còn lượt trong ngày.
 6. **Ngừng PR registry**, thay bằng `collab-turn --report`.
 7. **Thứ tự ưu tiên công việc:** xong **toàn bộ content** → **data privacy** → **tính năng mới**. Không giữ PR theo kích thước; xếp theo thứ tự này. PR quy trình (`area:ops`: vòng tự động, CI, test) đi trước cả ba nhóm (owner giao Claude tự chọn, 30.10.2026).
 
 8. **Checklist quyết định** (owner yêu cầu 31.10.2026): việc nào agent tự quyết, việc nào hỏi owner, tiêu chí và input cần có ở `docs/operations/decision-checklist.md`.
 9. **Bảng trạng thái** (owner yêu cầu 31.10.2026): mỗi tick sửa tại chỗ một comment "Trạng thái vòng tự động" trên issue plan, ghi đang chạy gì, giờ cập nhật, lý do dừng, hàng đợi và việc chờ owner. Giờ cập nhật cũ hơn 20 phút trong giờ chạy nghĩa là Mac ngủ/tắt hoặc vòng bị kẹt.
-10. **Báo owner bằng comment mới** (owner 12.11.2026). Sửa bảng trạng thái không gửi thông báo, nên tick đăng comment MỚI trên issue plan chỉ khi: có PR merge vào integration (mỗi PR một dòng, gộp theo tick), vòng lỗi 2 tick liền, một PR mới cần owner (`needs-owner`), và bản tóm tắt khoảng 12:00 và 22:00 (xong / đang làm / chờ bạn / tiếp theo + số đo). Mỗi sự kiện có khoá trong marker agent `owner-note keys=…` và trong `~/.cache/la-lanh-collab/owner-notes.json`, nên chạy lại tick không đăng trùng. Lưu ý: comment do chính tài khoản owner đăng (tài khoản dùng chung với agent) chỉ gửi email khi owner bật mục "Your own updates" (Settings → Notifications → email) trên GitHub.
+10. **Báo owner bằng comment mới** (owner 12.11.2026). Sửa bảng trạng thái không gửi thông báo, nên tick đăng comment MỚI trên issue plan chỉ khi: có PR merge vào integration (mỗi PR một dòng, gộp theo tick), vòng lỗi 2 tick liền, một PR mới cần owner (`needs-owner`), và bản tóm tắt khoảng 14:00 và 22:00 (xong / đang làm / chờ bạn / tiếp theo + số đo; từ 14.11.2026 trước đó là 12:00). Từ 14.11.2026 (L11) phần "xong" đếm **việc đạt đủ tiêu chí**, không đếm PR. Mỗi việc là một issue task, gắn qua dòng `Việc: #N` trong PR. Tiêu chí lấy từ mục "Tiêu chí đạt" của issue. Việc tính đạt khi mọi tiêu chí đều được các PR đã merge với Codex APPROVE nhận (dòng `Tiêu chí đạt:`), và tính vào đúng ngày đạt. Hai tiêu chí cùng mã (một dòng ghi `TC2`, dòng thứ hai không ghi mã cũng thành TC2) làm việc đó "chưa đo được", không bao giờ tính đạt. Lịch sử PR của một việc đọc chạm giới hạn 50 PR thì cả bản tóm tắt ghi "chưa đo được". Danh sách việc chốt lúc lập plan. PR chưa gắn việc ghi riêng và không tính. Số PR đã gộp ghi trên dòng riêng. Từ 14.11.2026 (L19), mọi con số trong bản tóm tắt, báo cáo 08/14/22 và retro lấy từ **một bản chụp nguồn cho mỗi khung giờ** (`node scripts/collab-snapshot.mjs --slot 08|14|22|retro`; wrapper có bước `ops-run.sh snapshot <khung>` để tác vụ báo cáo owner và retro gọi, **chưa nối**: hai prompt tác vụ nằm ngoài repo và sẽ được trỏ vào bước này sau khi merge, L19 mở tới khi có bằng chứng chúng dùng bản chụp; file `~/.cache/la-lanh-collab/snapshots/<ngày>-<khung>.json`, chỉ ghi một lần). Dòng cuối của khối số ghi mã `snapshot`. Nguồn nào đọc lỗi thì ghi "chưa đo được", không ghi 0. Bảng trạng thái liệt kê các issue `ops-alert` đang mở, đọc từ GitHub, nên một tick sạch không làm sự cố biến mất. Sự cố chỉ hết khi issue được đóng có bằng chứng phục hồi. Mỗi sự kiện có khoá trong marker agent `owner-note keys=…` và trong `~/.cache/la-lanh-collab/owner-notes.json`, nên chạy lại tick không đăng trùng. Lưu ý: comment do chính tài khoản owner đăng (tài khoản dùng chung với agent) chỉ gửi email khi owner bật mục "Your own updates" (Settings → Notifications → email) trên GitHub.
 11. **Số đo** (owner 12.11.2026, `scripts/collab-metrics.mjs`): bộ Daily phục vụ được / tổng bộ và câu đã duyệt / tổng câu (đọc `copy_registry.json` ở integration, cùng luật `copy_approval.py`), số commit ở integration chưa lên main và số ngày từ commit cuối của main (`git`), trung vị giờ từ mở PR tới merge vào integration trong 7 ngày (`gh`), và WIP 1 + 1. Hiện trên bảng trạng thái và trong bản tóm tắt; nguồn nào không đọc được thì ghi "chưa đo được (lý do)", không ước lượng.
 
 ## 3. Luồng chuẩn
@@ -67,11 +67,13 @@ Session mà owner đang trực tiếp trò chuyện không bị lịch này ch�
 1. **Việc nặng nối tiếp, việc nhẹ song song.** Việc nặng là `pnpm check`, cài đặt hoặc build trong clone. Mỗi lúc chỉ một việc nặng trên cả máy (`check.lock`, từ chối khi máy đang có check). Trong lúc việc nặng chạy, Claude làm việc nhẹ của nhóm ưu tiên đang mở: sửa fix-forward, viết code, viết test, viết docs. Claude không ngồi chờ.
 2. **Việc nặng đi qua vòng tự động.** Author check, review và merge chạy qua tick hoặc qua `collab-check` → `codex-review` → `collab-merge`. Không session nào tự chạy `pnpm check` bằng script riêng; `checkshas.sh` đã thay (§7.1).
 3. **Fix-forward là việc kế tiếp.** Issue `fix-forward` mới thuộc cùng nhóm với PR gốc và được làm ngay trong ngày, qua PR riêng.
-4. **Đầu ngày.** Mac tự thức 08:45 (`sudo pmset repeat wakeorpoweron MTWRFSU 08:45:00`, owner chạy một lần). Claude đọc `collab-turn --report`, dừng lượt autopilot còn treo từ hôm trước và kiểm tra plan #133 đã được đăng.
+4. **Đầu ngày.** Mac phải thức trước 05:40, lúc tác vụ chuẩn bị buổi sáng chạy. Plan đăng 06:50, 08:00 tự chạy.
+   - Nếu Mac ngủ ban đêm, owner chạy một lần `sudo pmset repeat wakeorpoweron MTWRFSU 05:30:00`. Lệnh này thay giờ thức 08:45 cũ; agent không tự đổi thiết lập hệ thống.
+   - Ngày 14.11 kiểm tra thấy máy không có lịch thức lặp lại, nhưng tick vẫn chạy suốt đêm 13–14.11. Máy hiện không ngủ, nên chưa cần lệnh này. Claude đọc `collab-turn --report`, dừng lượt autopilot còn treo từ hôm trước và kiểm tra plan #133 đã được đăng.
 5. **Trong ngày.** Một quyết định mới của owner được ghi ngay vào file này hoặc vào issue hub #2, để mọi session đều đọc được (bài học từ #136).
 6. **Cuối ngày.** Claude nhìn lại quy trình trong ngày, viết report ở `docs/reviews/YYYY-MM-DD-collab-loop-retro.md` (số liệu, chỗ kẹt, đã sửa, đề xuất) và mở PR `area:ops` để Codex review qua vòng tự động.
 
-7. **Bổ sung plan khi còn chỗ** (owner 31.10.2026; WIP 1 + 1 từ 12.11.2026). Tick đếm PR mở của agent (nhánh `agent/*` vào integration, không tính `needs-owner`): PR đang tới lượt máy (check, review, merge) là "đang review", PR còn lại là "đang làm". Tick chỉ ghi `topUp: true` (`topUpCount` luôn là 1) khi không có việc nào đang làm, tối đa 1 PR đang review và chưa tới 23:30. Claude lấy việc kế tiếp theo thứ tự ưu tiên: issue task mở có nhãn `area:*` và không `needs-owner` trước, rồi việc `auto: yes` trong backlog. Mỗi việc đi qua checklist quyết định (Q1–Q5). Claude đăng một comment "Bổ sung plan HH:MM" trên issue plan (mang marker agent, không dùng cú pháp trả lời của owner), ghi việc gì, nguồn / AC, dòng "Người dùng thấy gì", và mở PR để máy chạy tiếp. Việc cần owner (copy mới, dữ liệu cá nhân, hướng sản phẩm) vẫn mở PR nhưng gắn `needs-owner`.
+7. **Bổ sung plan khi còn chỗ** (owner 31.10.2026; WIP 1 + 1 từ 12.11.2026). Tick đếm PR mở của agent (nhánh `agent/*` vào integration, không tính `needs-owner`): PR đang tới lượt máy (check, review, merge) là "đang review", PR còn lại là "đang làm". Tick chỉ ghi `topUp: true` (`topUpCount` luôn là 1) khi không có việc nào đang làm, tối đa 1 PR đang review và chưa tới 23:35 (giờ chạy từ 14.11.2026). Claude lấy việc kế tiếp theo thứ tự ưu tiên: issue task mở có nhãn `area:*` và không `needs-owner` trước, rồi việc `auto: yes` trong backlog. Mỗi việc đi qua checklist quyết định (Q1–Q5). Claude đăng một comment "Bổ sung plan HH:MM" trên issue plan (mang marker agent, không dùng cú pháp trả lời của owner), ghi việc gì, nguồn / AC, dòng "Người dùng thấy gì", và mở PR để máy chạy tiếp. Việc cần owner (copy mới, dữ liệu cá nhân, hướng sản phẩm) vẫn mở PR nhưng gắn `needs-owner`.
 
 ### 3.3 Plan trong ngày gồm
 
@@ -137,7 +139,7 @@ Session mà owner đang trực tiếp trò chuyện không bị lịch này ch�
 | APPROVE @ head đủ điều kiện | Merge |
 | Draft / `needs-owner` / xếp chồng chờ PR cha / bị `Bỏ #N` hôm nay | Giữ |
 
-`--tick`: chỉ làm việc trong **nhóm ưu tiên đang mở**: nhóm sớm nhất còn việc cho máy (author check, Codex review, merge). PR đang chờ Claude sửa không chặn máy; Claude vẫn sửa theo thứ tự nhóm (sửa 31.10.2026 sau 2 giờ đứng yên): PR quy trình trước, rồi content xong hết mới tới privacy, rồi tính năng mới. Tối đa 2 lượt Codex và 2 merge mỗi lần; giờ được đọc lại trước mỗi việc nên không bắt đầu việc mới sau 23:30. Lượt Claude ghi vào `~/.cache/la-lanh-collab/claude-queue.json` cho autopilot.
+`--tick`: chỉ làm việc trong **nhóm ưu tiên đang mở**: nhóm sớm nhất còn việc cho máy (author check, Codex review, merge). PR đang chờ Claude sửa không chặn máy; Claude vẫn sửa theo thứ tự nhóm (sửa 31.10.2026 sau 2 giờ đứng yên): PR quy trình trước, rồi content xong hết mới tới privacy, rồi tính năng mới. Tối đa 2 lượt Codex và 2 merge mỗi lần; giờ được đọc lại trước mỗi việc nên không bắt đầu việc mới từ 23:35 (trước 14.11.2026 là 23:30). Lượt Claude ghi vào `~/.cache/la-lanh-collab/claude-queue.json` cho autopilot.
 
 Mỗi lúc chỉ một review chạy (khóa `review.lock`), vì mọi review dùng chung clone; review thứ hai trả `busy` và chờ lượt sau. Author check mới nhất cho head quyết định (FAIL sau PASS thì chặn). Sau khi đổi base, verdict cũ hết hiệu lực.
 
@@ -176,7 +178,7 @@ Mỗi lúc chỉ một review chạy (khóa `review.lock`), vì mọi review dù
 | 1 | `collab-trust`, `collab-turn` (chỉ đọc) + test | Test xanh; `--report` chạy trên PR đang mở |
 | 2 | `codex-review` + schema + prompt + test giả lập | Test xanh (trùng SHA, sai SHA, JSON hỏng, nâng verdict, trần vòng, hạn mức) |
 | 3 | `collab-merge` + test | Test từ chối đúng từng điều kiện ở 4.2 |
-| 4 | `collab-plan` + `collab-cron.sh` + test | Test giờ 09/10/23:30, Duyệt/Giữ/Bỏ, comment agent bị loại |
+| 4 | `collab-plan` + `collab-cron.sh` + test | Test giờ 09/10/23:30 (từ 14.11.2026: 06:50/08:00/23:35), Duyệt/Giữ/Bỏ, comment agent bị loại |
 | 5 | Sửa tài liệu phối hợp, AGENTS.md, CLAUDE.md | Quy tắc trong docs khớp code |
 | 6 | Mở PR; **script review PR của chính nó** bằng Codex thật | Verdict thật đăng trên PR |
 | 7 | Merge PR theo luồng mới | Merge bằng `collab-merge` |
