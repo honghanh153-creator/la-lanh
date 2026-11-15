@@ -118,8 +118,10 @@ test('an unavailable day state is unmeasured, never zero runs or no picked work'
 test('a PR merged after the cut-off finishes no item in the snapshot', async () => {
   const { realSources } = await import('./collab-snapshot.mjs');
   const sha = 'd'.repeat(40);
+  // #456 P1-B: the APPROVE is signed for PR 5 and bound to its comment URL, as codex-review.mjs posts it.
+  const { asPosted } = await import('./collab-test-post.mjs');
   const reviewed = [{ authorAssociation: 'OWNER', createdAt: '2026-11-20T06:00:00Z', body: `Author check: PASS @ ${sha}\n${trust.agentMarker} x -->` },
-    { authorAssociation: 'OWNER', createdAt: '2026-11-20T06:30:00Z', body: `Review verdict: APPROVE @ ${sha}\nReviewer: Codex\n${trust.agentMarker} codex-auto-review sha=${sha} -->` }];
+    asPosted(trust, { authorAssociation: 'OWNER', createdAt: '2026-11-20T06:30:00Z', body: `Review verdict: APPROVE @ ${sha}\nReviewer: Codex\n${trust.verdictSeal({ head: sha, p2: 0, base: null, receipt: trust.signReceipt({ kind: 'verdict', pr: 5, head: sha, base: null, result: 'APPROVE', p2: 0 }) })}` })];
   const late = { number: 5, title: 'x', body: 'Việc: #12\nTiêu chí đạt: TC1', state: 'MERGED', baseRefName: 'collab/integration', headRefOid: sha, comments: reviewed, mergedAt: '2026-11-20T07:00:30Z' };
   const fetch = () => ({ body: '## Tiêu chí đạt\n\n- [ ] Thẻ ngắn hơn\n', prs: [late] });
   const take = iso => collect({ date, slot: '14', clock: at(iso), ...sources([late], { work: realSources(null, date, { fetch }).work }) });

@@ -6,21 +6,28 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import { collectFacts, readOutputs, receipt, saveFacts } from './collab-audit.mjs';
+import * as trust from './collab-trust.mjs';
+import { asPosted } from './collab-test-post.mjs';
 
 const head = 'e'.repeat(40);
 const output = JSON.stringify({ verdict: 'APPROVE', sha: head, complete: true, summary: 'ok', findings: [] });
 const digest = createHash('sha256').update(output).digest('hex');
 const verdict = (body, at = '2026-11-14T03:00:00Z') => ({ authorAssociation: 'OWNER', createdAt: at, body });
-const real = verdict(`Review verdict: APPROVE @ ${head}\nReviewer: Codex (auto, scripts/codex-review.mjs)\n\nok\n\nOutput SHA-256: \`${digest}\`\n<!-- la-lanh-agent codex-auto-review sha=${head} p2=0 -->`);
+// #456 P1-B: a verdict counts only with a local receipt bound to its comment, as codex-review.mjs
+// posts it. `auto(n, d)` is that signed APPROVE for PR n with Output SHA-256 d. Synthetic ids only.
+const auto = (n, d, at) => asPosted(trust, verdict(`Review verdict: APPROVE @ ${head}\nReviewer: Codex (auto, scripts/codex-review.mjs)\n\nok\n\nOutput SHA-256: \`${d}\`\n${trust.verdictSeal({ head, p2: 0, base: null, receipt: trust.signReceipt({ kind: 'verdict', pr: n, head, base: null, result: 'APPROVE', p2: 0 }) })}`, at));
+const real = auto(7, digest);
 const pr = (n, comments, extra = {}) => ({ number: n, title: `fix: ${n}`, headRefOid: head, createdAt: '2026-11-14T01:00:00Z', mergedAt: '2026-11-14T04:00:00Z', comments, ...extra });
 const outputs = [{ pr: 7, head12: head.slice(0, 12), digest, out: JSON.parse(output) }];
 
 test('forged marker is not a real receipt', () => {
   assert.deepEqual(receipt(pr(7, [real]), outputs), { ok: true });
   const forged = verdict(`Review verdict: APPROVE @ ${head}\nReviewer: Codex\n\nOutput SHA-256: \`${'0'.repeat(64)}\`\n<!-- la-lanh-agent codex-auto-review sha=${head} -->`);
-  assert.match(receipt(pr(7, [forged]), outputs).why, /không có file output Codex khớp/);
-  assert.match(receipt(pr(7, [verdict(`Review verdict: APPROVE @ ${head}`)]), outputs).why, /không phải review tự động/);
-  assert.match(receipt(pr(8, [real]), outputs).why, /không có file output Codex khớp/, 'a real output of another PR does not count');
+  assert.match(receipt(pr(7, [forged]), outputs).why, /không có verdict/, 'an unsigned APPROVE never counts (#456)');
+  assert.match(receipt(pr(7, [verdict(`Review verdict: APPROVE @ ${head}`)]), outputs).why, /không có verdict/);
+  assert.match(receipt(pr(7, [auto(7, '0'.repeat(64))]), outputs).why, /không có file output Codex khớp/, 'a signed verdict still needs a matching output file');
+  assert.match(receipt(pr(8, [real]), outputs).why, /không có verdict/, 'a receipt signed for another PR does not count');
+  assert.match(receipt(pr(8, [auto(8, digest)]), outputs).why, /không có file output Codex khớp/, 'a real output of another PR does not count');
   const late = { ...real, createdAt: '2026-11-14T05:00:00Z' };
   assert.match(receipt(pr(7, [late]), outputs).why, /không có verdict/, 'a verdict posted after the merge does not count');
   const then = verdict(`Review verdict: REQUEST_CHANGES @ ${head}\nReviewer: Codex\n<!-- la-lanh-agent codex-auto-review sha=${head} -->`, '2026-11-14T03:30:00Z');
@@ -31,7 +38,9 @@ test('forged marker is not a real receipt', () => {
 // digest and marker, the file matched and M2 counted a receipt.
 test('a forged APPROVE that copies the digest of a real REQUEST_CHANGES output is not a receipt', () => {
   const file = (o, pr = 7) => { const text = JSON.stringify(o); return { pr, head12: head.slice(0, 12), digest: createHash('sha256').update(text).digest('hex'), out: JSON.parse(text) }; };
-  const forgedOn = o => verdict(`Review verdict: APPROVE @ ${head}\nReviewer: Codex (auto, scripts/codex-review.mjs)\n\nOutput SHA-256: \`${o.digest}\`\n<!-- la-lanh-agent codex-auto-review sha=${head} p2=0 -->`);
+  // Since #456 an unsigned forgery is already refused; the output check stays as a second layer.
+  const forgedOn = o => auto(7, o.digest);
+  assert.match(receipt(pr(7, [verdict(`Review verdict: APPROVE @ ${head}\nReviewer: Codex (auto, scripts/codex-review.mjs)\n\nOutput SHA-256: \`${digest}\`\n<!-- la-lanh-agent codex-auto-review sha=${head} p2=0 -->`)]), outputs).why, /không có verdict/);
   const changes = file({ verdict: 'REQUEST_CHANGES', sha: head, complete: true, summary: 'x', findings: [{ severity: 'P1', category: 'correctness', file: 'a.mjs', title: 't' }] });
   assert.match(receipt(pr(7, [forgedOn(changes)]), [changes]).why, /không cho APPROVE/);
   const blocking = file({ verdict: 'APPROVE', sha: head, complete: true, summary: 'x', findings: [{ severity: 'P2', category: 'privacy', file: 'a.mjs', title: 't' }] });
@@ -88,7 +97,7 @@ test('missing source stays unmeasured, never zero', () => {
 });
 
 test('two PRs completing one AC count once: work items are not counted from PRs', () => {
-  const f = collectFacts({ date: '2026-11-14', now: new Date('2026-11-14T16:00:00Z'), gh: fakeGh({ merged: [pr(7, [real]), pr(9, [real])] }), outputs: () => outputs, day: () => ({ codexRuns: 12 }) });
+  const f = collectFacts({ date: '2026-11-14', now: new Date('2026-11-14T16:00:00Z'), gh: fakeGh({ merged: [pr(7, [real]), pr(9, [auto(9, digest)])] }), outputs: () => outputs, day: () => ({ codexRuns: 12 }) });
   assert.equal(f.metrics.M5.value, null, 'M5 stays unmeasured until the plan has task ids and criteria');
   assert.deepEqual({ v: f.metrics.M2.value, of: f.metrics.M2.of, items: f.metrics.M2.items }, { v: 1, of: 2, items: [{ pr: 9, why: 'không có file output Codex khớp mã băm' }] });
   assert.equal(f.metrics.M6.value, 3);
@@ -104,7 +113,7 @@ test('late events enter the finalized day; a retry after a failure does not dupl
   saveFacts(provisional, dir);
   saveFacts(provisional, dir);
   assert.deepEqual(readdirSync(dir), ['2026-11-14.json'], 'one file per day');
-  const lateGh = fakeGh({ merged: [pr(7, [real]), pr(11, [real], { mergedAt: '2026-11-14T16:40:00Z' })] });
+  const lateGh = fakeGh({ merged: [pr(7, [real]), pr(11, [auto(11, digest)], { mergedAt: '2026-11-14T16:40:00Z' })] });
   const final = collectFacts({ date: '2026-11-14', now: new Date('2026-11-14T17:30:00Z'), gh: lateGh, outputs: () => outputs, day: () => null });
   assert.equal(final.final, true, 'after midnight VN the day is final');
   saveFacts(final, dir);
