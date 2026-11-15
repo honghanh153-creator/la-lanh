@@ -4,11 +4,15 @@ import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import { acquireLock } from './collab-lock.mjs';
-import { DeadlineError, agentMarker, boundedTimeout, blockingP2, clean, isOwnPr, dayStatePath, integration, isSha, makeGh, readJson, repo, stateDir, trustedComments, vnNow, writeJson } from './collab-trust.mjs';
-import { codexDailyCap, prTurn } from './collab-turn.mjs';
+import { agentMarker, bindReceipt, boundedTimeout, clean, cutoffAt, cutoffMs, dayStatePath, DeadlineError, hhmmOf, integration, isOwnPr, isSha, lastStartAt, makeGh, planOpensAt, readJson, repo, reviewState, signReceipt, stateDir, trustedComments, verdictSeal, vnNow, writeJson } from './collab-trust.mjs';
+import { prTurn } from './collab-turn.mjs';
+import { dayCap } from './collab-trust.mjs';
 import { groupExec } from './collab-heal.mjs';
+import { applyPolicy, isBlocking, validateOutput } from './collab-review-policy.mjs';
+import { isMain } from './is-main.mjs';
+import { auditReserve } from './collab-audit.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const promptPath = join(here, '..', 'docs', 'operations', 'codex-review-prompt.md');
@@ -16,30 +20,8 @@ export const schemaPath = join(here, 'codex-review-schema.json');
 export const codexBin = process.env.CODEX_BIN || '/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex';
 export const codexModel = 'gpt-6.1-sol';
 export const maxAutoRequestChanges = 2;
-const severities = ['P0', 'P1', 'P2', 'P3'];
-const categories = ['privacy', 'security', 'user_copy', 'correctness', 'test', 'docs', 'other'];
-
-export const isBlocking = f => f.severity === 'P0' || f.severity === 'P1' || (f.severity === 'P2' && blockingP2.has(f.category));
-
-export function validateOutput(out, head) {
-  const bad = message => { throw new Error(`Codex output rejected: ${message}`); };
-  if (!out || typeof out !== 'object') bad('not an object');
-  if (!['APPROVE', 'REQUEST_CHANGES'].includes(out.verdict)) bad('verdict');
-  if (out.sha !== head) bad(`sha ${clean(out.sha, 60)} is not head ${head}`);
-  if (typeof out.complete !== 'boolean' || typeof out.summary !== 'string' || !Array.isArray(out.findings)) bad('shape');
-  for (const f of out.findings) {
-    if (!severities.includes(f?.severity) || !categories.includes(f?.category) || typeof f.file !== 'string' || typeof f.title !== 'string') bad('finding shape');
-  }
-  return out;
-}
-
-// The script may only make a verdict stricter, never more lenient.
-export function applyPolicy(out) {
-  const blocking = out.findings.filter(isBlocking);
-  const verdict = out.verdict === 'REQUEST_CHANGES' || blocking.length || !out.complete ? 'REQUEST_CHANGES' : 'APPROVE';
-  const fixForward = verdict === 'APPROVE' ? out.findings.filter(f => f.severity === 'P2') : [];
-  return { verdict, blocking, fixForward, escalated: verdict !== out.verdict };
-}
+// The policy lives in collab-review-policy.mjs so the night audit checks receipts with the same rule.
+export { applyPolicy, isBlocking, validateOutput } from './collab-review-policy.mjs';
 
 export function fillPrompt(template, values) {
   // Single pass, so a placeholder inside PR text is never expanded.
@@ -62,7 +44,8 @@ const cell = (text, limit = 900) => clean(text, limit).replace(/\\/g, '\\\\').re
 // A detail may list every occurrence of one class (prompt rule S2); keep the whole list (fix-forward #238).
 const detailCell = text => cell(text, 6000);
 
-export function renderVerdict({ pr, out, policy, round, range, digest, fixIssue }) {
+// `base`: the collab/integration tip when the review started (P1-A); `receipt`: the local receipt id (P1-B).
+export function renderVerdict({ pr, out, policy, round, range, digest, fixIssue, base = null, receipt = null }) {
   const rows = out.findings.map(f => `| ${f.severity} | ${f.category} | \`${cell(f.file)}${f.line ? `:${f.line}` : ''}\` | ${cell(f.title)}: ${detailCell(f.detail)} | ${isBlocking(f) ? 'có' : 'không'} |`);
   return [
     `Review verdict: ${policy.verdict} @ ${pr.headRefOid}`,
@@ -74,7 +57,8 @@ export function renderVerdict({ pr, out, policy, round, range, digest, fixIssue 
     ...(rows.length ? ['| Mức | Loại | Vị trí | Vấn đề | Chặn merge |', '|---|---|---|---|---|', ...rows, ''] : ['Không có phát hiện.', '']),
     ...(fixIssue ? [`Fix-forward: #${fixIssue}`, ''] : []),
     `Output SHA-256: \`${digest}\``,
-    `${agentMarker} codex-auto-review sha=${pr.headRefOid} p2=${policy.fixForward.length} -->`,
+    `Base lúc review: \`${integration}\` @ ${isSha(base) ? `\`${base.slice(0, 12)}\`` : 'không rõ'}`,
+    verdictSeal({ head: pr.headRefOid, p2: policy.fixForward.length, base, receipt }),
   ].join('\n');
 }
 
@@ -123,7 +107,7 @@ export function runReview(number, options = {}) {
   const release = acquireLock(join(stateDir, 'review.lock'), { staleMs: 45 * 60000 });
   if (!release) return { status: 'busy', reason: 'một review khác đang chạy' };
   try { return reviewOnce(number, options); }
-  catch (error) { if (error instanceof DeadlineError) return { status: 'refused', reason: 'hết giờ (23:55) trong lúc review' }; throw error; }
+  catch (error) { if (error instanceof DeadlineError) return { status: 'refused', reason: `hết giờ (${hhmmOf(cutoffAt)}) trong lúc review` }; throw error; }
   finally { release(); }
 }
 
@@ -131,23 +115,29 @@ export function runReview(number, options = {}) {
 export const reviewFinalizeReserveMs = 5 * 60000;
 
 function reviewOnce(number, { auto = false, gh: ghIn = makeGh(), run = execFileSync, now = vnNow(), clock = vnNow, readOut, nowMs = Date.now } = {}) {
-  // Scheduled runs: every gh and git call ends by 23:55 (minus 15 s cleanup); direct runs keep fixed caps.
-  const cutoff = Date.parse(`${now.date}T23:55:00+07:00`) - 15000;
+  // Scheduled runs: every gh and git call ends by cutoffAt (minus 15 s cleanup); direct runs keep fixed caps.
+  const cutoff = cutoffMs(now.date) - 15000;
   const left = auto && Number.isFinite(cutoff) ? () => cutoff - nowMs() : () => Infinity;
   const gh = ghIn.withDeadline?.(left) ?? ghIn;
   const pr = gh.pr(number);
   const head = pr.headRefOid;
   if (!isSha(head)) throw new Error('PR head SHA unavailable.');
+  // P1-A: the verdict records the integration tip it was reviewed against; without it the APPROVE
+  // could never be compared with a later base, so no review starts.
+  const reviewedBase = pr.baseTipOid;
+  if (!isSha(reviewedBase)) return { status: 'refused', reason: `không đọc được SHA hiện tại của ${integration}` };
   // prTurn holds fork/outside PRs; checked here too so a direct call never reviews one.
   if (!isOwnPr(pr)) return { status: 'refused', reason: 'PR không phải của owner hoặc từ fork' };
   const turn = prTurn(pr);
   if (turn.turn !== 'codex-review') return { status: 'refused', reason: `lượt hiện tại là ${turn.turn}: ${turn.reason}` };
   const dayPath = dayStatePath(now.date);
   const day = readJson(dayPath, { codexRuns: 0, failures: 0 });
-  if (auto && day.codexRuns >= codexDailyCap) return { status: 'refused', reason: `hết ${codexDailyCap} lượt Codex tự động hôm nay` };
+  if (auto && day.codexRuns >= dayCap(day) - auditReserve) return { status: 'refused', reason: `hết ${dayCap(day) - auditReserve} lượt Codex tự động hôm nay (1 lượt giữ cho soát đêm)` };
 
   const trusted = trustedComments(pr.comments);
-  const priorAuto = trusted.filter(c => c.auto && c.verdict).at(-1);
+  // Only a signed earlier review narrows the re-review to a delta: an unsigned one could be forged to
+  // point Codex at a harmless range (P1-B).
+  const priorAuto = reviewState(pr).sealed.filter(c => c.auto && c.verdict).at(-1);
   const dir = prepareClone(number, head, run, left);
   let deltaFrom = null;
   if (priorAuto && priorAuto.verdict.sha !== head) {
@@ -180,14 +170,14 @@ function reviewOnce(number, { auto = false, gh: ghIn = makeGh(), run = execFileS
   const outPath = join(stateDir, 'logs', `codex-${stamp}.json`);
   mkdirSync(dirname(outPath), { recursive: true });
   // Fetching can be slow, so read the clock again right before Codex starts (fix-forward #131).
-  // Scheduled runs start nothing after 23:30 and stop by 23:55; direct runs get 30 minutes.
+  // Scheduled runs start nothing from lastStartAt and stop by cutoffAt; direct runs get 30 minutes.
   const startAt = clock();
   const startMinute = startAt.hour * 60 + startAt.minute;
-  if (auto && (startMinute < 8 * 60 + 50 || startMinute >= 23 * 60 + 30)) return { status: 'refused', reason: 'ngoài giờ chạy tự động (sau 23:30)' };
+  if (auto && (startMinute < planOpensAt || startMinute >= lastStartAt)) return { status: 'refused', reason: `ngoài giờ chạy tự động (sau ${hhmmOf(lastStartAt)})` };
   // Codex must end early enough that the verdict, labels and fix-forward issue still fit before
   // the Git/GitHub cutoff (#243); without that room, it does not start.
-  const untilCutoff = Math.min(((23 * 60 + 55) - startMinute) * 60000, left()) - reviewFinalizeReserveMs;
-  if (auto && untilCutoff < 60000) return { status: 'refused', reason: 'không đủ thời gian để đăng kết quả trước 23:55' };
+  const untilCutoff = Math.min((cutoffAt - startMinute) * 60000, left()) - reviewFinalizeReserveMs;
+  if (auto && untilCutoff < 60000) return { status: 'refused', reason: `không đủ thời gian để đăng kết quả trước ${hhmmOf(cutoffAt)}` };
   const result = runCodex({ dir, prompt, outPath, timeoutMs: auto ? Math.min(30 * 60000, untilCutoff) : 30 * 60000, run });
   if (result.status === 'limit') return { status: 'limit', reason: result.error };
   writeJson(dayPath, { ...readJson(dayPath, day), codexRuns: (readJson(dayPath, day).codexRuns ?? 0) + 1 });
@@ -215,18 +205,22 @@ function reviewOnce(number, { auto = false, gh: ghIn = makeGh(), run = execFileS
 
   const priorRequests = trusted.filter(c => c.auto && c.verdict?.verdict === 'REQUEST_CHANGES').length;
   const round = trusted.filter(c => c.auto && c.verdict).length + 1;
-  const body = renderVerdict({ pr, out, policy, round, range: deltaFrom ? `${deltaFrom.slice(0, 7)}..${head.slice(0, 7)}` : `${mergeBase.slice(0, 7)}..${head.slice(0, 7)}`, digest, fixIssue });
-  gh.comment('pr', pr.number, body);
+  // P1-B: the receipt is written before the comment, so every posted verdict has one.
+  const receipt = signReceipt({ kind: 'verdict', pr: pr.number, head, base: reviewedBase, result: policy.verdict, p2: policy.fixForward.length });
+  const body = renderVerdict({ pr, out, policy, round, range: deltaFrom ? `${deltaFrom.slice(0, 7)}..${head.slice(0, 7)}` : `${mergeBase.slice(0, 7)}..${head.slice(0, 7)}`, digest, fixIssue, base: reviewedBase, receipt });
+  const posted = gh.comment('pr', pr.number, body);
+  // Bound to the new comment's id: a later copy of this verdict never counts (replay, #456 auto-1).
+  if (!bindReceipt({ kind: 'verdict', pr: pr.number, id: receipt, url: posted })) process.stderr.write(`codex-review: receipt ${receipt} not bound to a comment id; the verdict will not count\n`);
   const needsOwner = policy.verdict === 'REQUEST_CHANGES' && (!out.complete || priorRequests + 1 >= maxAutoRequestChanges);
   if (needsOwner) {
     ensureLabel(gh, 'needs-owner', 'D93F0B', 'Vòng tự động dừng, chờ owner');
     gh.raw(['pr', 'edit', String(pr.number), '--repo', repo, '--add-label', 'needs-owner']);
   }
-  writeJson(join(stateDir, 'logs', `review-${stamp}.json`), { pr: pr.number, head, verdict: policy.verdict, digest, fixIssue, needsOwner, at: new Date().toISOString() });
+  writeJson(join(stateDir, 'logs', `review-${stamp}.json`), { pr: pr.number, head, base: reviewedBase, verdict: policy.verdict, receipt, digest, fixIssue, needsOwner, at: new Date().toISOString() });
   return { status: 'posted', verdict: policy.verdict, blocking: policy.blocking.length, fixIssue, needsOwner };
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (isMain(import.meta.url)) {
   const args = process.argv.slice(2);
   const number = Number(args[args.indexOf('--pr') + 1]);
   if (!args.includes('--pr') || !Number.isInteger(number) || number <= 0) {
