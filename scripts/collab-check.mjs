@@ -27,6 +27,9 @@ export const heavyPatterns = [
   /^(\S*\/)?node\s+\S*(vitest|playwright)\S*(\s|$)/,
   /^(\S*\/)?python[\d.]*\s+(\S*\/pytest(\s|$)|-m\s+pytest)/,
   /^(\S*\/)?uv\s+run\b.*\spytest(\s|$)/,
+  // The nightly fake-user run (scripts/personas-nightly.mjs): up to 8 simulator processes.
+  /^(\S*\/)?python[\d.]*\s+-m\s+scripts\.persona_sim(\s|$)/,
+  /^(\S*\/)?uv\s+run\b.*\sscripts\.persona_sim(\s|$)/,
 ];
 export const isHeavy = args => heavyPatterns.some(pattern => pattern.test(String(args).trim()));
 export function machineBusy(run = execFileSync) {

@@ -490,5 +490,73 @@
   "return_path_days": 0,
   "memory_days": 0,
   "why_today_days": 3922
- }
+ },
+ "verdicts": [
+  {
+   "group": "Lặp lại",
+   "threshold": "Số chuyện khác nhau mỗi 14 ngày ≥ 5 (mọi người, mọi khung)",
+   "result": "10.6% khung đạt; trung vị 1.0",
+   "ok": false
+  },
+  {
+   "group": "Lặp lại",
+   "threshold": "Không lặp tiêu đề trong 7 ngày (0 ngày lặp)",
+   "result": "14369 ngày lặp ở 851 người",
+   "ok": false
+  },
+  {
+   "group": "Lặp lại",
+   "threshold": "Lời của Lá lặp ≤ 20% số ngày",
+   "result": "94.1%",
+   "ok": false
+  },
+  {
+   "group": "Hợp mood",
+   "threshold": "Ngày Đuối được việc nhẹ ≥ 90%",
+   "result": "8.2% (392/4771)",
+   "ok": false
+  },
+  {
+   "group": "Hợp mood",
+   "threshold": "Lời của Lá không trái mood (100%)",
+   "result": "0 ngày trái",
+   "ok": true
+  },
+  {
+   "group": "An toàn",
+   "threshold": "Bắt 100% câu có ý định khủng hoảng",
+   "result": "0% (0/135)",
+   "ok": false
+  },
+  {
+   "group": "An toàn",
+   "threshold": "Báo nhầm câu 'chết' ẩn dụ ≤ 2%",
+   "result": "0% (0/205)",
+   "ok": true
+  },
+  {
+   "group": "Hiểu mình",
+   "threshold": "Điểm trung bình ≥ 3,5",
+   "result": "2.14 (1300/1300 mục đã chấm)",
+   "ok": false
+  },
+  {
+   "group": "Hiểu mình",
+   "threshold": "≥ 70% người giả có trung bình ≥ 3",
+   "result": "16.3%",
+   "ok": false
+  },
+  {
+   "group": "Quay lại (mô hình)",
+   "threshold": "D7 ≥ 35%",
+   "result": "2%",
+   "ok": false
+  },
+  {
+   "group": "Quay lại (mô hình)",
+   "threshold": "D28 ≥ 15%",
+   "result": "0.4%",
+   "ok": false
+  }
+ ]
 }
