@@ -1,7 +1,7 @@
 // Whose turn is it on each open PR? `--report` replaces the registry PRs; `--tick` is the launchd safety net.
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { agentMarker, areaOrder, classifyArea, clean, codexDailyCap, dayStatePath, integration, isOwnPr, makeGh, readJson, repo, reviewState, sortByPriority, stateDir, trustedComments, vnNow, writeJson } from './collab-trust.mjs';
+import { agentMarker, areaOrder, classifyArea, clean, codexDailyCap, dayCap, dayStatePath, integration, isOwnPr, makeGh, readJson, repo, reviewState, sortByPriority, stateDir, trustedComments, vnNow, writeJson } from './collab-trust.mjs';
 import { autoStartAt, committedTurns, lastStartAt, makePlan, planIssue, readPlanStatus } from './collab-plan.mjs';
 import { dayList, min7w, pickPlan, planCap, plannedEntry, quotaIssues, unitKey, workUnits } from './collab-quota.mjs';
 import { auditReserve } from './collab-audit.mjs';
@@ -239,7 +239,7 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
     const readIncidents = () => { if (openIncidents === undefined) { try { openIncidents = incidents ? incidents() : []; } catch { openIncidents = null; } } return openIncidents; };
     const show = info => {
       const counts = readJson(dayPath, day);
-      try { board({ now: time(), codexRuns: counts.codexRuns ?? 0, failures: counts.failures ?? 0, metrics: metricLines, health: readHealth(), incidents: readIncidents(), ...info }); } catch {}
+      try { board({ now: time(), codexRuns: counts.codexRuns ?? 0, cap: dayCap(counts), failures: counts.failures ?? 0, metrics: metricLines, health: readHealth(), incidents: readIncidents(), ...info }); } catch {}
     };
     // Owner notes (collab-status.mjs): a new comment only for merges, a 2-tick failure streak,
     // a new needs-owner and the 12:00/22:00 digest. Never breaks a tick.
@@ -284,7 +284,7 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
         // Owner 15.11: one list a day, with at least 2 seats kept for the 7-week plan (collab-quota.mjs).
         const list = planList({ gh, turns, prs, comments: plan.comments, date: now.date });
         writeJson(dayPath, { ...readJson(dayPath, day), ...recordList(list) });
-        makePlan(gh, now, turns, { codexLeft: Math.max(0, codexDailyCap - day.codexRuns), gap: tickGap(readJson(join(stateDir, 'heartbeat.json'), null)), health: readHealth(), list });
+        makePlan(gh, now, turns, { codexLeft: Math.max(0, dayCap(day) - day.codexRuns), cap: dayCap(day), gap: tickGap(readJson(join(stateDir, 'heartbeat.json'), null)), health: readHealth(), list });
         heartbeat('plan-made');
         show({ status: 'plan-made', turns });
         return { status: 'plan-made' };
@@ -382,7 +382,7 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       }
       for (const t of [...checked, ...work.filter(t => t.turn === 'codex-review')]) {
         const fresh = readJson(dayPath, day);
-        if (done.filter(d => d.review).length >= 2 || fresh.codexRuns >= codexDailyCap - auditReserve || late()) break;
+        if (done.filter(d => d.review).length >= 2 || fresh.codexRuns >= dayCap(fresh) - auditReserve || late()) break;
         show({ status: 'running', doing: `Codex review #${t.number}`, expectMinutes: 30, area, turns, done });
         const result = review(t.number, { auto: true, now: time() });
         done.push({ pr: t.number, review: result });
@@ -403,7 +403,7 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
         // told. An error now retries on later ticks, up to copyBatchAttempts a day.
         const retry = today.copyBatch?.status === 'error' && (today.copyBatch.attempts ?? 1) < copyBatchAttempts;
         // Publishing saved decisions calls no Codex, so it may run after the cap is spent (Codex 13.11).
-        const budgetOk = (today.codexRuns ?? 0) < codexDailyCap - auditReserve || copySaved();
+        const budgetOk = (today.codexRuns ?? 0) < dayCap(today) - auditReserve || copySaved();
         if ((!today.copyBatch || retry) && budgetOk && !batchOpen) {
           try { pending = copyPending(); } catch (error) { log(`copy batch: registry unreadable: ${clean(error.message, 200)}`); }
         }
@@ -474,7 +474,7 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       const red = errors.length || stuck;
       heartbeat(red ? 'ran-with-errors' : 'ran');
       // A review waiting while the daily Codex cap is spent is a budget stop, not "no work" (#145 r2).
-      const capped = !done.length && work.some(t => t.turn === 'codex-review') && (readJson(dayPath, day).codexRuns ?? 0) >= codexDailyCap - auditReserve;
+      const capped = !done.length && work.some(t => t.turn === 'codex-review') && (readJson(dayPath, day).codexRuns ?? 0) >= dayCap(readJson(dayPath, day)) - auditReserve;
       show({ status: red ? 'ran-with-errors' : done.length ? 'ran' : capped ? 'cap' : 'idle', area, turns, done, error: red ? [errors.length ? JSON.stringify(errors) : null, stuck].filter(Boolean).join(' · ') : null });
       if (failures === 2 && alert) alert(`collab tick có lỗi 2 lần liên tiếp (${now.date} ${now.hour}h): ${clean(JSON.stringify(errors), 300)}`);
       tell({ turns: leftTurns, comments: plan.comments, dropped: plan.dropped });
