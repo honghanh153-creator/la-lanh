@@ -5,7 +5,15 @@ operator or Codex session should be able to use it without relying on chat histo
 status checklist is
 `docs/plans/2026-09-26-hetzner-supabase-public-beta-deployment-plan.md`.
 
-## Current production — 2026-11-13
+## Current production — 2026-11-15 (hotfix)
+
+Release `56523ccb7de5` is live (`main` = `56523ccb7de5a18df7e5aa9510e27a48e77d2794`, #549: only the #546 fix on top
+of `f6246ed2fb7a`; image `sha256:f42a945ee43e…`; Alembic head unchanged at `20261111_0042`). "Đọc bản mới" opens
+the offered reading for every profile type. Staging runs the same image. Rollback anchor: `la-lanh:f6246ed2fb7a`
+(same schema; restores the bug). Receipt:
+[production-release-2026-11-15](../reviews/production-release-2026-11-15/receipt.md).
+
+## Previous production — 2026-11-13
 
 Release `f6246ed2fb7a` is live (`main` = `f6246ed2fb7a5033247ad6b41af33f35022cab12`, #472: full `collab/integration`
 merged with `main`; image `sha256:b9e860240f01…`; Alembic head `20261111_0042`). It went out in two steps the same
@@ -610,6 +618,11 @@ below are done and recorded in the receipt.
    → Aura → birth card → Tarot (one card drawn) → Radar → saved → profile → delete via
    "Xóa Lá và dữ liệu". It writes `journey.json` (routes with IDs redacted, ready time, horizontal
    overflow, controls under 44 px, console and 5xx errors), one screenshot and one text file per step.
+   Since 14.11.2026 (L03) it also records a content verdict for the Khám phá overview: the
+   Western synthesis (hook, thesis, manifestation, micro action) must be in the API answer and in
+   the synthesis block on screen, and no temporary text (lorem, TODO, template braces, `undefined`)
+   may show. The verdict is reported (`journey.json` → `content`); `LA_LANH_QA_CONTENT=enforce`
+   makes a content finding fail the run. `pnpm qa:test` runs the same check on the local API in CI.
    It never writes cookies, tokens, share links or IDs. Exit 0 needs every required step to pass and
    the guest to be deleted. Keep `<out-dir>` outside git; it holds screenshots of synthetic data only.
 2. **Claude review:** look at every screenshot. Score each flow on working, clarity, feel (calm,
