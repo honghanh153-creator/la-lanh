@@ -269,6 +269,13 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
   return withLock(() => {
     const dayPath = dayStatePath(now.date);
     const day = readJson(dayPath, { codexRuns: 0, failures: 0 });
+    // Fix-forward #622: every tick takes the next number, whatever path it leaves by, so the quiet red
+    // streak counts only back-to-back ticks. Kept apart from the day state, which must stay absent
+    // until the plan writes it.
+    const seqPath = join(stateDir, 'tick-seq.json');
+    const seqNow = readJson(seqPath, {});
+    const seq = (seqNow.date === now.date ? seqNow.seq ?? 0 : 0) + 1;
+    writeJson(seqPath, { date: now.date, seq });
     const heartbeat = status => writeJson(join(stateDir, 'heartbeat.json'), { at: new Date().toISOString(), vn: now, status });
     // The phone-visible board must never break a tick.
     // Outcome numbers (collab-metrics.mjs) are read once per tick, never at night.
@@ -542,8 +549,9 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       // Review of 16.11: 34 red ticks from 15:43 to 21:41 raised no alert, because a tick red only from the
       // unresolved copy batch is not a new failure. Three such ticks in a row open one ops-alert a day,
       // with the reason; the count resets on a green tick.
-      const stuckRuns = stuck && !errors.length ? (readJson(dayPath, day).stuckRuns ?? 0) + 1 : 0;
-      writeJson(dayPath, { ...readJson(dayPath, day), stuckRuns });
+      const prevStuck = readJson(dayPath, day);
+      const stuckRuns = stuck && !errors.length ? (prevStuck.stuckSeq === seq - 1 ? (prevStuck.stuckRuns ?? 0) + 1 : 1) : 0;
+      writeJson(dayPath, { ...readJson(dayPath, day), stuckRuns, stuckSeq: stuckRuns ? seq : null });
       if (stuckRuns >= stuckAlertRuns && !readJson(dayPath, day).stuckAlerted && alert) {
         try {
           alert(`collab tick đỏ ${stuckRuns} lượt liền mà không có lỗi mới (${now.date} ${now.hour}:${String(now.minute).padStart(2, '0')}): ${stuck}`);

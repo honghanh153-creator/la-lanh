@@ -597,6 +597,46 @@
     "pr": 610
    },
    "note": "the logged tick result carries stuck; the ops-alert for a quiet red streak is #613"
+  },
+  {
+   "id": "L35",
+   "title": "Prompt của tác vụ hẹn giờ phải khớp luật trong code (trần Codex, giờ chạy, không chỉ tiêu PR); tick báo từng chỗ lệch, prompt không đọc được là chưa kiểm (rà soát 16.11, S28 retro 12.11)",
+   "from": "rà soát luồng 16.11; fix-forward #620",
+   "who": "claude",
+   "due": "2026-11-17",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-ops-wrapper.test.mjs",
+    "name": "scheduled-task prompts are checked against the code: no PR quota, the 80 cap, 06:50 start, 23:35 stop"
+   },
+   "caller": {
+    "file": "scripts/collab-tick.mjs",
+    "contains": "...skillRuleHealth()"
+   },
+   "closedBy": {
+    "pr": 612
+   },
+   "note": "16.11: 7 stale lines found on the owner's Mac and fixed by the coordination session; clause-level history, Vietnamese quotas and unreadable prompts from #620"
+  },
+  {
+   "id": "L36",
+   "title": "Tick đỏ nhiều lượt liền mà không có lỗi mới thì mở một ops-alert mỗi ngày, kèm lý do (sự cố 16.11: 34 tick đỏ, không cảnh báo)",
+   "from": "rà soát luồng 16.11; fix-forward #622",
+   "who": "claude",
+   "due": "2026-11-17",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-loop.test.mjs",
+    "name": "#622: a quiet red streak alerts only after three back-to-back ticks; a tick that leaves another way resets it"
+   },
+   "caller": {
+    "file": "scripts/collab-turn.mjs",
+    "contains": "collab tick đỏ ${stuckRuns} lượt liền mà không có lỗi mới"
+   },
+   "closedBy": {
+    "pr": 613
+   },
+   "note": "streak counted by tick sequence (tick-seq.json) from #622"
   }
  ]
 }
