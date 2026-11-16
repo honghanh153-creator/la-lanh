@@ -6,7 +6,7 @@ const assert = (await import('node:assert/strict')).default;
 const test = (await import('node:test')).default;
 const trust = await import('./collab-trust.mjs');
 const { collect, renderSnapshot, saveOnce, snapshotPath, takeSnapshot } = await import('./collab-snapshot.mjs');
-const { ownerNotes, renderBoard } = await import('./collab-status.mjs');
+const { renderBoard } = await import('./collab-status.mjs');
 const { tick } = await import('./collab-turn.mjs');
 
 // Synthetic sources only.
@@ -33,11 +33,6 @@ test('two reports in one slot read one snapshot and print the same numbers', () 
   const lines = renderSnapshot(first);
   assert.equal(lines[0], '- Đã gộp vào integration hôm nay: 1 PR (số PR, không phải số việc).');
   assert.match(lines.at(-1), new RegExp(`· snapshot ${first.digest}$`));
-  // The tick digest of the same slot prints the same block.
-  const notes = ownerNotes({ now: { date, hour: 14, minute: 5 }, merged: [{ number: 1, title: 'a' }, { number: 2, title: 'b' }, { number: 3, title: 'c' }], snapshot: slot => takeSnapshot({ slot, date, dir, sources: sources([]) }) });
-  const digest = notes.find(n => n.key.startsWith('digest-')).lines;
-  for (const line of lines) assert.ok(digest.includes(line), `digest repeats: ${line}`);
-  assert.ok(!digest.some(l => /Đã gộp 3 PR/.test(l)), 'the tick does not count again');
   const other = takeSnapshot({ slot: '22', date, dir, sources: sources([]), clock: at('2026-11-20T15:00:00Z') });
   assert.notEqual(other.digest, first.digest, 'another slot is another snapshot');
 });
@@ -89,8 +84,6 @@ test('a clean tick does not clear an open incident without recovery evidence', (
 // zero Codex runs and "no work picked". A source that cannot be read is unmeasured.
 test('an unavailable day state is unmeasured, never zero runs or no picked work', async () => {
   const { realSources } = await import('./collab-snapshot.mjs');
-  const { runTick } = await import('./collab-tick.mjs');
-  const { renderProgress } = await import('./collab-work.mjs');
   const { writeFileSync, mkdirSync } = await import('node:fs');
   const take = day => collect({ date: day, slot: '14', clock: at(`${day}T07:00:00Z`), ...sources([], { day: realSources(null, day).day }) });
   const missing = renderSnapshot(take('2026-11-22')).join('\n');
@@ -108,9 +101,6 @@ test('an unavailable day state is unmeasured, never zero runs or no picked work'
   const early = renderSnapshot(take('2026-11-24')).join('\n');
   assert.match(early, /Lượt Codex hôm nay: 2\/\d+; lỗi liên tiếp: 0\./);
   assert.match(early, /Việc đạt tiêu chí: chưa đo được \(chưa có danh sách việc đã chọn\)\./);
-  // The tick's own progress source says the same instead of "no work picked".
-  const opts = runTick({}, () => [], { run: given => given });
-  assert.equal(renderProgress(opts.progress({ codexRuns: 0, failures: 0 }, '2026-11-24')), 'Việc đạt tiêu chí: chưa đo được (chưa có danh sách việc đã chọn).');
 });
 
 // Codex r1 on #497 (P2): merged PRs were cut at takenAt, finished work was not, so one snapshot
@@ -134,16 +124,3 @@ test('a PR merged after the cut-off finishes no item in the snapshot', async () 
 });
 
 // Codex r1 on #497 (P2): the snapshot block replaced the outcome metrics of §2.11 in the digest.
-test('the snapshot digest keeps the outcome metrics beside the snapshot block', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'snap-metrics-'));
-  const metrics = ['Bộ Daily phục vụ được: 3/5 bộ.', 'Câu đã duyệt: 10/12 câu (Codex duyệt 8, owner duyệt 2, còn chờ 2).',
-    'Khoảng cách tới người dùng: 4 commit ở integration chưa lên main; main cập nhật lần cuối 1 ngày trước.',
-    'Thời gian từ mở PR tới merge vào integration (7 ngày qua): trung vị 2.5 giờ (6 PR).', 'Việc đang làm: 1/1, đang chờ review: 0/1.',
-    'Lời hứa sửa quy trình: 3/26 đã chạy thật.'];
-  const snap = takeSnapshot({ slot: '22', date, dir, sources: sources([]), clock: at('2026-11-20T15:00:00Z') });
-  const notes = ownerNotes({ now: { date, hour: 22, minute: 5 }, metrics, snapshot: slot => takeSnapshot({ slot, date, dir, sources: sources([]) }) });
-  const digest = notes.find(n => n.key.startsWith('digest-')).lines;
-  for (const line of renderSnapshot(snap)) assert.ok(digest.includes(line), `snapshot: ${line}`);
-  for (const line of metrics.slice(0, 5)) assert.ok(digest.includes(`- ${line}`), `metric: ${line}`);
-  assert.equal(digest.filter(l => /Lời hứa sửa quy trình/.test(l)).length, 1, 'the lessons line once');
-});

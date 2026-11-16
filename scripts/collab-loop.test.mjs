@@ -447,7 +447,7 @@ test('a pre-push hook removed after the plan shows on the next tick board', asyn
   assert.match(boards.at(-1), /Cần xem[\s\S]*⚠️ Hook trước push ở clone Claude: chưa cài/);
 });
 
-test('tick makes the plan once, waits for the owner, then runs merges and capped reviews', () => {
+test('tick makes the plan once, then runs merges and capped reviews from the next tick', () => {
   const comments = [];
   const ghFor = open => ({
     ...fakeGh({ pr: open[0], open }),

@@ -101,7 +101,7 @@ Issue, PR, comment và branch đều ai cũng đọc được. Chỉ đăng meta
 
 ## Báo cho bên kia
 
-Từ 30.10.2026 owner không cần nhắn chuyển lời: Claude gọi `codex-review.mjs` ngay khi có `Author check: PASS`, và lưới launchd bắt các lượt bị bỏ dở. Owner chỉ duyệt plan buổi sáng và gọi buổi review sâu lời văn/giọng Lá mỗi đợt. Review thủ công (owner nhắn "review PR #N") vẫn được, và trả lời trên GitHub chứ không chỉ trong chat.
+Từ 30.10.2026 owner không cần nhắn chuyển lời: Claude gọi `codex-review.mjs` ngay khi có `Author check: PASS`, và lưới launchd bắt các lượt bị bỏ dở. Plan buổi sáng chạy ngay khi đăng (owner chỉ `Giữ` khi muốn dừng, từ 16.11.2026); owner gọi buổi review sâu lời văn/giọng Lá mỗi đợt. Review thủ công (owner nhắn "review PR #N") vẫn được, và trả lời trên GitHub chứ không chỉ trong chat.
 
 ## Nhận cập nhật và xử lý conflict
 
