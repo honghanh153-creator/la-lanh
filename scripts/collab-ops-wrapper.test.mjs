@@ -260,3 +260,18 @@ test('scheduled-task prompts are checked against the code: no PR quota, the 80 c
   mkdirSync(join(ok, 'la-lanh-autopilot')); writeFileSync(join(ok, 'la-lanh-autopilot', 'SKILL.md'), `${clean}\n`);
   assert.match(skillRuleHealth({ prompts: ok })[0], /^- ✅ /);
 });
+
+// Fix-forward #620: mixed lines, Vietnamese quotas and unreadable prompts.
+test('#620: a retired clause hides only itself; a Vietnamese quota is caught; an unreadable prompt is unchecked', () => {
+  assert.deepEqual(skillRuleFindings('The old rule is retired; stay within 60 Codex runs a day.'), ['trần Codex 60, code là 80 (dòng 1)']);
+  assert.deepEqual(skillRuleFindings('Lập kế hoạch ít nhất 20 PRs mỗi ngày.'), ['còn chỉ tiêu số PR (dòng 1)']);
+  assert.deepEqual(skillRuleFindings('Luật cũ "ít nhất 20 PR" đã bỏ; nay 3–5 việc.'), []);
+  assert.deepEqual(skillRuleFindings('3c. RETIRED: no PR count. The old text follows for history only — do NOT apply it: (at least 16 PRs a day, Codex cap 32).'), [], 'a quoted old rule is history');
+  const dir = realpathSync(mkdtempSync(join(tmpdir(), 'skills-unread-')));
+  mkdirSync(join(dir, 'la-lanh-autopilot'));
+  mkdirSync(join(dir, 'la-lanh-autopilot', 'SKILL.md'));
+  const bad = verifySkillRules({ dir });
+  assert.equal(bad.length, 1);
+  assert.match(bad[0], /^la-lanh-autopilot: không đọc được prompt \(EISDIR\), chưa kiểm$/);
+  assert.match(skillRuleHealth({ prompts: dir })[0], /^- ⚠️ /);
+});

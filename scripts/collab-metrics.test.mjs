@@ -55,7 +55,7 @@ test('every metric comes from its source and prints one plain line each', () => 
     'Câu đã duyệt: 7/10 câu (Codex duyệt 6, owner duyệt 1, còn chờ 2).',
     'Khoảng cách tới người dùng: 42 commit ở integration chưa lên main; main cập nhật lần cuối 3 ngày trước.',
     'Thời gian từ mở PR tới merge vào integration (7 ngày qua): trung vị 3,0 giờ (1 PR).',
-    'Việc đang làm: 0/1, đang chờ review: 1/1.',
+    'Việc đang làm: 0/2, đang chờ review: 1/2 (kế hoạch 7 tuần 0/1 và 0/1; quy trình 0/1 và 1/1).',
     'Lời hứa sửa quy trình: 1/3 đã chạy thật (đã merge, Codex duyệt), 2 đang làm, **1 quá hạn** (L02).',
   ]);
 });
@@ -70,4 +70,13 @@ test('an unavailable source prints "chưa đo được (lý do)", never a number
   assert.match(lines[3], /chưa đo được \(gh: HTTP 502\)/);
   assert.ok(lines.slice(0, 4).every(l => !/\d+\/\d+|\d+ commit|trung vị/.test(l)), 'no number when the source failed');
   assert.deepEqual(renderMetrics(null), []);
+});
+
+// Fix-forward #615: with two lanes the board showed "2/1"; totals now read against both lane limits.
+test('the WIP line counts against both lanes, with each lane after it', () => {
+  const none = { error: 'x' };
+  const rest = { bundles: none, copy: none, ahead: none, mainAge: none, leadTime: none };
+  const base = renderMetrics({ ...rest, wip: { inProgress: 2, inReview: 1, lanes: { plan7w: { inProgress: 1, inReview: 1 }, process: { inProgress: 1, inReview: 0 } } } });
+  assert.ok(base.includes('Việc đang làm: 2/2, đang chờ review: 1/2 (kế hoạch 7 tuần 1/1 và 1/1; quy trình 1/1 và 0/1).'), base.join(' | '));
+  assert.ok(renderMetrics({ ...rest, wip: { inProgress: 0, inReview: 1 } }).includes('Việc đang làm: 0/1, đang chờ review: 1/1.'), 'a count without lanes reads as before');
 });
