@@ -111,6 +111,14 @@ export function runReview(number, options = {}) {
   finally { release(); }
 }
 
+// #586: the owner's words for --over-cap. Empty, blank (also after control characters are removed)
+// or another option ("--over-cap --pr 7") is no quote; the text is trimmed before it is shortened,
+// with no length cut before the check (#588: a 100 001-blank value became the truncation marker).
+export function overCapWords(raw) {
+  const text = String(raw ?? '').replace(/[\u0000-\u0008\u000b-\u001f\u007f\u2028\u2029]/g, '').trim();
+  return !text || text.startsWith('--') ? '' : clean(text, 300);
+}
+
 // Time kept after Codex for the git check and up to five gh calls (60 s each) that publish the result.
 export const reviewFinalizeReserveMs = 5 * 60000;
 
@@ -137,7 +145,7 @@ function reviewOnce(number, { auto = false, overCap = null, gh: ghIn = makeGh(),
   // explicit --over-cap with the owner's words runs, and those words are kept in the day state.
   const cap = dayCap(day) - auditReserve;
   if (day.codexRuns >= cap) {
-    const words = auto ? '' : clean(String(overCap ?? ''), 300).trim();
+    const words = auto ? '' : overCapWords(overCap);
     if (!words) return { status: 'refused', reason: auto ? `hết ${cap} lượt Codex tự động hôm nay (1 lượt giữ cho soát đêm)` : `hết ${cap} lượt Codex hôm nay (1 lượt giữ cho soát đêm); chạy tay vượt trần cần --over-cap "<lời owner>"` };
     const cur = readJson(dayPath, day);
     writeJson(dayPath, { ...cur, overCapLog: [...(cur.overCapLog ?? []), { at: new Date(nowMs()).toISOString(), pr: number, codexRuns: cur.codexRuns ?? 0, quote: words }] });

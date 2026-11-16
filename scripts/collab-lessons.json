@@ -537,6 +537,26 @@
     "pr": 582
    },
    "note": "fix #580 (merged 16.11 10:49), isolated per-state test #582 (merged 10:53); #404 and #491 set back to ready 16.11"
+  },
+  {
+   "id": "L32",
+   "title": "Mọi lượt Codex, chạy tay hay tự động, tính chung một trần ngày và giữ lượt cho soát đêm; vượt trần chỉ khi có lời owner được ghi lại (sự cố 15.11: hai lượt chạy tay đưa ngày lên 81/80)",
+   "from": "phiên điều phối 15.11; fix-forward #571, #586",
+   "who": "claude",
+   "due": "2026-11-17",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-loop.test.mjs",
+    "name": "#571: a manual review stops at the same cap; only --over-cap with recorded owner words runs"
+   },
+   "caller": {
+    "file": "scripts/codex-review.mjs",
+    "contains": "const words = auto ? '' : overCapWords(overCap);"
+   },
+   "closedBy": {
+    "pr": 585
+   },
+   "note": "cap for manual runs #585 (merged 16.11 11:47); --over-cap word validation and this entry from fix-forward #586"
   }
  ]
 }
