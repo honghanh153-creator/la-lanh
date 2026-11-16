@@ -39,6 +39,9 @@ sweep() {
 }
 unpin() {
   [ -n "$run_dir" ] || return 0
+  # Codex r2 on #603: when only the wrapper is stopped (SIGTERM), its node child may still run from the
+  # tree; leave the tree to a later sweep, which removes it once no live process names it.
+  if /usr/bin/pgrep -f -- "$(printf '%s' "$run_dir" | sed 's/[][\\.^$*+?(){}|]/\\&/g')" >/dev/null 2>&1; then return 0; fi
   git -C "$ops" worktree remove --force "$run_dir" >/dev/null 2>&1 || true
   rm -f "$runs/.$(basename "$run_dir").pid"
 }

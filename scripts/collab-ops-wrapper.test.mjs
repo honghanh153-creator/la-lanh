@@ -204,3 +204,24 @@ test('E: the scheduled tick runs from its own pinned copy and keeps the shared t
   assert.equal(git(ops, 'rev-parse', 'HEAD'), latest, 'the shared tree the hooks read is current');
   assert.deepEqual(readdirSync(join(w.home, 'ops-runs')).filter(n => !n.startsWith('.')), [], 'the tick removed its copy');
 });
+
+// Codex r2 on #603: when only the wrapper ends (its EXIT trap runs), a child it started may still run
+// from the tree; the tree stays until nothing names it, then a later sweep removes it.
+test('E: a run tree outlives its wrapper while a child still uses it, and is swept afterwards', () => {
+  const w = world();
+  const runs = join(w.home, 'ops-runs');
+  const holderPid = join(w.base, 'holder.pid');
+  // The fake node leaves a child that keeps naming its script inside the tree, then returns.
+  writeFileSync(join(w.bin, 'node'), `#!/bin/bash\n/usr/bin/perl -e 'sleep 60' "$1" </dev/null >/dev/null 2>&1 &\necho $! > "${holderPid}"\n`);
+  chmodSync(join(w.bin, 'node'), 0o755);
+  assert.equal(run(w, ['report']).status, 0);
+  const left = readdirSync(runs).filter(n => !n.startsWith('.'));
+  assert.equal(left.length, 1, 'the wrapper exited but its child still uses the tree: it stays');
+  assert.match(left[0], /^report-\d{14}-\d+$/);
+  const pid = Number(readFileSync(holderPid, 'utf8'));
+  process.kill(pid, 'SIGKILL');
+  for (let i = 0; i < 50; i++) { try { process.kill(pid, 0); execFileSync('/bin/sleep', ['0.1']); } catch { break; } }
+  writeFileSync(join(w.bin, 'node'), '#!/bin/bash\nexit 0\n');
+  assert.equal(run(w, ['status']).status, 0);
+  assert.deepEqual(readdirSync(runs).filter(n => !n.startsWith('.')), [], 'once nothing names it, the next run sweeps it');
+});
