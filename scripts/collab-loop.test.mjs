@@ -1132,6 +1132,58 @@ test('only the front PR of the area is synced before its check; waiting PRs get 
   assert.equal(front.status, 'synced', 'the front PR behind integration is merged and pushed');
 });
 
+// ---- owner 16.11.2026 (5-fix package, item 3a): one session per PR ----
+const claims = await import('./collab-pr-claim.mjs');
+const claimsTurn = await import('./collab-turn.mjs');
+test('one session per PR: an atomic local claim; another session is refused; only the holder or a logged forced release frees it', () => {
+  assert.deepEqual(claims.claimPr(901, { session: 'lane-a', branch: 'agent/claude/x' }), { ok: true, created: true });
+  assert.deepEqual(claims.claimPr(901, { session: 'lane-a' }), { ok: true, created: false }, 'the holder may claim again');
+  const other = claims.claimPr(901, { session: 'lane-b' });
+  assert.deepEqual([other.ok, other.reason, other.holder], [false, 'claimed', 'lane-a']);
+  assert.equal(claims.claimPr(902, { session: 'x' }).reason, 'session-id', 'an id too short to be a session is refused');
+  assert.deepEqual([claims.mayTouch(901, 'lane-a').ok, claims.mayTouch(901, 'lane-b').ok, claims.mayTouch(901).ok], [true, false, false], 'the machine never holds a claim');
+  assert.equal(claims.releasePr(901, { session: 'lane-b' }).reason, 'not-holder');
+  assert.equal(claims.releasePr(901, { session: 'lane-b', force: '  ' }).reason, 'not-holder', 'a forced release needs a reason');
+  assert.deepEqual(claims.releasePr(901, { session: 'lane-b', force: 'lane-a stopped; owner asked' }), { ok: true, released: true });
+  assert.match(readFileSync(join(claims.claimDir(), 'releases.jsonl'), 'utf8'), /"pr":901,"holder":"lane-a","by":"lane-b","reason":"lane-a stopped; owner asked"/);
+  assert.equal(claims.readClaim(901), null);
+  writeFileSync(join(claims.claimDir(), 'pr-903.json'), '{"pr": 903,');
+  assert.deepEqual(claims.mayTouch(903, 'lane-a'), { ok: false, reason: 'claim-unreadable' }, 'an unreadable claim holds');
+  unlinkSync(join(claims.claimDir(), 'pr-903.json'));
+});
+
+test('one session per PR: the machine never syncs a claimed PR, autopilot gets no item another session holds, closed PRs lose their claim', () => {
+  const date = '2026-11-19';
+  const open = Array.from({ length: 3 }, (_, i) => pr({ number: 360 + i, createdAt: `2026-11-0${i + 1}T00:00:00Z` }));
+  claims.claimPr(360, { session: 'lane-workflow' });
+  claims.claimPr(999, { session: 'lane-old' });
+  try {
+    const calls = [];
+    tick({ gh: plannedGh(open, date), now: { date, hour: 11, minute: 5 }, merge: () => ({}), review: () => ({ status: 'posted' }), check: (n, o) => { calls.push([n, o.sync]); return { status: 'ci-pending' }; } });
+    assert.deepEqual(calls, [[360, false], [361, true], [362, false]], 'the claimed PR is checked at its head but never synced; the next PR is the front');
+    assert.equal(claims.readClaim(999), null, 'a claim on a PR that is no longer open is dropped');
+    assert.equal(claims.readClaim(360).session, 'lane-workflow');
+    // The check itself: a manual or tick run never syncs a PR another session holds.
+    const run = (cmd, args) => { if (args[0] === 'merge-base') throw new Error('behind'); return args[0] === 'rev-parse' ? A : ''; };
+    const never = () => { throw new Error('nothing of the PR may run on the Mac in CI mode'); };
+    const gh = { ...fakeGh({ pr: pr({ number: 360, headRefName: 'agent/claude/x' }) }), comment: () => {} };
+    const go = session => runCheckInClone(360, { gh, run, group: never, spawn: never, busy: never, terms: () => [], preflight: () => null, source: 'ci', ci: () => ({ state: 'pending' }), sync: true, session });
+    assert.equal(go(null).status, 'ci-pending', 'no session: a claimed PR is not synced; it waits, no failure is recorded');
+    assert.equal(go('lane-other').status, 'ci-pending', 'another session: no sync');
+    assert.equal(go('lane-workflow').status, 'synced', 'the holding session syncs its PR');
+    // Autopilot's queue: a fix item held by another session is listed apart, not handed out.
+    const fix = [pr({ number: 370, comments: [check(A), requestChanges(A)] }), pr({ number: 371, comments: [check(A), requestChanges(A)] })];
+    claims.claimPr(370, { session: 'lane-workflow' });
+    claims.claimPr(371, { session: claimsTurn.autopilotSession });
+    tick({ gh: plannedGh(fix, date), now: { date, hour: 11, minute: 25 }, merge: () => ({}), review: () => ({ status: 'posted' }), check: () => ({ status: 'ci-pending' }) });
+    const queue = JSON.parse(readFileSync(join(trust.stateDir, 'claude-queue.json'), 'utf8'));
+    assert.deepEqual(queue.items.map(t => t.number), [371], 'autopilot keeps its own claimed item, never another session\'s');
+    assert.ok(queue.claimed.some(c => c.pr === 370 && c.session === 'lane-workflow'));
+  } finally {
+    for (const n of [360, 370, 371, 999]) claims.releasePr(n, { session: 'test', force: 'test cleanup' });
+  }
+});
+
 test('#524: a held or conflicting older PR is not the front; the first actionable PR is synced', () => {
   const date = '2026-11-18';
   for (const older of [{ labels: [{ name: 'needs-owner' }] }, { mergeable: 'CONFLICTING' }]) {
