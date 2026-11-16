@@ -313,8 +313,19 @@
    "from": "owner 13.11: báo cáo trung thực",
    "who": "claude",
    "due": "2026-11-18",
-   "status": "open",
-   "note": "prompts pointed 15.11 07:52; tick health now checks both prompts call the snapshot step (#552); 14:00 receipt https://github.com/honghanh153-creator/la-lanh/issues/133#issuecomment-6890824794 (snapshot 336e56277e1e); closes after the 15.11 retro shows its snapshot line"
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-ops-wrapper.test.mjs",
+    "name": "L19: both scheduled reports must call their snapshot step; a disconnected one is reported"
+   },
+   "caller": {
+    "file": "scripts/collab-ops-wrapper.mjs",
+    "contains": "ops-run\\.sh snapshot retro"
+   },
+   "closedBy": {
+    "pr": 552
+   },
+   "note": "prompts pointed 15.11 07:52; tick health checks both prompts call the snapshot step (#552); receipts 15.11: 14:00 report https://github.com/honghanh153-creator/la-lanh/issues/133#issuecomment-6890824794 (snapshot 336e56277e1e); retro 23:36 https://github.com/honghanh153-creator/la-lanh/issues/133#issuecomment-6897840317 (snapshot 4ee95dcdc33b)"
   },
   {
    "id": "L20",
