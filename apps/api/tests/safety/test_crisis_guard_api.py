@@ -129,6 +129,23 @@ def test_tarot_figurative_question_still_gets_a_session(client: TestClient) -> N
     assert _count(client, TarotSessionRow) == 1
 
 
+@pytest.mark.parametrize(
+    "question",
+    [
+        "Mình có nên mua tủ sắt cho phòng mới không?",
+        "Mình tự làm dầu gội, có nên mở cửa hàng nhỏ không?",
+    ],
+)
+def test_tarot_question_that_only_folds_like_a_crisis_word_gets_a_session(
+    client: TestClient, question: str
+) -> None:
+    # Codex auto-2 P1 (16.11): accents tell "tủ sắt" from "tự sát".
+    headers = _guest(client)
+    response = client.post("/v1/tarot/sessions", headers=headers, json=_tarot_body(question))
+    assert response.status_code == 201
+    assert _count(client, TarotSessionRow) == 1
+
+
 def test_tarot_crisis_retry_with_same_key_still_stores_nothing(client: TestClient) -> None:
     headers = _guest(client)
     for _ in range(2):

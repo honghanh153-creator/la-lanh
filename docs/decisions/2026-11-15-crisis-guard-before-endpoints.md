@@ -12,6 +12,7 @@ Một bộ nhận diện dùng chung `apps/api/app/domains/safety/crisis.py` đ�
 Cách nhận diện:
 
 - Danh sách cách nói viết tay, có dấu và không dấu, gồm câu nói kín, phủ định và tiếng lóng.
+- Mỗi luật tiếng Việt ghi cách viết có dấu đúng của từ khóa. Gõ có dấu mà khác dấu là câu khác ("tủ sắt" không phải "tự sát"), nên không bị chặn. Gõ không dấu vẫn bị chặn. Thêm 16/11 sau review Codex vòng 2.
 - Mỗi request chỉ quét tối đa 2048 ký tự, và không có backtracking lồng.
 - Không gọi dịch vụ ngoài hay mô hình AI.
 

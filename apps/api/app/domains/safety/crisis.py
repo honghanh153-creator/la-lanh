@@ -8,8 +8,9 @@ keeps or returns the text it reads.
 How it reads text:
 
 - Vietnamese with and without diacritics. Rules match on a folded copy (no accents, ``đ`` -> ``d``)
-  aligned character by character with the accented copy, so a rule can insist that its key word,
-  when typed with accents, has the accents of the crisis reading ("tự tử", not "từ từ").
+  aligned character by character with the accented copy. Every Vietnamese rule lists the accented
+  spellings of its key word, so a key typed with accents must have the accents of the crisis
+  reading ("tự sát", not "tủ sắt"; "tự tử", not "từ từ"). ``_rule`` refuses a rule without them.
 - Common teen spellings ("mún chít", "ko muốn sống", "muốn die") and stretched letters.
 - Basic English ("kill myself", "want to die", "suicidal", "kms").
 - Figurative "chết" is left alone: "chết cười", "deadline dí chết", "mệt chết đi được",
@@ -113,33 +114,72 @@ _SLOWLY_TAIL = (
 class _Rule:
     """A folded pattern with a ``key`` group.
 
-    ``forms``: when the key was typed with accents, it must be one of these spellings (None: any).
+    ``forms``: when the key was typed with accents, it must be one of these spellings. Every
+    Vietnamese rule lists them: folded text cannot tell "tự sát" from "tủ sắt", so a key typed
+    with other accents is another phrase. English rules list none (accented text never counts).
     ``bare``: whether a key typed without any accents counts.
+    ``plain_span``: a bare key counts only when the whole match is typed without accents, for keys
+    that are everyday words without accents ("ngu mãi mãi" is "stupid forever", not "ngủ").
+    ``plain``: other named groups that must be typed without accents ("mông chết" is not "mong").
     """
 
     pattern: re.Pattern[str]
-    forms: frozenset[str] | None = None
+    forms: frozenset[str]
     bare: bool = True
+    plain_span: bool = False
+    plain: tuple[str, ...] = ()
 
     def hit(self, accented: str, folded: str) -> bool:
         for match in self.pattern.finditer(folded):
+            if any(
+                accented[slice(*match.span(group))] != match.group(group) for group in self.plain
+            ):
+                continue
             start, end = match.span("key")
             typed = accented[start:end]
             if typed == folded[start:end]:
-                if self.bare:
+                if self.bare and (
+                    not self.plain_span or accented[match.start() : match.end()] == match.group(0)
+                ):
                     return True
-            elif self.forms is None or typed in self.forms:
+            elif typed in self.forms:
                 return True
         return False
 
 
-def _rule(pattern: str, forms: tuple[str, ...] | None = None, *, bare: bool = True) -> _Rule:
-    return _Rule(re.compile(pattern), frozenset(forms) if forms is not None else None, bare)
+def _forms(*parts: str | tuple[str, ...]) -> tuple[str, ...]:
+    """Every spelling made of one choice per part: ``_forms("tự", ("làm", "gây"))``."""
 
+    spellings = [""]
+    for part in parts:
+        choices = (part,) if isinstance(part, str) else part
+        spellings = [f"{head} {choice}".strip() for head in spellings for choice in choices]
+    return tuple(spellings)
+
+
+def _rule(
+    pattern: str,
+    forms: tuple[str, ...],
+    *,
+    bare: bool = True,
+    plain_span: bool = False,
+    plain: tuple[str, ...] = (),
+) -> _Rule:
+    # A Vietnamese rule without accented spellings would match any accents (P1, 16.11).
+    if not forms:
+        raise ValueError(f"rule {pattern!r} lists no accented spellings; use _english()")
+    return _Rule(re.compile(pattern), frozenset(forms), bare, plain_span, plain)
+
+
+def _english(pattern: str) -> _Rule:
+    return _Rule(re.compile(pattern), frozenset())
+
+
+_ENDING = ("kết thúc", "kết liễu", "chấm dứt")
 
 _RULES: tuple[_Rule, ...] = (
     # Words that name suicide or self-harm.
-    _rule(r"\b(?P<key>tu sat)\b"),
+    _rule(r"\b(?P<key>tu sat)\b", ("tự sát",)),
     _rule(r"\b(?P<key>tu tu)\b", ("tự tử", "tự tữ"), bare=False),
     _rule(
         rf"\b{_INTENT} (?:{_SELF} )?(?:chuyen |viec )?(?P<key>tu tu)\b{_SLOWLY_TAIL}",
@@ -148,9 +188,15 @@ _RULES: tuple[_Rule, ...] = (
     _rule(r"\b(?P<key>tu tu) (?:cho xong|cho roi|chet|luon)\b", ("tự tử", "tự tữ")),
     _rule(r"\b(?P<key>tu (?:van|vang))\b", ("tự vẫn", "tự vận"), bare=False),
     _rule(r"\b(?P<key>tu hai)\b", ("tự hại",), bare=False),
-    _rule(r"\b(?P<key>tu hai) (?:ban than|chinh minh)\b"),
-    _rule(r"\b(?P<key>tu (?:lam|gay) (?:dau|hai|thuong|ton thuong))\b"),
-    _rule(r"\b(?P<key>(?:lam|gay) (?:dau|hai|ton thuong)) (?:ban than|chinh minh)\b"),
+    _rule(r"\b(?P<key>tu hai) (?:ban than|chinh minh)\b", ("tự hại",)),
+    _rule(
+        r"\b(?P<key>tu (?:lam|gay) (?:dau|hai|thuong|ton thuong))\b",
+        _forms("tự", ("làm", "gây"), ("đau", "hại", "thương", "tổn thương")),
+    ),
+    _rule(
+        r"\b(?P<key>(?:lam|gay) (?:dau|hai|ton thuong)) (?:ban than|chinh minh)\b",
+        _forms(("làm", "gây"), ("đau", "hại", "tổn thương")),
+    ),
     _rule(
         r"(?<!\bbi )\b(?P<key>(?:rach|cat|cua) (?:co )?tay)\b(?! (?:ao|ninh|nguyen|bac|do)\b)",
         ("rạch tay", "cắt tay", "cứa tay", "rạch cổ tay", "cắt cổ tay", "cứa cổ tay"),
@@ -163,9 +209,14 @@ _RULES: tuple[_Rule, ...] = (
     _rule(rf"\b{_INTENT} (?P<key>(?:treo|that) co)\b", ("treo cổ", "thắt cổ")),
     _rule(
         r"\b(?P<key>uong (?:thuoc doc|thuoc chuot|thuoc tru sau|qua lieu|(?:ca|het) "
-        r"(?:lo|vi|hop|nam) thuoc))\b"
+        r"(?:lo|vi|hop|nam) thuoc))\b",
+        _forms("uống", ("thuốc độc", "thuốc chuột", "thuốc trừ sâu", "quá liều"))
+        + _forms("uống", ("cả", "hết"), ("lọ", "vỉ", "hộp", "nắm"), "thuốc"),
     ),
-    _rule(r"\b(?P<key>qua lieu thuoc|thuoc ngu cho (?:xong|chet|roi))\b"),
+    _rule(
+        r"\b(?P<key>qua lieu thuoc|thuoc ngu cho (?:xong|chet|roi))\b",
+        ("quá liều thuốc", *_forms("thuốc ngủ cho", ("xong", "chết", "rồi"))),
+    ),
     # Not wanting to live or to exist.
     _rule(rf"\b{_NOT} {_WANT_LIVE} (?P<key>song){_LIVE_TAIL}", ("sống",)),
     _rule(r"\b(?P<key>song) (?:de )?(?:lam )?gi nua\b", ("sống",)),
@@ -187,29 +238,35 @@ _RULES: tuple[_Rule, ...] = (
         ("chết", "chít"),
     ),
     _rule(r"\b(?P<key>chet) quach\b", ("chết",)),
-    _rule(r"\btha (?P<key>chet)\b", ("chết",)),
+    _rule(r"\b(?P<key>tha chet)\b", ("thà chết",)),
     _rule(rf"\b{_SELF} (?:nen|phai) (?P<key>chet) (?:di|luon|cho)\b", ("chết",)),
     _rule(rf"\buoc (?:gi |chi )?(?:{_SELF} )?(?:duoc )?(?P<key>chet|die)\b", ("chết",)),
-    _rule(rf"\bmong (?:{_SELF} )?(?:duoc )?(?P<key>chet|die)\b", ("chết",)),
+    _rule(
+        rf"\b(?P<lead>mong) (?:{_SELF} )?(?:duoc )?(?P<key>chet|die)\b", ("chết",), plain=("lead",)
+    ),
     _rule(r"\b(?:tim|nghi) (?:den |toi |ve )?(?P<key>cai chet)\b", ("cái chết",)),
     _rule(
         r"\b(?P<key>(?:ket thuc|ket lieu|cham dut) (?:cuoc doi|mang song|sinh mang|doi))"
-        rf" (?:{_SELF}|nay|ban than|chinh minh)\b"
+        rf" (?:{_SELF}|nay|ban than|chinh minh)\b",
+        _forms(_ENDING, ("cuộc đời", "mạng sống", "sinh mạng", "đời")),
     ),
     _rule(
         r"\b(?P<key>(?:ket thuc|ket lieu|cham dut) (?:cuoc doi|mang song|sinh mang))"
-        r"(?=\s*(?:$|\.|cho xong|di\b|luon\b))"
+        r"(?=\s*(?:$|\.|cho xong|di\b|luon\b))",
+        _forms(_ENDING, ("cuộc đời", "mạng sống", "sinh mạng")),
     ),
     _rule(r"\b(?P<key>ket lieu) (?:ban than|chinh minh|minh|doi minh)\b", ("kết liễu",)),
     # Said around the edges (week 1 target, 15.11): ending everything, not waking up, being a
     # burden, "everyone is better off without me", slang for leaving life, farewell signs.
     _rule(
         rf"\b(?:{_INTENT} |cho )?(?P<key>(?:ket thuc|cham dut) (?:moi thu|tat ca|het))"
-        r"(?! voi)(?=\s*(?:$|\.|cho xong|cho roi|luon|di\b))"
+        r"(?! voi)(?=\s*(?:$|\.|cho xong|cho roi|luon|di\b))",
+        _forms(("kết thúc", "chấm dứt"), ("mọi thứ", "tất cả", "hết")),
     ),
     _rule(
         r"\b(?:muon|mun) (?:moi thu|tat ca|cuoc doi|cuoc song) (?P<key>(?:dung lai|ket thuc|"
-        r"cham dut)) (?:han|mai mai|vinh vien|luon)\b"
+        r"cham dut)) (?:han|mai mai|vinh vien|luon)\b",
+        ("dừng lại", "kết thúc", "chấm dứt"),
     ),
     _rule(
         r"\bkhong (?:phai|can|con phai) (?P<key>song)"
@@ -227,7 +284,11 @@ _RULES: tuple[_Rule, ...] = (
         r"(?:thuc |tinh )?(?P<key>day) nua\b",
         ("dậy",),
     ),
-    _rule(r"\b(?P<key>ngu) (?:mai mai|vinh vien|luon khong (?:thuc|tinh|day))\b", ("ngủ",)),
+    _rule(
+        r"\b(?P<key>ngu) (?:mai mai|vinh vien|luon khong (?:thuc|tinh|day))\b",
+        ("ngủ",),
+        plain_span=True,
+    ),
     _rule(
         rf"\b{_SELF} (?:se )?khong (?P<key>(?:tru|song|cam cu)) (?:duoc|noi) (?:toi|den|qua) "
         r"(?:cuoi tuan|mai|ngay mai|sang mai|toi mai|het (?:tuan|thang|nam))\b",
@@ -241,18 +302,23 @@ _RULES: tuple[_Rule, ...] = (
         rf"\b(?:(?:neu|khi) {_SELF} (?:bien mat|chet|khong con|di mai)|khong co {_SELF})"
         r"(?: \S+){0,7} "
         r"(?:do (?:kho|met|ganh|lo|phien|nang)|nhe nhom|nhe nguoi|vui|tot|hanh phuc|thanh than)"
-        r"(?: \S+)? (?P<key>hon)\b"
+        r"(?: \S+)? (?P<key>hon)\b",
+        ("hơn",),
     ),
     _rule(
         r"\b(?:(?:out|ra|thoat|bien|di|roi) khoi|nghi choi(?: voi)?) (?P<key>(?:cuoc doi|the "
-        r"gian|doi nay|trai dat))(?: nay)?(?! (?:cua|anh|chi|em|ho|nguoi|ban|ong|ba|no|ay)\b)"
+        r"gian|doi nay|trai dat))(?: nay)?(?! (?:cua|anh|chi|em|ho|nguoi|ban|ong|ba|no|ay)\b)",
+        ("cuộc đời", "thế gian", "đời này", "trái đất"),
     ),
     _rule(
-        r"\bdi (?P<key>ban muoi)\b(?! (?:o|tai|cho (?:khach|nguoi)|kiem|online|lai)\b)",
-        ("bán muối",),
+        r"\b(?P<key>di ban muoi)\b(?! (?:o|tai|cho (?:khach|nguoi)|kiem|online|lai)\b)",
+        ("đi bán muối",),
     ),
-    _rule(r"\b(?P<key>unalive)\b"),
-    _rule(r"\b(?P<key>thu (?:tuyet menh|vinh biet|tu biet))\b"),
+    _english(r"\b(?P<key>unalive)\b"),
+    _rule(
+        r"\b(?P<key>thu (?:tuyet menh|vinh biet|tu biet))\b",
+        _forms("thư", ("tuyệt mệnh", "vĩnh biệt", "từ biệt")),
+    ),
     _rule(r"\bviet san (?P<key>thu) cho (?:tung|moi|tat ca|ca)\b", ("thư",)),
     _rule(r"\bchao (?P<key>vinh biet)\b", ("vĩnh biệt",)),
     _rule(
@@ -264,29 +330,32 @@ _RULES: tuple[_Rule, ...] = (
         r"\b(?P<key>di xa)(?: \.)? (?:mai mai|vinh vien|(?:va )?(?:khong|chang) (?:bao gio )?"
         r"(?:quay lai|tro lai|tro ve|ve nua))(?=\s*(?:$|\.|(?:nua|dau|luon|bai|nhe|day)\b))"
         # Moving away for good is not a farewell: "đi xa, không quay lại, chuyển hẳn vào Nam".
-        r"(?!.*\b(?:chuyen (?:han|nha|vao|ra|den|toi)|du hoc|lap nghiep|vao nam|ra bac|ve que)\b)"
+        r"(?!.*\b(?:chuyen (?:han|nha|vao|ra|den|toi)|du hoc|lap nghiep|vao nam|ra bac|ve que)\b)",
+        ("đi xa",),
     ),
     # A "last time" next to a farewell sign: giving things away, letters, nothing after today.
     _rule(
         r"^(?=.*\blan cuoi\b).*\b(?P<key>(?:cho|tang) het do(?: dac)?\b|"
-        r"sau hom nay (?:khong|chang|se khong) (?:can|con))"
+        r"sau hom nay (?:khong|chang|se khong) (?:can|con))",
+        _forms(("cho", "tặng"), "hết", ("đồ", "đồ đạc"))
+        + _forms("sau hôm nay", ("không", "chẳng", "sẽ không"), ("cần", "còn")),
     ),
     # English basics.
-    _rule(r"\b(?P<key>kill(?:ing)? my ?self)\b"),
-    _rule(r"\b(?P<key>kms|kys myself)\b"),
-    _rule(r"\b(?P<key>suicid(?:e|al))\b(?! squad)"),
-    _rule(r"\b(?P<key>self ?harm(?:ing)?)\b"),
-    _rule(
+    _english(r"\b(?P<key>kill(?:ing)? my ?self)\b"),
+    _english(r"\b(?P<key>kms|kys myself)\b"),
+    _english(r"\b(?P<key>suicid(?:e|al))\b(?! squad)"),
+    _english(r"\b(?P<key>self ?harm(?:ing)?)\b"),
+    _english(
         r"\b(?:want|wanna|wanting|going|gonna|plan|planning|try|trying|thinking about|"
         r"thought about) (?:to )?(?P<key>die|end my life|hurt(?:ing)? my ?self|"
         r"cut(?:ting)? my ?self)\b"
     ),
-    _rule(r"\b(?P<key>end(?:ing)? my (?:own )?life|take my (?:own )?life)\b"),
-    _rule(
+    _english(r"\b(?P<key>end(?:ing)? my (?:own )?life|take my (?:own )?life)\b"),
+    _english(
         r"\b(?:dont|don t|do not) want to (?P<key>live|be alive|exist)"
         r"(?=\s*(?:$|\.|anymore\b|any more\b|like this\b))"
     ),
-    _rule(r"\b(?P<key>no reason to live|better off dead|wish i (?:was|were) dead)\b"),
+    _english(r"\b(?P<key>no reason to live|better off dead|wish i (?:was|were) dead)\b"),
 )
 
 
