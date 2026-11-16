@@ -212,7 +212,9 @@ test('E: a run tree outlives its wrapper while a child still uses it, and is swe
   const runs = join(w.home, 'ops-runs');
   const holderPid = join(w.base, 'holder.pid');
   // The fake node leaves a child that keeps naming its script inside the tree, then returns.
-  writeFileSync(join(w.bin, 'node'), `#!/bin/bash\n/usr/bin/perl -e 'sleep 60' "$1" </dev/null >/dev/null 2>&1 &\necho $! > "${holderPid}"\n`);
+  // The child is fully started before the fake node returns: on Linux a process caught mid-exec shows an
+  // empty command line for a moment, which is a test race, not the case under test (CI on #628).
+  writeFileSync(join(w.bin, 'node'), `#!/bin/bash\n/usr/bin/perl -e 'sleep 60' "$1" </dev/null >/dev/null 2>&1 &\nh=$!\necho $h > "${holderPid}"\nfor i in $(seq 1 50); do ps -p $h -o args= 2>/dev/null | grep -q perl && break; sleep 0.1; done\n`);
   chmodSync(join(w.bin, 'node'), 0o755);
   assert.equal(run(w, ['report']).status, 0);
   const left = readdirSync(runs).filter(n => !n.startsWith('.'));
