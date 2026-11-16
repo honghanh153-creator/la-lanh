@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { installWrapper, installedPath, reportConsumers, verifyReportPrompts, verifyWrapper, wrapperHealth } from './collab-ops-wrapper.mjs';
+import { installWrapper, installedPath, reportConsumers, skillRuleFindings, skillRuleHealth, verifyReportPrompts, verifySkillRules, verifyWrapper, wrapperHealth } from './collab-ops-wrapper.mjs';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 // Scheduled-task prompts as the owner's machine has them since 15.11 (both call their snapshot step).
@@ -224,4 +224,39 @@ test('E: a run tree outlives its wrapper while a child still uses it, and is swe
   writeFileSync(join(w.bin, 'node'), '#!/bin/bash\nexit 0\n');
   assert.equal(run(w, ['status']).status, 0);
   assert.deepEqual(readdirSync(runs).filter(n => !n.startsWith('.')), [], 'once nothing names it, the next run sweeps it');
+});
+
+// One rule set for every scheduled task (owner 15–16.11; review of 16.11).
+test('scheduled-task prompts are checked against the code: no PR quota, the 80 cap, 06:50 start, 23:35 stop', () => {
+  const stale = [
+    '1. **Plan at least 20 PRs.** Each must be small.',
+    '2. **Before 08:00 (auto-start since 14.11.2026), open the first 8 or more planned PRs**.',
+    '- Stay within 60 Codex runs a day.',
+    '- Do not start new work after 23:00.',
+    'description: open only what fits WIP 1+1; loop auto-starts 08:00',
+  ].join('\n');
+  const found = skillRuleFindings(stale);
+  assert.ok(found.some(f => /chỉ tiêu số PR \(dòng 1\)/.test(f)), found.join(' | '));
+  assert.ok(found.some(f => /chỉ tiêu số PR \(dòng 2\)/.test(f)));
+  assert.ok(found.some(f => /trần Codex 60, code là 80 \(dòng 3\)/.test(f)));
+  assert.ok(found.some(f => /dừng nhận việc lúc 23:00, code là 23:35 \(dòng 4\)/.test(f)));
+  assert.ok(found.some(f => /giờ tự chạy 08:00, code là 06:50 \(dòng 2\)/.test(f)));
+  assert.ok(found.some(f => /giờ tự chạy 08:00, code là 06:50 \(dòng 5\)/.test(f)));
+  const clean = [
+    'You are preparing the day. (Old rule, superseded 12.11: "by 10:00 the plan must cover at least 20 PRs".)',
+    '- The "20 PR/ngày" target is retired.',
+    '1. **Plan 3–5 work items**; open only what fits WIP 1+1.',
+    '- Stay within 80 Codex runs a day.',
+    '- Do not start new work from 23:35.',
+    'the loop runs as soon as the 06:50 plan is posted; auto-start 06:50.',
+  ].join('\n');
+  assert.deepEqual(skillRuleFindings(clean), [], 'retired mentions and current rules pass');
+  const dir = realpathSync(mkdtempSync(join(tmpdir(), 'skills-')));
+  for (const [task, text] of [['la-lanh-morning-prep', stale], ['la-lanh-autopilot', clean], ['other-task', stale]]) { mkdirSync(join(dir, task)); writeFileSync(join(dir, task, 'SKILL.md'), `${text}\n`); }
+  const bad = verifySkillRules({ dir });
+  assert.ok(bad.length >= 6 && bad.every(b => b.startsWith('la-lanh-morning-prep: ')), 'only the la-lanh tasks are read, and each finding names its task');
+  assert.match(skillRuleHealth({ prompts: dir })[0], /^- ⚠️ prompt tác vụ hẹn giờ khác luật trong code: la-lanh-morning-prep: /);
+  const ok = realpathSync(mkdtempSync(join(tmpdir(), 'skills-ok-')));
+  mkdirSync(join(ok, 'la-lanh-autopilot')); writeFileSync(join(ok, 'la-lanh-autopilot', 'SKILL.md'), `${clean}\n`);
+  assert.match(skillRuleHealth({ prompts: ok })[0], /^- ✅ /);
 });

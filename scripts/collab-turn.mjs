@@ -254,6 +254,7 @@ export const idleAlertRuns = 6;
 
 // A failed daily copy batch is retried on later ticks, at most this many attempts a day.
 export const copyBatchAttempts = 3;
+export const stuckAlertRuns = 3;
 
 export const autopilotSession = 'autopilot';
 
@@ -538,9 +539,22 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       const capped = !done.length && work.some(t => t.turn === 'codex-review') && (readJson(dayPath, day).codexRuns ?? 0) >= dayCap(readJson(dayPath, day)) - auditReserve;
       show({ status: red ? 'ran-with-errors' : done.length ? 'ran' : capped ? 'cap' : 'idle', area, turns, done, error: red ? [errors.length ? JSON.stringify(errors) : null, stuck].filter(Boolean).join(' · ') : null });
       if (failures === 2 && alert) alert(`collab tick có lỗi 2 lần liên tiếp (${now.date} ${now.hour}h): ${clean(JSON.stringify(errors), 300)}`);
+      // Review of 16.11: 34 red ticks from 15:43 to 21:41 raised no alert, because a tick red only from the
+      // unresolved copy batch is not a new failure. Three such ticks in a row open one ops-alert a day,
+      // with the reason; the count resets on a green tick.
+      const stuckRuns = stuck && !errors.length ? (readJson(dayPath, day).stuckRuns ?? 0) + 1 : 0;
+      writeJson(dayPath, { ...readJson(dayPath, day), stuckRuns });
+      if (stuckRuns >= stuckAlertRuns && !readJson(dayPath, day).stuckAlerted && alert) {
+        try {
+          alert(`collab tick đỏ ${stuckRuns} lượt liền mà không có lỗi mới (${now.date} ${now.hour}:${String(now.minute).padStart(2, '0')}): ${stuck}`);
+          writeJson(dayPath, { ...readJson(dayPath, day), stuckAlerted: true });
+        } catch (error) { log(`stuck alert failed, retry next run: ${clean(error.message, 200)}`); }
+      }
       tell({ turns: leftTurns, comments: plan.comments });
       log(JSON.stringify(done));
-      return { status: red ? 'ran-with-errors' : 'ran', area, done };
+      // 16.11.2026: the tick log printed only "ran-with-errors" for a whole day; the reason a quiet tick is
+      // still red (the unresolved copy batch) now rides in the logged result too.
+      return { status: red ? 'ran-with-errors' : 'ran', area, done, ...(stuck ? { stuck } : {}) };
     } catch (error) {
       const failures = (readJson(dayPath, day).failures ?? 0) + 1;
       writeJson(dayPath, { ...readJson(dayPath, day), failures, streakAt: streak(failures, readJson(dayPath, day).streakAt) });

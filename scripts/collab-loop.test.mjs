@@ -1502,6 +1502,16 @@ test('copy batch: an unresolved error keeps the run red, a lost alert is resent,
   const quiet = tick(deps(30, { result: { status: 'opened', codex: false } }));
   assert.equal(day().copyBatch.status, 'error', 'no more attempts today');
   assert.equal(quiet.status, 'ran-with-errors', 'a quiet tick after the last retry is still red');
+  assert.match(quiet.stuck ?? '', /^Lô duyệt câu chữ còn lỗi chưa xử lý \(lần 3\/3\): /, '16.11: the logged result says why the tick is red');
+  // Review of 16.11: a red streak from the unresolved batch alone opens one ops-alert, with the reason.
+  const alertsBefore = day().copyAlerts?.length ?? 0;
+  const said = [];
+  for (const m of [40, 50, 55]) tick({ ...deps(m, { result: { status: 'opened', codex: false } }), alert: text => said.push(text) });
+  assert.equal(said.filter(t => /đỏ 3 lượt liền mà không có lỗi mới/.test(t)).length, 1, 'one alert at the third quiet red tick');
+  assert.match(said.find(t => /đỏ 3 lượt liền/.test(t)), /Lô duyệt câu chữ còn lỗi chưa xử lý/);
+  tick({ ...deps(59, { result: { status: 'opened', codex: false } }), alert: text => said.push(text) });
+  assert.equal(said.filter(t => /không có lỗi mới/.test(t)).length, 1, 'once a day');
+  assert.equal(day().copyAlerts?.length ?? 0, alertsBefore);
 
   const capped = '2026-12-02';
   trust.writeJson(trust.dayStatePath(capped), { codexRuns: trust.codexDailyCap, failures: 0 });
