@@ -137,7 +137,7 @@ Session mà owner đang trực tiếp trò chuyện không bị lịch này ch�
 ### 4.1 `codex-review.mjs`
 
 1. Đọc PR bằng `gh`: head SHA, base, nhãn, comment.
-2. Từ chối nếu: base là `main`; draft; nhãn `needs-owner`; **đã có verdict tự động cho đúng SHA**; chưa có `Author check: PASS @ head`; vượt trần lượt Codex trong ngày (lượt tự động).
+2. Từ chối nếu: base là `main`; draft; nhãn `needs-owner`; **đã có verdict tự động cho đúng SHA**; chưa có `Author check: PASS @ head`; vượt trần lượt Codex trong ngày. Từ 16.11.2026 (#571), lượt chạy tay cũng tính chung trần này. Chỉ được vượt trần khi có `--over-cap "<lời owner>"`; lời owner được ghi vào `overCapLog` trong state ngày.
 3. Clone review riêng `~/.cache/la-lanh-collab/review`: fetch, `checkout --detach SHA`, `git clean -fdx`, kiểm `HEAD == SHA`.
 4. Có verdict tự động trước cho SHA cũ là tổ tiên của SHA mới → truyền cả hai để Codex review `cũ..mới` và xác nhận lỗi cũ đã sửa.
 5. `codex exec -s read-only --ephemeral -m gpt-6.1-sol -c model_reasoning_effort="high" -C <clone> --output-schema schema.json -o out.json`, prompt cố định, timeout 30 phút.
