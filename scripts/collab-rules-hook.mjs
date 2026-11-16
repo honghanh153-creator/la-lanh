@@ -91,12 +91,24 @@ export function reload(input, { home = stateDir, now = () => new Date() } = {}) 
       renameSync(`${seenPath}.tmp`, seenPath);
     }
   } catch {}
+  const body = fitContext(text);
   const why = seen && seen !== version ? 'changed' : event === 'SessionStart' ? 'start' : 'first';
   log(home, 'deliveries.jsonl', { at: now().toISOString(), session, event, version, previous: seen, why, changed });
   const head = why === 'changed'
     ? `Luật owner vừa đổi (bản ${seen} → ${version}${changed.length ? `; dòng đổi: ${changed.join(', ')}` : ''}). Áp dụng bản dưới đây từ bây giờ, kể cả cho việc đang làm.`
     : `Luật owner đang hiệu lực (bản ${version}). Đọc trước khi làm; trước khi cần owner, xem R3.`;
-  return `${head}\n\n${text}`;
+  return `${head}\n\n${body}`;
+}
+
+// Claude Code keeps at most 10,000 characters of a hook's additionalContext and turns longer text into
+// a file with a short preview, which would hide the rules. Past maxContext the sheet is sent compact:
+// id, scope, rule and state of every row (sources and replaced wording stay in the file).
+export const maxContext = 9000;
+export function fitContext(text) {
+  if (text.length <= maxContext) return text;
+  const rows = parseRules(text).rows.map(r => `- ${r.id} (${r.scope}): ${r.rule} [${r.state}]`);
+  const compact = [`Bản rút gọn; nguồn và luật cũ: ${sheetRel}.`, ...rows].join('\n');
+  return compact.length <= maxContext ? compact : `${compact.slice(0, maxContext - 120)}\n… (còn tiếp, đọc đủ ở ${sheetRel})`;
 }
 
 export const r3Reason = `R3 (luật owner): không hỏi owner trong chat. Gửi việc cần owner cho phiên điều phối để ghi vào ${decisionsFile} theo 5 phần (chuyện gì / vì sao cần chị / các lựa chọn / mình khuyên / chị trả lời) kèm mặc định an toàn, rồi làm tiếp theo mặc định đó. Nếu không phải việc thuộc 4 loại của owner (R2) thì tự quyết theo docs/operations/decision-checklist.md.`;

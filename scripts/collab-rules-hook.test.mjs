@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { changedIds, handle, inScope, installRulesHook, metrics, r3Reason, recordRepeat, rulesHooks, verifyRulesHook } from './collab-rules-hook.mjs';
+import { changedIds, fitContext, handle, inScope, installRulesHook, metrics, r3Reason, recordRepeat, rulesHooks, verifyRulesHook } from './collab-rules-hook.mjs';
 import { sheetPath } from './collab-rules.mjs';
 
 const script = join(dirname(fileURLToPath(import.meta.url)), 'collab-rules-hook.mjs');
@@ -162,4 +162,17 @@ test('rules hook: metrics give the delay from commit to each session, blocked at
   // No hook, no log: "not measurable", never zero.
   assert.deepEqual(metrics({ home, hookOk: false }), { measurable: false, reason: 'hook luật chưa cài hoặc hỏng' });
   assert.deepEqual(changedIds(sheet, sheet.replace(R9, `${R9} `)), ['R9']);
+});
+
+test('rules hook: the context stays under the 10,000-character hook limit as the sheet grows', () => {
+  const { home, repo, publish } = fixture();
+  const filler = Array.from({ length: 40 }, (_, i) => `| R${18 + i} | Mọi phiên | Luật thử số ${18 + i} ${'rất dài '.repeat(20)} | owner, nguồn rất dài ${'x'.repeat(200)} | 17.11.2026 | — | chạy |`).join('\n');
+  const big = sheet.replace(/(\| R17 \|.*\n)/, `$1${filler}\n`);
+  assert.ok(big.length > 20000);
+  publish(big);
+  const out = ctx(run(home, { hook_event_name: 'SessionStart', source: 'startup', session_id: 's1', cwd: repo }));
+  assert.ok(out.length < 10000, String(out.length));
+  assert.match(out, /Bản rút gọn/);
+  assert.match(out, /- R3 \(Mọi phiên Claude\): Không hỏi owner trong chat/);
+  assert.equal(fitContext(sheet), sheet, 'today\'s sheet goes whole');
 });
