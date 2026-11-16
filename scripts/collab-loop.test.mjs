@@ -1333,6 +1333,18 @@ test('#575: a PR waiting on Claude never holds another on a shared file; a 7-wee
   assert.equal(fileBlocker(p505, [ops, p505]), 481, 'an earlier group still goes first over a 7-week PR');
 });
 
+test('review 16.11: inside a group an incident, then 7-week and persona-fix PRs go before an older ordinary PR on a shared file', () => {
+  const reg = [{ path: 'apps/api/app/domains/content/copy_registry.json' }];
+  const head = n => String(n).padStart(40, '0');
+  const older = pr({ number: 701, createdAt: '2026-11-01T00:00:00Z', headRefOid: head(701), files: reg, comments: [check(head(701))] });
+  const persona = pr({ number: 702, createdAt: '2026-11-10T00:00:00Z', headRefOid: head(702), labels: [{ name: 'persona-fix' }], files: reg, comments: [] });
+  const incident = pr({ number: 703, createdAt: '2026-11-12T00:00:00Z', headRefOid: head(703), labels: [{ name: 'incident' }], files: reg, comments: [] });
+  assert.equal(fileBlocker(persona, [older, persona]), null, 'a persona fix is not held behind an older ordinary PR');
+  assert.equal(fileBlocker(older, [older, persona]), 702, 'the ordinary PR waits for it');
+  assert.equal(fileBlocker(persona, [older, persona, incident]), 703, 'an incident goes first of all');
+  assert.equal(fileBlocker(incident, [older, persona, incident]), null);
+});
+
 test('#581: each repair-waiting state releases a newer PR on a shared file, with no 7-week label involved', () => {
   const reg = [{ path: 'apps/api/app/domains/content/copy_registry.json' }];
   const head = n => String(n).padStart(40, '0');

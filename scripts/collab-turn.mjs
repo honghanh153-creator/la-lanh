@@ -40,8 +40,13 @@ const canMove = (o, dropped) => isOwnPr(o) && !o.isDraft && o.baseRefName === in
 const waitsOnClaude = (o, opts) => ['claude-fix', 'hold'].includes(prTurn(o, { ...opts, open: [] }).turn);
 // Inside one owner group a 7-week-plan PR goes first on a shared file (#575). Across groups the
 // group order still wins, so the group gate and the file gate never wait on each other.
-const is7w = p => (p.labels ?? []).some(l => (l.name ?? l) === label7w);
-const fileOrder = prs => sortByPriority(prs).sort((a, b) => areaOrder.indexOf(classifyArea(a)) - areaOrder.indexOf(classifyArea(b)) || Number(is7w(b)) - Number(is7w(a)));
+// Review of 16.11 (item 2): #505 (safety) waited 43.5 h behind an ordinary PR on a shared file. Inside
+// one group an incident goes first, then 7-week plan and persona-threshold fixes (`persona-fix`), then
+// the rest.
+export const personaFixLabel = 'persona-fix';
+const has = (p, name) => (p.labels ?? []).some(l => (l.name ?? l) === name);
+export const fileRank = p => (has(p, 'incident') ? 2 : has(p, label7w) || has(p, personaFixLabel) ? 1 : 0);
+const fileOrder = prs => sortByPriority(prs).sort((a, b) => areaOrder.indexOf(classifyArea(a)) - areaOrder.indexOf(classifyArea(b)) || fileRank(b) - fileRank(a));
 
 export function fileBlocker(pr, prs = [], { dropped = [], ...opts } = {}) {
   const mine = new Set(prFiles(pr));
