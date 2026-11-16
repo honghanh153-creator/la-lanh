@@ -151,6 +151,11 @@ Session mà owner đang trực tiếp trò chuyện không bị lịch này ch�
     - còn lại thì đi qua checklist Q1–Q5 (`decision-checklist.md`): cả năm câu "không" thì sửa và đi tiếp; có câu "có" (câu chữ mới, dữ liệu cá nhân, hướng sản phẩm) thì vẫn chờ owner;
     - quyết định ghi trên PR, kèm lý do gỡ nhãn.
     Nhãn `needs-owner` sau vòng 2 vì thế không có nghĩa là luôn chờ owner. Từ 15.11.2026 owner cũng không còn là bước duyệt bắt buộc (§2): nhãn chỉ giữ ý nghĩa "chờ owner" khi PR thuộc 4 loại việc chỉ owner quyết.
+11a. **Mỗi PR chỉ một phiên (owner 16.11.2026, gói 5 mục 3a; `scripts/collab-pr-claim.mjs`).** Phiên nào muốn sửa một PR thì giữ PR đó trước bằng `node scripts/collab-pr-claim.mjs --claim N`, với `LA_LANH_SESSION=<id phiên>`. Bản giữ là một file trên máy owner, tạo nguyên tử. Comment hay nhãn trên PR công khai không có giá trị giữ. Khi một phiên đang giữ PR:
+    - máy không đồng bộ PR đó với integration; PR chờ như PR không ở đầu hàng;
+    - autopilot (id `autopilot`) không nhận việc sửa của PR đó;
+    - lệnh check chạy tay của phiên khác cũng không đồng bộ PR đó.
+    Bản giữ không hết hạn theo thời gian, vì không có commit chưa chứng minh phiên đã dừng. Bản giữ chỉ hết khi phiên nhả (`--release N`), khi PR merge hoặc đóng (tick tự bỏ), hoặc khi có lệnh nhả ép kèm lý do (`--force-release N --reason "…"`, ghi vào `pr-claims/releases.jsonl`).
 12. JSON và log lưu ở `~/.cache/la-lanh-collab/logs/`, không vào repo.
 
 ### 4.2 `collab-merge.mjs` — điều kiện merge (tất cả phải đúng)
