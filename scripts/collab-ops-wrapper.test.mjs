@@ -6,11 +6,11 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { installWrapper, installedPath, reportConsumers, skillRuleFindings, skillRuleHealth, verifyReportPrompts, verifySkillRules, verifyWrapper, wrapperHealth } from './collab-ops-wrapper.mjs';
+import { installWrapper, installedPath, reportConsumers, rulesHookHealth, rulesHookWatch, skillRuleFindings, skillRuleHealth, verifyReportPrompts, verifySkillRules, verifyWrapper, wrapperHealth } from './collab-ops-wrapper.mjs';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 // Scheduled-task prompts as the owner's machine has them since 15.11 (both call their snapshot step).
-function prompts({ owner = 'Run `/x/ops-run.sh snapshot 08` (or `14`, `22`).', retro = 'First run `/x/ops-run.sh snapshot retro`.' } = {}) {
+function prompts({ owner = 'Run `/x/ops-run.sh snapshot 14` or `/x/ops-run.sh snapshot 22` for the run time.', retro = 'First run `/x/ops-run.sh snapshot retro`.' } = {}) {
   const dir = realpathSync(mkdtempSync(join(tmpdir(), 'prompts-')));
   for (const [task, text] of [['la-lanh-owner-report', owner], ['la-lanh-retro-2026-11-02', retro]]) {
     if (text === null) continue;
@@ -131,9 +131,11 @@ test('the wrapper installs only from the ops clone, atomically, and drift is rep
 test('L19: both scheduled reports must call their snapshot step; a disconnected one is reported', () => {
   assert.deepEqual(verifyReportPrompts({ dir: prompts() }), []);
   assert.deepEqual(reportConsumers.map(c => c.task), ['la-lanh-owner-report', 'la-lanh-retro-2026-11-02']);
-  assert.match(verifyReportPrompts({ dir: prompts({ owner: 'Count merged PRs with gh pr list.' }) }).join(), /báo cáo owner 08\/14\/22 không gọi bước bản chụp chung/);
+  assert.match(verifyReportPrompts({ dir: prompts({ owner: 'Count merged PRs with gh pr list.' }) }).join(), /báo cáo owner 14\/22 không gọi bước bản chụp chung/);
   assert.match(verifyReportPrompts({ dir: prompts({ retro: 'Facts from tick logs.' }) }).join(), /retro 23:35 không gọi bước bản chụp chung/);
   assert.match(verifyReportPrompts({ dir: prompts({ retro: null }) }).join(), /không đọc được prompt retro/);
+  // R5: the 08:00 slot is gone; a prompt that only takes the 08 snapshot no longer counts.
+  assert.match(verifyReportPrompts({ dir: prompts({ owner: 'Run `/x/ops-run.sh snapshot 08`.' }) }).join(), /báo cáo owner 14\/22/);
   const w = world();
   installWrapper({ root: join(w.home, 'ops'), home: w.home });
   assert.match(wrapperHealth({ root: join(w.home, 'ops'), home: w.home, prompts: prompts({ owner: 'no snapshot' }) })[0], /⚠️.*báo cáo owner/);
@@ -162,6 +164,8 @@ test('scheduled-task prompts are checked against the code: no PR quota, the 80 c
     '- Stay within 80 Codex runs a day.',
     '- Do not start new work from 23:35.',
     'the loop runs as soon as the 06:50 plan is posted; auto-start 06:50.',
+    '- Owner rules: docs/operations/luat-dang-hieu-luc.md (R1…).',
+    'description: 2 lần/ngày (14:00, 22:00); owner 16.11 bỏ bản 08:00',
   ].join('\n');
   assert.deepEqual(skillRuleFindings(clean), [], 'retired mentions and current rules pass');
   const dir = realpathSync(mkdtempSync(join(tmpdir(), 'skills-')));
@@ -172,4 +176,43 @@ test('scheduled-task prompts are checked against the code: no PR quota, the 80 c
   const ok = realpathSync(mkdtempSync(join(tmpdir(), 'skills-ok-')));
   mkdirSync(join(ok, 'la-lanh-autopilot')); writeFileSync(join(ok, 'la-lanh-autopilot', 'SKILL.md'), `${clean}\n`);
   assert.match(skillRuleHealth({ prompts: ok })[0], /^- ✅ /);
+});
+
+// One rules source (owner 16.11, R5): a dropped report slot still scheduled is caught, and every
+// la-lanh prompt must point to the rules sheet instead of restating rules.
+test('scheduled-task prompts: a dropped report slot is caught and every prompt points to the rules sheet', () => {
+  const found = skillRuleFindings(['- 08:00: "**Báo cáo đầu ngày DD.MM**"', 'Send the owner report at 08:00 every day.', '- 14:00: "**Báo cáo 14:00**"'].join('\n'), { retiredSlots: ['08:00'] });
+  assert.deepEqual(found, ['còn giờ báo cáo 08:00 đã bỏ (R5) (dòng 1)', 'còn giờ báo cáo 08:00 đã bỏ (R5) (dòng 2)']);
+  // The default list comes from the rules sheet of this checkout.
+  assert.ok(skillRuleFindings('- 08:00: "**Báo cáo đầu ngày**"').some(f => /08:00 đã bỏ/.test(f)));
+  const dir = realpathSync(mkdtempSync(join(tmpdir(), 'skills-ptr-')));
+  mkdirSync(join(dir, 'la-lanh-autopilot'));
+  writeFileSync(join(dir, 'la-lanh-autopilot', 'SKILL.md'), 'Plan 3–5 work items.\n');
+  assert.deepEqual(verifySkillRules({ dir }), ['la-lanh-autopilot: thiếu dòng trỏ tới bảng luật (docs/operations/luat-dang-hieu-luc.md)']);
+  writeFileSync(join(dir, 'la-lanh-autopilot', 'SKILL.md'), 'Rules: /x/ops/docs/operations/luat-dang-hieu-luc.md\nPlan 3–5 work items.\n');
+  assert.deepEqual(verifySkillRules({ dir }), []);
+});
+
+test('L33: the tick opens one alert a day while the rules hook is broken and closes it when fixed', () => {
+  const marker = join(realpathSync(mkdtempSync(join(tmpdir(), 'rules-watch-'))), 'm.json');
+  const sent = [];
+  const closed = [];
+  const watch = (bad, today) => rulesHookWatch({ verify: () => bad, alert: t => sent.push(t), resolve: t => closed.push(t), marker, today });
+  assert.equal(watch(['hook PreToolUse của luật owner thiếu hoặc khác bản chuẩn'], 'd1').status, 'alerted');
+  assert.match(sent[0], /^Hook luật owner \(L33.*PreToolUse.*collab-rules-hook\.mjs --install$/);
+  assert.equal(watch(['x'], 'd1').status, 'already-alerted');
+  assert.equal(watch(['x'], 'd2').status, 'alerted');
+  assert.equal(watch([], 'd2').status, 'resolved');
+  assert.deepEqual(closed, ['hook luật owner đã khớp bản chuẩn']);
+  assert.equal(watch([], 'd3').status, 'ok');
+  assert.match(rulesHookHealth({ verify: () => ['selftest trượt'] })[0], /^- ⚠️ hook luật owner \(L33\): selftest trượt/);
+  assert.match(rulesHookHealth({ verify: () => [] })[0], /^- ✅ hook luật owner/);
+});
+
+test('L33: the production tick watchdog calls the rules-hook watch with its ops-alert subject', async () => {
+  const { runTick } = await import('./collab-tick.mjs');
+  let seen = null;
+  const given = runTick({ raw: () => '', json: () => [] }, () => [], { run: g => g, gateWatch: () => ({ status: 'ok' }), rulesWatch: args => { seen = args; return { status: 'ok' }; } });
+  given.watchdog();
+  assert.ok(seen && typeof seen.alert === 'function' && typeof seen.resolve === 'function' && /^\d{4}-\d{2}-\d{2}$/.test(seen.today));
 });

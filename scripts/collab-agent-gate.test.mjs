@@ -228,7 +228,7 @@ test('L06 gate: a broken gate opens one alert a day from the real tick, and clos
   assert.equal(existsSync(m2), false);
   // Wiring: the production tick's watchdog calls the gate watch with the ops-alert subject.
   let seen = null;
-  const given = runTick({ raw: () => '', json: () => [] }, () => [], { run: g => g, gateWatch: args => { seen = args; return { status: 'ok' }; } });
+  const given = runTick({ raw: () => '', json: () => [] }, () => [], { run: g => g, gateWatch: args => { seen = args; return { status: 'ok' }; }, rulesWatch: () => ({ status: 'ok' }) });
   given.watchdog();
   assert.ok(seen && typeof seen.alert === 'function' && typeof seen.resolve === 'function' && /^\d{4}-\d{2}-\d{2}$/.test(seen.today));
 });
