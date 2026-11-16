@@ -519,9 +519,9 @@ test('L22: the tick night audit reads the disagreement log written by collab-dis
 
 // Owner 15.11.2026 ("thêm 20 lượt nữa cho codex nhé"): a day grant raises every cap; the night
 // audit keeps its reserve.
-test('owner grant: 20 extra runs let the tick review at 60 and the audit run at 79, reserve kept', () => {
+test('owner grant: 20 extra runs (recorded on the fixed base) let the tick review past the base cap and the audit use the last run, reserve kept', () => {
   const date = '2026-12-04';
-  const grant = { ownerExtraCodex: { granted: 20, used: 0, log: [] } };
+  const grant = { ownerExtraCodex: { granted: 20, base: codexDailyCap, used: 0, log: [] } };
   const started = [];
   writeJson(dayStatePath(date), { codexRuns: codexDailyCap, ...grant });
   tick({ gh: plannedGh(date), now: { date, hour: 12, minute: 0 }, merge: () => ({}), review: number => { started.push(number); return { status: 'posted' }; } });

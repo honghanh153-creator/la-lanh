@@ -340,6 +340,16 @@ test('5-fix A2, P1 on #591: a failed owner label posts no verdict, so an APPROVE
   }
 });
 
+test('owner 15–16.11: the Codex cap is a fixed 80 a day; an old 60 + 20 grant is 80, not 100', () => {
+  assert.equal(trust.codexDailyCap, 80);
+  assert.equal(trust.dayCap({}), 80);
+  assert.equal(trust.dayCap({ codexRuns: 3 }), 80);
+  assert.equal(trust.dayCap({ ownerExtraCodex: { granted: 20 } }), 80, 'the 15–16.11 grants lifted the old 60 to 80');
+  assert.equal(trust.dayCap({ ownerExtraCodex: { granted: 30 } }), 90, 'a larger old grant still counts above 80');
+  assert.equal(trust.dayCap({ ownerExtraCodex: { granted: 20, base: 80 } }), 100, 'a grant recorded with its base adds on top');
+  assert.equal(trust.dayCap({ ownerExtraCodex: { granted: -5, base: 80 } }), 80, 'never below the fixed cap');
+});
+
 test('daily cap refuses automatic reviews', () => {
   const now = { date: '2026-11-01', hour: 12, minute: 0 };
   trust.writeJson(trust.dayStatePath(now.date), { codexRuns: trust.codexDailyCap });
@@ -759,7 +769,7 @@ test('owner 12.11: the plan picks 3–5 work items with a source and what the us
   assert.match(body, /\*\*Việc chọn hôm nay \(3–5 việc\):\*\*/);
   assert.match(body, /1\. #20 feat\(tarot\): plain summary\n {3}- Nguồn \/ AC: US-20 AC2\n {3}- Người dùng thấy gì: câu số 20 dễ đọc hơn/);
   assert.match(body, /Tiến độ hôm nay = việc xong \/ việc đã chọn/);
-  assert.match(body, /Lượt Codex tự động còn hôm nay: 12\/60\./);
+  assert.match(body, new RegExp(`Lượt Codex tự động còn hôm nay: 12/${trust.codexDailyCap}\\.`));
   assert.doesNotMatch(body, /16|20 PR|% hôm nay|Cam kết/, 'no PR quota and no % of committed PRs');
   const few = renderPlan({ date: '2026-11-03', hour: 8, minute: 50 }, turnsFor([pr()]), { codexLeft: 12 });
   assert.match(few, /1\. #7 [^\n]*\n {3}- Nguồn \/ AC: plan §3\n {3}- Người dùng thấy gì: không trực tiếp \(vận hành\)/);
@@ -846,17 +856,17 @@ test('WIP 1 + 1 (owner 12.11): the tick asks for a new task only when nothing is
   const inFix = [check(A), owner(`Review verdict: REQUEST_CHANGES @ ${A}`)];
   const run = (open, minute) => tick({ gh: plannedGh(open, date), now: { date, hour: 15, minute }, merge: () => ({}), check: () => ({ status: 'FAIL' }), review: () => ({ status: 'posted' }) });
   run([agent(1, { comments: inFix }), agent(2, { comments: [check(A)] })], 5);
-  assert.equal(queue().topUp, false, '1 in progress + 1 in review: no new task');
+  assert.equal(queue().lanes.process.topUp, false, '1 in progress + 1 in review: no new task');
   assert.deepEqual([queue().inProgress, queue().inReview], [1, 1]);
   run([agent(3, { comments: [check(A)] })], 15);
-  assert.equal(queue().topUp, true, 'one in review and nothing in progress: Claude starts one task');
-  assert.equal(queue().topUpCount, 1);
+  assert.equal(queue().lanes.process.topUp, true, 'one in review and nothing in progress: Claude starts one task');
+  assert.deepEqual(queue().topUpLanes, ['plan7w', 'process'], 'each lane with room may start one task (owner 16.11: two lanes)');
   run([agent(4, { comments: [check(A)] }), agent(5, { comments: [check(A)] })], 25);
-  assert.equal(queue().topUp, false, 'two in review: finish before starting');
+  assert.equal(queue().lanes.process.topUp, false, 'two in review: finish before starting');
   run([agent(6, { comments: inFix })], 35);
-  assert.equal(queue().topUp, false, 'a task in progress fills the slot even with review empty');
+  assert.equal(queue().lanes.process.topUp, false, 'a task in progress fills the slot even with review empty');
   run([pr({ number: 7, comments: inFix })], 45);
-  assert.equal(queue().topUp, true, 'an owner branch is not agent work in progress');
+  assert.equal(queue().lanes.process.topUp, true, 'an owner branch is not agent work in progress');
 });
 
 test('retro S1: runs in a row with no area ask for a top-up from the third and alert on the sixth', () => {
@@ -867,13 +877,13 @@ test('retro S1: runs in a row with no area ask for a top-up from the third and a
   for (let i = 1; i <= 7; i += 1) {
     run([], i);
     assert.equal(queue().idleRuns, i);
-    assert.equal(queue().topUp, true);
+    assert.equal(queue().lanes.process.topUp, true);
   }
   assert.equal(alerts.length, 1, 'one alert at the sixth idle run, not on every run after it');
   assert.match(alerts[0], /chạy không 6 lượt liền/);
   run([7, 8, 9, 10, 11].map(number => pr({ number, headRefName: `agent/claude/t${number}` })), 30);
   assert.equal(queue().idleRuns, 0, 'a run with an area resets the count');
-  assert.equal(queue().topUp, false);
+  assert.equal(queue().lanes.process.topUp, false);
 });
 
 test('#237: a failed idle alert is retried on the next idle run until it is delivered', () => {
@@ -1361,7 +1371,7 @@ test('#158/#159: top-up is computed from the queue left after this tick merges',
   const queue = JSON.parse(readFileSync(join(trust.stateDir, 'claude-queue.json'), 'utf8'));
   assert.equal(queue.buffer, 0, 'WIP counts the PRs still open after the merges');
   assert.equal(queue.topUp, true, 'the emptied WIP asks Claude for the next task in the same tick');
-  assert.equal(queue.topUpCount, 1);
+  assert.deepEqual(queue.topUpLanes, ['plan7w', 'process'], 'both lanes have room (owner 16.11: two lanes)');
 });
 
 // ---- #253: buffer rule and flow samples on the scheduled path ----
@@ -1371,7 +1381,7 @@ test('#253: the persisted queue uses the WIP rule and the tick samples the flow 
   tick({ gh: plannedGh(one, date), now: { date, hour: 15, minute: 5 }, merge: () => ({}), check: () => ({ status: 'FAIL' }), review: () => ({}) });
   const queue = JSON.parse(readFileSync(join(trust.stateDir, 'claude-queue.json'), 'utf8'));
   assert.equal(queue.topUp, true, 'one PR in review and nothing in progress');
-  assert.equal(queue.topUpCount, 1);
+  assert.deepEqual(queue.topUpLanes, ['plan7w', 'process'], 'both lanes have room (owner 16.11: two lanes)');
   assert.equal(queue.buffer, 1);
   const flow = trust.readJson(join(trust.stateDir, 'beats', `flow-${trust.vnNow().date}.json`), null);
   assert.ok(flow?.samples >= 1, 'the scheduled tick records a flow sample without any CLI read');
