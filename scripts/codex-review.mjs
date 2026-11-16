@@ -112,9 +112,10 @@ export function runReview(number, options = {}) {
 }
 
 // #586: the owner's words for --over-cap. Empty, blank (also after control characters are removed)
-// or another option ("--over-cap --pr 7") is no quote; the text is trimmed before it is shortened.
+// or another option ("--over-cap --pr 7") is no quote; the text is trimmed before it is shortened,
+// with no length cut before the check (#588: a 100 001-blank value became the truncation marker).
 export function overCapWords(raw) {
-  const text = clean(String(raw ?? ''), 100000).trim();
+  const text = String(raw ?? '').replace(/[\u0000-\u0008\u000b-\u001f\u007f\u2028\u2029]/g, '').trim();
   return !text || text.startsWith('--') ? '' : clean(text, 300);
 }
 

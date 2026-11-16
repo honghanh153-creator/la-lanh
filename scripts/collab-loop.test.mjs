@@ -281,6 +281,7 @@ test('#571: a manual review stops at the same cap; only --over-cap with recorded
 test('#586: --over-cap needs real words: a following option, blanks or control characters are no quote', () => {
   assert.equal(review.overCapWords('--pr'), '', '"--over-cap --pr 7" names no owner words');
   assert.equal(review.overCapWords(' '.repeat(301)), '', 'blanks are trimmed before shortening');
+  assert.equal(review.overCapWords(' '.repeat(100001)), '', 'a very long blank is no quote either (#588)');
   assert.equal(review.overCapWords('\u0001\u0002 '), '', 'control characters only');
   assert.equal(review.overCapWords(null), '');
   assert.equal(review.overCapWords('  cho thêm 1 lượt  '), 'cho thêm 1 lượt');
