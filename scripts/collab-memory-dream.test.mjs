@@ -68,6 +68,9 @@ test('dream: a stale cap, stop time or retired report slot is caught; history li
   assert.deepEqual(contradictions('trần Codex 32 lượt', facts).map(c => c.rule), ['R8']);
   assert.deepEqual(contradictions('The loop stops at 23:00.', facts).map(c => c.rule), ['R9']);
   assert.deepEqual(contradictions('Send the report at 08:00.', facts).map(c => c.rule), ['R5']);
+  assert.deepEqual(contradictions('The loop runs from 08:00 to 23:59.', facts).map(c => c.rule), ['R9']);
+  assert.deepEqual(contradictions('window 08:00–23:59 is open', facts).map(c => c.rule), ['R9']);
+  assert.deepEqual(contradictions('The loop runs from 06:50 to 23:59.', facts), []);
   assert.deepEqual(contradictions('Codex cap 80; no new work after 23:35, stops 23:59.', facts), []);
   assert.deepEqual(contradictions('The old cap was 60 (replaced by 80).', facts), []);
   assert.deepEqual(contradictions('drop the 08:00 report', facts), []);

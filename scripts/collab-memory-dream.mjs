@@ -60,6 +60,11 @@ export function contradictions(text, facts) {
     for (const m of line.matchAll(/(?:stop|stops|dừng|ngừng|không bắt đầu|no new work)[^.\n]{0,30}?\b([0-2]\d:[0-5]\d)/gi)) {
       if (![facts.lastStartAt, facts.cutoffAt].includes(m[1])) out.push({ rule: 'R9', says: m[1], sheet: `${facts.lastStartAt}/${facts.cutoffAt}` });
     }
+    // A loop window that starts at another time than the plan (first review of a real proposal,
+    // 16.11: an entry said "08:00–23:59" after the plan moved to 06:50).
+    for (const m of line.matchAll(/\b([0-2]\d:[0-5]\d)\s*(?:–|-|→|to|tới|đến)\s*23:59/gi)) {
+      if (m[1] !== facts.planOpensAt) out.push({ rule: 'R9', says: `${m[1]}–23:59`, sheet: `${facts.planOpensAt}–${facts.cutoffAt}` });
+    }
     for (const slot of facts.retiredReportSlots ?? []) {
       if (new RegExp(`(report|báo cáo)[^.\\n]{0,30}${slot}|${slot}[^.\\n]{0,15}(report|báo cáo)`, 'i').test(line)) out.push({ rule: 'R5', says: slot, sheet: facts.reportSlots.join('/') });
     }
