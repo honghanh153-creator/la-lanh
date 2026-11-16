@@ -108,9 +108,9 @@ Mỗi cổng có: việc phải làm, bằng chứng để trong PR, phần nào
 
 ### G3. Nội dung và câu chữ
 
-- Câu mới mà người dùng thấy cần owner duyệt (Q2); không ngôn ngữ định mệnh hay dự đoán chắc chắn.
+- Câu mới mà người dùng thấy: ghi với cờ chờ duyệt, Codex duyệt (Q2). Chỉ câu nhóm privacy, consent, crisis, safety cần owner duyệt, và chỉ chặn phát hành (owner 16.11.2026). Không ngôn ngữ định mệnh hay dự đoán chắc chắn.
 - Sau duyệt: cập nhật `fallback-approval.json` khi đụng bảng nội dung.
-- Bằng chứng: bảng trước/sau, câu owner duyệt. Máy: `content:audit`, `content:review`,
+- Bằng chứng: bảng trước/sau, verdict Codex (và câu owner duyệt cho nhóm privacy/consent/crisis/safety). Máy: `content:audit`, `content:review`,
   `grammar:check`, `fallback_approval --check`, `tarot:audit`.
 
 ### G4. BE và kiến trúc
@@ -202,5 +202,6 @@ của `AGENTS.md` như trước. PR mở từ 01.11.2026 theo đủ file này.
 
 ## 6. Khi nào cần owner
 
-Chỉ ở: câu chữ mới (G3), dữ liệu cá nhân mới hoặc đổi mục đích (G8), hướng sản phẩm, chi phí, và release (G9).
-Mọi thứ khác agent tự làm theo file này và checklist quyết định.
+Chỉ 4 loại việc (owner 15–16.11.2026): chi phí, dịch vụ mới hoặc quyền truy cập mới (G10); phát hành (G9);
+câu chữ privacy, consent, crisis, safety (G3, chặn phát hành, không chặn merge); bật thu thập dữ liệu cá nhân mới (G8).
+Mọi thứ khác Codex duyệt; agent tự làm theo file này và checklist quyết định.

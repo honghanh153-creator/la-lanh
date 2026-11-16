@@ -483,7 +483,7 @@ Thứ tự này đã đổi theo ý chị đêm 14.11: Lá nhây và Học vào 
     - Có cho mời lại cùng một người sau khi lời mời đóng không. Đề xuất: không, trong 30 ngày.
     - Ai xử lý báo cáo, trong bao lâu. Đây là việc vận hành thật, không tự động hết được.
 
-**Câu chữ:** câu thường thì Codex duyệt như hiện nay. Bài Học (chị chốt đêm 14.11): chị duyệt bài đầu của mỗi khóa và danh sách lằn ranh đỏ; Codex duyệt các bài sau theo danh sách đó. Câu về quyền riêng tư, đồng ý và hỗ trợ khi khủng hoảng thì chị duyệt.
+**Câu chữ:** câu thường thì Codex duyệt như hiện nay. Bài Học (chị chốt đêm 14.11; từ 15.11 bài đầu và lằn ranh đỏ chuyển Codex duyệt): chị duyệt bài đầu của mỗi khóa và danh sách lằn ranh đỏ; Codex duyệt các bài sau theo danh sách đó. Câu về quyền riêng tư, đồng ý và hỗ trợ khi khủng hoảng thì chị duyệt.
 
 ## 7. Dữ liệu và quyền riêng tư theo từng ý
 

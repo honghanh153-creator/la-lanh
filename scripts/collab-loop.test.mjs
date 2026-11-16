@@ -36,6 +36,13 @@ const sealable = (kind, claims) => ({ ...owner(sealBody(kind, claims, 7)), seal:
 const check = (sha, status = 'PASS', base = BASE) => sealable('check', { head: sha, result: status, base });
 const approve = (sha, { p2 = 0, base = BASE, fix = null } = {}) => sealable('verdict', { head: sha, result: 'APPROVE', base, p2, fix });
 const requestChanges = (sha, base = BASE) => sealable('verdict', { head: sha, result: 'REQUEST_CHANGES', base });
+// The local review log codex-review.mjs writes for each verdict; only a logged complete review may be
+// the baseline of a delta re-review (P1 on #590).
+const logReview = (c, complete = true) => {
+  const receipt = /receipt=([0-9a-f]{32})/.exec(c.body)[1];
+  trust.writeJson(join(trust.stateDir, 'logs', `review-fixture-${receipt}.json`), { receipt, complete });
+  return c;
+};
 const resign = (n, c) => (c?.seal && n !== 7 ? asPosted(trust, { ...c, body: sealBody(c.seal.kind, c.seal.claims, n) }) : c);
 const pr = (extra = {}) => {
   const p = { number: 7, title: 'feat(tarot): plain summary', author: { login: 'honghanh153-creator' }, isCrossRepository: false, state: 'OPEN', isDraft: false, baseRefName: 'collab/integration', headRefName: 'feat/x', headRefOid: A, baseTipOid: BASE, mergeable: 'MERGEABLE', labels: [], createdAt: '2026-10-29T00:00:00Z', comments: [], body: goodBody, ...extra };
@@ -114,29 +121,30 @@ test('queue order is ops → content → privacy → feature, oldest first', () 
   assert.deepEqual(order, [1, 5, 4, 6, 3, 2]);
 });
 
-test('daily gate (owner 14.11): 06:50 plan, owner window, 08:00 auto start, nothing new from 23:35', () => {
+test('daily gate (owner 16.11): 06:50 plan runs as soon as it is posted, Giữ stops it at any time, nothing new from 23:35', () => {
   const date = '2026-10-30';
   const at = (hour, minute) => ({ date, hour, minute });
   const plan = { authorAssociation: 'OWNER', createdAt: '2026-10-30T01:50:00Z', body: `${trust.agentMarker} daily-plan date=${date} -->` };
   const reply = (body, createdAt = '2026-10-30T02:05:00Z', extra = {}) => ({ authorAssociation: 'OWNER', createdAt, body, ...extra });
   assert.equal(planState(at(6, 40), []).state, 'closed');
   assert.equal(planState(at(6, 55), []).state, 'not-made');
-  assert.equal(planState(at(7, 10), [plan]).state, 'waiting');
+  assert.deepEqual([planState(at(6, 51), [plan]).state, planState(at(6, 51), [plan]).reason], ['open', 'auto-start'], 'no owner window: open as soon as posted');
   assert.equal(planState(at(7, 10), [plan, reply('Duyệt')]).state, 'open');
   assert.equal(planState(at(8, 30), [plan, reply('Giữ')]).state, 'held');
-  assert.equal(planState(at(8, 5), [plan]).state, 'open');
-  assert.equal(planState(at(7, 10), [plan, reply(`Duyệt\n${trust.agentMarker} x -->`)]).state, 'waiting', 'agent-marked text is not the owner');
-  assert.equal(planState(at(7, 10), [reply('Duyệt', '2026-10-30T01:00:00Z'), plan]).state, 'waiting', 'replies before the plan do not count');
-  assert.equal(planState(at(7, 10), [plan, reply('Duyệt', undefined, { authorAssociation: 'NONE' })]).state, 'waiting');
+  assert.equal(planState(at(15, 0), [plan, reply('Giữ', '2026-10-30T07:55:00Z')]).state, 'held', 'Giữ stops the plan at any time of day');
+  assert.equal(planState(at(16, 0), [plan, reply('Giữ', '2026-10-30T07:55:00Z'), reply('Duyệt', '2026-10-30T08:30:00Z')]).state, 'open', 'Duyệt after Giữ runs again');
+  assert.equal(planState(at(7, 10), [plan, reply(`Giữ\n${trust.agentMarker} x -->`)]).state, 'open', 'agent-marked text is not the owner');
+  assert.equal(planState(at(7, 10), [reply('Giữ', '2026-10-30T01:00:00Z'), plan]).state, 'open', 'replies before the plan do not count');
+  assert.equal(planState(at(7, 10), [plan, reply('Giữ', undefined, { authorAssociation: 'NONE' })]).state, 'open');
   assert.deepEqual(planState(at(8, 5), [plan, reply('Bỏ #5')]).dropped, [5]);
   assert.equal(planState(at(23, 34), [plan, reply('Duyệt')]).state, 'open', 'the day now runs until 23:35');
   assert.equal(planState(at(23, 35), [plan, reply('Duyệt')]).state, 'closed');
-  assert.equal(planState(at(9, 55), [plan]).state, 'open', 'no owner reply: open from 08:00, not 10:00');
+  assert.equal(trust.autoStartAt, trust.planOpensAt, 'one start time: the plan time');
   assert.doesNotThrow(() => trust.assertAgentBody(renderPlan(at(8, 50), turnsFor([pr()]), { codexLeft: 12 })));
 });
 
 const finding = (severity, category) => ({ severity, category, file: 'apps/web/x.ts', line: 3, title: 't', detail: 'd' });
-const output = (extra = {}) => ({ verdict: 'APPROVE', sha: A, reviewed_range: 'x..y', complete: true, summary: 'ok', findings: [], ...extra });
+const output = (extra = {}) => ({ verdict: 'APPROVE', sha: A, reviewed_range: 'x..y', complete: true, summary: 'ok', findings: [], owner_actions: [], ...extra });
 
 test('P2 policy blocks privacy/security/copy only, and the script never lowers a verdict', () => {
   assert.deepEqual(review.applyPolicy(output({ findings: [finding('P2', 'docs')] })).verdict, 'APPROVE');
@@ -209,7 +217,7 @@ test('the scheduled PR list asks GitHub for mergeability (K24 needs it)', () => 
 });
 
 test('a re-review across an integration merge reads only the PR files (K25)', () => {
-  const prior = requestChanges(B);
+  const prior = logReview(requestChanges(B));
   const raw = JSON.stringify(output());
   for (const [merges, scoped] of [['d'.repeat(40), true], ['', false]]) {
     const runner = fakeRun();
@@ -239,14 +247,97 @@ test('review refuses without an author check, stops on limits, and escalates to 
   assert.equal(trust.readJson(trust.dayStatePath(now.date), {}).codexRuns ?? 0, 0, 'limits do not use a daily run');
 
   const blocking = JSON.stringify(output({ verdict: 'REQUEST_CHANGES', findings: [finding('P1', 'correctness')] }));
-  const state = { pr: pr({ headRefOid: B, comments: [check(A), requestChanges(A), check(B)] }) };
+  const state = { pr: pr({ headRefOid: B, comments: [check(A), logReview(requestChanges(A)), check(B)] }) };
   const gh = fakeGh(state);
   const runner = fakeRun({ head: B });
   const result = review.runReview(7, { gh, run: runner.run, readOut: () => blocking.replace(A, B), now });
   assert.equal(result.verdict, 'REQUEST_CHANGES');
-  assert.equal(result.needsOwner, true);
-  assert.ok(gh.calls.some(c => c[0] === 'raw' && c[1].includes('--add-label') && c[1].includes('needs-owner')));
+  // Owner 16.11.2026: a second REQUEST_CHANGES stays with Claude; no review adds needs-owner by itself.
+  assert.equal(result.needsOwner, false);
+  assert.ok(!gh.calls.some(c => c[0] === 'raw' && c[1].includes('needs-owner')), 'no needs-owner label on round 2');
+  assert.equal(prTurn({ ...state.pr, comments: [...state.pr.comments, requestChanges(B)] }).turn, 'claude-fix', 'round 2 goes back to Claude');
   assert.match(runner.calls.find(c => c[0] === review.codexBin)[2].input, new RegExp(`git diff ${A}\\.\\.${B}`), 're-review reads the delta');
+});
+
+test('5-fix A: an incomplete review is REQUEST_CHANGES for Claude to split, never needs-owner', () => {
+  const now = { date: '2027-01-14', hour: 12, minute: 0 };
+  const gh = fakeGh({ pr: pr({ comments: [check(A)] }) });
+  const partial = JSON.stringify(output({ verdict: 'APPROVE', complete: false }));
+  const result = review.runReview(7, { gh, run: fakeRun().run, readOut: () => partial, now });
+  assert.equal(result.verdict, 'REQUEST_CHANGES', 'a review that did not read everything never approves');
+  assert.equal(result.needsOwner, false);
+  assert.ok(!gh.calls.some(c => c[0] === 'raw' && c[1].includes('needs-owner')));
+  const posted = gh.calls.find(c => c[0] === 'comment')[3];
+  assert.match(posted, /Claude tách PR cho đủ review/);
+  assert.doesNotMatch(posted, /chuyển owner/);
+});
+
+test('5-fix A, P1 on #590: after an incomplete review the next review reads the whole change, not a delta', () => {
+  const now = { date: '2027-01-15', hour: 12, minute: 0 };
+  const markIncomplete = c => ({ ...c, body: c.body.replace('Reviewer: Codex', `Round: auto-1 · range \`x\` · **${review.incompleteMark}, Claude tách PR cho đủ review**\nReviewer: Codex`) });
+  const approveB = JSON.stringify(output({ sha: B }));
+  const rerun = prior => {
+    const state = { pr: pr({ headRefOid: B, comments: [check(A), prior, check(B)] }) };
+    const runner = fakeRun({ head: B });
+    review.runReview(7, { gh: fakeGh(state), run: runner.run, readOut: () => approveB, now });
+    return runner.calls.find(c => c[0] === review.codexBin)[2].input;
+  };
+  // Logged incomplete: a full review, whatever the posted text says.
+  const quiet = logReview(requestChanges(A), false);
+  assert.equal(review.reviewWasComplete(quiet), false);
+  const full = rerun(quiet);
+  assert.doesNotMatch(full, new RegExp(`git diff ${A}\\.\\.${B}`), 'no delta from an incomplete review');
+  assert.match(full, /read the full change now/);
+  // Codex r2 on #590: no trusted record (an older review whose text was edited to drop the mark) is
+  // treated as incomplete, so an edited legacy verdict never unlocks a delta.
+  const legacyEdited = requestChanges(A);
+  assert.doesNotMatch(legacyEdited.body, new RegExp(review.incompleteMark));
+  assert.equal(review.reviewWasComplete(legacyEdited), false);
+  assert.match(rerun(legacyEdited), /read the full change now/);
+  assert.match(rerun(markIncomplete(requestChanges(A))), /read the full change now/);
+  // Logged complete: the re-review still narrows to the delta.
+  assert.match(rerun(logReview(requestChanges(A))), new RegExp(`git diff ${A}\\.\\.${B}`));
+});
+
+test('5-fix A2: only the owner\'s four kinds wait on her; a merge hold adds needs-owner, pending sensitive copy waits for release', () => {
+  const act = (kind, blocks = 'merge') => ({ kind, evidence: 'apps/api/x.py:3 synthetic', blocks });
+  // Validation: the live path needs the field; the audit of older outputs does not.
+  assert.throws(() => review.validateOutput({ ...output(), owner_actions: undefined }, A, { requireOwnerActions: true }), /owner_actions missing/);
+  assert.doesNotThrow(() => review.validateOutput({ ...output(), owner_actions: undefined }, A));
+  assert.throws(() => review.validateOutput(output({ owner_actions: [act('roadmap')] }), A), /owner action shape/);
+  assert.throws(() => review.validateOutput(output({ owner_actions: [{ ...act('release'), evidence: ' ' }] }), A), /owner action shape/);
+  // The script may only make a hold stricter: only pending sensitive copy may wait for release.
+  const h = review.ownerHolds(output({ owner_actions: [act('sensitive_copy', 'release'), act('cost_access', 'release'), act('data_collection')] }));
+  assert.deepEqual(h.actions.map(a => [a.kind, a.hold]), [['sensitive_copy', 'release'], ['cost_access', 'merge'], ['data_collection', 'merge']]);
+
+  const run = owner_actions => {
+    const gh = fakeGh({ pr: pr({ comments: [check(A)] }) });
+    const result = review.runReview(7, { gh, run: fakeRun().run, readOut: () => JSON.stringify(output({ owner_actions })), now: { date: '2027-01-16', hour: 12, minute: 0 } });
+    const labels = gh.calls.filter(c => c[0] === 'raw' && c[1].includes('--add-label')).map(c => c[1].at(-1));
+    return { result, labels, body: gh.calls.find(c => c[0] === 'comment')[3] };
+  };
+  const none = run([]);
+  assert.deepEqual([none.result.verdict, none.result.needsOwner, none.labels], ['APPROVE', false, []], 'ordinary work goes to Codex only');
+  const cost = run([act('cost_access')]);
+  assert.deepEqual([cost.result.verdict, cost.result.needsOwner, cost.labels], ['APPROVE', true, ['needs-owner']], 'a correct PR can still need the owner');
+  assert.match(cost.body, /Cần owner/);
+  assert.ok(!mergeGate({ ...pr({ comments: [check(A), approve(A)] }), labels: [{ name: 'needs-owner' }] }).ok, 'the merge gate refuses a merge hold');
+  const copy = run([act('sensitive_copy', 'release')]);
+  assert.deepEqual([copy.result.needsOwner, copy.result.ownerRelease, copy.labels], [false, true, [review.releaseLabel]], 'pending sensitive copy merges and waits for release');
+  assert.match(copy.body, /phát hành/);
+});
+
+test('5-fix A2, P1 on #591: a failed owner label posts no verdict, so an APPROVE never lacks its hold', () => {
+  for (const [kind, blocks, label] of [['cost_access', 'merge', 'needs-owner'], ['sensitive_copy', 'release', review.releaseLabel]]) {
+    const state = { pr: pr({ comments: [check(A)] }) };
+    const gh = fakeGh(state);
+    const raw = gh.raw;
+    gh.raw = (args, input) => { if (args.includes('--add-label') && args.includes(label)) throw new Error('HTTP 502'); return raw(args, input); };
+    const out = JSON.stringify(output({ owner_actions: [{ kind, evidence: 'apps/api/x.py:3 synthetic', blocks }] }));
+    assert.throws(() => review.runReview(7, { gh, run: fakeRun().run, readOut: () => out, now: { date: '2027-01-17', hour: 12, minute: 0 } }), /HTTP 502/);
+    assert.equal(gh.calls.filter(c => c[0] === 'comment').length, 0, `${kind}: no verdict posted`);
+    assert.notEqual(prTurn(state.pr).turn, 'merge', `${kind}: the PR is not routed to merge`);
+  }
 });
 
 test('daily cap refuses automatic reviews', () => {
@@ -369,10 +460,9 @@ test('tick makes the plan once, waits for the owner, then runs merges and capped
   const deps = now => ({ gh: ghFor(open), now: { date, ...now }, merge: n => { done.merge.push(n); return { status: 'merged' }; }, review: n => { done.review.push(n); return { status: 'posted' }; } });
   assert.equal(tick(deps({ hour: 6, minute: 52 })).status, 'plan-made');
   assert.match(comments[0].body, /## Plan 2026-11-02/);
-  assert.equal(tick(deps({ hour: 7, minute: 20 })).status, 'waiting');
-  assert.equal(tick(deps({ hour: 8, minute: 1 })).status, 'ran');
+  assert.equal(tick(deps({ hour: 7, minute: 2 })).status, 'ran', 'the next tick after the plan already works (owner 16.11)');
   assert.deepEqual(done, { merge: [1], review: [2, 3] });
-  assert.equal(tick(deps({ hour: 8, minute: 11 })).status, 'ran', 'the next tick keeps working (retro D1)');
+  assert.equal(tick(deps({ hour: 7, minute: 12 })).status, 'ran', 'the next tick keeps working (retro D1)');
   const queue = JSON.parse(readFileSync(join(trust.stateDir, 'claude-queue.json'), 'utf8'));
   assert.deepEqual(queue.items, [], 'author checks are the tick\'s job, not Claude\'s queue');
 });
