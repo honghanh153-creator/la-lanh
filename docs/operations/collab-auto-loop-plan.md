@@ -156,6 +156,13 @@ Session mà owner đang trực tiếp trò chuyện không bị lịch này ch�
     - autopilot (id `autopilot`) không nhận việc sửa của PR đó;
     - lệnh check chạy tay của phiên khác cũng không đồng bộ PR đó.
     Bản giữ không hết hạn theo thời gian, vì không có commit chưa chứng minh phiên đã dừng. Bản giữ chỉ hết khi phiên nhả (`--release N`), khi PR merge hoặc đóng (tick tự bỏ), hoặc khi có lệnh nhả ép kèm lý do (`--force-release N --reason "…"`, ghi vào `pr-claims/releases.jsonl`).
+11b. **Tối đa 2 việc nặng cùng lúc (owner 16.11.2026, gói 5 mục 3b).** Việc này làm theo hai bước, đúng như Codex phản biện.
+    - **D1 (bước này):** mỗi chỗ chạy có tài nguyên riêng (`scripts/collab-heavy-slots.mjs`):
+      - cổng e2e Playwright: 4173, hoặc 4273 cho chỗ thứ hai (`LA_LANH_E2E_PORT`); một việc chạy trong một chỗ không bao giờ dùng lại server mà nó không tự bật;
+      - cổng verify, cổng QA API và web;
+      - project Docker Compose và cổng Postgres.
+      Chỗ 0 giữ đúng giá trị mặc định hiện nay.
+    - **D2:** bật semaphore 2 chỗ trong `collab-test-guard.mjs`. Bước này cũng đưa các việc chưa có khóa (qa:journey, verify, chụp ảnh buổi sáng) vào guard. Tới khi D2 xong, mỗi lúc vẫn chỉ một việc nặng.
 12. JSON và log lưu ở `~/.cache/la-lanh-collab/logs/`, không vào repo.
 
 ### 4.2 `collab-merge.mjs` — điều kiện merge (tất cả phải đúng)
