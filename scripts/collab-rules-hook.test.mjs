@@ -80,7 +80,7 @@ test('rules hook: only la-lanh folders (real path), and a missing sheet says so 
   assert.match(ctx(run(empty, { hook_event_name: 'UserPromptSubmit', session_id: 's1', cwd: repo, prompt: 'x' })), /không đọc được/);
 });
 
-test('L33 (R3): a question to the owner in chat is refused and points to the decisions file', () => {
+test('L37 (R3): a question to the owner in chat is refused and points to the decisions file', () => {
   const { home, repo } = fixture();
   const ask = run(home, { hook_event_name: 'PreToolUse', session_id: 's1', cwd: repo, tool_name: 'AskUserQuestion', tool_input: { questions: [] } });
   assert.equal(ask.hookSpecificOutput.permissionDecision, 'deny');
@@ -101,7 +101,7 @@ test('L33 (R3): a question to the owner in chat is refused and points to the dec
   assert.deepEqual(metrics({ home }).attemptsBlocked, { R3: 2 });
 });
 
-test('L33 (R3): the installed hook keeps other hooks, routes the question tools to the deny and fails closed', () => {
+test('L37 (R3): the installed hook keeps other hooks, routes the question tools to the deny and fails closed', () => {
   let { home } = fixture();
   const settings = join(mkdtempSync(join(tmpdir(), 'settings-')), 'settings.json');
   const other = { matcher: 'Bash', hooks: [{ type: 'command', command: 'node guard.mjs' }] };
