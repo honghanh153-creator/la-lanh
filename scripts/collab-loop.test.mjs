@@ -36,6 +36,13 @@ const sealable = (kind, claims) => ({ ...owner(sealBody(kind, claims, 7)), seal:
 const check = (sha, status = 'PASS', base = BASE) => sealable('check', { head: sha, result: status, base });
 const approve = (sha, { p2 = 0, base = BASE, fix = null } = {}) => sealable('verdict', { head: sha, result: 'APPROVE', base, p2, fix });
 const requestChanges = (sha, base = BASE) => sealable('verdict', { head: sha, result: 'REQUEST_CHANGES', base });
+// The local review log codex-review.mjs writes for each verdict; only a logged complete review may be
+// the baseline of a delta re-review (P1 on #590).
+const logReview = (c, complete = true) => {
+  const receipt = /receipt=([0-9a-f]{32})/.exec(c.body)[1];
+  trust.writeJson(join(trust.stateDir, 'logs', `review-fixture-${receipt}.json`), { receipt, complete });
+  return c;
+};
 const resign = (n, c) => (c?.seal && n !== 7 ? asPosted(trust, { ...c, body: sealBody(c.seal.kind, c.seal.claims, n) }) : c);
 const pr = (extra = {}) => {
   const p = { number: 7, title: 'feat(tarot): plain summary', author: { login: 'honghanh153-creator' }, isCrossRepository: false, state: 'OPEN', isDraft: false, baseRefName: 'collab/integration', headRefName: 'feat/x', headRefOid: A, baseTipOid: BASE, mergeable: 'MERGEABLE', labels: [], createdAt: '2026-10-29T00:00:00Z', comments: [], body: goodBody, ...extra };
@@ -215,7 +222,7 @@ test('the scheduled PR list asks GitHub for mergeability (K24 needs it)', () => 
 });
 
 test('a re-review across an integration merge reads only the PR files (K25)', () => {
-  const prior = requestChanges(B);
+  const prior = logReview(requestChanges(B));
   const raw = JSON.stringify(output());
   for (const [merges, scoped] of [['d'.repeat(40), true], ['', false]]) {
     const runner = fakeRun();
@@ -245,14 +252,56 @@ test('review refuses without an author check, stops on limits, and escalates to 
   assert.equal(trust.readJson(trust.dayStatePath(now.date), {}).codexRuns ?? 0, 0, 'limits do not use a daily run');
 
   const blocking = JSON.stringify(output({ verdict: 'REQUEST_CHANGES', findings: [finding('P1', 'correctness')] }));
-  const state = { pr: pr({ headRefOid: B, comments: [check(A), requestChanges(A), check(B)] }) };
+  const state = { pr: pr({ headRefOid: B, comments: [check(A), logReview(requestChanges(A)), check(B)] }) };
   const gh = fakeGh(state);
   const runner = fakeRun({ head: B });
   const result = review.runReview(7, { gh, run: runner.run, readOut: () => blocking.replace(A, B), now });
   assert.equal(result.verdict, 'REQUEST_CHANGES');
-  assert.equal(result.needsOwner, true);
-  assert.ok(gh.calls.some(c => c[0] === 'raw' && c[1].includes('--add-label') && c[1].includes('needs-owner')));
+  // Owner 16.11.2026: a second REQUEST_CHANGES stays with Claude; no review adds needs-owner by itself.
+  assert.equal(result.needsOwner, false);
+  assert.ok(!gh.calls.some(c => c[0] === 'raw' && c[1].includes('needs-owner')), 'no needs-owner label on round 2');
+  assert.equal(prTurn({ ...state.pr, comments: [...state.pr.comments, requestChanges(B)] }).turn, 'claude-fix', 'round 2 goes back to Claude');
   assert.match(runner.calls.find(c => c[0] === review.codexBin)[2].input, new RegExp(`git diff ${A}\\.\\.${B}`), 're-review reads the delta');
+});
+
+test('5-fix A: an incomplete review is REQUEST_CHANGES for Claude to split, never needs-owner', () => {
+  const now = { date: '2027-01-14', hour: 12, minute: 0 };
+  const gh = fakeGh({ pr: pr({ comments: [check(A)] }) });
+  const partial = JSON.stringify(output({ verdict: 'APPROVE', complete: false }));
+  const result = review.runReview(7, { gh, run: fakeRun().run, readOut: () => partial, now });
+  assert.equal(result.verdict, 'REQUEST_CHANGES', 'a review that did not read everything never approves');
+  assert.equal(result.needsOwner, false);
+  assert.ok(!gh.calls.some(c => c[0] === 'raw' && c[1].includes('needs-owner')));
+  const posted = gh.calls.find(c => c[0] === 'comment')[3];
+  assert.match(posted, /Claude tách PR cho đủ review/);
+  assert.doesNotMatch(posted, /chuyển owner/);
+});
+
+test('5-fix A, P1 on #590: after an incomplete review the next review reads the whole change, not a delta', () => {
+  const now = { date: '2027-01-15', hour: 12, minute: 0 };
+  const markIncomplete = c => ({ ...c, body: c.body.replace('Reviewer: Codex', `Round: auto-1 · range \`x\` · **${review.incompleteMark}, Claude tách PR cho đủ review**\nReviewer: Codex`) });
+  const approveB = JSON.stringify(output({ sha: B }));
+  const rerun = prior => {
+    const state = { pr: pr({ headRefOid: B, comments: [check(A), prior, check(B)] }) };
+    const runner = fakeRun({ head: B });
+    review.runReview(7, { gh: fakeGh(state), run: runner.run, readOut: () => approveB, now });
+    return runner.calls.find(c => c[0] === review.codexBin)[2].input;
+  };
+  // Logged incomplete: a full review, whatever the posted text says.
+  const quiet = logReview(requestChanges(A), false);
+  assert.equal(review.reviewWasComplete(quiet), false);
+  const full = rerun(quiet);
+  assert.doesNotMatch(full, new RegExp(`git diff ${A}\\.\\.${B}`), 'no delta from an incomplete review');
+  assert.match(full, /read the full change now/);
+  // Codex r2 on #590: no trusted record (an older review whose text was edited to drop the mark) is
+  // treated as incomplete, so an edited legacy verdict never unlocks a delta.
+  const legacyEdited = requestChanges(A);
+  assert.doesNotMatch(legacyEdited.body, new RegExp(review.incompleteMark));
+  assert.equal(review.reviewWasComplete(legacyEdited), false);
+  assert.match(rerun(legacyEdited), /read the full change now/);
+  assert.match(rerun(markIncomplete(requestChanges(A))), /read the full change now/);
+  // Logged complete: the re-review still narrows to the delta.
+  assert.match(rerun(logReview(requestChanges(A))), new RegExp(`git diff ${A}\\.\\.${B}`));
 });
 
 test('daily cap refuses automatic reviews', () => {
@@ -262,7 +311,7 @@ test('daily cap refuses automatic reviews', () => {
   assert.equal(result.status, 'refused');
 });
 
-test('#571: a manual review stops at the same cap; only --over-cap with the owner\'s words runs, and they are recorded', () => {
+test('#571: a manual review stops at the same cap; only --over-cap with recorded owner words runs', () => {
   const now = { date: '2027-01-11', hour: 12, minute: 0 };
   const cap = trust.dayCap({}) - 1;
   trust.writeJson(trust.dayStatePath(now.date), { codexRuns: cap });
@@ -282,6 +331,22 @@ test('#571: a manual review stops at the same cap; only --over-cap with the owne
   // Under the cap a manual run needs nothing extra.
   trust.writeJson(trust.dayStatePath('2027-01-12'), { codexRuns: 0 });
   assert.equal(review.runReview(7, { gh: fakeGh({ pr: pr({ comments: [check(A)] }) }), run: fakeRun().run, readOut: () => approveOut, now: { ...now, date: '2027-01-12' } }).status, 'posted');
+});
+
+test('#586: --over-cap needs real words: a following option, blanks or control characters are no quote', () => {
+  assert.equal(review.overCapWords('--pr'), '', '"--over-cap --pr 7" names no owner words');
+  assert.equal(review.overCapWords(' '.repeat(301)), '', 'blanks are trimmed before shortening');
+  assert.equal(review.overCapWords(' '.repeat(100001)), '', 'a very long blank is no quote either (#588)');
+  assert.equal(review.overCapWords('\u0001\u0002 '), '', 'control characters only');
+  assert.equal(review.overCapWords(null), '');
+  assert.equal(review.overCapWords('  cho thêm 1 lượt  '), 'cho thêm 1 lượt');
+  assert.match(review.overCapWords(`ok ${'x'.repeat(400)}`), /^ok x+ \[\.\.\.truncated\]$/);
+  const now = { date: '2027-01-13', hour: 12, minute: 0 };
+  trust.writeJson(trust.dayStatePath(now.date), { codexRuns: trust.dayCap({}) - 1 });
+  const go = overCap => review.runReview(7, { gh: fakeGh({ pr: pr({ comments: [check(A)] }) }), run: fakeRun().run, readOut: () => JSON.stringify(output()), now, overCap });
+  assert.equal(go('--pr').status, 'refused');
+  assert.equal(go(' '.repeat(301)).status, 'refused');
+  assert.equal(trust.readJson(trust.dayStatePath(now.date), {}).overCapLog, undefined, 'nothing recorded for a refused override');
 });
 
 test('merge gate needs APPROVE and PASS on head, integration base and a fix-forward link', () => {

@@ -83,7 +83,7 @@ Những chỗ chậm thật, không rút được:
 - **Thứ tự ưu tiên của plan ngày đang xếp tính năng mới sau cùng** (vận hành, rồi nội dung, rồi quyền riêng tư, rồi tính năng), mỗi ngày 3–5 việc. Kế hoạch này có khoảng 48 việc. Nếu không dành chỗ cho nó thì 7 tuần không giữ được. Xem mục chị cần quyết ở cuối.
 - Cuối tuần 1 sẽ so số việc xong với số đã định. Lệch thì báo lịch mới, không tự cắt việc.
 
-- **Duyệt chữ.** Có khoảng 29 bài học cùng truyện và lời mở. Chị đã chốt: chị duyệt bài đầu của mỗi khóa (4 bài, gồm cả nhóm bài khớp ba lô) và danh sách lằn ranh đỏ; Codex duyệt các bài sau. Phần của chị vì vậy vừa với khoảng 1 giờ mỗi 2–3 ngày. Rủi ro còn lại: Codex trả bài nhiều vòng.
+- **Duyệt chữ.** *(Thay bằng luật 15.11: bài đầu và lằn ranh đỏ cũng do Codex duyệt, chị xem ngẫu nhiên; xem `decision-checklist.md`.)* Có khoảng 29 bài học cùng truyện và lời mở. Ngày 14.11 chị đã chốt: chị duyệt bài đầu của mỗi khóa (4 bài, gồm cả nhóm bài khớp ba lô) và danh sách lằn ranh đỏ; Codex duyệt các bài sau. Phần của chị vì vậy vừa với khoảng 1 giờ mỗi 2–3 ngày. Rủi ro còn lại: Codex trả bài nhiều vòng.
 - Tuần 5 và tuần 6 dồn nhiều việc. Chữ bị trả lại nhiều thì hai tuần này trễ.
 - Mốc tuần 4 không đạt thì tuần 5–6 chỉ sửa nền, cả lịch lùi lại.
 - Hết hạn mức chấm, hoặc không tìm được 2 nhóm bạn thử Lá Dám, thì chỉ phần liên quan bị chặn.
@@ -161,6 +161,28 @@ Luật này đã ghi trước lượt chấm 14.11. Mốc riêng của từng t�
 | Che nhanh, máy dùng chung | Người dùng chung máy chấm từ 3,5; lo riêng tư không quá 3%; Che nhanh xóa hết chữ đang chọn (đo bằng máy) | 3,47; 1,4% |
 | Cả app sau tuần 4 | "Thấy được hiểu" từ 3,5 và hơn bản trước tuần 1 ít nhất 0,6; "bình yên" từ 3,5; không loại hại nào quá 3% | Bản mô tả cả gói (gồm cả phần sau tuần 4): 3,56; hơn 0,86; bình yên 3,61 |
 
+### Sau tuần 4. Ghim chuyện đang lo (chị chọn 15.11)
+
+Chị chọn trong chat tối 15.11: "E1", tức S12 "Ghim chuyện đang lo" trong `docs/reviews/2026-11-15-sang-tao-viral.md`. Việc này làm sau mốc tuần 4, vì nó gắn vào ba lô của "Gánh hôm nay".
+
+**Dựng nhưng tắt sẵn.** Code vào app sau tuần 4, nhưng chưa ai thấy. Bốn điều cố định:
+
+1. Ghim tối đa 2 món.
+2. Nút [Bỏ ghim] luôn có, bấm là xóa ngay. Che nhanh không xóa ghim.
+3. Trang chủ không bao giờ hiện tên món, chỉ hiện "Ba lô có 1 món đang ghim" cho tới khi người dùng bấm vào.
+4. Không ghim gì về mood, Tarot hay chữ tự viết.
+
+**Chỉ bật khi có đủ hai quyết định của chị:**
+
+- Duyệt câu đồng ý hiện trước khi ghim. Bản nháp trong S12 cần viết lại cho đúng nơi lưu chị chọn.
+- Chọn nơi lưu món ghim:
+  - **Trên máy:** hợp với bản nháp S12, nhưng ngược luật hiện tại là không lưu dữ liệu cá nhân trong bộ nhớ trình duyệt. Món ghim là hoàn cảnh sống, và người cầm máy dùng chung có thể thấy.
+  - **Trên máy chủ:** đi cùng hồ sơ, theo hạn và cách xóa của hồ sơ. Cần thêm một dòng trong trang /privacy và trong bản tải dữ liệu, và các câu đó cũng cần chị duyệt.
+
+| Việc | Mốc đạt | Số tham khảo |
+|---|---|---|
+| Ghim chuyện đang lo | Theo luật chung: người dùng tới chấm "thấy được hiểu" từ 3,5; lo riêng tư không quá 3%. Đo bằng máy: không ghim quá 2 món; bỏ ghim là xóa ngay; Trang chủ không hiện tên món; tắt sẵn thì không lưu gì | Trên mô tả, 90 cặp: thấy được hiểu +0,24; bình yên −0,03; 9 người lo riêng tư (10%, chưa đạt) |
+
 ### Tuần 5. Mầm xanh thay "Vibe", Học theo bạn, sticker
 
 | Việc | Mốc đạt | Số tham khảo |
@@ -220,11 +242,11 @@ Các mục này cần chị duyệt:
 6. **Phạm vi "lá số không cần giờ sinh".**
 7. **Câu hỗ trợ khi khủng hoảng** và nguồn của từng bài học.
 8. **Kiểm nhật ký, đường mạng và ảnh chia sẻ** không chứa dữ liệu riêng.
-9. **Ai duyệt chữ bài học: đã chốt 14.11.** Chị duyệt bài đầu của mỗi khóa và danh sách lằn ranh đỏ. Codex duyệt các bài sau theo đúng danh sách đó. Câu về quyền riêng tư, đồng ý và hỗ trợ khi khủng hoảng vẫn do chị duyệt.
+9. **Ai duyệt chữ bài học: đã chốt 14.11, đổi 15.11** (bài đầu và lằn ranh đỏ chuyển Codex duyệt, xem `decision-checklist.md`). Bản 14.11: Chị duyệt bài đầu của mỗi khóa và danh sách lằn ranh đỏ. Codex duyệt các bài sau theo đúng danh sách đó. Câu về quyền riêng tư, đồng ý và hỗ trợ khi khủng hoảng vẫn do chị duyệt.
 10. **Ghi quyết định duyệt chữ bài Học vào tài liệu quy trình và kho câu chữ** (việc của agent, không hỏi lại chị), để khớp với quy tắc "câu mới cần chị duyệt" đang có.
 
 ## Đã hoãn hoặc chưa có trong kế hoạch
 
 - **"Mời hẹn thử":** chị chốt chưa làm.
-- **Lá nhớ hoàn cảnh của người dùng:** điều người giả muốn nhất (179 câu chê trên 1000). Chưa vào kế hoạch vì cần chị quyết về lưu dữ liệu. Hai cách "nhớ" đã thử chỉ nâng điểm ít (0,12 và 0,24) và làm 10% đến 17% người lo riêng tư.
+- **Lá nhớ hoàn cảnh của người dùng:** điều người giả muốn nhất (179 câu chê trên 1000). Chưa vào kế hoạch vì cần chị quyết về lưu dữ liệu. Riêng S12 "Ghim chuyện đang lo" đã vào kế hoạch sau tuần 4 (chị chọn 15.11): dựng tắt sẵn, chỉ bật khi chị duyệt câu đồng ý và chọn nơi lưu. Hai cách "nhớ" đã thử chỉ nâng điểm ít (0,12 và 0,24) và làm 10% đến 17% người lo riêng tư.
 - **Lá Dám trong app, phòng chơi từ xa, ô viết "Kể ra rồi thả":** để sau 7 tuần.

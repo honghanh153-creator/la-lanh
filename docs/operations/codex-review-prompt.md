@@ -46,7 +46,10 @@ prove the behaviour, and say so when they do not.
 
 Return `REQUEST_CHANGES` only when at least one finding blocks under this policy. Otherwise return
 `APPROVE` and still list the non-blocking findings. Set `complete` to false when you could not read the
-whole diff (for example, it is too large); the PR then goes to the owner.
+whole diff (for example, it is too large); the PR then goes back to Claude to split it into parts you
+can review in full. A review never sends a PR to the owner: only the owner's four kinds wait on her
+(cost or new service/access, release, privacy/consent/crisis/safety copy, switching on new personal-data
+collection).
 
 Same class (retro S2, #124 took seven rounds): when a finding is a pattern (a regex, a missing check, a
 copy rule, a lock), search the whole repository for every other place with the same pattern, for example

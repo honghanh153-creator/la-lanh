@@ -45,6 +45,18 @@ Owner quyết trong chat tối 14.11. Codex phản biện cùng tối: cả ba �
   Báo cáo 20.11 ghi nó vào danh sách yếu tố gây nhiễu ở §5 và tách số đo trước và sau 15.11 18:00 khi so sánh.
 - **Số đo giữ định nghĩa cũ:** M1–M10 không đổi định nghĩa, nguồn hay hướng tốt. Riêng M10 vẫn đếm mọi câu hỏi gửi owner, kể cả câu thuộc 4 loại còn lại.
 
+## 0c. Thay đổi giữa thử nghiệm đêm 15→16.11 (owner quyết gói 5 sửa luồng)
+
+- **Lúc nào:** owner trả lời đêm 15→16.11.2026, ghi ở hub #2 (comment 6904505088). Làm dần từ 16.11, ngày cuối của cách 1, và còn chạy sang cách 2 (17–19.11).
+- **Đổi gì:**
+  - (1) một luật duyệt: review không còn tự gắn `needs-owner` (PR A, 16.11);
+  - (2) plan sáng tự chạy ngay khi đăng;
+  - (3) khóa rõ: một phiên một PR, tối đa 2 việc nặng, mã ops cố định mỗi lượt, trần Codex 80/ngày;
+  - (4) một plan theo việc, báo cáo 07:00 là bản chính, bỏ 08:00;
+  - (5) hai làn chạy song song (kế hoạch 7 tuần và quy trình).
+- **Gây nhiễu:** tác động tới M5, M6 và M10 như §0b. Mục (5) và trần 80 còn tác động tới M9 (số lượt Codex) và số PR mỗi ngày. Mỗi PR của gói ghi giờ merge. Báo cáo 20.11 tách số đo theo từng mốc đó.
+- **Số đo giữ định nghĩa cũ:** M1–M10 không đổi định nghĩa, nguồn hay hướng tốt.
+
 ## 1. Lịch
 
 | Giai đoạn | Ngày (giờ VN) | Cách chạy |

@@ -2,11 +2,11 @@
 // Usage: node scripts/codex-review.mjs --pr N [--auto] [--over-cap "<owner words>"]
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { acquireLock } from './collab-lock.mjs';
-import { agentMarker, bindReceipt, boundedTimeout, clean, cutoffAt, cutoffMs, dayStatePath, DeadlineError, hhmmOf, integration, isOwnPr, isSha, lastStartAt, makeGh, planOpensAt, readJson, repo, reviewState, signReceipt, stateDir, trustedComments, verdictSeal, vnNow, writeJson } from './collab-trust.mjs';
+import { agentMarker, parseVerdict, parseVerdictSeal, bindReceipt, boundedTimeout, clean, cutoffAt, cutoffMs, dayStatePath, DeadlineError, hhmmOf, integration, isOwnPr, isSha, lastStartAt, makeGh, planOpensAt, readJson, repo, reviewState, signReceipt, stateDir, trustedComments, verdictSeal, vnNow, writeJson } from './collab-trust.mjs';
 import { prTurn } from './collab-turn.mjs';
 import { dayCap } from './collab-trust.mjs';
 import { groupExec } from './collab-heal.mjs';
@@ -19,7 +19,6 @@ export const promptPath = join(here, '..', 'docs', 'operations', 'codex-review-p
 export const schemaPath = join(here, 'codex-review-schema.json');
 export const codexBin = process.env.CODEX_BIN || '/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex';
 export const codexModel = 'gpt-6.1-sol';
-export const maxAutoRequestChanges = 2;
 // The policy lives in collab-review-policy.mjs so the night audit checks receipts with the same rule.
 export { applyPolicy, isBlocking, validateOutput } from './collab-review-policy.mjs';
 
@@ -50,7 +49,7 @@ export function renderVerdict({ pr, out, policy, round, range, digest, fixIssue,
   return [
     `Review verdict: ${policy.verdict} @ ${pr.headRefOid}`,
     'Reviewer: Codex (auto, scripts/codex-review.mjs)',
-    `Round: auto-${round} · range \`${cell(range)}\`${out.complete ? '' : ' · **review chưa đủ, chuyển owner**'}${policy.escalated ? ' · verdict được script nâng theo chính sách P2' : ''}`,
+    `Round: auto-${round} · range \`${cell(range)}\`${out.complete ? '' : ' · **review chưa đủ, Claude tách PR cho đủ review**'}${policy.escalated ? ' · verdict được script nâng theo chính sách P2' : ''}`,
     '',
     clean(out.summary, 3000),
     '',
@@ -118,6 +117,33 @@ export function runReview(number, options = {}) {
   }
 }
 
+// #586: the owner's words for --over-cap. Empty, blank (also after control characters are removed)
+// or another option ("--over-cap --pr 7") is no quote; the text is trimmed before it is shortened,
+// with no length cut before the check (#588: a 100 001-blank value became the truncation marker).
+export function overCapWords(raw) {
+  const text = String(raw ?? '').replace(/[\u0000-\u0008\u000b-\u001f\u007f\u2028\u2029]/g, '').trim();
+  return !text || text.startsWith('--') ? '' : clean(text, 300);
+}
+
+// P1 on #590 (16.11.2026): an incomplete review is never the baseline of a delta re-review. Once a
+// review stopped short, the next one reads the whole change; otherwise splitting a PR by removing half
+// would leave the kept, never-read half to a delta review that only checks what changed. The local
+// review log (keyed by the verdict's receipt) is the only trusted record. Without it (a review logged
+// before the field existed, or on another machine) the review counts as incomplete: the posted text is
+// editable and the receipt does not cover it (Codex r2 on #590), so the cost is one full review.
+export const incompleteMark = 'review chưa đủ';
+export function reviewWasComplete(comment, logs = readReviewLogs()) {
+  const sha = comment?.verdict?.sha ?? parseVerdict(comment?.body)?.sha;
+  const receipt = sha ? parseVerdictSeal(comment?.body, sha)?.receipt : null;
+  const record = receipt ? logs.find(l => l?.receipt === receipt) : null;
+  return record?.complete === true;
+}
+function readReviewLogs(dir = join(stateDir, 'logs')) {
+  let names = [];
+  try { names = readdirSync(dir).filter(n => /^review-.*\.json$/.test(n)); } catch { return []; }
+  return names.map(n => readJson(join(dir, n), null)).filter(Boolean);
+}
+
 // Time kept after Codex for the git check and up to five gh calls (60 s each) that publish the result.
 export const reviewFinalizeReserveMs = 5 * 60000;
 
@@ -144,7 +170,7 @@ function reviewOnce(number, { auto = false, overCap = null, gh: ghIn = makeGh(),
   // explicit --over-cap with the owner's words runs, and those words are kept in the day state.
   const cap = dayCap(day) - auditReserve;
   if (day.codexRuns >= cap) {
-    const words = auto ? '' : clean(String(overCap ?? ''), 300).trim();
+    const words = auto ? '' : overCapWords(overCap);
     if (!words) return { status: 'refused', reason: auto ? `hết ${cap} lượt Codex tự động hôm nay (1 lượt giữ cho soát đêm)` : `hết ${cap} lượt Codex hôm nay (1 lượt giữ cho soát đêm); chạy tay vượt trần cần --over-cap "<lời owner>"` };
     const cur = readJson(dayPath, day);
     writeJson(dayPath, { ...cur, overCapLog: [...(cur.overCapLog ?? []), { at: new Date(nowMs()).toISOString(), pr: number, codexRuns: cur.codexRuns ?? 0, quote: words }] });
@@ -154,9 +180,10 @@ function reviewOnce(number, { auto = false, overCap = null, gh: ghIn = makeGh(),
   // Only a signed earlier review narrows the re-review to a delta: an unsigned one could be forged to
   // point Codex at a harmless range (P1-B).
   const priorAuto = reviewState(pr).sealed.filter(c => c.auto && c.verdict).at(-1);
+  const priorIncomplete = Boolean(priorAuto) && !reviewWasComplete(priorAuto);
   const dir = prepareClone(number, head, run, left);
   let deltaFrom = null;
-  if (priorAuto && priorAuto.verdict.sha !== head) {
+  if (priorAuto && !priorIncomplete && priorAuto.verdict.sha !== head) {
     try { git(['merge-base', '--is-ancestor', priorAuto.verdict.sha, head], dir, run, left); deltaFrom = priorAuto.verdict.sha; } catch {}
   }
   const mergeBase = git(['merge-base', `origin/${integration}`, head], dir, run, left);
@@ -178,7 +205,9 @@ function reviewOnce(number, { auto = false, overCap = null, gh: ghIn = makeGh(),
       ? mergesBase
         ? `Re-review: the previous automatic review was at \`${deltaFrom}\`, and the delta merges \`${integration}\` in. Read \`.git/la-lanh-review-delta.patch\` closely: it is \`git diff ${deltaFrom}..${head}\` limited to this PR's own files, including conflict resolutions and confirm each earlier blocking finding is fixed. Files changed only by the merged \`${integration}\` were reviewed in their own PRs: do not read them and do not mark the review incomplete because of them.`
         : `Re-review: the previous automatic review was at \`${deltaFrom}\`. Read \`git diff ${deltaFrom}..${head}\` closely and confirm each earlier blocking finding is fixed; skim the rest.`
-      : 'First automatic review of this PR: read the full change.',
+      : priorIncomplete
+        ? 'The previous automatic review did not read the whole change: read the full change now, not only what changed since.'
+        : 'First automatic review of this PR: read the full change.',
     TITLE: clean(pr.title, 300), BODY: clean(pr.body, 12000), PRIOR: priorAuto ? clean(priorAuto.body, 8000) : 'None.',
   });
 
@@ -220,7 +249,6 @@ function reviewOnce(number, { auto = false, overCap = null, gh: ghIn = makeGh(),
     if (!fixIssue) throw new Error('Fix-forward issue was not created; verdict not posted.');
   }
 
-  const priorRequests = trusted.filter(c => c.auto && c.verdict?.verdict === 'REQUEST_CHANGES').length;
   const round = trusted.filter(c => c.auto && c.verdict).length + 1;
   // P1-B: the receipt is written before the comment, so every posted verdict has one.
   const receipt = signReceipt({ kind: 'verdict', pr: pr.number, head, base: reviewedBase, result: policy.verdict, p2: policy.fixForward.length });
@@ -228,12 +256,12 @@ function reviewOnce(number, { auto = false, overCap = null, gh: ghIn = makeGh(),
   const posted = gh.comment('pr', pr.number, body);
   // Bound to the new comment's id: a later copy of this verdict never counts (replay, #456 auto-1).
   if (!bindReceipt({ kind: 'verdict', pr: pr.number, id: receipt, url: posted })) process.stderr.write(`codex-review: receipt ${receipt} not bound to a comment id; the verdict will not count\n`);
-  const needsOwner = policy.verdict === 'REQUEST_CHANGES' && (!out.complete || priorRequests + 1 >= maxAutoRequestChanges);
-  if (needsOwner) {
-    ensureLabel(gh, 'needs-owner', 'D93F0B', 'Vòng tự động dừng, chờ owner');
-    gh.raw(['pr', 'edit', String(pr.number), '--repo', repo, '--add-label', 'needs-owner']);
-  }
-  writeJson(join(stateDir, 'logs', `review-${stamp}.json`), { pr: pr.number, head, base: reviewedBase, verdict: policy.verdict, receipt, digest, fixIssue, needsOwner, at: new Date().toISOString() });
+  // Owner 16.11.2026 (5-fix package, item 1): a review never sends a PR to the owner by itself. A
+  // second REQUEST_CHANGES stays claude-fix (Claude fixes, checks, Codex re-reviews; the proportionality
+  // stop defers, splits or closes work, never bypasses a blocking finding), and an incomplete review is
+  // REQUEST_CHANGES for Claude to split the PR. needs-owner is only for the owner's four kinds.
+  const needsOwner = false;
+  writeJson(join(stateDir, 'logs', `review-${stamp}.json`), { pr: pr.number, head, base: reviewedBase, verdict: policy.verdict, complete: out.complete, receipt, digest, fixIssue, needsOwner, at: new Date().toISOString() });
   return { status: 'posted', verdict: policy.verdict, blocking: policy.blocking.length, fixIssue, needsOwner };
 }
 
