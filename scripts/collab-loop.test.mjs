@@ -1457,6 +1457,22 @@ test('copy batch: once a day after the 08:00 auto-start, only with pending copy,
   assert.equal(runs.length, before + 1, 'a fork PR named like a batch does not block the batch');
 });
 
+// Fix-forward #622: the quiet red streak counts only back-to-back ticks; any tick in between breaks it.
+test('#622: a quiet red streak alerts only after three back-to-back ticks; a tick that leaves another way resets it', () => {
+  const date = '2027-02-03';
+  trust.writeJson(trust.dayStatePath(date), { codexRuns: 0, failures: 0, copyBatch: { status: 'error', attempts: 3, reason: 'Command failed: x — ValueError: y' } });
+  const said = [];
+  const at = (hour, minute) => tick({ gh: plannedGh([], date), now: { date, hour, minute }, merge: () => ({}), review: () => ({}), copyPending: () => 0, alert: t => said.push(t) });
+  at(12, 0);
+  at(12, 10);
+  at(5, 0); // leaves early (plan closed): not a quiet red tick, and it breaks the streak
+  at(12, 20);
+  at(12, 30);
+  assert.equal(said.filter(t => /không có lỗi mới/.test(t)).length, 0, 'two back-to-back quiet ticks after the break: no alert yet');
+  at(12, 40);
+  assert.equal(said.filter(t => /đỏ 3 lượt liền mà không có lỗi mới/.test(t)).length, 1, 'the third back-to-back quiet tick alerts');
+});
+
 // 13.11.2026: the batch failed at 10:48 and the tick treated it as the day's batch: no retry,
 // failures back to 0 on the next tick, no alert. 1 524 sentences stayed pending.
 test('copy batch: a failed batch alerts, retries on later ticks without a second Codex run, and stops after the attempt limit', () => {
