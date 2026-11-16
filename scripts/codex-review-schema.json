@@ -1,7 +1,7 @@
 {
   "type": "object",
   "additionalProperties": false,
-  "required": ["verdict", "sha", "reviewed_range", "complete", "summary", "findings"],
+  "required": ["verdict", "sha", "reviewed_range", "complete", "summary", "findings", "owner_actions"],
   "properties": {
     "verdict": { "type": "string", "enum": ["APPROVE", "REQUEST_CHANGES"] },
     "sha": { "type": "string", "description": "The full 40-character head SHA that was reviewed." },
@@ -21,6 +21,20 @@
           "line": { "type": ["integer", "null"] },
           "title": { "type": "string" },
           "detail": { "type": "string", "description": "Why it matters and a concrete failure scenario or reproducer." }
+        }
+      }
+    },
+    "owner_actions": {
+      "type": "array",
+      "description": "The owner's four kinds this PR touches (owner 15-16.11.2026); empty when none. A review never sends anything else to the owner.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "evidence", "blocks"],
+        "properties": {
+          "kind": { "type": "string", "enum": ["cost_access", "release", "sensitive_copy", "data_collection"], "description": "cost_access: cost, a new service or new access; release: shipping to real users; sensitive_copy: privacy/consent/crisis/safety text a user can see; data_collection: switching on collection of new personal data." },
+          "evidence": { "type": "string", "description": "file:line and why, synthetic wording only." },
+          "blocks": { "type": "string", "enum": ["merge", "release"], "description": "merge: the owner approves before merge; release: may merge, approved before release (only sensitive_copy kept pending)." }
         }
       }
     }

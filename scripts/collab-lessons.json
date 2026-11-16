@@ -182,11 +182,11 @@
    "status": "done",
    "test": {
     "file": "scripts/collab-status.test.mjs",
-    "name": "the production tick digest counts two merged PRs of one item as one item, not two"
+    "name": "L11: the slot snapshot the owner report reads counts two merged PRs of one item as one item, not two"
    },
    "caller": {
-    "file": "scripts/collab-turn.mjs",
-    "contains": "work: progress ? () => renderProgress(progress("
+    "file": "scripts/collab-snapshot.mjs",
+    "contains": "work: (planned, at) => workProgress({ date, planned, fetch: upTo(fetch, at) })"
    },
    "closedBy": {
     "pr": 496

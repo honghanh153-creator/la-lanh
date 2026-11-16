@@ -9,6 +9,7 @@ import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { bindReceipt, boundedTimeout, checkSeal, clean, cutoffAt, cutoffMs, hhmmOf, integration, isOwnPr, isSha, lastStartAt, makeGh, planOpensAt, repo, signReceipt, stateDir, vnNow } from './collab-trust.mjs';
 import { withFileLock } from './collab-lock.mjs';
+import { mayTouch, sessionId, withPrLock } from './collab-pr-claim.mjs';
 import { preflightFailure, readPreflight, recordPreflight, runPreflight } from './collab-preflight.mjs';
 import { runGroup, syncWithIntegration } from './collab-heal.mjs';
 import { checkSteps, failDetails, guardWaitMs, openCheckLog, waitForGuard } from './collab-check-log.mjs';
@@ -392,7 +393,17 @@ export function runCheckInClone(number, { gh = makeGh(), run = execFileSync, aut
     const gitD = args => git(args, cwd, run, boundedTimeout(600000, leftMs));
     // L14: the tick passes sync=false for every PR except the front of its area queue; a manual
     // `--clone` run keeps the old behaviour.
-    const synced = rest.sync === false ? null : syncWithIntegration(pr, { git: (args, ms) => git(args, cwd, run, ms), gh: ghD, left: leftMs });
+    // One session per PR (owner 16.11): nobody but the holding session syncs a claimed PR, the tick
+    // (no session) and another session's manual run included (LA_LANH_SESSION names the session).
+    // Such a PR waits like one behind the front (L14); being behind is not a failure for Claude.
+    // Codex r1 on #597: the check of the claim and the whole sync (merge and push) run under the
+    // PR's lock, so no session takes the PR while its branch is written; a busy lock means wait.
+    let synced = null;
+    if (rest.sync !== false) {
+      const held = withPrLock(number, () => (mayTouch(number, rest.session ?? sessionId()).ok ? { synced: syncWithIntegration(pr, { git: (args, ms) => git(args, cwd, run, ms), gh: ghD, left: leftMs }) } : { claimed: true }), { waitMs: 0 });
+      if (held.ok === false || held.claimed) rest.sync = false;
+      else synced = held.synced;
+    }
     if (synced) return synced;
     // The clock is read again after the clone and install, which can take minutes.
     // pnpm stops early enough that the receipt still fits inside leftMs (#243).
