@@ -244,9 +244,24 @@ test('review refuses without an author check, stops on limits, and escalates to 
   const runner = fakeRun({ head: B });
   const result = review.runReview(7, { gh, run: runner.run, readOut: () => blocking.replace(A, B), now });
   assert.equal(result.verdict, 'REQUEST_CHANGES');
-  assert.equal(result.needsOwner, true);
-  assert.ok(gh.calls.some(c => c[0] === 'raw' && c[1].includes('--add-label') && c[1].includes('needs-owner')));
+  // Owner 16.11.2026: a second REQUEST_CHANGES stays with Claude; no review adds needs-owner by itself.
+  assert.equal(result.needsOwner, false);
+  assert.ok(!gh.calls.some(c => c[0] === 'raw' && c[1].includes('needs-owner')), 'no needs-owner label on round 2');
+  assert.equal(prTurn({ ...state.pr, comments: [...state.pr.comments, requestChanges(B)] }).turn, 'claude-fix', 'round 2 goes back to Claude');
   assert.match(runner.calls.find(c => c[0] === review.codexBin)[2].input, new RegExp(`git diff ${A}\\.\\.${B}`), 're-review reads the delta');
+});
+
+test('5-fix A: an incomplete review is REQUEST_CHANGES for Claude to split, never needs-owner', () => {
+  const now = { date: '2027-01-14', hour: 12, minute: 0 };
+  const gh = fakeGh({ pr: pr({ comments: [check(A)] }) });
+  const partial = JSON.stringify(output({ verdict: 'APPROVE', complete: false }));
+  const result = review.runReview(7, { gh, run: fakeRun().run, readOut: () => partial, now });
+  assert.equal(result.verdict, 'REQUEST_CHANGES', 'a review that did not read everything never approves');
+  assert.equal(result.needsOwner, false);
+  assert.ok(!gh.calls.some(c => c[0] === 'raw' && c[1].includes('needs-owner')));
+  const posted = gh.calls.find(c => c[0] === 'comment')[3];
+  assert.match(posted, /Claude tách PR cho đủ review/);
+  assert.doesNotMatch(posted, /chuyển owner/);
 });
 
 test('daily cap refuses automatic reviews', () => {

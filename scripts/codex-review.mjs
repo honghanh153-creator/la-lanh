@@ -19,7 +19,6 @@ export const promptPath = join(here, '..', 'docs', 'operations', 'codex-review-p
 export const schemaPath = join(here, 'codex-review-schema.json');
 export const codexBin = process.env.CODEX_BIN || '/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex';
 export const codexModel = 'gpt-6.1-sol';
-export const maxAutoRequestChanges = 2;
 // The policy lives in collab-review-policy.mjs so the night audit checks receipts with the same rule.
 export { applyPolicy, isBlocking, validateOutput } from './collab-review-policy.mjs';
 
@@ -50,7 +49,7 @@ export function renderVerdict({ pr, out, policy, round, range, digest, fixIssue,
   return [
     `Review verdict: ${policy.verdict} @ ${pr.headRefOid}`,
     'Reviewer: Codex (auto, scripts/codex-review.mjs)',
-    `Round: auto-${round} · range \`${cell(range)}\`${out.complete ? '' : ' · **review chưa đủ, chuyển owner**'}${policy.escalated ? ' · verdict được script nâng theo chính sách P2' : ''}`,
+    `Round: auto-${round} · range \`${cell(range)}\`${out.complete ? '' : ' · **review chưa đủ, Claude tách PR cho đủ review**'}${policy.escalated ? ' · verdict được script nâng theo chính sách P2' : ''}`,
     '',
     clean(out.summary, 3000),
     '',
@@ -220,7 +219,6 @@ function reviewOnce(number, { auto = false, overCap = null, gh: ghIn = makeGh(),
     if (!fixIssue) throw new Error('Fix-forward issue was not created; verdict not posted.');
   }
 
-  const priorRequests = trusted.filter(c => c.auto && c.verdict?.verdict === 'REQUEST_CHANGES').length;
   const round = trusted.filter(c => c.auto && c.verdict).length + 1;
   // P1-B: the receipt is written before the comment, so every posted verdict has one.
   const receipt = signReceipt({ kind: 'verdict', pr: pr.number, head, base: reviewedBase, result: policy.verdict, p2: policy.fixForward.length });
@@ -228,11 +226,11 @@ function reviewOnce(number, { auto = false, overCap = null, gh: ghIn = makeGh(),
   const posted = gh.comment('pr', pr.number, body);
   // Bound to the new comment's id: a later copy of this verdict never counts (replay, #456 auto-1).
   if (!bindReceipt({ kind: 'verdict', pr: pr.number, id: receipt, url: posted })) process.stderr.write(`codex-review: receipt ${receipt} not bound to a comment id; the verdict will not count\n`);
-  const needsOwner = policy.verdict === 'REQUEST_CHANGES' && (!out.complete || priorRequests + 1 >= maxAutoRequestChanges);
-  if (needsOwner) {
-    ensureLabel(gh, 'needs-owner', 'D93F0B', 'Vòng tự động dừng, chờ owner');
-    gh.raw(['pr', 'edit', String(pr.number), '--repo', repo, '--add-label', 'needs-owner']);
-  }
+  // Owner 16.11.2026 (5-fix package, item 1): a review never sends a PR to the owner by itself. A
+  // second REQUEST_CHANGES stays claude-fix (Claude fixes, checks, Codex re-reviews; the proportionality
+  // stop defers, splits or closes work, never bypasses a blocking finding), and an incomplete review is
+  // REQUEST_CHANGES for Claude to split the PR. needs-owner is only for the owner's four kinds.
+  const needsOwner = false;
   writeJson(join(stateDir, 'logs', `review-${stamp}.json`), { pr: pr.number, head, base: reviewedBase, verdict: policy.verdict, receipt, digest, fixIssue, needsOwner, at: new Date().toISOString() });
   return { status: 'posted', verdict: policy.verdict, blocking: policy.blocking.length, fixIssue, needsOwner };
 }
