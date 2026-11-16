@@ -1,6 +1,6 @@
 import './collab-test-home.mjs';
 import assert from 'node:assert/strict';
-import { execFileSync, spawnSync } from 'node:child_process';
+import { execFileSync, spawn, spawnSync } from 'node:child_process';
 import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -162,10 +162,12 @@ test('E: each ops run uses its own pinned copy of the reviewed commit and never 
   // a leftover copy whose run is gone is swept; a copy whose run is alive is kept
   const runs = join(w.home, 'ops-runs');
   mkdirSync(runs, { recursive: true });
-  for (const [name, pid] of [['report-dead-1', '999999999'], ['report-live-2', String(process.pid)]]) {
+  for (const [name, pid] of [['report-dead-1', '999999999'], ['report-live-2', String(process.pid)], ['tick-orphan-3', '999999998']]) {
     git(ops, 'worktree', 'add', '-q', '--detach', join(runs, name), first);
     writeFileSync(join(runs, `.${name}.pid`), `${pid}\n`);
   }
+  // Codex r1 on #603: the wrapper of tick-orphan-3 was killed, but its node still runs from the tree.
+  const child = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 60000)', join(runs, 'tick-orphan-3', 'scripts', 'collab-tick.mjs')], { stdio: 'ignore' });
   for (const step of [['report'], ['status'], ['snapshot', '14']]) {
     const out = run(w, step);
     assert.equal(out.status, 0, out.stderr);
@@ -174,8 +176,12 @@ test('E: each ops run uses its own pinned copy of the reviewed commit and never 
   assert.equal(lines.length, 3);
   for (const line of lines) assert.match(line, new RegExp(`^${latest}\\|${runs.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/(report|status|snapshot)-\\d{14}-\\d+/scripts/`), 'the run used a fresh copy at the latest reviewed commit');
   assert.equal(git(ops, 'rev-parse', 'HEAD'), first, 'the shared ops tree was not moved');
-  assert.deepEqual(readdirSync(runs).filter(n => !n.startsWith('.')), ['report-live-2'], 'each run removed its copy; the dead leftover was swept, the live one kept');
+  assert.deepEqual(readdirSync(runs).filter(n => !n.startsWith('.')).sort(), ['report-live-2', 'tick-orphan-3'], 'each run removed its copy; the dead leftover was swept; a live run and a tree a live process still uses were kept');
   assert.ok(!existsSync(join(runs, '.report-dead-1.pid')));
+  child.kill('SIGKILL');
+  for (let i = 0; i < 50 && child.exitCode === null && child.signalCode === null; i++) execFileSync('/bin/sleep', ['0.1']);
+  assert.equal(run(w, ['status']).status, 0);
+  assert.deepEqual(readdirSync(runs).filter(n => !n.startsWith('.')), ['report-live-2'], 'once nothing uses the orphaned tree it is swept');
 });
 
 test('E: the scheduled tick runs from its own pinned copy and keeps the shared tree current for the hooks', () => {

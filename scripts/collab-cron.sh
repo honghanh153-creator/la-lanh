@@ -16,8 +16,9 @@ mkdir -p "$home_dir/logs"
 # Owner 16.11.2026 (5-fix package item 3c, Codex C2): a run never re-checks-out the shared ops tree
 # that another run (the scheduled tick, a report) may be using. Each run gets its own detached worktree
 # of the reviewed commit it just fetched (ops-runs/<step>-<time>-<pid>), runs there and removes it on
-# exit. A leftover tree is removed only when its run's process is gone (or, with no pid yet, once it is
-# older than 10 minutes), so a running copy is never pulled from under its run.
+# exit. A leftover tree is removed only when its run's process is gone and no live process names the
+# tree (or, with no pid yet, once it is older than 10 minutes), so a running copy is never pulled from
+# under its run.
 runs="$home_dir/ops-runs"
 run_dir=""
 sweep() {
@@ -28,6 +29,9 @@ sweep() {
     name="$(basename "$d")"
     pid="$(cat "$runs/.$name.pid" 2>/dev/null || true)"
     if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then continue; fi
+    # Codex r1 on #603: the wrapper may be gone while its node (or a child of it) still runs from the
+    # tree; any live process whose command line names the tree keeps it.
+    if /usr/bin/pgrep -f -- "$(printf '%s' "${d%/}" | sed 's/[][\\.^$*+?(){}|]/\\&/g')" >/dev/null 2>&1; then continue; fi
     if [ -z "$pid" ] && [ -n "$(find "$d" -maxdepth 0 -mmin -10 2>/dev/null)" ]; then continue; fi
     /usr/bin/git -C "$ops" worktree remove --force "$d" >/dev/null 2>&1 || true
     rm -f "$runs/.$name.pid"
