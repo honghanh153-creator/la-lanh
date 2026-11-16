@@ -557,6 +557,18 @@
     "pr": 585
    },
    "note": "cap for manual runs #585 (merged 16.11 11:47); --over-cap word validation and this entry from fix-forward #586"
+  },
+  {
+   "id": "L33",
+   "title": "Cần owner thì ghi vào file việc chờ duyệt, không hỏi trong chat (luật R3): hook chặn hộp câu hỏi và câu hỏi cuối lượt, phiên dài nhận luật mới trước lượt kế tiếp; tick báo khi hook bị gỡ",
+   "from": "owner 15.11, nhắc lại 16.11 (\"bạn quên nhiều\"); Claude + Codex 16.11",
+   "who": "claude",
+   "due": "2026-11-17",
+   "status": "open",
+   "test": {
+    "file": "scripts/collab-rules-hook.test.mjs",
+    "name": "L33 (R3): a question to the owner in chat is refused and points to the decisions file"
+   }
   }
  ]
 }
