@@ -2,7 +2,7 @@
 // from a phone whether the loop is running and why it stopped (owner request 31.10.2026).
 import { join } from 'node:path';
 import { agentMarker, assertAgentBody, autoStartAt, clean, codexDailyCap, cutoffAt, hhmmOf, isTrusted, planOpensAt, readJson, repo, stateDir, writeJson } from './collab-trust.mjs';
-import { incidentLines, renderSnapshot } from './collab-snapshot.mjs';
+import { incidentLines } from './collab-snapshot.mjs';
 
 export const boardMarker = `${agentMarker} status-board -->`;
 
@@ -91,14 +91,13 @@ export function upsertBoard(gh, issue, body) {
 
 // Owner notes (owner 12.11.2026). Editing the board sends no notification, so the owner heard
 // nothing. A NEW comment on the plan issue is posted only for: PRs merged into integration
-// (one line each, batched per tick), the loop failing two ticks in a row, a PR newly labelled
-// needs-owner, and a digest at about 12:00 and 22:00. Each event has a key; the keys ride in the
-// comment's agent marker and in a local cache, so a re-run of a tick never posts twice.
+// (one line each, batched per tick), the loop failing two ticks in a row, and a PR newly labelled
+// needs-owner. Each event has a key; the keys ride in the comment's agent marker and in a local
+// cache, so a re-run of a tick never posts twice.
+// Owner 16.11.2026 (5-fix package, item 4): one report per slot. The 07:00 report is the main one,
+// and the 14:00/22:00 owner reports (scheduled task, reading the slot snapshot) are the only summaries;
+// the tick no longer posts its own 14:00/22:00 digest. The outcome metrics stay on the board.
 export const notePrefix = `${agentMarker} owner-note keys=`;
-// L19: the digest shares the 14:00 and 22:00 slots of the owner reports (08/14/22), so both read one
-// snapshot (collab-snapshot.mjs).
-export const digestHours = [14, 22];
-const digestWindow = 60;
 
 export function sentNoteKeys(comments = []) {
   const keys = new Set();
@@ -112,42 +111,12 @@ export function sentNoteKeys(comments = []) {
 // Plain titles: no "feat(x):" prefix, one line.
 export const plainTitle = title => clean(String(title ?? ''), 90).replace(/^[a-z]+(\([^)]*\))?!?:\s*/i, '').replace(/\s+/g, ' ').trim();
 const named = t => `${plainTitle(t.title)} (#${t.number})`;
-const list = (items, none) => (items.length ? items.map(named).join('; ') : none);
 
-const snapshotLines = (take, slot, date) => {
-  try { return renderSnapshot(take(String(slot).padStart(2, '0'), date)); }
-  catch (error) { return [`- Bản chụp nguồn: chưa đo được (${clean(error.message, 160)}).`]; }
-};
-
-export function ownerNotes({ now, merged = [], failures = 0, streakAt = null, turns = [], planned = [], dropped = [], metrics = [], digest = true, work = null, snapshot = null }) {
+export function ownerNotes({ now, merged = [], failures = 0, streakAt = null, turns = [] }) {
   const notes = merged.map(m => ({ key: `merged-${m.number}`, lines: [`Đã gộp vào integration: ${named(m)}.`] }));
   if (failures >= 2 && streakAt) notes.push({ key: `stuck-${now.date}-${streakAt.replace(':', '')}`, lines: [`Vòng tự động bị lỗi ${failures} lượt liền từ ${streakAt}. Chi tiết ở bảng trạng thái.`] });
   const waiting = turns.filter(t => t.turn === 'hold' && t.reason === 'needs-owner');
   for (const t of waiting) notes.push({ key: `owner-${t.number}-${String(t.head ?? '').slice(0, 7)}`, lines: [`Cần bạn xem: ${named(t)}.`] });
-  const at = now.hour * 60 + now.minute;
-  const slot = digest ? digestHours.find(h => at >= h * 60 && at < h * 60 + digestWindow) : undefined;
-  if (slot !== undefined) {
-    const picked = planned.filter(n => !dropped.includes(n));
-    const doneNums = new Set(merged.map(m => m.number));
-    const finished = picked.filter(n => doneNums.has(n)).length;
-    const active = turns.filter(t => t.turn !== 'hold');
-    notes.push({ key: `digest-${now.date}-${slot}`, lines: [
-      `**Tóm tắt ${slot}:00**`,
-      // L19: with a snapshot, every number comes from the slot's one snapshot, which the owner
-      // report of the same slot prints too; nothing is counted here again.
-      ...(snapshot ? snapshotLines(snapshot, slot, now.date) : []),
-      // L11: progress is items whose criteria are met; merges are reported on their own line.
-      ...(snapshot ? [] : work ? [`- ${work() ?? 'Việc đạt tiêu chí: chưa đo được.'}`, `- Đã gộp ${merged.length} PR hôm nay (số PR, không phải số việc).`]
-        : [picked.length ? `- Xong: ${finished}/${picked.length} việc đã chọn hôm nay; đã gộp ${merged.length} PR.` : `- Xong: đã gộp ${merged.length} PR hôm nay.`]),
-      `- Đang làm: ${list(active.slice(0, 2), 'không có')}.`,
-      `- Chờ bạn: ${list(waiting, 'không có')}.`,
-      `- Tiếp theo: ${active[2] ? named(active[2]) : 'Claude chọn việc kế tiếp từ backlog khi có chỗ'}.`,
-      // The outcome metrics of §2.11 (Daily, approved copy, release lag, merge latency, WIP) stay in
-      // every digest; with a snapshot only the lessons line is left out, because the snapshot
-      // carries it (Codex r1 on #497).
-      ...(snapshot ? metrics.filter(l => !/^Lời hứa sửa quy trình/.test(l)) : metrics).map(l => `- ${l}`),
-    ] });
-  }
   return notes;
 }
 

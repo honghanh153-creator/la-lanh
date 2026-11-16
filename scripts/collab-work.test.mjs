@@ -5,7 +5,6 @@ process.env.LA_LANH_COLLAB_HOME = mkdtempSync(join(tmpdir(), 'collab-work-'));
 const assert = (await import('node:assert/strict')).default;
 const test = (await import('node:test')).default;
 const { claimedCriteria, ghFetch, issueCriteria, itemStatus, plannedWork, renderProgress, workHistoryLimit, workProgress, workRef } = await import('./collab-work.mjs');
-const { ownerNotes } = await import('./collab-status.mjs');
 
 // Synthetic issue and PRs only.
 const sha = n => String(n).repeat(40).slice(0, 40);
@@ -58,11 +57,6 @@ test('the items of the day are fixed at plan time and a failed read is unmeasure
   assert.deepEqual(plannedWork(turns), [{ item: 12 }, { pr: 3 }], 'two PRs of one item are one planned item');
   const broken = workProgress({ date: '2026-11-14', planned: [{ item: 12 }], fetch: () => { throw new Error('gh: timeout'); } });
   assert.match(renderProgress(broken), /^Việc đạt tiêu chí: chưa đo được \(gh: timeout\)\.$/);
-  const notes = ownerNotes({ now: { date: '2026-11-14', hour: 14, minute: 5 }, merged: [{ number: 1, title: 'x' }, { number: 2, title: 'y' }], planned: [1, 2], work: () => renderProgress(workProgress({ date: '2026-11-14', planned: [{ item: 12 }], fetch: () => ({ body: issue, prs: [] }) })) });
-  const digest = notes.find(n => n.key.startsWith('digest-')).lines.join('\n');
-  assert.match(digest, /Việc đạt tiêu chí: 0\/1 việc đã chọn đạt đủ tiêu chí\./);
-  assert.match(digest, /Đã gộp 2 PR hôm nay \(số PR, không phải số việc\)\./);
-  assert.doesNotMatch(digest, /Xong: 2\/2/, 'two merges are not two finished items');
 });
 
 // Codex r1 on #496 (P2): a positional TC2 collided with a line that names TC2, so one PR claiming
