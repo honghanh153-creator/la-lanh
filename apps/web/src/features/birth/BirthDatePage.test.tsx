@@ -119,7 +119,7 @@ describe("BirthDatePage", () => {
     await user.type(screen.getByRole("textbox", { name: "Năm" }), "1990");
     await user.click(screen.getByRole("button", { name: "Khớp tín hiệu" }));
 
-    expect(await screen.findByRole("heading", { name: "Vibe · Vững" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Vững" })).toBeInTheDocument();
     expect(createBirthProfile).toHaveBeenCalledTimes(1);
     expect(getDailyNote).toHaveBeenCalledTimes(1);
     expect(getBirthProfile).not.toHaveBeenCalled();
@@ -151,7 +151,7 @@ describe("BirthDatePage", () => {
     expect(createBirthProfile).not.toHaveBeenCalled();
     await user.click(screen.getByRole("checkbox"));
     await user.click(screen.getByRole("button", { name: "Khớp tín hiệu" }));
-    expect(await screen.findByRole("heading", { name: "Vibe · Vững" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Vững" })).toBeInTheDocument();
     expect(addBirthSupplement).toHaveBeenCalledWith({ birth_time_mode: "exact", birth_time_local: "00:00", approx_window: null, place_id: "hanoi" });
     expect(vi.mocked(addBirthSupplement).mock.invocationCallOrder[0]).toBeLessThan(vi.mocked(getDailyNote).mock.invocationCallOrder[0]);
   });
@@ -164,7 +164,7 @@ describe("BirthDatePage", () => {
     await user.click(screen.getByRole("checkbox"));
     await user.click(screen.getByRole("button", { name: "Bỏ qua giờ & nơi sinh" }));
     await user.click(screen.getByRole("button", { name: "Khớp tín hiệu" }));
-    expect(await screen.findByRole("heading", { name: "Vibe · Vững" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Vững" })).toBeInTheDocument();
     expect(addBirthSupplement).not.toHaveBeenCalled();
   });
 
@@ -191,7 +191,7 @@ describe("BirthDatePage", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("giờ/nơi sinh chưa lưu được");
     expect(screen.getByRole("textbox", { name: "Ngày" })).toBeDisabled();
     await user.click(screen.getByRole("button", { name: "Thử tải lại" }));
-    expect(await screen.findByRole("heading", { name: "Vibe · Vững" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Vững" })).toBeInTheDocument();
     expect(createBirthProfile).toHaveBeenCalledTimes(1);
     expect(addBirthSupplement).toHaveBeenCalledTimes(2);
   });
@@ -231,7 +231,7 @@ describe("BirthDatePage", () => {
     await user.click(screen.getByRole("button", { name: "Khớp tín hiệu" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Thử tải lại");
     await user.click(screen.getByRole("button", { name: "Thử tải lại" }));
-    expect(await screen.findByRole("heading", { name: "Vibe · Vững" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Vững" })).toBeInTheDocument();
     expect(createBirthProfile).toHaveBeenCalledTimes(1);
     expect(addBirthSupplement).toHaveBeenCalledTimes(1);
   });

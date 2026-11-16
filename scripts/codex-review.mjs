@@ -1,13 +1,14 @@
 // Run one Codex review of a PR head, apply the owner's P2 policy, and post the verdict.
-// Usage: node scripts/codex-review.mjs --pr N [--auto]
+// Usage: node scripts/codex-review.mjs --pr N [--auto] [--over-cap "<owner words>"]
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { acquireLock } from './collab-lock.mjs';
-import { DeadlineError, agentMarker, boundedTimeout, clean, cutoffAt, cutoffMs, isOwnPr, dayStatePath, hhmmOf, integration, isSha, lastStartAt, makeGh, planOpensAt, readJson, repo, stateDir, trustedComments, vnNow, writeJson } from './collab-trust.mjs';
-import { codexDailyCap, prTurn } from './collab-turn.mjs';
+import { agentMarker, bindReceipt, boundedTimeout, clean, cutoffAt, cutoffMs, dayStatePath, DeadlineError, hhmmOf, integration, isOwnPr, isSha, lastStartAt, makeGh, planOpensAt, readJson, repo, reviewState, signReceipt, stateDir, trustedComments, verdictSeal, vnNow, writeJson } from './collab-trust.mjs';
+import { prTurn } from './collab-turn.mjs';
+import { dayCap } from './collab-trust.mjs';
 import { groupExec } from './collab-heal.mjs';
 import { applyPolicy, isBlocking, validateOutput } from './collab-review-policy.mjs';
 import { isMain } from './is-main.mjs';
@@ -43,7 +44,8 @@ const cell = (text, limit = 900) => clean(text, limit).replace(/\\/g, '\\\\').re
 // A detail may list every occurrence of one class (prompt rule S2); keep the whole list (fix-forward #238).
 const detailCell = text => cell(text, 6000);
 
-export function renderVerdict({ pr, out, policy, round, range, digest, fixIssue }) {
+// `base`: the collab/integration tip when the review started (P1-A); `receipt`: the local receipt id (P1-B).
+export function renderVerdict({ pr, out, policy, round, range, digest, fixIssue, base = null, receipt = null }) {
   const rows = out.findings.map(f => `| ${f.severity} | ${f.category} | \`${cell(f.file)}${f.line ? `:${f.line}` : ''}\` | ${cell(f.title)}: ${detailCell(f.detail)} | ${isBlocking(f) ? 'có' : 'không'} |`);
   return [
     `Review verdict: ${policy.verdict} @ ${pr.headRefOid}`,
@@ -55,7 +57,8 @@ export function renderVerdict({ pr, out, policy, round, range, digest, fixIssue 
     ...(rows.length ? ['| Mức | Loại | Vị trí | Vấn đề | Chặn merge |', '|---|---|---|---|---|', ...rows, ''] : ['Không có phát hiện.', '']),
     ...(fixIssue ? [`Fix-forward: #${fixIssue}`, ''] : []),
     `Output SHA-256: \`${digest}\``,
-    `${agentMarker} codex-auto-review sha=${pr.headRefOid} p2=${policy.fixForward.length} -->`,
+    `Base lúc review: \`${integration}\` @ ${isSha(base) ? `\`${base.slice(0, 12)}\`` : 'không rõ'}`,
+    verdictSeal({ head: pr.headRefOid, p2: policy.fixForward.length, base, receipt }),
   ].join('\n');
 }
 
@@ -108,10 +111,18 @@ export function runReview(number, options = {}) {
   finally { release(); }
 }
 
+// #586: the owner's words for --over-cap. Empty, blank (also after control characters are removed)
+// or another option ("--over-cap --pr 7") is no quote; the text is trimmed before it is shortened,
+// with no length cut before the check (#588: a 100 001-blank value became the truncation marker).
+export function overCapWords(raw) {
+  const text = String(raw ?? '').replace(/[\u0000-\u0008\u000b-\u001f\u007f\u2028\u2029]/g, '').trim();
+  return !text || text.startsWith('--') ? '' : clean(text, 300);
+}
+
 // Time kept after Codex for the git check and up to five gh calls (60 s each) that publish the result.
 export const reviewFinalizeReserveMs = 5 * 60000;
 
-function reviewOnce(number, { auto = false, gh: ghIn = makeGh(), run = execFileSync, now = vnNow(), clock = vnNow, readOut, nowMs = Date.now } = {}) {
+function reviewOnce(number, { auto = false, overCap = null, gh: ghIn = makeGh(), run = execFileSync, now = vnNow(), clock = vnNow, readOut, nowMs = Date.now } = {}) {
   // Scheduled runs: every gh and git call ends by cutoffAt (minus 15 s cleanup); direct runs keep fixed caps.
   const cutoff = cutoffMs(now.date) - 15000;
   const left = auto && Number.isFinite(cutoff) ? () => cutoff - nowMs() : () => Infinity;
@@ -119,16 +130,31 @@ function reviewOnce(number, { auto = false, gh: ghIn = makeGh(), run = execFileS
   const pr = gh.pr(number);
   const head = pr.headRefOid;
   if (!isSha(head)) throw new Error('PR head SHA unavailable.');
+  // P1-A: the verdict records the integration tip it was reviewed against; without it the APPROVE
+  // could never be compared with a later base, so no review starts.
+  const reviewedBase = pr.baseTipOid;
+  if (!isSha(reviewedBase)) return { status: 'refused', reason: `không đọc được SHA hiện tại của ${integration}` };
   // prTurn holds fork/outside PRs; checked here too so a direct call never reviews one.
   if (!isOwnPr(pr)) return { status: 'refused', reason: 'PR không phải của owner hoặc từ fork' };
   const turn = prTurn(pr);
   if (turn.turn !== 'codex-review') return { status: 'refused', reason: `lượt hiện tại là ${turn.turn}: ${turn.reason}` };
   const dayPath = dayStatePath(now.date);
   const day = readJson(dayPath, { codexRuns: 0, failures: 0 });
-  if (auto && day.codexRuns >= codexDailyCap - auditReserve) return { status: 'refused', reason: `hết ${codexDailyCap - auditReserve} lượt Codex tự động hôm nay (1 lượt giữ cho soát đêm)` };
+  // #571 (16.11.2026): a manual run counts against the same cap as the loop. On 15.11 two manual
+  // reviews took the day to 81 of 80 and spent the night audit's reserve. Past the cap only an
+  // explicit --over-cap with the owner's words runs, and those words are kept in the day state.
+  const cap = dayCap(day) - auditReserve;
+  if (day.codexRuns >= cap) {
+    const words = auto ? '' : overCapWords(overCap);
+    if (!words) return { status: 'refused', reason: auto ? `hết ${cap} lượt Codex tự động hôm nay (1 lượt giữ cho soát đêm)` : `hết ${cap} lượt Codex hôm nay (1 lượt giữ cho soát đêm); chạy tay vượt trần cần --over-cap "<lời owner>"` };
+    const cur = readJson(dayPath, day);
+    writeJson(dayPath, { ...cur, overCapLog: [...(cur.overCapLog ?? []), { at: new Date(nowMs()).toISOString(), pr: number, codexRuns: cur.codexRuns ?? 0, quote: words }] });
+  }
 
   const trusted = trustedComments(pr.comments);
-  const priorAuto = trusted.filter(c => c.auto && c.verdict).at(-1);
+  // Only a signed earlier review narrows the re-review to a delta: an unsigned one could be forged to
+  // point Codex at a harmless range (P1-B).
+  const priorAuto = reviewState(pr).sealed.filter(c => c.auto && c.verdict).at(-1);
   const dir = prepareClone(number, head, run, left);
   let deltaFrom = null;
   if (priorAuto && priorAuto.verdict.sha !== head) {
@@ -196,14 +222,18 @@ function reviewOnce(number, { auto = false, gh: ghIn = makeGh(), run = execFileS
 
   const priorRequests = trusted.filter(c => c.auto && c.verdict?.verdict === 'REQUEST_CHANGES').length;
   const round = trusted.filter(c => c.auto && c.verdict).length + 1;
-  const body = renderVerdict({ pr, out, policy, round, range: deltaFrom ? `${deltaFrom.slice(0, 7)}..${head.slice(0, 7)}` : `${mergeBase.slice(0, 7)}..${head.slice(0, 7)}`, digest, fixIssue });
-  gh.comment('pr', pr.number, body);
+  // P1-B: the receipt is written before the comment, so every posted verdict has one.
+  const receipt = signReceipt({ kind: 'verdict', pr: pr.number, head, base: reviewedBase, result: policy.verdict, p2: policy.fixForward.length });
+  const body = renderVerdict({ pr, out, policy, round, range: deltaFrom ? `${deltaFrom.slice(0, 7)}..${head.slice(0, 7)}` : `${mergeBase.slice(0, 7)}..${head.slice(0, 7)}`, digest, fixIssue, base: reviewedBase, receipt });
+  const posted = gh.comment('pr', pr.number, body);
+  // Bound to the new comment's id: a later copy of this verdict never counts (replay, #456 auto-1).
+  if (!bindReceipt({ kind: 'verdict', pr: pr.number, id: receipt, url: posted })) process.stderr.write(`codex-review: receipt ${receipt} not bound to a comment id; the verdict will not count\n`);
   const needsOwner = policy.verdict === 'REQUEST_CHANGES' && (!out.complete || priorRequests + 1 >= maxAutoRequestChanges);
   if (needsOwner) {
     ensureLabel(gh, 'needs-owner', 'D93F0B', 'Vòng tự động dừng, chờ owner');
     gh.raw(['pr', 'edit', String(pr.number), '--repo', repo, '--add-label', 'needs-owner']);
   }
-  writeJson(join(stateDir, 'logs', `review-${stamp}.json`), { pr: pr.number, head, verdict: policy.verdict, digest, fixIssue, needsOwner, at: new Date().toISOString() });
+  writeJson(join(stateDir, 'logs', `review-${stamp}.json`), { pr: pr.number, head, base: reviewedBase, verdict: policy.verdict, receipt, digest, fixIssue, needsOwner, at: new Date().toISOString() });
   return { status: 'posted', verdict: policy.verdict, blocking: policy.blocking.length, fixIssue, needsOwner };
 }
 
@@ -211,10 +241,11 @@ if (isMain(import.meta.url)) {
   const args = process.argv.slice(2);
   const number = Number(args[args.indexOf('--pr') + 1]);
   if (!args.includes('--pr') || !Number.isInteger(number) || number <= 0) {
-    process.stderr.write('Usage: node scripts/codex-review.mjs --pr N [--auto]\n'); process.exit(2);
+    process.stderr.write('Usage: node scripts/codex-review.mjs --pr N [--auto] [--over-cap "<owner words>"]\n'); process.exit(2);
   }
+  const overCap = args.includes('--over-cap') ? args[args.indexOf('--over-cap') + 1] ?? '' : null;
   try {
-    const result = runReview(number, { auto: args.includes('--auto') });
+    const result = runReview(number, { auto: args.includes('--auto'), overCap });
     process.stdout.write(`${JSON.stringify(result)}\n`);
     if (result.status !== 'posted') process.exitCode = 3;
   } catch (error) { process.stderr.write(`codex-review failed: ${clean(error.message, 500)}\n`); process.exitCode = 1; }

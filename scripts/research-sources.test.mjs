@@ -4,6 +4,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 import { changedResearch, researchProblems } from './research-sources.mjs';
 
 // Synthetic research text only.
@@ -28,7 +29,8 @@ const good = [
   '',
   '- Màu đỏ làm người chơi vội hơn (không tìm được nguồn).',
 ].join('\n');
-const root = new URL('..', import.meta.url).pathname;
+// fileURLToPath, not .pathname: the owner's checkout path has a space, which .pathname keeps as %20.
+const root = fileURLToPath(new URL('..', import.meta.url));
 
 test('a conclusion without a read source is rejected even with many URLs', () => {
   assert.deepEqual(researchProblems(good, { path: 'r.md', root }), []);

@@ -171,7 +171,9 @@ def test_every_authored_daily_combination_passes_the_direct_home_gate() -> None:
             scene_anchors=issue.scene_anchors,
             action_anchors=issue.action_anchors,
         )
-        assert len(set(product(issue.headlines, issue.scenes, issue.advice))) == 384
+        # 384 is the authored floor; approved registry lines widen the pool, and every
+        # widened combination still has to pass the gate below.
+        assert len(set(product(issue.headlines, issue.scenes, issue.advice))) >= 384
         for arena in (SemanticArena.GENERAL, *issue.arenas):
             actions = (
                 issue.relationship_advice if arena is SemanticArena.RELATIONSHIPS else issue.advice

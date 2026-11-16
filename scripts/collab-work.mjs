@@ -101,7 +101,10 @@ export function workProgress({ date, planned = [], fetch, reviewed = confirmClos
       else if (!s.metAt) open.push({ item, missing: s.criteria.length ? s.missing : ['chưa có tiêu chí'] });
     }
   } catch (error) { return { unmeasured: String(error?.message ?? error).slice(0, 200), picked: items.length, unlinked }; }
-  return { picked: items.length, finished, open, unlinked, unclear };
+  // Owner 15.11: the 7-week share, as classified when the plan was made (never re-read from labels).
+  const marked = planned.filter(p => p.plan7w);
+  const w7 = planned.some(p => 'plan7w' in p) ? { picked: marked.length, finished: marked.filter(p => p.item && finished.includes(p.item)).length } : null;
+  return { picked: items.length, finished, open, unlinked, unclear, w7 };
 }
 
 export function renderProgress(p) {
@@ -110,7 +113,8 @@ export function renderProgress(p) {
   const parts = [p.picked ? `${p.finished.length}/${p.picked} việc đã chọn đạt đủ tiêu chí` : 'chưa chọn việc nào có mã việc'];
   if (p.unclear?.length) parts.push(`${p.unclear.length} việc chưa đo được vì có tiêu chí trùng mã (${p.unclear.map(u => `#${u.item}: ${u.ids.join(', ')}`).join('; ')})`);
   if (p.unlinked.length) parts.push(`${p.unlinked.length} PR chưa gắn việc (${p.unlinked.map(n => `#${n}`).join(', ')}), không tính`);
-  return `Việc đạt tiêu chí: ${parts.join('; ')}.`;
+  const w7 = p.w7 ? `\n- Việc kế hoạch 7 tuần: đã chọn ${p.w7.picked} (tối thiểu 2 khi có việc sẵn sàng), đạt ${p.w7.finished}.` : '';
+  return `Việc đạt tiêu chí: ${parts.join('; ')}.${w7}`;
 }
 
 // The real fetch: the issue body and the merged PRs into integration that name it. gh pr list

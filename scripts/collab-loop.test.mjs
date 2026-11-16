@@ -19,10 +19,28 @@ const A = 'a'.repeat(40);
 const B = 'b'.repeat(40);
 const C = 'c'.repeat(40);
 let clock = 0;
-const owner = body => ({ authorAssociation: 'OWNER', createdAt: `2026-10-30T0${Math.floor(clock / 60)}:${String(clock++ % 60).padStart(2, '0')}:00Z`, body });
+const { asPosted } = await import('./collab-test-post.mjs');
+const owner = body => asPosted(trust, { authorAssociation: 'OWNER', createdAt: `2026-10-30T0${Math.floor(clock / 60)}:${String(clock++ % 60).padStart(2, '0')}:00Z`, body });
 const outsider = body => ({ ...owner(body), authorAssociation: 'NONE' });
-const check = (sha, status = 'PASS') => owner(renderCheck({ head: sha, status, exitCode: status === 'PASS' ? 0 : 1, seconds: 1, date: 'x' }));
-const pr = (extra = {}) => ({ number: 7, title: 'feat(tarot): plain summary', author: { login: 'honghanh153-creator' }, isCrossRepository: false, state: 'OPEN', isDraft: false, baseRefName: 'collab/integration', headRefName: 'feat/x', headRefOid: A, mergeable: 'MERGEABLE', labels: [], createdAt: '2026-10-29T00:00:00Z', comments: [], body: goodBody, ...extra });
+// The live tip of collab/integration in every fixture (P1-A).
+const BASE = 'e'.repeat(40);
+// Scripted comments come with a local receipt (P1-B). A fixture is signed for PR 7 and re-signed by
+// pr() for another number, the way the real check and review paths sign for their own PR.
+const sealBody = (kind, c, n) => {
+  const receipt = trust.signReceipt({ kind, pr: n, head: c.head, base: c.base, result: c.result, p2: c.p2 ?? 0 });
+  return kind === 'check'
+    ? renderCheck({ head: c.head, status: c.result, base: c.base, receipt, exitCode: c.result === 'PASS' ? 0 : 1, seconds: 1, date: 'x' })
+    : [`Review verdict: ${c.result} @ ${c.head}`, 'Reviewer: Codex (auto, scripts/codex-review.mjs)', '', ...(c.fix ? [`Fix-forward: #${c.fix}`, ''] : []), trust.verdictSeal({ head: c.head, p2: c.p2 ?? 0, base: c.base, receipt })].join('\n');
+};
+const sealable = (kind, claims) => ({ ...owner(sealBody(kind, claims, 7)), seal: { kind, claims } });
+const check = (sha, status = 'PASS', base = BASE) => sealable('check', { head: sha, result: status, base });
+const approve = (sha, { p2 = 0, base = BASE, fix = null } = {}) => sealable('verdict', { head: sha, result: 'APPROVE', base, p2, fix });
+const requestChanges = (sha, base = BASE) => sealable('verdict', { head: sha, result: 'REQUEST_CHANGES', base });
+const resign = (n, c) => (c?.seal && n !== 7 ? asPosted(trust, { ...c, body: sealBody(c.seal.kind, c.seal.claims, n) }) : c);
+const pr = (extra = {}) => {
+  const p = { number: 7, title: 'feat(tarot): plain summary', author: { login: 'honghanh153-creator' }, isCrossRepository: false, state: 'OPEN', isDraft: false, baseRefName: 'collab/integration', headRefName: 'feat/x', headRefOid: A, baseTipOid: BASE, mergeable: 'MERGEABLE', labels: [], createdAt: '2026-10-29T00:00:00Z', comments: [], body: goodBody, ...extra };
+  return { ...p, comments: p.comments.map(c => resign(p.number, c)) };
+};
 
 function fakeGh(state) {
   const calls = [];
@@ -36,7 +54,7 @@ function fakeGh(state) {
       if (args[0] === 'issue' && args[1] === 'create') return 'https://github.com/x/y/issues/901\n';
       return '';
     },
-    comment: (kind, number, body) => { trust.assertAgentBody(body); calls.push(['comment', kind, number, body]); state.pr.comments.push(owner(body)); },
+    comment: (kind, number, body) => { trust.assertAgentBody(body); calls.push(['comment', kind, number, body]); const c = owner(body); state.pr.comments.push(c); return c.url; },
   };
 }
 
@@ -73,7 +91,7 @@ test('turns follow check → review → fix/merge on the exact head', () => {
   assert.equal(prTurn(p).turn, 'claude-fix');
   p.comments.push(check(B));
   assert.equal(prTurn(p).turn, 'codex-review');
-  p.comments.push(owner(`Review verdict: APPROVE @ ${B}`));
+  p.comments.push(approve(B));
   assert.equal(prTurn(p).turn, 'merge');
   assert.equal(prTurn({ ...p, baseRefName: 'feat/parent' }).turn, 'hold');
   assert.equal(prTurn({ ...p, baseRefName: 'main' }).turn, 'hold');
@@ -162,7 +180,7 @@ test('review posts verdict, files fix-forward first, and records the output hash
   const body = gh.calls.find(c => c[0] === 'comment')[3];
   assert.equal(trust.parseVerdict(body).sha, A);
   assert.match(body, /Fix-forward: #901/);
-  assert.match(body, /p2=1 -->/);
+  assert.match(body, new RegExp(`p2=1 base=${BASE} receipt=[0-9a-f]{32} -->$`));
   assert.match(body, /Output SHA-256: `[0-9a-f]{64}`/);
   assert.equal(prTurn(state.pr).turn, 'merge');
   assert.equal(review.runReview(7, { gh, run: runner.run, readOut: () => raw }).status, 'refused', 'no second verdict for the same head');
@@ -191,7 +209,7 @@ test('the scheduled PR list asks GitHub for mergeability (K24 needs it)', () => 
 });
 
 test('a re-review across an integration merge reads only the PR files (K25)', () => {
-  const prior = owner(`Review verdict: REQUEST_CHANGES @ ${B}\n${trust.agentMarker} codex-auto-review sha=${B} p2=0 -->`);
+  const prior = requestChanges(B);
   const raw = JSON.stringify(output());
   for (const [merges, scoped] of [['d'.repeat(40), true], ['', false]]) {
     const runner = fakeRun();
@@ -221,7 +239,7 @@ test('review refuses without an author check, stops on limits, and escalates to 
   assert.equal(trust.readJson(trust.dayStatePath(now.date), {}).codexRuns ?? 0, 0, 'limits do not use a daily run');
 
   const blocking = JSON.stringify(output({ verdict: 'REQUEST_CHANGES', findings: [finding('P1', 'correctness')] }));
-  const state = { pr: pr({ headRefOid: B, comments: [check(A), owner(`Review verdict: REQUEST_CHANGES @ ${A}\n${trust.agentMarker} codex-auto-review sha=${A} p2=0 -->`), check(B)] }) };
+  const state = { pr: pr({ headRefOid: B, comments: [check(A), requestChanges(A), check(B)] }) };
   const gh = fakeGh(state);
   const runner = fakeRun({ head: B });
   const result = review.runReview(7, { gh, run: runner.run, readOut: () => blocking.replace(A, B), now });
@@ -238,16 +256,54 @@ test('daily cap refuses automatic reviews', () => {
   assert.equal(result.status, 'refused');
 });
 
+test('#571: a manual review stops at the same cap; only --over-cap with recorded owner words runs', () => {
+  const now = { date: '2027-01-11', hour: 12, minute: 0 };
+  const cap = trust.dayCap({}) - 1;
+  trust.writeJson(trust.dayStatePath(now.date), { codexRuns: cap });
+  const approveOut = JSON.stringify(output());
+  const go = extra => review.runReview(7, { gh: fakeGh({ pr: pr({ comments: [check(A)] }) }), run: fakeRun().run, readOut: () => approveOut, now, ...extra });
+  const manual = go({});
+  assert.equal(manual.status, 'refused', 'a manual run at the cap is refused');
+  assert.match(manual.reason, /--over-cap/);
+  assert.equal(go({ overCap: '   ' }).status, 'refused', 'empty words are not the owner\'s words');
+  assert.equal(go({ auto: true, overCap: 'cho thêm' }).status, 'refused', 'the loop never runs over the cap');
+  assert.equal(trust.readJson(trust.dayStatePath(now.date), {}).codexRuns, cap, 'no run was spent');
+  const over = go({ overCap: 'thêm 1 lượt cho PR này' });
+  assert.equal(over.status, 'posted');
+  const day = trust.readJson(trust.dayStatePath(now.date), {});
+  assert.equal(day.codexRuns, cap + 1);
+  assert.deepEqual(day.overCapLog.map(l => [l.pr, l.quote, l.codexRuns]), [[7, 'thêm 1 lượt cho PR này', cap]]);
+  // Under the cap a manual run needs nothing extra.
+  trust.writeJson(trust.dayStatePath('2027-01-12'), { codexRuns: 0 });
+  assert.equal(review.runReview(7, { gh: fakeGh({ pr: pr({ comments: [check(A)] }) }), run: fakeRun().run, readOut: () => approveOut, now: { ...now, date: '2027-01-12' } }).status, 'posted');
+});
+
+test('#586: --over-cap needs real words: a following option, blanks or control characters are no quote', () => {
+  assert.equal(review.overCapWords('--pr'), '', '"--over-cap --pr 7" names no owner words');
+  assert.equal(review.overCapWords(' '.repeat(301)), '', 'blanks are trimmed before shortening');
+  assert.equal(review.overCapWords(' '.repeat(100001)), '', 'a very long blank is no quote either (#588)');
+  assert.equal(review.overCapWords('\u0001\u0002 '), '', 'control characters only');
+  assert.equal(review.overCapWords(null), '');
+  assert.equal(review.overCapWords('  cho thêm 1 lượt  '), 'cho thêm 1 lượt');
+  assert.match(review.overCapWords(`ok ${'x'.repeat(400)}`), /^ok x+ \[\.\.\.truncated\]$/);
+  const now = { date: '2027-01-13', hour: 12, minute: 0 };
+  trust.writeJson(trust.dayStatePath(now.date), { codexRuns: trust.dayCap({}) - 1 });
+  const go = overCap => review.runReview(7, { gh: fakeGh({ pr: pr({ comments: [check(A)] }) }), run: fakeRun().run, readOut: () => JSON.stringify(output()), now, overCap });
+  assert.equal(go('--pr').status, 'refused');
+  assert.equal(go(' '.repeat(301)).status, 'refused');
+  assert.equal(trust.readJson(trust.dayStatePath(now.date), {}).overCapLog, undefined, 'nothing recorded for a refused override');
+});
+
 test('merge gate needs APPROVE and PASS on head, integration base and a fix-forward link', () => {
-  const ok = pr({ comments: [check(A), owner(`Review verdict: APPROVE @ ${A}`)] });
+  const ok = pr({ comments: [check(A), approve(A)] });
   assert.deepEqual(mergeGate(ok).reasons, []);
   assert.ok(!mergeGate({ ...ok, baseRefName: 'main' }).ok);
   assert.ok(!mergeGate({ ...ok, mergeable: 'CONFLICTING' }).ok);
   assert.ok(!mergeGate({ ...ok, labels: ['needs-owner'] }).ok);
-  assert.ok(!mergeGate(pr({ comments: [owner(`Review verdict: APPROVE @ ${A}`)] })).ok, 'needs author check');
-  assert.ok(!mergeGate(pr({ comments: [check(A), owner(`Review verdict: APPROVE @ ${A}`), owner(`Review verdict: REQUEST_CHANGES @ ${A}`)] })).ok);
+  assert.ok(!mergeGate(pr({ comments: [approve(A)] })).ok, 'needs author check');
+  assert.ok(!mergeGate(pr({ comments: [check(A), approve(A), owner(`Review verdict: REQUEST_CHANGES @ ${A}`)] })).ok);
   assert.ok(!mergeGate(pr({ comments: [check(A), outsider(`Review verdict: APPROVE @ ${A}`)] })).ok);
-  assert.ok(!mergeGate(pr({ comments: [check(A), owner(`Review verdict: APPROVE @ ${A}\n${trust.agentMarker} codex-auto-review sha=${A} p2=2 -->`)] })).ok);
+  assert.ok(!mergeGate(pr({ comments: [check(A), approve(A, { p2: 2 })] })).ok);
 
   const state = { pr: ok, open: [ok, pr({ number: 8, baseRefName: 'feat/x' })] };
   const gh = fakeGh(state);
@@ -271,10 +327,10 @@ test('the plan records the picked items once; a later body edit changes nothing'
   const open = [pr({ number: 81, body: `${goodBody}\nViệc: #12` }), pr({ number: 82, body: `${goodBody}\nViệc: #12` }), pr({ number: 83 })];
   assert.equal(tick({ gh: ghFor(open), now: { date, hour: 8, minute: 52 }, merge: () => ({}), review: () => ({}) }).status, 'plan-made');
   const day = () => trust.readJson(trust.dayStatePath(date), {});
-  assert.deepEqual(day().plannedItems, [{ item: 12 }, { pr: 83 }]);
+  assert.deepEqual(day().plannedItems, [{ item: 12, plan7w: false }, { pr: 83, plan7w: false }]);
   const edited = open.map(p => p.number === 83 ? { ...p, body: `${goodBody}\nViệc: #99` } : p);
   tick({ gh: ghFor(edited), now: { date, hour: 9, minute: 20 }, merge: () => ({}), review: () => ({}) });
-  assert.deepEqual(day().plannedItems, [{ item: 12 }, { pr: 83 }]);
+  assert.deepEqual(day().plannedItems, [{ item: 12, plan7w: false }, { pr: 83, plan7w: false }]);
 });
 
 // Codex r1 on #482 (P2): health reached only the morning plan, so a hook removed later in the day
@@ -284,12 +340,15 @@ test('a pre-push hook removed after the plan shows on the next tick board', asyn
   const clone = mkdtempSync(join(tmpdir(), 'tick-hook-'));
   execFileSync('/usr/bin/git', ['init', '-q', clone]);
   const hook = installHook(clone);
+  // L30: a guard list exists here, so the only warning this test can see is the hook's.
+  const guardList = join(clone, 'guard-list.txt');
+  writeFileSync(guardList, 'ZZ-SYNTHETIC-VALUE\n');
   const comments = [];
   const gh = { ...fakeGh({ pr: null, open: [] }),
     json: args => args[0] === 'issue' && args[1] === 'list' ? [{ number: 50, title: 'Kế hoạch chạy tự động hằng ngày' }] : { comments },
     comment: (kind, number, body) => { trust.assertAgentBody(body); comments.push({ authorAssociation: 'OWNER', createdAt: '2026-12-08T01:50:00Z', body }); } };
   const boards = [];
-  const deps = now => ({ gh, now: { date: '2026-12-08', ...now }, merge: () => ({}), review: () => ({}), health: () => hookHealth(clone), board: info => boards.push(renderBoard(info)) });
+  const deps = now => ({ gh, now: { date: '2026-12-08', ...now }, merge: () => ({}), review: () => ({}), health: () => hookHealth(clone, { guardList }), board: info => boards.push(renderBoard(info)) });
   assert.equal(tick(deps({ hour: 8, minute: 52 })).status, 'plan-made');
   assert.doesNotMatch(boards.at(-1), /Cần xem/, 'healthy: nothing to look at');
   unlinkSync(hook);
@@ -304,7 +363,7 @@ test('tick makes the plan once, waits for the owner, then runs merges and capped
     json: args => args[0] === 'issue' && args[1] === 'list' ? [{ number: 50, title: 'Kế hoạch chạy tự động hằng ngày' }] : { comments },
     comment: (kind, number, body) => { trust.assertAgentBody(body); comments.push({ authorAssociation: 'OWNER', createdAt: '2026-11-02T01:50:00Z', body }); },
   });
-  const open = [pr({ number: 1, comments: [check(A), owner(`Review verdict: APPROVE @ ${A}`)] }), pr({ number: 2, comments: [check(A)] }), pr({ number: 3, comments: [check(A)] }), pr({ number: 4, comments: [check(A)] }), pr({ number: 5 })];
+  const open = [pr({ number: 1, comments: [check(A), approve(A)] }), pr({ number: 2, comments: [check(A)] }), pr({ number: 3, comments: [check(A)] }), pr({ number: 4, comments: [check(A)] }), pr({ number: 5 })];
   const date = '2026-11-02';
   const done = { merge: [], review: [] };
   const deps = now => ({ gh: ghFor(open), now: { date, ...now }, merge: n => { done.merge.push(n); return { status: 'merged' }; }, review: n => { done.review.push(n); return { status: 'posted' }; } });
@@ -318,14 +377,14 @@ test('tick makes the plan once, waits for the owner, then runs merges and capped
   assert.deepEqual(queue.items, [], 'author checks are the tick\'s job, not Claude\'s queue');
 });
 
-test('r1: a newer FAIL outvotes an older PASS, and a retarget voids earlier verdicts', () => {
-  const failedLater = pr({ comments: [check(A), owner(`Review verdict: APPROVE @ ${A}`), check(A, 'FAIL')] });
+test('r1: a newer FAIL outvotes an older PASS; a base change (not the retarget marker) voids the evidence', () => {
+  const failedLater = pr({ comments: [check(A), approve(A), check(A, 'FAIL')] });
   assert.ok(!mergeGate(failedLater).ok);
   assert.equal(prTurn(failedLater).turn, 'claude-fix');
-  const retargeted = pr({ comments: [check(A), owner(`Review verdict: APPROVE @ ${A}`), owner(`Base changed.\n\n${trust.agentMarker} retarget parent=6 -->`)] });
+  const retargeted = pr({ baseTipOid: C, comments: [check(A), approve(A), owner(`Base changed.\n\n${trust.agentMarker} retarget parent=6 -->`)] });
   assert.ok(!mergeGate(retargeted).ok);
-  assert.equal(prTurn(retargeted).turn, 'codex-review');
-  retargeted.comments.push(owner(`Review verdict: APPROVE @ ${A}`));
+  assert.equal(prTurn(retargeted).turn, 'claude-check');
+  retargeted.comments.push(check(A, 'PASS', C), approve(A, { base: C }));
   assert.ok(mergeGate(retargeted).ok);
 });
 
@@ -368,7 +427,7 @@ test('r1: privacy and features wait while content has machine work; a content PR
   const date = '2026-11-05';
   const open = [
     pr({ number: 1, title: 'feat(tarot): copy', comments: [check(A), owner(`Review verdict: REQUEST_CHANGES @ ${A}`)] }),
-    pr({ number: 2, title: 'feat(privacy): export', comments: [check(A), owner(`Review verdict: APPROVE @ ${A}`)] }),
+    pr({ number: 2, title: 'feat(privacy): export', comments: [check(A), approve(A)] }),
     pr({ number: 3, title: 'feat(tarot): held', isDraft: true }),
   ];
   const merged = [];
@@ -517,7 +576,7 @@ test('r3: author check runs alone, with CI=1, in the given checkout', () => {
 });
 
 test('r4 (P0): fork or outside PRs are never checked, reviewed or merged', () => {
-  const approved = [check(A), owner(`Review verdict: APPROVE @ ${A}`)];
+  const approved = [check(A), approve(A)];
   for (const hostile of [pr({ isCrossRepository: true, comments: approved }), pr({ author: { login: 'someone-else' }, comments: approved }), pr({ author: undefined, comments: approved })]) {
     assert.equal(prTurn(hostile).turn, 'hold');
     assert.ok(!mergeGate(hostile).ok);
@@ -673,6 +732,9 @@ test('busy check matches the running program, not a command line that mentions i
     'pnpm check',
     '/x/node /x/pnpm.cjs check',
     'pytest -q',
+    // The nightly fake-user simulator (personas-nightly.mjs).
+    '/x/apps/api/.venv/bin/python3 -m scripts.persona_sim --personas p.json --out o',
+    'uv run --locked --directory /x/apps/api python -m scripts.persona_sim --personas p.json --out o',
   ]) assert.ok(isHeavy(heavy), heavy);
   for (const light of [
     '/bin/zsh -c source snap.sh && eval \'pgrep -f "contracts:check|vitest|pytest|playwright"\'',
@@ -817,7 +879,7 @@ test('12.11 trial: CI source reads pr-check at the head and never installs, buil
   const gh = { ...fakeGh({ pr: pr() }), comment: (...a) => posted.push(a) };
   const run = (cmd, args) => args[0] === 'rev-parse' ? A : '';
   const never = () => { throw new Error('nothing of the PR may run on the Mac in CI mode'); };
-  const ci = (_, head) => { assert.equal(head, A); return { state: 'PASS', conclusion: 'success', url: 'https://github.com/x/actions/runs/1' }; };
+  const ci = (_, head) => { assert.equal(head, A); return { state: 'PASS', conclusion: 'success', url: 'https://github.com/x/actions/runs/1', base: BASE }; };
   const result = runCheckInClone(7, { gh, run, group: never, spawn: never, busy: never, terms: () => [], preflight: () => null, source: 'ci', ci });
   assert.equal(result.status, 'PASS');
   assert.equal(posted.length, 1);
@@ -969,7 +1031,13 @@ test('only the front PR of the area is synced before its check; waiting PRs get 
   const gh = { ...fakeGh({ pr: pr({ headRefName: 'agent/claude/x' }) }), comment: () => {} };
   const waiting = runCheckInClone(7, { gh, run, group: never, spawn: never, busy: never, terms: () => [], preflight: () => null, source: 'ci', ci: () => ({ state: 'pending' }), sync: false });
   assert.equal(waiting.status, 'ci-pending');
-  assert.ok(!gitCalls.some(c => /^merge\b|^-c .*merge|push/.test(c) || c.includes('auto-sync')), gitCalls.join(' | '));
+  // #456 P1-A + L14: behind integration is a waiting PR's normal state, never a failure sent to Claude.
+  const unheld = { record: () => { throw new Error('a waiting PR is not recorded as a preflight failure'); } };
+  assert.match(runCheckInClone(7, { gh, run, group: never, spawn: never, busy: never, terms: () => [], preflight: () => null, source: 'ci', ci: () => ({ state: 'success' }), sync: false, held: unheld }).reason, /đồng bộ khi tới lượt đầu hàng/);
+  const local = runCheckInClone(7, { gh, run, group: () => ({ status: 0 }), spawn: never, busy: () => null, terms: () => [], preflight: () => null, source: 'local', sync: false, held: unheld });
+  assert.equal(local.status, 'waiting', JSON.stringify(local));
+  // merge-base only reads; a merge, a merge commit or a push would change the branch.
+  assert.ok(!gitCalls.some(c => /^merge(?!-base)\b|^-c .*merge|push/.test(c) || c.includes('auto-sync')), gitCalls.join(' | '));
   const front = runCheckInClone(7, { gh, run, group: never, spawn: never, busy: never, terms: () => [], preflight: () => null, source: 'ci', ci: () => ({ state: 'pending' }), sync: true });
   assert.equal(front.status, 'synced', 'the front PR behind integration is merged and pushed');
 });
@@ -987,7 +1055,7 @@ test('#524: a held or conflicting older PR is not the front; the first actionabl
 
 test('after a merge in the same tick, the next PR becomes the front', () => {
   const date = '2026-11-17';
-  const open = [pr({ number: 70, createdAt: '2026-11-01T00:00:00Z', comments: [check(A), owner(`Review verdict: APPROVE @ ${A}`)] }),
+  const open = [pr({ number: 70, createdAt: '2026-11-01T00:00:00Z', comments: [check(A), approve(A)] }),
     pr({ number: 71, createdAt: '2026-11-02T00:00:00Z' }), pr({ number: 72, createdAt: '2026-11-03T00:00:00Z' })];
   const calls = [];
   tick({ gh: plannedGh(open, date), now: { date, hour: 11, minute: 5 }, merge: () => ({ status: 'merged' }), review: () => ({ status: 'posted' }),
@@ -1063,6 +1131,52 @@ test('fix B fix-forward: a PR that is itself on hold never holds another PR on a
   assert.equal(fileBlocker(feature, [feature, priv]), 199, 'the earlier group goes first on a shared file');
 });
 
+test('#575: a PR waiting on Claude never holds another on a shared file; a 7-week PR goes first in its group', () => {
+  const f = (...paths) => paths.map(path => ({ path }));
+  const reg = f('apps/api/app/domains/content/copy_registry.json');
+  const head = n => String(n).padStart(40, '0');
+  const plan = [{ name: 'ke-hoach-7-tuan' }];
+  // 16.11.2026 morning: #404 had REQUEST_CHANGES at its head since 10.11, #491 was red at the author check.
+  const p404 = pr({ number: 404, createdAt: '2026-11-10T00:00:00Z', headRefOid: head(404), files: reg, comments: [check(head(404)), requestChanges(head(404))] });
+  const p491 = pr({ number: 491, createdAt: '2026-11-12T00:00:00Z', headRefOid: head(491), files: reg, comments: [check(head(491), 'FAIL')] });
+  const p470 = pr({ number: 470, createdAt: '2026-11-11T00:00:00Z', headRefOid: head(470), files: reg, mergeable: 'CONFLICTING', comments: [] });
+  const p500 = pr({ number: 500, createdAt: '2026-11-13T00:00:00Z', headRefOid: head(500), files: reg, comments: [] });
+  const p505 = pr({ number: 505, createdAt: '2026-11-14T00:00:00Z', headRefOid: head(505), labels: plan, files: reg, comments: [] });
+  const p503 = pr({ number: 503, createdAt: '2026-11-15T00:00:00Z', headRefOid: head(503), labels: plan, files: reg, comments: [] });
+  const all = [p404, p491, p470, p500, p505, p503];
+  assert.equal(fileBlocker(p505, all), null, 'REQUEST_CHANGES, a failed check or a conflict at head never holds');
+  const turns = Object.fromEntries(turnsFor(all).map(t => [t.number, t]));
+  assert.equal(turns[505].turn, 'claude-check');
+  assert.equal(turns[503].reason, 'chờ PR #505 cùng file', 'two ready 7-week PRs: the earlier goes first');
+  assert.equal(turns[500].reason, 'chờ PR #505 cùng file', 'a ready 7-week PR goes before an older ready PR of the same group');
+  assert.equal(turns[404].reason, 'chờ PR #505 cùng file', 'the PR waiting on a fix now waits for the 7-week PR, then syncs and is fixed');
+  // A PR that can still merge holds as before, and a later group never holds an earlier one.
+  const ready = pr({ number: 480, createdAt: '2026-11-09T00:00:00Z', headRefOid: head(480), files: reg, comments: [check(head(480))] });
+  assert.equal(fileBlocker(p505, [ready, p505]), null, 'the 7-week PR goes first inside the group');
+  const ops = pr({ number: 481, title: 'ops(collab): x', labels: [{ name: 'area:ops' }], createdAt: '2026-11-16T00:00:00Z', headRefOid: head(481), files: reg, comments: [] });
+  assert.equal(fileBlocker(p505, [ops, p505]), 481, 'an earlier group still goes first over a 7-week PR');
+});
+
+test('#581: each repair-waiting state releases a newer PR on a shared file, with no 7-week label involved', () => {
+  const reg = [{ path: 'apps/api/app/domains/content/copy_registry.json' }];
+  const head = n => String(n).padStart(40, '0');
+  const newer = pr({ number: 600, createdAt: '2026-11-15T00:00:00Z', headRefOid: head(600), files: reg, comments: [] });
+  const older = (n, extra) => pr({ number: n, createdAt: '2026-11-01T00:00:00Z', headRefOid: head(n), files: reg, comments: [], ...extra });
+  const cases = [
+    ['REQUEST_CHANGES at head', older(601, { comments: [check(head(601)), requestChanges(head(601))] }), {}],
+    ['author check FAIL at head', older(602, { comments: [check(head(602), 'FAIL')] }), {}],
+    ['conflict', older(603, { mergeable: 'CONFLICTING' }), {}],
+    ['preflight failure at head', older(604), { preflight: { 604: { head: head(604), reasons: ['ruff: apps/api/app/x.py có lỗi'] } } }],
+    ['dispute hold', older(605), { disputes: { 605: { hold: 'bất đồng đang chờ chốt' } } }],
+  ];
+  for (const [why, blocker, opts] of cases) {
+    assert.equal(fileBlocker(newer, [blocker, newer], opts), null, why);
+  }
+  // The same older PR that can still merge holds the newer one, so the exemption is what releases it.
+  assert.equal(fileBlocker(newer, [older(606, { comments: [check(head(606))] }), newer], {}), 606, 'a movable older PR still holds');
+  assert.equal(fileBlocker(newer, [older(607), newer], {}), 607, 'an older PR waiting for its check still holds');
+});
+
 test('review 228: a deleted Python file is not linted by default', () => {
   const calls = [];
   assert.deepEqual(preflightMod.lintProblems(['app/deleted_for_test_only.py'], { cwd: '/nonexistent-la-lanh', spawn: () => { calls.push(1); return { status: 1 }; } }), []);
@@ -1071,7 +1185,7 @@ test('review 228: a deleted Python file is not linted by default', () => {
 
 test('#158/#159: top-up is computed from the queue left after this tick merges', () => {
   const date = '2026-11-15';
-  const approved = [check(A), owner(`Review verdict: APPROVE @ ${A}`)];
+  const approved = [check(A), approve(A)];
   // Two agent PRs are merge-ready when the tick starts, so WIP is full before the merges.
   const open = [1, 2].map(number => pr({ number, headRefName: `agent/claude/q${number}`, comments: approved }));
   const merged = [];
@@ -1403,4 +1517,251 @@ test('L25: after a timeout and a new PASS at the same head, the review command t
     rmSync(L25.disputePath, { force: true });
     rmSync(L25.logPath, { force: true });
   }
+});
+
+// Owner 15.11.2026 ("Bắt đầu"): at least 2 of the day's items come from the 7-week plan, one list a
+// day. These go through the production tick, not only collab-quota.mjs.
+const w7Label = [{ name: 'ke-hoach-7-tuan' }];
+const w7Issue = { number: 300, title: 'việc tuần 1', labels: w7Label, body: '## Tiêu chí đạt\n- AC1 làm được\n' };
+function w7Gh({ comments, open, issues = [w7Issue], failLabels = false }) {
+  return { ...fakeGh({ pr: open[0], open }),
+    json: args => {
+      if (args[0] === 'issue' && args[1] === 'list') {
+        if (args.includes('ke-hoach-7-tuan')) { if (failLabels) throw new Error('api down'); return issues; }
+        if (args.includes('incident')) return [];
+        return [{ number: 50, title: 'Kế hoạch chạy tự động hằng ngày' }];
+      }
+      return { comments };
+    },
+    comment: (kind, number, body) => { trust.assertAgentBody(body); comments.push({ authorAssociation: 'OWNER', createdAt: `${comments.date}T01:5${comments.length}:00Z`, body }); } };
+}
+const w7Open = () => [21, 22, 23, 24, 25].map(n => pr({ number: n, title: `ops(collab): việc ${n}` }))
+  .concat([pr({ number: 31, title: 'feat(web): làm việc 300', body: `${goodBody}\nViệc: #300` }), pr({ number: 32, title: 'feat(web): nhãn', labels: w7Label })]);
+
+test('7-week: the production tick keeps 2 seats, records the class and tags the plan', () => {
+  const comments = Object.assign([], { date: '2026-12-20' });
+  const r = tick({ gh: w7Gh({ comments, open: w7Open() }), now: { date: '2026-12-20', hour: 6, minute: 52 }, merge: () => ({}), review: () => ({}) });
+  assert.equal(r.status, 'plan-made');
+  const d = trust.readJson(trust.dayStatePath('2026-12-20'), {});
+  assert.deepEqual(d.plannedItems.filter(p => p.plan7w), [{ item: 300, plan7w: true }, { pr: 32, plan7w: true }]);
+  assert.deepEqual(d.planned7wKeys, ['item:300', 'pr:32']);
+  assert.deepEqual(d.quota7w, { want: 2, picked: 2, available: 2 });
+  const plan = comments.at(-1).body;
+  assert.equal(plan.match(/\[Kế hoạch 7 tuần\]/g).length, 2);
+  assert.match(plan, /Chưa có danh sách buổi sáng/);
+});
+
+test('7-week: the tick uses the morning list when it passes and re-picks when it is short', () => {
+  const prep = (date, items) => ({ authorAssociation: 'OWNER', createdAt: `${date}T00:00:00Z`, body: `Kế hoạch: ...\n\n${trust.agentMarker} morning-prep date=${date} items=${items} -->` });
+  const ok = Object.assign([prep('2026-12-21', 'pr:21,pr:31,pr:32')], { date: '2026-12-21' });
+  tick({ gh: w7Gh({ comments: ok, open: w7Open() }), now: { date: '2026-12-21', hour: 6, minute: 52 }, merge: () => ({}), review: () => ({}) });
+  const d1 = trust.readJson(trust.dayStatePath('2026-12-21'), {});
+  assert.equal(d1.planSource, 'prep');
+  assert.deepEqual(d1.planned, [21, 31, 32]);
+  const short = Object.assign([prep('2026-12-22', 'pr:21,pr:22,pr:23,pr:32')], { date: '2026-12-22' });
+  tick({ gh: w7Gh({ comments: short, open: w7Open() }), now: { date: '2026-12-22', hour: 6, minute: 52 }, merge: () => ({}), review: () => ({}) });
+  const d2 = trust.readJson(trust.dayStatePath('2026-12-22'), {});
+  assert.equal(d2.planSource, 'machine');
+  assert.equal(d2.plannedItems.filter(p => p.plan7w).length, 2);
+  assert.match(short.at(-1).body, /Máy chọn lại vì danh sách buổi sáng chưa đạt: chỉ có 1 việc kế hoạch 7 tuần, cần 2/);
+});
+
+test('7-week: a failed label read says the quota is unknown instead of "no 7-week work"', () => {
+  const comments = Object.assign([], { date: '2026-12-23' });
+  tick({ gh: w7Gh({ comments, open: w7Open(), failLabels: true }), now: { date: '2026-12-23', hour: 6, minute: 52 }, merge: () => ({}), review: () => ({}) });
+  const d = trust.readJson(trust.dayStatePath('2026-12-23'), {});
+  assert.equal(d.quota7w, null);
+  assert.match(comments.at(-1).body, /Kế hoạch 7 tuần:\*\* chưa xác định được/);
+});
+
+test('7-week: "Bỏ #N" on a picked item re-picks once with the same rules; owner commands stay on the plan', () => {
+  const date = '2026-12-24';
+  const comments = Object.assign([], { date });
+  const gh = w7Gh({ comments, open: w7Open() });
+  tick({ gh, now: { date, hour: 6, minute: 52 }, merge: () => ({}), review: () => ({}) });
+  comments.push({ authorAssociation: 'OWNER', createdAt: `${date}T01:59:30Z`, body: 'Bỏ #21' });
+  const before = comments.length;
+  tick({ gh, now: { date, hour: 7, minute: 10 }, merge: () => ({}), review: () => ({}) });
+  const d = trust.readJson(trust.dayStatePath(date), {});
+  assert.equal(d.replannedFor, 'pr:21');
+  assert.ok(!d.planned.includes(21));
+  assert.equal(d.plannedItems.filter(p => p.plan7w).length, 2, 'the kept seats survive the re-pick');
+  assert.equal(comments.length, before + 1);
+  assert.match(comments.at(-1).body, /Cập nhật plan 2026-12-24: Chọn bù sau khi bỏ #21/);
+  assert.doesNotMatch(comments.at(-1).body, /daily-plan date=/, 'the update is not a new plan: earlier owner commands keep counting');
+  tick({ gh, now: { date, hour: 7, minute: 20 }, merge: () => ({}), review: () => ({}) });
+  assert.equal(comments.length, before + 1, 'once per drop set');
+});
+
+test('7-week: in the open plan the kept 7-week PRs are checked first, before the active area', () => {
+  const date = '2026-12-25';
+  const comments = Object.assign([], { date });
+  const gh = w7Gh({ comments, open: w7Open() });
+  tick({ gh, now: { date, hour: 6, minute: 52 }, merge: () => ({}), review: () => ({}) });
+  comments.push({ authorAssociation: 'OWNER', createdAt: `${date}T01:59:30Z`, body: 'Duyệt' });
+  const checked = [];
+  tick({ gh, now: { date, hour: 8, minute: 10 }, prPreflight: () => ({ status: 'PASS' }), heavyFree: () => true, check: n => { checked.push(n); return { status: 'FAIL' }; }, merge: () => ({}), review: () => ({}) });
+  assert.deepEqual(checked.slice(0, 2), [31, 32], `checked ${checked.join(',')}`);
+});
+
+// Codex r1 on #544 (3 P1, 3 P2): lifecycle cases through the production tick.
+test('7-week: a picked issue-only item is worked first once Claude opens its PR', () => {
+  const date = '2026-12-26';
+  const comments = Object.assign([], { date });
+  const issues = [{ number: 301, title: 'việc A', labels: w7Label, body: '## Tiêu chí đạt\n- AC1 x\n' }, { number: 302, title: 'việc B', labels: w7Label, body: '## Tiêu chí đạt\n- AC1 x\n' }];
+  const ops = [21, 22, 23, 24, 25].map(n => pr({ number: n, title: `ops(collab): việc ${n}` }));
+  const gh = w7Gh({ comments, open: ops, issues });
+  tick({ gh, now: { date, hour: 6, minute: 52 }, merge: () => ({}), review: () => ({}) });
+  const d = trust.readJson(trust.dayStatePath(date), {});
+  assert.deepEqual(d.planned7wKeys, ['item:301', 'item:302']);
+  comments.push({ authorAssociation: 'OWNER', createdAt: `${date}T01:59:30Z`, body: 'Duyệt' });
+  const later = [...ops, pr({ number: 41, title: 'feat(web): việc A', body: `${goodBody}\nViệc: #301` })];
+  const checked = [];
+  tick({ gh: w7Gh({ comments, open: later, issues }), now: { date, hour: 8, minute: 10 }, prPreflight: () => ({ status: 'PASS' }), heavyFree: () => true, check: n => { checked.push(n); return { status: 'FAIL' }; }, merge: () => ({}), review: () => ({}) });
+  assert.equal(checked[0], 41, `checked ${checked.join(',')}`);
+});
+
+test('7-week: a serious incident is planned first on both paths and worked first', () => {
+  const date = '2026-12-27';
+  const incident = { number: 900, title: 'sự cố', labels: [{ name: 'incident' }, { name: 'severity:P1' }], body: '## Tiêu chí đạt\n- AC1 x\n' };
+  const open = [...w7Open(), pr({ number: 51, title: 'feat(web): sửa sự cố', body: `${goodBody}\nViệc: #900` })];
+  const prep = { authorAssociation: 'OWNER', createdAt: `${date}T00:00:00Z`, body: `x\n\n${trust.agentMarker} morning-prep date=${date} items=pr:21,pr:22,pr:31,pr:32 -->` };
+  const comments = Object.assign([prep], { date });
+  const gh = { ...w7Gh({ comments, open, issues: [w7Issue] }), json: args => (args[0] === 'issue' && args[1] === 'list' ? (args.includes('incident') ? [incident] : args.includes('ke-hoach-7-tuan') ? [w7Issue] : [{ number: 50, title: 'Kế hoạch chạy tự động hằng ngày' }]) : { comments }) };
+  tick({ gh, now: { date, hour: 6, minute: 52 }, merge: () => ({}), review: () => ({}) });
+  const d = trust.readJson(trust.dayStatePath(date), {});
+  assert.equal(d.planSource, 'prep');
+  assert.deepEqual(d.incidentKeys, ['item:900'], 'the morning list did not name it, it is still first');
+  comments.push({ authorAssociation: 'OWNER', createdAt: `${date}T01:59:30Z`, body: 'Duyệt' });
+  const checked = [];
+  tick({ gh, now: { date, hour: 8, minute: 10 }, prPreflight: () => ({ status: 'PASS' }), heavyFree: () => true, check: n => { checked.push(n); return { status: 'FAIL' }; }, merge: () => ({}), review: () => ({}) });
+  assert.equal(checked[0], 51, `checked ${checked.join(',')}`);
+});
+
+test('7-week: a re-pick keeps a finished item, replaces only the dropped one, and retries its note', () => {
+  const date = '2026-12-28';
+  const comments = Object.assign([], { date });
+  const gh = w7Gh({ comments, open: w7Open() });
+  tick({ gh, now: { date, hour: 6, minute: 52 }, merge: () => ({}), review: () => ({}) });
+  const before = trust.readJson(trust.dayStatePath(date), {});
+  assert.equal(before.plannedKeys.length, 5);
+  // pr:21 merged (gone from the open list); pr:22 dropped by the owner.
+  const open = w7Open().filter(p => p.number !== 21).concat([pr({ number: 26, title: 'ops(collab): việc 26' })]);
+  comments.push({ authorAssociation: 'OWNER', createdAt: `${date}T01:59:30Z`, body: 'Bỏ #22' });
+  let fail = true;
+  const flaky = { ...w7Gh({ comments, open }), comment: (kind, number, body) => { if (fail) { fail = false; throw new Error('gh down'); } trust.assertAgentBody(body); comments.push({ authorAssociation: 'OWNER', createdAt: `${date}T02:0${comments.length % 10}:00Z`, body }); } };
+  tick({ gh: flaky, now: { date, hour: 7, minute: 10 }, merge: () => ({}), review: () => ({}) });
+  const d = trust.readJson(trust.dayStatePath(date), {});
+  assert.ok(d.plannedKeys.includes('pr:21'), 'the finished item stays in the day');
+  assert.ok(!d.plannedKeys.includes('pr:22'));
+  assert.equal(d.plannedKeys.length, 5);
+  assert.ok(d.replanNote, 'the undelivered note is kept');
+  const posted = comments.length;
+  tick({ gh: flaky, now: { date, hour: 7, minute: 20 }, merge: () => ({}), review: () => ({}) });
+  assert.equal(comments.length, posted + 1);
+  assert.match(comments.at(-1).body, /Chọn bù sau khi bỏ #22/);
+  assert.equal(trust.readJson(trust.dayStatePath(date), {}).replanNote, null);
+});
+
+// Codex r2 on #544: drops by item number hold across execution and later re-picks; held
+// selections are kept; re-picks refill only the dropped seats.
+test('7-week: an item dropped by number is not worked through its PR and never comes back', () => {
+  const date = '2026-12-29';
+  const issues = [w7Issue, { number: 301, title: 'việc 301', labels: w7Label, body: '## Tiêu chí đạt\n- AC1 x\n' }];
+  const comments = Object.assign([], { date });
+  const gh = w7Gh({ comments, open: w7Open(), issues });
+  tick({ gh, now: { date, hour: 6, minute: 52 }, merge: () => ({}), review: () => ({}) });
+  comments.push({ authorAssociation: 'OWNER', createdAt: `${date}T01:59:30Z`, body: 'Duyệt\nBỏ #300' });
+  const checked = [];
+  tick({ gh, now: { date, hour: 8, minute: 10 }, prPreflight: () => ({ status: 'PASS' }), heavyFree: () => true, check: n => { checked.push(n); return { status: 'FAIL' }; }, merge: () => ({}), review: () => ({}) });
+  assert.ok(!checked.includes(31), `PR #31 does item #300: checked ${checked.join(',')}`);
+  const d = trust.readJson(trust.dayStatePath(date), {});
+  assert.ok(!d.plannedKeys.includes('item:300'));
+  comments.push({ authorAssociation: 'OWNER', createdAt: `${date}T02:30:00Z`, body: 'Bỏ #32' });
+  tick({ gh, now: { date, hour: 8, minute: 40 }, prPreflight: () => ({ status: 'PASS' }), heavyFree: () => true, check: () => ({ status: 'FAIL' }), merge: () => ({}), review: () => ({}) });
+  const d2 = trust.readJson(trust.dayStatePath(date), {});
+  assert.ok(!d2.plannedKeys.includes('item:300'), 'an earlier drop is not re-picked');
+  assert.ok(!d2.plannedKeys.includes('pr:32'));
+});
+
+test('7-week: a re-pick keeps a held selection and refills only the dropped seat of a 3-item day', () => {
+  const date = '2026-12-30';
+  const prep = { authorAssociation: 'OWNER', createdAt: `${date}T00:00:00Z`, body: `x\n\n${trust.agentMarker} morning-prep date=${date} items=pr:21,pr:31,pr:32 -->` };
+  const comments = Object.assign([prep], { date });
+  tick({ gh: w7Gh({ comments, open: w7Open() }), now: { date, hour: 6, minute: 52 }, merge: () => ({}), review: () => ({}) });
+  assert.deepEqual(trust.readJson(trust.dayStatePath(date), {}).plannedKeys.length, 3);
+  // #31 (item 300) is held by needs-owner now; the owner drops #21.
+  const open = w7Open().map(p => (p.number === 31 ? { ...p, labels: [{ name: 'needs-owner' }] } : p));
+  comments.push({ authorAssociation: 'OWNER', createdAt: `${date}T01:59:30Z`, body: 'Bỏ #21' });
+  tick({ gh: w7Gh({ comments, open }), now: { date, hour: 7, minute: 10 }, merge: () => ({}), review: () => ({}) });
+  const d = trust.readJson(trust.dayStatePath(date), {});
+  assert.equal(d.plannedKeys.length, 3, `keys ${d.plannedKeys.join(',')}`);
+  assert.ok(d.plannedKeys.includes('item:300'), 'the held selection stays');
+  assert.ok(!d.plannedKeys.includes('pr:21'));
+});
+
+// Codex r3 on #544: drops apply before routing and survive the PR closing; kept selections keep
+// the class they had when picked.
+test('7-week: dropping the only active-area item lets the next area run; the drop outlives its PR', () => {
+  const date = '2026-12-31';
+  const issue300 = { number: 300, title: 'việc 300', labels: w7Label, body: '## Tiêu chí đạt\n- AC1 x\n' };
+  const ops = pr({ number: 61, title: 'ops(collab): làm việc 300', body: `${goodBody}\nViệc: #300` });
+  const content = pr({ number: 62, title: 'content(copy): câu mới' });
+  const comments = Object.assign([], { date });
+  tick({ gh: w7Gh({ comments, open: [ops, content], issues: [issue300] }), now: { date, hour: 6, minute: 52 }, merge: () => ({}), review: () => ({}) });
+  comments.push({ authorAssociation: 'OWNER', createdAt: `${date}T01:59:30Z`, body: 'Duyệt\nBỏ #300' });
+  const checked = [];
+  tick({ gh: w7Gh({ comments, open: [ops, content], issues: [issue300] }), now: { date, hour: 8, minute: 10 }, prPreflight: () => ({ status: 'PASS' }), heavyFree: () => true, check: n => { checked.push(n); return { status: 'FAIL' }; }, merge: () => ({}), review: () => ({}) });
+  assert.deepEqual(checked, [62], 'the dropped ops item no longer holds the active area');
+  assert.ok(trust.readJson(trust.dayStatePath(date), {}).droppedKeys.includes('item:300'));
+  // PR #61 closes; item #300 is issue-only again, and a later drop must not bring it back.
+  comments.push({ authorAssociation: 'OWNER', createdAt: `${date}T03:00:00Z`, body: 'Bỏ #62' });
+  tick({ gh: w7Gh({ comments, open: [content], issues: [issue300] }), now: { date, hour: 10, minute: 0 }, prPreflight: () => ({ status: 'PASS' }), heavyFree: () => true, check: () => ({ status: 'FAIL' }), merge: () => ({}), review: () => ({}) });
+  assert.ok(!trust.readJson(trust.dayStatePath(date), {}).plannedKeys.includes('item:300'));
+});
+
+test('7-week: a re-pick keeps the 7-week class a selection had when it was picked', () => {
+  const date = '2027-01-01';
+  const comments = Object.assign([], { date });
+  tick({ gh: w7Gh({ comments, open: w7Open() }), now: { date, hour: 6, minute: 52 }, merge: () => ({}), review: () => ({}) });
+  assert.ok(trust.readJson(trust.dayStatePath(date), {}).planned7wKeys.includes('pr:32'));
+  // The label leaves PR #32; the owner drops an unrelated item.
+  const open = w7Open().map(p => (p.number === 32 ? { ...p, labels: [] } : p));
+  comments.push({ authorAssociation: 'OWNER', createdAt: `${date}T01:59:30Z`, body: 'Bỏ #21' });
+  tick({ gh: w7Gh({ comments, open }), now: { date, hour: 7, minute: 10 }, merge: () => ({}), review: () => ({}) });
+  const d = trust.readJson(trust.dayStatePath(date), {});
+  assert.ok(d.planned7wKeys.includes('pr:32'), 'classified at plan time');
+  assert.equal(d.plannedItems.find(e => e.pr === 32)?.plan7w, true);
+});
+
+// Codex r4 on #544: an item drop holds its PR before dependency routing and in the refreshed queue.
+test('7-week: a dropped item neither returns to the fix queue nor holds a PR on the same file', () => {
+  const date = '2027-01-02';
+  const issue300 = { number: 300, title: 'việc 300', labels: w7Label, body: '## Tiêu chí đạt\n- AC1 x\n' };
+  const shared = [{ path: 'scripts/same.mjs' }];
+  const ops = pr({ number: 71, title: 'ops(collab): làm việc 300', body: `${goodBody}\nViệc: #300`, mergeable: 'CONFLICTING', files: shared, createdAt: '2026-10-01T00:00:00Z' });
+  const content = pr({ number: 72, title: 'content(copy): câu mới', files: shared });
+  const comments = Object.assign([], { date });
+  tick({ gh: w7Gh({ comments, open: [ops, content], issues: [issue300] }), now: { date, hour: 6, minute: 52 }, merge: () => ({}), review: () => ({}) });
+  comments.push({ authorAssociation: 'OWNER', createdAt: `${date}T01:59:30Z`, body: 'Duyệt\nBỏ #300' });
+  const checked = [];
+  tick({ gh: w7Gh({ comments, open: [ops, content], issues: [issue300] }), now: { date, hour: 8, minute: 10 }, prPreflight: () => ({ status: 'PASS' }), heavyFree: () => true, check: n => { checked.push(n); return { status: 'FAIL' }; }, merge: () => ({}), review: () => ({}) });
+  assert.deepEqual(checked, [72], 'the content PR is not held behind the dropped PR on the same file');
+  const queue = trust.readJson(join(trust.stateDir, 'claude-queue.json'), {});
+  assert.ok(!(queue.items ?? []).some(t => t.number === 71), `fix queue ${JSON.stringify((queue.items ?? []).map(t => t.number))}`);
+});
+
+// Codex r5 on #544: an incident opened after the plan is worked first too.
+test('7-week: a serious incident opened after the plan is worked before ops and the kept seats', () => {
+  const date = '2027-01-03';
+  const comments = Object.assign([], { date });
+  const open = w7Open();
+  tick({ gh: w7Gh({ comments, open }), now: { date, hour: 6, minute: 52 }, merge: () => ({}), review: () => ({}) });
+  comments.push({ authorAssociation: 'OWNER', createdAt: `${date}T01:59:30Z`, body: 'Duyệt' });
+  const incident = { number: 901, title: 'sự cố mới', labels: [{ name: 'incident' }, { name: 'severity:P1' }], body: '## Tiêu chí đạt\n- AC1 x\n' };
+  const later = [...open, pr({ number: 81, title: 'feat(web): sửa sự cố mới', body: `${goodBody}\nViệc: #901` })];
+  const gh = { ...w7Gh({ comments, open: later }), json: args => (args[0] === 'issue' && args[1] === 'list' ? (args.includes('incident') ? [incident] : args.includes('ke-hoach-7-tuan') ? [w7Issue] : [{ number: 50, title: 'Kế hoạch chạy tự động hằng ngày' }]) : { comments }) };
+  const checked = [];
+  tick({ gh, now: { date, hour: 8, minute: 10 }, prPreflight: () => ({ status: 'PASS' }), heavyFree: () => true, check: n => { checked.push(n); return { status: 'FAIL' }; }, merge: () => ({}), review: () => ({}) });
+  assert.equal(checked[0], 81, `checked ${checked.join(',')}`);
 });

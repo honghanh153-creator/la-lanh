@@ -8,6 +8,8 @@ import test from 'node:test';
 import { auditMarker, auditMerges, runMergeAudit, settleMs } from './collab-merge-audit.mjs';
 import { tick } from './collab-turn.mjs';
 import { planTitle } from './collab-plan.mjs';
+import * as trust from './collab-trust.mjs';
+import { asPosted } from './collab-test-post.mjs';
 
 // Synthetic PRs only. Each PR has its own head and, when "good", a real-looking automatic APPROVE
 // whose digest matches a local Codex output that gives APPROVE for that head.
@@ -15,7 +17,8 @@ const headOf = n => `${String(n).padStart(6, '0')}${'b'.repeat(34)}`;
 const outputOf = (n, sha = headOf(n)) => JSON.stringify({ verdict: 'APPROVE', sha, complete: true, summary: 'ok', findings: [] });
 const digestOf = text => createHash('sha256').update(text).digest('hex');
 const owner = (body, at) => ({ authorAssociation: 'OWNER', createdAt: at, body });
-const approve = (sha, digest, at) => owner(`Review verdict: APPROVE @ ${sha}\nReviewer: Codex (auto, scripts/codex-review.mjs)\n\nok\n\nOutput SHA-256: \`${digest}\`\n<!-- la-lanh-agent codex-auto-review sha=${sha} p2=0 -->`, at);
+// #456 P1-B: the APPROVE is signed for PR n and bound to its comment URL, as codex-review.mjs posts it.
+const approve = (n, sha, digest, at) => asPosted(trust, owner(`Review verdict: APPROVE @ ${sha}\nReviewer: Codex (auto, scripts/codex-review.mjs)\n\nok\n\nOutput SHA-256: \`${digest}\`\n${trust.verdictSeal({ head: sha, p2: 0, base: null, receipt: trust.signReceipt({ kind: 'verdict', pr: n, head: sha, base: null, result: 'APPROVE', p2: 0 }) })}`, at));
 const base = Date.parse('2026-11-16T03:00:00Z');
 const iso = ms => new Date(ms).toISOString().replace('.000Z', 'Z');
 const at = minutes => iso(base + minutes * 60000);
@@ -31,9 +34,9 @@ function world() {
     const out = outputOf(n);
     if (kind === 'good' || kind === 'fake') outputs.push({ pr: n, head12: headOf(n).slice(0, 12), digest: digestOf(out), out: JSON.parse(out) });
     comments[n] = kind === 'none' ? []
-      : kind === 'wrong-head' ? [approve(headOf(n + 1000), digestOf(outputOf(n, headOf(n + 1000))), before)]
-        : kind === 'fake' ? [approve(headOf(n), '0'.repeat(64), before)]
-          : [approve(headOf(n), digestOf(out), before)];
+      : kind === 'wrong-head' ? [approve(n, headOf(n + 1000), digestOf(outputOf(n, headOf(n + 1000))), before)]
+        : kind === 'fake' ? [approve(n, headOf(n), '0'.repeat(64), before)]
+          : [approve(n, headOf(n), digestOf(out), before)];
   };
   return { prs, comments, outputs, add };
 }
@@ -57,7 +60,13 @@ function fakeGh(w, { failOn = () => false, onCall = () => {} } = {}) {
       if (args[0] === 'api' && args[1] === 'graphql') {
         const v = vars(args);
         if (v.query.includes('pullRequests(')) return { data: { repository: { pullRequests: page(w.prs, v.after) } } };
-        if (v.query.includes('pullRequest(number')) return { data: { repository: { pullRequest: { comments: page(w.comments[Number(v.number)] ?? [], v.after) } } } };
+        if (v.query.includes('pullRequest(number')) {
+          // Like GitHub, return only the fields the query asks for (a missing url voided every receipt).
+          const fields = /nodes\{([^}]*)\}/.exec(v.query)[1].trim().split(/\s+/);
+          const pick = c => Object.fromEntries(fields.filter(f => f in c).map(f => [f, c[f]]));
+          const got = page(w.comments[Number(v.number)] ?? [], v.after);
+          return { data: { repository: { pullRequest: { comments: { ...got, nodes: got.nodes.map(pick) } } } } };
+        }
         if (v.query.includes('issues(')) return { data: { repository: { issues: page(issues, v.after) } } };
       }
       if (args[0] === 'issue' && args[1] === 'list') return [];
