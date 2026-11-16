@@ -256,6 +256,28 @@ test('daily cap refuses automatic reviews', () => {
   assert.equal(result.status, 'refused');
 });
 
+test('#571: a manual review stops at the same cap; only --over-cap with the owner\'s words runs, and they are recorded', () => {
+  const now = { date: '2027-01-11', hour: 12, minute: 0 };
+  const cap = trust.dayCap({}) - 1;
+  trust.writeJson(trust.dayStatePath(now.date), { codexRuns: cap });
+  const approveOut = JSON.stringify(output());
+  const go = extra => review.runReview(7, { gh: fakeGh({ pr: pr({ comments: [check(A)] }) }), run: fakeRun().run, readOut: () => approveOut, now, ...extra });
+  const manual = go({});
+  assert.equal(manual.status, 'refused', 'a manual run at the cap is refused');
+  assert.match(manual.reason, /--over-cap/);
+  assert.equal(go({ overCap: '   ' }).status, 'refused', 'empty words are not the owner\'s words');
+  assert.equal(go({ auto: true, overCap: 'cho thêm' }).status, 'refused', 'the loop never runs over the cap');
+  assert.equal(trust.readJson(trust.dayStatePath(now.date), {}).codexRuns, cap, 'no run was spent');
+  const over = go({ overCap: 'thêm 1 lượt cho PR này' });
+  assert.equal(over.status, 'posted');
+  const day = trust.readJson(trust.dayStatePath(now.date), {});
+  assert.equal(day.codexRuns, cap + 1);
+  assert.deepEqual(day.overCapLog.map(l => [l.pr, l.quote, l.codexRuns]), [[7, 'thêm 1 lượt cho PR này', cap]]);
+  // Under the cap a manual run needs nothing extra.
+  trust.writeJson(trust.dayStatePath('2027-01-12'), { codexRuns: 0 });
+  assert.equal(review.runReview(7, { gh: fakeGh({ pr: pr({ comments: [check(A)] }) }), run: fakeRun().run, readOut: () => approveOut, now: { ...now, date: '2027-01-12' } }).status, 'posted');
+});
+
 test('merge gate needs APPROVE and PASS on head, integration base and a fix-forward link', () => {
   const ok = pr({ comments: [check(A), approve(A)] });
   assert.deepEqual(mergeGate(ok).reasons, []);
