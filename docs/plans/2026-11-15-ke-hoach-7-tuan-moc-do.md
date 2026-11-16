@@ -230,20 +230,33 @@ Chấm đủ 1000 người, Codex đối chiếu 40 người.
 
 Số tham khảo: bản mô tả chưa có Mầm xanh và Học đạt 4 trên 9 (1000 người); bản có Mầm xanh và Học đạt 5 trên 9 (300 người), còn trượt thấy được hiểu (3,63), bớt một mình (3,38), nhóm vừa học vừa làm (3,33) và gửi hoặc rủ (16,7%). Hai nhóm thấp nhất là người ít quen điện thoại và người lớn tuổi. Mốc gửi hoặc rủ 35% chưa có gì cho thấy đạt được bằng người giả.
 
-## Điều kiện bắt đầu còn thiếu, chốt trong tuần 1
+## Điều kiện bắt đầu, đã chốt 16.11
 
-Các mục này cần chị duyệt:
+Chị trả lời tối 16.11.2026: "Q1 M1 N1 O1 P2". Các câu dưới đây chị đã duyệt, **dùng đúng nguyên văn**, không sửa chữ nào. Muốn đổi câu nào thì phải hỏi lại chị.
 
-1. **Dùng mood và lá số trong Học:** mục đích, cách từ chối, cách rút đồng ý. Sửa câu đồng ý và chính sách quyền riêng tư.
-2. **Tiến độ học:** không lưu trong đợt này (đề xuất).
-3. **Không dùng dữ liệu của người bị Check kín** cho bất cứ gợi ý nào.
-4. **Giới hạn 18+ và bài ranh giới** cho khóa Tán crush và trò chơi nhóm.
-5. **Góc Tiền bạc** và 4 chuyện con.
-6. **Phạm vi "lá số không cần giờ sinh".**
-7. **Câu hỗ trợ khi khủng hoảng** và nguồn của từng bài học.
-8. **Kiểm nhật ký, đường mạng và ảnh chia sẻ** không chứa dữ liệu riêng.
-9. **Ai duyệt chữ bài học: đã chốt 14.11, đổi 15.11** (bài đầu và lằn ranh đỏ chuyển Codex duyệt, xem `decision-checklist.md`). Bản 14.11: Chị duyệt bài đầu của mỗi khóa và danh sách lằn ranh đỏ. Codex duyệt các bài sau theo đúng danh sách đó. Câu về quyền riêng tư, đồng ý và hỗ trợ khi khủng hoảng vẫn do chị duyệt.
-10. **Ghi quyết định duyệt chữ bài Học vào tài liệu quy trình và kho câu chữ** (việc của agent, không hỏi lại chị), để khớp với quy tắc "câu mới cần chị duyệt" đang có.
+1. **Dùng mood và lá số trong Học. Chị chọn M1.**
+   - Câu hiện ở lần đầu mở Học: "Bạn có muốn Lá dùng lá số, tâm trạng hôm nay và chuyện bạn chọn trong ba lô để gợi ý bài học không? Không đồng ý thì bạn vẫn học được bài chung. Lá không lưu tiến độ học. Bạn tắt được việc này trong Mình." Hai nút: [Đồng ý] [Học bài chung].
+   - Dòng thêm vào trang /privacy: "Học: nếu bạn đồng ý, Lá dùng lá số, tâm trạng hôm nay và chuyện bạn chọn trong ba lô để gợi ý bài. Lá không lưu tiến độ học. Tắt trong Mình thì từ lúc đó Lá chỉ gợi ý bài chung."
+   - Cách xử lý dữ liệu:
+     - lá số là hồ sơ đang lưu trên máy chủ, không lưu thêm gì;
+     - tâm trạng hôm nay chỉ dùng cho lần chọn bài đó;
+     - chuyện chọn trong ba lô được xử lý ngay trên máy, không lưu, không gửi đi.
+   - Rút đồng ý thì từ lúc đó Lá chỉ đưa bài chung. Khi dựng mà phải làm khác cách này thì quay lại hỏi chị.
+2. **Tiến độ học:** không lưu trong đợt này (Claude và Codex tự quyết; không thu thêm dữ liệu).
+3. **Check kín. Chị chọn N1.** Không làm gợi ý riêng từ kết quả Check kín. Dưới kết quả chỉ có một dòng dẫn sang khóa "Tán crush kiểu tử tế" chung cho mọi người. Không mang gì từ lần check sang bài học, và không rủ check thêm ai khác. Lời mời hai người, trong đó người kia tự nhập thông tin và tự đồng ý, để sang đợt sau.
+4. **18+ và bài ranh giới. Chị chọn O1.**
+   - Câu ở đầu khóa Tán crush: "Khóa này dành cho người từ 18 tuổi. Bạn đọc bài ranh giới trước rồi mới mở các bài sau."
+   - Câu ở đầu trò Lá Dám: "Cả nhóm đều từ 18 tuổi trở lên chứ? Ai cũng có thể bỏ lượt, không cần giải thích. Đừng quay hay chụp người khác khi họ chưa đồng ý."
+5. **Góc Tiền bạc** (Claude và Codex tự quyết): làm với 4 chuyện con: thiếu học phí hoặc tiền nhà, cuối tháng cạn, phải gửi tiền về nhà, bị rủ đi chơi tốn tiền. Không hỏi số tiền, không giả định ai đang thiếu. Lựa chọn chỉ được gửi đi cho lần đọc đó, như các góc đọc hiện có. Cần lưu ở đâu thì phải hỏi chị.
+6. **Lá số không cần giờ sinh** (Claude và Codex tự quyết):
+   - Lá tính trong cả khoảng giờ có thể sinh, theo múi giờ nơi sinh; thiếu nơi sinh thì nới rộng khoảng.
+   - Chỉ dùng phần giữ nguyên trong suốt khoảng đó. Không đọc nhà và cung Mọc.
+   - Câu lý do tách rõ phần tính và phần đọc.
+   - Khi không có gì đủ chắc: "Hôm nay Lá chưa chọn được bài theo lá số của bạn, nên chọn một chủ đề khác để bạn đọc."
+7. **Câu hỗ trợ ở cuối bài học chạm chuyện nặng. Chị chọn P2:** "Mình rất tiếc vì bạn đang phải chịu điều này. Bài học không thể hỗ trợ tình huống này. Nếu bạn có thể làm hại bản thân lúc này, hãy tìm một người bạn tin cậy ở cạnh và nhờ hỗ trợ khẩn cấp." Trong đợt này màn Học không có ô gõ chữ. Nguồn của từng bài do Codex duyệt.
+8. **Kiểm không lộ dữ liệu riêng** (Claude và Codex tự quyết): trước khi bật mỗi tính năng mới, máy tự kiểm nhật ký, đường mạng, báo lỗi, đường link, tên file tải về và ảnh chia sẻ.
+9. **Ai duyệt chữ bài học: đã chốt 14.11, đổi 15.11** (bài đầu và lằn ranh đỏ chuyển Codex duyệt, xem `decision-checklist.md`). Câu về quyền riêng tư, đồng ý và hỗ trợ khi khủng hoảng vẫn do chị duyệt.
+10. **Ghi quyết định duyệt chữ bài Học vào tài liệu quy trình và kho câu chữ** (việc của agent, không hỏi lại chị).
 
 ## Đã hoãn hoặc chưa có trong kế hoạch
 
