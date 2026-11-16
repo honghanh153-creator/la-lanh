@@ -340,6 +340,16 @@ test('5-fix A2, P1 on #591: a failed owner label posts no verdict, so an APPROVE
   }
 });
 
+test('owner 15–16.11: the Codex cap is a fixed 80 a day; an old 60 + 20 grant is 80, not 100', () => {
+  assert.equal(trust.codexDailyCap, 80);
+  assert.equal(trust.dayCap({}), 80);
+  assert.equal(trust.dayCap({ codexRuns: 3 }), 80);
+  assert.equal(trust.dayCap({ ownerExtraCodex: { granted: 20 } }), 80, 'the 15–16.11 grants lifted the old 60 to 80');
+  assert.equal(trust.dayCap({ ownerExtraCodex: { granted: 30 } }), 90, 'a larger old grant still counts above 80');
+  assert.equal(trust.dayCap({ ownerExtraCodex: { granted: 20, base: 80 } }), 100, 'a grant recorded with its base adds on top');
+  assert.equal(trust.dayCap({ ownerExtraCodex: { granted: -5, base: 80 } }), 80, 'never below the fixed cap');
+});
+
 test('daily cap refuses automatic reviews', () => {
   const now = { date: '2026-11-01', hour: 12, minute: 0 };
   trust.writeJson(trust.dayStatePath(now.date), { codexRuns: trust.codexDailyCap });
@@ -759,7 +769,7 @@ test('owner 12.11: the plan picks 3–5 work items with a source and what the us
   assert.match(body, /\*\*Việc chọn hôm nay \(3–5 việc\):\*\*/);
   assert.match(body, /1\. #20 feat\(tarot\): plain summary\n {3}- Nguồn \/ AC: US-20 AC2\n {3}- Người dùng thấy gì: câu số 20 dễ đọc hơn/);
   assert.match(body, /Tiến độ hôm nay = việc xong \/ việc đã chọn/);
-  assert.match(body, /Lượt Codex tự động còn hôm nay: 12\/60\./);
+  assert.match(body, new RegExp(`Lượt Codex tự động còn hôm nay: 12/${trust.codexDailyCap}\\.`));
   assert.doesNotMatch(body, /16|20 PR|% hôm nay|Cam kết/, 'no PR quota and no % of committed PRs');
   const few = renderPlan({ date: '2026-11-03', hour: 8, minute: 50 }, turnsFor([pr()]), { codexLeft: 12 });
   assert.match(few, /1\. #7 [^\n]*\n {3}- Nguồn \/ AC: plan §3\n {3}- Người dùng thấy gì: không trực tiếp \(vận hành\)/);
