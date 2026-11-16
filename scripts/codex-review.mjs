@@ -10,7 +10,7 @@ import { agentMarker, parseVerdict, parseVerdictSeal, bindReceipt, boundedTimeou
 import { prTurn } from './collab-turn.mjs';
 import { dayCap } from './collab-trust.mjs';
 import { groupExec } from './collab-heal.mjs';
-import { applyPolicy, isBlocking, validateOutput } from './collab-review-policy.mjs';
+import { applyPolicy, isBlocking, ownerHolds, validateOutput } from './collab-review-policy.mjs';
 import { isMain } from './is-main.mjs';
 import { auditReserve } from './collab-audit.mjs';
 
@@ -20,7 +20,8 @@ export const schemaPath = join(here, 'codex-review-schema.json');
 export const codexBin = process.env.CODEX_BIN || '/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex';
 export const codexModel = 'gpt-6.1-sol';
 // The policy lives in collab-review-policy.mjs so the night audit checks receipts with the same rule.
-export { applyPolicy, isBlocking, validateOutput } from './collab-review-policy.mjs';
+export { applyPolicy, isBlocking, ownerHolds, validateOutput } from './collab-review-policy.mjs';
+export const releaseLabel = 'owner-release-check';
 
 export function fillPrompt(template, values) {
   // Single pass, so a placeholder inside PR text is never expanded.
@@ -54,11 +55,20 @@ export function renderVerdict({ pr, out, policy, round, range, digest, fixIssue,
     clean(out.summary, 3000),
     '',
     ...(rows.length ? ['| Mức | Loại | Vị trí | Vấn đề | Chặn merge |', '|---|---|---|---|---|', ...rows, ''] : ['Không có phát hiện.', '']),
+    ...ownerRows(out),
     ...(fixIssue ? [`Fix-forward: #${fixIssue}`, ''] : []),
     `Output SHA-256: \`${digest}\``,
     `Base lúc review: \`${integration}\` @ ${isSha(base) ? `\`${base.slice(0, 12)}\`` : 'không rõ'}`,
     verdictSeal({ head: pr.headRefOid, p2: policy.fixForward.length, base, receipt }),
   ].join('\n');
+}
+
+const kindText = { cost_access: 'chi phí, dịch vụ hoặc quyền truy cập mới', release: 'phát hành', sensitive_copy: 'chữ privacy/consent/crisis/safety', data_collection: 'bật thu dữ liệu cá nhân mới' };
+function ownerRows(out) {
+  const { actions } = ownerHolds(out);
+  if (!actions.length) return [];
+  return ['**Cần owner** (4 loại việc của owner):', '', '| Loại | Bằng chứng | Chờ owner trước |', '|---|---|---|',
+    ...actions.map(a => `| ${kindText[a.kind]} | ${cell(a.evidence)} | ${a.hold === 'merge' ? 'merge' : 'phát hành'} |`), ''];
 }
 
 function git(args, cwd, run, left = () => Infinity) {
@@ -224,7 +234,7 @@ function reviewOnce(number, { auto = false, overCap = null, gh: ghIn = makeGh(),
   if (git(['rev-parse', 'HEAD'], dir, run, left) !== head) throw new Error('Review clone moved while Codex was reading; verdict not posted.');
 
   const rawOut = readOut ? readOut(outPath) : readFileSync(outPath, 'utf8');
-  const out = validateOutput(JSON.parse(rawOut), head);
+  const out = validateOutput(JSON.parse(rawOut), head, { requireOwnerActions: true });
   const policy = applyPolicy(out);
   const digest = createHash('sha256').update(rawOut).digest('hex');
 
@@ -241,6 +251,26 @@ function reviewOnce(number, { auto = false, overCap = null, gh: ghIn = makeGh(),
     if (!fixIssue) throw new Error('Fix-forward issue was not created; verdict not posted.');
   }
 
+  // Owner 16.11.2026 (5-fix package, item 1): a review never sends a PR to the owner by itself. A
+  // second REQUEST_CHANGES stays claude-fix (Claude fixes, checks, Codex re-reviews; the proportionality
+  // stop defers, splits or closes work, never bypasses a blocking finding), and an incomplete review is
+  // REQUEST_CHANGES for Claude to split the PR. needs-owner is only for the owner's four kinds, which
+  // Codex names in owner_actions (A2): a merge hold adds needs-owner (the merge gate refuses it), a
+  // release hold for pending sensitive copy adds owner-release-check and lets the PR merge.
+  // P1 on #591: the labels go on before the verdict is posted, so a failed label call never leaves a
+  // usable APPROVE without its hold; it throws and nothing is posted. A label without a verdict only
+  // holds more.
+  const holdsNow = ownerHolds(out);
+  const needsOwner = holdsNow.merge.length > 0;
+  if (needsOwner) {
+    ensureLabel(gh, 'needs-owner', 'D93F0B', 'Chờ owner: 4 loại việc của owner');
+    gh.raw(['pr', 'edit', String(pr.number), '--repo', repo, '--add-label', 'needs-owner']);
+  }
+  if (holdsNow.release.length) {
+    ensureLabel(gh, releaseLabel, 'C5DEF5', 'Chữ privacy/consent/crisis/safety chờ owner duyệt trước phát hành');
+    gh.raw(['pr', 'edit', String(pr.number), '--repo', repo, '--add-label', releaseLabel]);
+  }
+
   const round = trusted.filter(c => c.auto && c.verdict).length + 1;
   // P1-B: the receipt is written before the comment, so every posted verdict has one.
   const receipt = signReceipt({ kind: 'verdict', pr: pr.number, head, base: reviewedBase, result: policy.verdict, p2: policy.fixForward.length });
@@ -248,13 +278,8 @@ function reviewOnce(number, { auto = false, overCap = null, gh: ghIn = makeGh(),
   const posted = gh.comment('pr', pr.number, body);
   // Bound to the new comment's id: a later copy of this verdict never counts (replay, #456 auto-1).
   if (!bindReceipt({ kind: 'verdict', pr: pr.number, id: receipt, url: posted })) process.stderr.write(`codex-review: receipt ${receipt} not bound to a comment id; the verdict will not count\n`);
-  // Owner 16.11.2026 (5-fix package, item 1): a review never sends a PR to the owner by itself. A
-  // second REQUEST_CHANGES stays claude-fix (Claude fixes, checks, Codex re-reviews; the proportionality
-  // stop defers, splits or closes work, never bypasses a blocking finding), and an incomplete review is
-  // REQUEST_CHANGES for Claude to split the PR. needs-owner is only for the owner's four kinds.
-  const needsOwner = false;
-  writeJson(join(stateDir, 'logs', `review-${stamp}.json`), { pr: pr.number, head, base: reviewedBase, verdict: policy.verdict, complete: out.complete, receipt, digest, fixIssue, needsOwner, at: new Date().toISOString() });
-  return { status: 'posted', verdict: policy.verdict, blocking: policy.blocking.length, fixIssue, needsOwner };
+  writeJson(join(stateDir, 'logs', `review-${stamp}.json`), { pr: pr.number, head, base: reviewedBase, verdict: policy.verdict, complete: out.complete, ownerActions: holdsNow.actions, receipt, digest, fixIssue, needsOwner, at: new Date().toISOString() });
+  return { status: 'posted', verdict: policy.verdict, blocking: policy.blocking.length, fixIssue, needsOwner, ownerRelease: holdsNow.release.length > 0 };
 }
 
 if (isMain(import.meta.url)) {
