@@ -8,11 +8,11 @@
 // (collab-agent-gate.mjs) in ~/.claude/settings.json; other hooks there are kept.
 // Usage: node scripts/collab-ops-wrapper.mjs --install | --verify | --install-agent-gate
 import { execFileSync } from 'node:child_process';
-import { chmodSync, copyFileSync, existsSync, readFileSync, realpathSync, renameSync, statSync, writeFileSync } from 'node:fs';
+import { chmodSync, copyFileSync, existsSync, readdirSync, readFileSync, realpathSync, renameSync, statSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { integration, stateDir } from './collab-trust.mjs';
+import { codexDailyCap, hhmmOf, integration, lastStartAt, planOpensAt, stateDir } from './collab-trust.mjs';
 import { isMain } from './is-main.mjs';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -136,6 +136,42 @@ export function agentGateWatch({ verify = () => verifyAgentGate(), alert, resolv
   }
   if (state.open) { resolve('cổng dev con đã khớp bản chuẩn'); save({ ...state, open: false }); return { status: 'resolved' }; }
   return { status: 'ok' };
+}
+
+// One rule set for every scheduled task (owner 15–16.11; review of 16.11: morning-prep still said
+// "20 PRs" and a 60-run cap, autopilot stopped new work at 23:00). The prompts live outside the repo,
+// so the tick reads each SKILL.md and names every active instruction that disagrees with the code:
+// a PR quota, a Codex cap other than codexDailyCap, a stop time other than lastStartAt, an auto-start
+// other than planOpensAt. A line that marks a rule as retired or superseded is history and is skipped.
+const retired = /retired|superseded|old rule|luật cũ|đã bỏ|thay bằng/i;
+export function skillRuleFindings(text, { cap = codexDailyCap, stop = hhmmOf(lastStartAt), start = hhmmOf(planOpensAt) } = {}) {
+  const out = [];
+  String(text).split('\n').forEach((line, i) => {
+    if (retired.test(line)) return;
+    const at = `dòng ${i + 1}`;
+    if (/\b(at least|ít nhất|tối thiểu)\s+\d+\s+(planned\s+)?PRs?\b|\b\d+\s+or more\s+(planned\s+)?PRs?\b|\bplan\s+\d+\s+PRs?\b|\b\d+\s*PR\s*\/\s*ngày/i.test(line)) out.push(`còn chỉ tiêu số PR (${at})`);
+    for (const m of line.matchAll(/\b(?:within|cap(?: of)?|trần(?: Codex)?|tối đa)\s+(\d+)\s+(?:Codex\s+)?(?:runs|lượt)/gi)) if (Number(m[1]) !== cap) out.push(`trần Codex ${m[1]}, code là ${cap} (${at})`);
+    for (const m of line.matchAll(/(?:no new work|not start new work|nhận việc mới)[^.\n]*?\b(?:after|from|sau|từ)\s+(\d{1,2}:\d{2})/gi)) if (m[1] !== stop) out.push(`dừng nhận việc lúc ${m[1]}, code là ${stop} (${at})`);
+    for (const m of line.matchAll(/(?:auto-?starts?|tự chạy|auto-start)[^.\n]*?\b(\d{1,2}:\d{2})|\b(\d{1,2}:\d{2})\s*\(?\s*(?:tự chạy|auto-?start)/gi)) { const t = m[1] ?? m[2]; if (t !== start) out.push(`giờ tự chạy ${t}, code là ${start} (${at})`); }
+  });
+  return out;
+}
+export function verifySkillRules({ dir = join(homedir(), '.claude', 'scheduled-tasks'), ...limits } = {}) {
+  let tasks = [];
+  try { tasks = readdirSync(dir).filter(t => t.startsWith('la-lanh-')); } catch { return ['không đọc được thư mục tác vụ hẹn giờ']; }
+  const bad = [];
+  for (const task of tasks.sort()) {
+    let text = '';
+    try { text = readFileSync(join(dir, task, 'SKILL.md'), 'utf8'); } catch { continue; }
+    for (const f of skillRuleFindings(text, limits)) bad.push(`${task}: ${f}`);
+  }
+  return bad;
+}
+export function skillRuleHealth(opts = {}) {
+  try {
+    const bad = verifySkillRules(opts.prompts ? { dir: opts.prompts } : {});
+    return bad.length ? [`- ⚠️ prompt tác vụ hẹn giờ khác luật trong code: ${bad.slice(0, 6).join('; ')}${bad.length > 6 ? `; và ${bad.length - 6} chỗ khác` : ''}`] : ['- ✅ prompt tác vụ hẹn giờ: khớp luật trong code (trần Codex, giờ chạy, không chỉ tiêu PR)'];
+  } catch (error) { return [`- ⚠️ prompt tác vụ hẹn giờ: chưa kiểm được (${error.message})`]; }
 }
 
 export function wrapperHealth(opts = {}) {
