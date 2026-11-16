@@ -264,6 +264,30 @@ test('5-fix A: an incomplete review is REQUEST_CHANGES for Claude to split, neve
   assert.doesNotMatch(posted, /chuyển owner/);
 });
 
+test('5-fix A, P1 on #590: after an incomplete review the next review reads the whole change, not a delta', () => {
+  const now = { date: '2027-01-15', hour: 12, minute: 0 };
+  const markIncomplete = c => ({ ...c, body: c.body.replace('Reviewer: Codex', `Round: auto-1 · range \`x\` · **${review.incompleteMark}, Claude tách PR cho đủ review**\nReviewer: Codex`) });
+  const approveB = JSON.stringify(output({ sha: B }));
+  const rerun = prior => {
+    const state = { pr: pr({ headRefOid: B, comments: [check(A), prior, check(B)] }) };
+    const runner = fakeRun({ head: B });
+    review.runReview(7, { gh: fakeGh(state), run: runner.run, readOut: () => approveB, now });
+    return runner.calls.find(c => c[0] === review.codexBin)[2].input;
+  };
+  // Marked incomplete in the posted verdict (reviews logged before the field existed).
+  const fromMark = rerun(markIncomplete(requestChanges(A)));
+  assert.doesNotMatch(fromMark, new RegExp(`git diff ${A}\\.\\.${B}`), 'no delta from an incomplete review');
+  assert.match(fromMark, /read the full change now/);
+  // The local review log is the trusted record, even if the posted text looks complete.
+  const quiet = requestChanges(A);
+  const receipt = /receipt=([0-9a-f]{32})/.exec(quiet.body)[1];
+  trust.writeJson(join(trust.stateDir, 'logs', `review-2027-01-15-pr7-${receipt}.json`), { pr: 7, head: A, receipt, complete: false });
+  assert.match(rerun(quiet), /read the full change now/);
+  assert.equal(review.reviewWasComplete(quiet), false);
+  // A complete earlier review still narrows the re-review to the delta.
+  assert.match(rerun(requestChanges(A)), new RegExp(`git diff ${A}\\.\\.${B}`));
+});
+
 test('daily cap refuses automatic reviews', () => {
   const now = { date: '2026-11-01', hour: 12, minute: 0 };
   trust.writeJson(trust.dayStatePath(now.date), { codexRuns: trust.codexDailyCap });
