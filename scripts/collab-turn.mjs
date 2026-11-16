@@ -540,7 +540,9 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       if (failures === 2 && alert) alert(`collab tick có lỗi 2 lần liên tiếp (${now.date} ${now.hour}h): ${clean(JSON.stringify(errors), 300)}`);
       tell({ turns: leftTurns, comments: plan.comments });
       log(JSON.stringify(done));
-      return { status: red ? 'ran-with-errors' : 'ran', area, done };
+      // 16.11.2026: the tick log printed only "ran-with-errors" for a whole day; the reason a quiet tick is
+      // still red (the unresolved copy batch) now rides in the logged result too.
+      return { status: red ? 'ran-with-errors' : 'ran', area, done, ...(stuck ? { stuck } : {}) };
     } catch (error) {
       const failures = (readJson(dayPath, day).failures ?? 0) + 1;
       writeJson(dayPath, { ...readJson(dayPath, day), failures, streakAt: streak(failures, readJson(dayPath, day).streakAt) });
