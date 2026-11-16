@@ -873,9 +873,6 @@ def vibe_frame(plan: ReadingPlan) -> InterpretationFrame:
 
 
 def full_frame(plan: ReadingPlan) -> InterpretationFrame:
-    if plan.tradition is Tradition.JYOTISH:
-        return _jyotish_structural_frame(plan)
-
     by_id = {factor.id: factor for factor in plan.factors}
     hero = next((by_id[ref] for ref in plan.hero_factor_refs if ref in by_id), plan.factors[0])
     # A placement-only plan (approximate birth time, #143 E1) names an independent pair of
@@ -900,6 +897,18 @@ def full_frame(plan: ReadingPlan) -> InterpretationFrame:
         for ref in body_refs
         if ref in by_id and by_id[ref].kind is FactorKind.PLANET_PLACEMENT
     ]
+    if plan.tradition is Tradition.JYOTISH and len(placements) < 2:
+        # A Jyotish hero pair can mix a placement and a nakshatra; read both heroes' placements
+        # so every hero stays cited.
+        for ref in plan.hero_factor_refs:
+            for placement_ref in (ref, *by_id[ref].child_refs) if ref in by_id else ():
+                factor = by_id.get(placement_ref)
+                if (
+                    factor is not None
+                    and factor.kind is FactorKind.PLANET_PLACEMENT
+                    and factor not in placements
+                ):
+                    placements.append(factor)
     if not placements:
         placements = [
             factor for factor in plan.factors if factor.kind is FactorKind.PLANET_PLACEMENT
@@ -928,7 +937,15 @@ def full_frame(plan: ReadingPlan) -> InterpretationFrame:
     lens = editorial_variant.lens
     context = _context_house(plan, tuple(item.id for item in placements))
     context_phrase = _context_phrase(plan, context)
-    evidence_refs = [hero.id, *(item.id for item in placements)]
+    evidence_refs = [
+        hero.id,
+        *(
+            ref
+            for ref in plan.hero_factor_refs
+            if ref in by_id and plan.tradition is Tradition.JYOTISH
+        ),
+        *(item.id for item in placements),
+    ]
     knowledge_refs = [
         f"methodology:{METHODOLOGY_VERSION}",
         "principle:whole-chart-priority",
@@ -1008,7 +1025,11 @@ def full_frame(plan: ReadingPlan) -> InterpretationFrame:
         micro_action=action,
         evidence_factor_refs=tuple(dict.fromkeys(evidence_refs)),
         knowledge_refs=tuple(dict.fromkeys(knowledge_refs)),
-        arena=semantic_arena(plan.background_lens),
+        arena=(
+            SemanticArena.STRUCTURAL
+            if plan.tradition is Tradition.JYOTISH
+            else semantic_arena(plan.background_lens)
+        ),
         mechanism_key=f"{hero.kind.value}:{hero.role.value}:{lens.value}",
         scene_key=f"{semantic_arena(plan.background_lens).value}:{context_phrase}",
         action_key=f"{lens.value}:{editorial_variant.action_slot}",
@@ -1174,62 +1195,6 @@ def _context_phrase(
     if context is not None:
         return context[1].manifestation
     return _fallback_context(plan)
-
-
-def _jyotish_structural_frame(plan: ReadingPlan) -> InterpretationFrame:
-    by_id = {factor.id: factor for factor in plan.factors}
-    hero_refs = tuple(ref for ref in plan.hero_factor_refs if ref in by_id)
-    hero = by_id[hero_refs[0]] if hero_refs else plan.factors[0]
-    # A chart with no graha drishti among the read bodies gets an independent pair of
-    # placements as its heroes (planner `_independent_pair`). Every hero must be cited,
-    # or the evidence gate rejects the reading on every day for that chart (PL-3, #180).
-    evidence_refs = [hero.id, *hero_refs, *hero.child_refs]
-
-    if hero.kind is FactorKind.GRAHA_DRISHTI:
-        parts = _parts(hero)
-        body_a, body_b, houses_apart = parts[2], parts[3], parts[5]
-        hook = (
-            "Hai điểm đang liên hệ trực tiếp trong bản đồ Jyotish: "
-            f"{body_label(body_a)} và {body_label(body_b)}."
-        )
-        thesis = (
-            f"Hai vị trí cách nhau {houses_apart} nhà, theo cách tính của chiêm tinh Ấn Độ. "
-            "Đây là thông tin vị trí đã tính, chưa phải "
-            "diễn giải về tính cách hay chuyện sẽ xảy ra."
-        )
-    elif hero.kind is FactorKind.NAKSHATRA:
-        name_ref = next(
-            (ref for ref in hero.evidence_refs if ref.startswith("jyotish:nakshatra:name:")),
-            "jyotish:nakshatra:name:chưa xác định",
-        )
-        nakshatra = name_ref.removeprefix("jyotish:nakshatra:name:")
-        hook = f"Mặt Trăng nằm trong vùng {nakshatra} của lá số Ấn Độ."
-        thesis = (
-            "Vị trí đã tính theo hệ chiêm tinh Ấn Độ bạn chọn. "
-            "Vùng này chia nhỏ cung để xác định vị trí Mặt Trăng. "
-            "Phần giải nghĩa riêng cho hệ này chưa sẵn sàng."
-        )
-    else:
-        hook = "Lá số Ấn Độ đã tính xong; phần giải nghĩa sâu chưa sẵn sàng."
-        thesis = (
-            "Bạn có thể xem vị trí hành tinh và nhà đã tính. "
-            "Lá không dùng diễn giải phương Tây cho hệ chiêm tinh Ấn Độ."
-        )
-
-    return InterpretationFrame(
-        hook=hook,
-        thesis=thesis,
-        manifestation=("Mở phần căn cứ để xem vị trí và liên hệ giữa các hành tinh đã tính."),
-        micro_action=(
-            "Xem lại giờ, nơi sinh và cách tính đã chọn trước khi so sánh với lá số khác."
-        ),
-        evidence_factor_refs=tuple(dict.fromkeys(evidence_refs)),
-        knowledge_refs=("tradition:jyotish", "mode:structural"),
-        arena=SemanticArena.STRUCTURAL,
-        mechanism_key=f"jyotish:{hero.kind.value}",
-        scene_key="jyotish:evidence-disclosure",
-        action_key="jyotish:inspect-evidence",
-    )
 
 
 def transit_copy(factor: DerivedFactor) -> str:

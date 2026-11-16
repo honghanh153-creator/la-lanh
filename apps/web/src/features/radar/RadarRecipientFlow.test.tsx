@@ -76,7 +76,6 @@ describe("Radar recipient flow", () => {
     sessionStorage.setItem(RADAR_PENDING_REQUEST_KEY, "request-a");
     vi.mocked(getCurrentRadarInvite).mockResolvedValue({
       request_id: "request-b",
-      recipient_label: "Lời mời B",
       context: "friend",
       voice: "straight_warm",
       expires_at: "2026-09-30T00:00:00Z",
@@ -95,7 +94,6 @@ describe("Radar recipient flow", () => {
     sessionStorage.setItem(RADAR_PENDING_REQUEST_KEY, "request-a");
     vi.mocked(getCurrentRadarInvite).mockResolvedValue({
       request_id: "request-a",
-      recipient_label: "Mèo",
       context: "crush",
       voice: "straight_warm",
       expires_at: "2026-09-30T00:00:00Z",

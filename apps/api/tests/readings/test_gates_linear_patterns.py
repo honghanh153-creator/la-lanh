@@ -8,6 +8,7 @@ from __future__ import annotations
 import random
 import re
 import time
+from collections.abc import Callable
 
 import pytest
 
@@ -22,7 +23,17 @@ from app.domains.readings.models import GateFailureCode
 
 LEGACY_QUOTE = re.compile('["\u201c\u2018\u00ab]([^"\u201d\u2019\u00bb]+)["\u201d\u2019\u00bb]')
 LEGACY_EMAIL = re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNORECASE)
-LIMIT_SECONDS = 0.25
+# CPU time of this process, not wall-clock: a busy machine (a parallel check, a
+# slow CI runner) must not turn a linear scan red. The legacy patterns backtrack
+# quadratically and need tens of CPU seconds on these inputs, so 1 s still
+# separates a linear scan from a regression by an order of magnitude.
+LIMIT_SECONDS = 1.0
+
+
+def _cpu_seconds(work: Callable[[str], object], text: str) -> float:
+    started = time.process_time()
+    work(text)
+    return time.process_time() - started
 
 
 def _legacy_without_safe_examples(folded: str) -> str:
@@ -127,15 +138,18 @@ def test_privacy_gate_still_passes_text_without_an_email(text: str) -> None:
     "text", ["a+" * 25_000, "a" * 50_000, "+" * 50_000, "a@" + "a." * 25_000, "_." * 25_000]
 )
 def test_privacy_gate_is_fast_on_long_adversarial_text(text: str) -> None:
-    started = time.perf_counter()
-    privacy_failures(text)
-    assert time.perf_counter() - started < LIMIT_SECONDS
+    assert _cpu_seconds(privacy_failures, text) < LIMIT_SECONDS
 
 
 @pytest.mark.parametrize(
     "text", ["\u201c" * 50_000, '"' * 50_001, "\u00ab" + "a" * 50_000, "\u201ca" * 25_000]
 )
 def test_safe_example_removal_is_fast_on_long_adversarial_text(text: str) -> None:
-    started = time.perf_counter()
-    _without_safe_examples(text)
-    assert time.perf_counter() - started < LIMIT_SECONDS
+    assert _cpu_seconds(_without_safe_examples, text) < LIMIT_SECONDS
+
+
+def test_the_limit_still_catches_the_quadratic_legacy_scan() -> None:
+    # Guard on the guard: half the adversarial length already costs the legacy
+    # regex more CPU than the limit, so a regression to it cannot slip under 1 s.
+    text = "“" * 25_000
+    assert _cpu_seconds(lambda t: list(LEGACY_QUOTE.finditer(t)), text) > LIMIT_SECONDS

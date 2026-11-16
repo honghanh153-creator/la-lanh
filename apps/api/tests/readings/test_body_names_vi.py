@@ -102,7 +102,9 @@ def test_jyotish_overview_still_reads_the_six_classic_bodies_only() -> None:
         ),
         CalculationConfig.jyotish_recommended(),
     )
-    claims = InsightReadingService._jyotish_claims(chart)
+    claims = (
+        InsightReadingService().overview(chart, observed_at=datetime(2026, 9, 4, tzinfo=UTC)).claims
+    )
     assert [claim.id for claim in claims] == [
         f"{body.value}-sign"
         for body in (

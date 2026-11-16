@@ -85,6 +85,27 @@ describe("service worker runtime caching", () => {
   });
 
   it.each([
+    "https://app.lalanh.vn/share/sample-share-token",
+    "https://app.lalanh.vn/radar/i/sample-invite-token",
+    "https://app.lalanh.vn/la-chung/i/sample-invite-token",
+  ])("never stores a share or invite page in the cache at %s", async (url) => {
+    const page = new Response("<main></main>", { status: 200 });
+    fetchMock.mockResolvedValueOnce(page);
+    const navigation = { url, method: "GET", mode: "navigate" } as unknown as Request;
+    let served: Promise<Response> | undefined;
+
+    handlers.get("fetch")?.({
+      request: navigation,
+      respondWith: (response: Promise<Response>) => { served = response; },
+    });
+
+    expect(await served).toBe(page);
+    expect(fetchMock).toHaveBeenCalledWith(navigation);
+    expect(cachePut).not.toHaveBeenCalled();
+    expect(cacheMatch).not.toHaveBeenCalled();
+  });
+
+  it.each([
     "https://app.lalanh.vn/v1",
     "https://app.lalanh.vn/v1/daily-note",
     "https://app.lalanh.vn/metrics",

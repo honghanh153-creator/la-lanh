@@ -29,6 +29,7 @@ import { VibeSegmented } from "../../shared/vibe/VibePicker";
 import "./profile-identity.css";
 import { clearPersonalDataOnDevice } from "../../shared/storage/clearPersonalData";
 import { clearChartDerivedData } from "../../shared/storage/clearChartDerivedData";
+import { dropCachedDailyNotes } from "../../shared/storage/dropCachedDailyNotes";
 import "../../shared/styles/signal-note.css";
 import { OPENAI_ABUSE_RETENTION_NOTICE, OPENAI_REWRITE_SCOPE_NOTICE } from "../../shared/config/externalRewriteDisclosure";
 import { useTheme } from "../../shared/theme/useTheme";
@@ -142,6 +143,7 @@ export function ProfilePage() {
       dropQueuedSaves();
       setConfirmingHistory(false);
       setStatusMessage("Đã xoá lịch sử. Hồ sơ sinh, bản đọc hiện tại và note đã lưu vẫn được giữ.");
+      await dropCachedDailyNotes(queryClient);
       await queryClient.invalidateQueries({ queryKey: ["daily-note-resonance"] });
     },
     onError: (failure) => setError(failure instanceof ApiProblem && failure.code === "HISTORY_BUSY"

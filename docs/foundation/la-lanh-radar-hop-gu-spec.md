@@ -27,7 +27,7 @@ Không được tự động chuyển từ mode này sang mode kia. CTA chính l
 | `/radar/start` | Check kín / bước 2 | Nhập nickname/context + DOB/place, chọn giờ chính xác hoặc `Không rõ giờ`, rồi attestation; xem lại lịch sử | Tính transient; chỉ lưu result/label mã hóa |
 | `/radar/result/:id` | Kết quả riêng / bước 3 | Đọc, mở evidence, check người khác, xem lịch sử hoặc xóa kết quả | Owner-bound read/delete |
 | `/radar/invite` | Fallback invite | Tạo link khi A chưa có quyền nhập hộ | Capability 7 ngày |
-| `/radar/i/:token` | Public preview | B hiểu mục đích/quyền trước khi nhập | Safe capability continuation |
+| `/radar/i/:token` | Public preview | B hiểu mục đích/quyền trước khi nhập | Safe capability continuation; không trả và không hiện `recipient_label` (chỉ chủ lời mời thấy; issue #95) |
 | `/radar/continue` | Pair consent | B consent riêng và chạy hai chart | Derived pair result |
 | `/radar/receipt` | Kết quả phía người nhận | B mở lại trong 30 ngày (bằng hạn kết quả) hoặc rút chart khỏi kết quả | HttpOnly receipt-bound read/withdraw |
 

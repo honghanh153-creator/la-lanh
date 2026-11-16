@@ -47,7 +47,6 @@ def test_jyotish_reading_uses_jyotish_vocabulary_and_provenance() -> None:
 
     assert reading.tradition is Tradition.JYOTISH
     assert reading.provenance.ayanamsa == "lahiri"
-    assert any("Nakshatra" in claim.title for claim in reading.claims)
     visible = " ".join(
         " ".join(
             (
@@ -61,9 +60,13 @@ def test_jyotish_reading_uses_jyotish_vocabulary_and_provenance() -> None:
         )
         for claim in reading.claims
     )
-    assert "bạn dễ" not in visible and "Bạn sáng rõ" not in visible
+    # Owner report 11.11: Jyotish cards read the same planet x sign x house meanings as the
+    # Western cards, never a "not ready" or "computed position only" line.
+    assert "chưa sẵn sàng" not in visible and "đã tính" not in visible
     assert "tam hợp" not in visible and "góc vuông" not in visible
-    assert "đã tính" in visible
+    sidereal = {position.body.value: position.sign.value for position in chart.bodies}
+    sun = next(claim for claim in reading.claims if claim.id == "sun-sign")
+    assert any(f":sign:{sidereal['sun']}" in ref for ref in sun.factor_refs)
     assert all(
         not any(ref.startswith("natal:aspect:") for ref in claim.factor_refs)
         for claim in reading.claims

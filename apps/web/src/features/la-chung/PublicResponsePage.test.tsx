@@ -14,7 +14,7 @@ vi.mock("../../shared/api/client", async (original) => {
 
 beforeEach(() => {
   vi.mocked(getPublicLaChungInvite).mockResolvedValue({
-    recipient_label: "bestie", context: "bff", expires_at: "2026-09-11T00:00:00Z",
+    context: "bff", expires_at: "2026-09-11T00:00:00Z",
     privacy_note: "Không cần tài khoản, ngày sinh hay danh bạ.",
     statements: [
       { id: "one", text: "Câu một", domain: "care" },
@@ -36,4 +36,13 @@ it("explains privacy before enforcing the 3-statement minimum", async () => {
   await user.click(screen.getByRole("button", { name: "Câu hai" }));
   await user.click(screen.getByRole("button", { name: "Câu ba" }));
   expect(review).toBeEnabled();
+});
+
+it("never shows the sender's private label, even if an older API sends it", async () => {
+  const stale = { ...(await getPublicLaChungInvite("x")), recipient_label: "CanaryNhanRieng7f3a" };
+  vi.mocked(getPublicLaChungInvite).mockResolvedValue(stale);
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const { container } = render(<QueryClientProvider client={client}><MemoryRouter initialEntries={["/la-chung/i/secret"]}><Routes><Route path="/la-chung/i/:token" element={<PublicResponsePage />} /></Routes></MemoryRouter></QueryClientProvider>);
+  expect(await screen.findByText("Một Lá Chứng dành cho bạn")).toBeInTheDocument();
+  expect(container).not.toHaveTextContent("CanaryNhanRieng7f3a");
 });
