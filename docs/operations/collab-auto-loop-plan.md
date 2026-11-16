@@ -58,7 +58,7 @@ Claude xong việc trên branch, push (hook trước push: quét dữ liệu ri�
   → node scripts/codex-review.mjs --pr N        (Claude chờ, cùng session)
       ├─ APPROVE @ SHA   → node scripts/collab-merge.mjs --pr N → merge integration
       └─ REQUEST_CHANGES → Claude sửa → author check → push → review lại (chỉ phần đổi)
-           vòng REQUEST_CHANGES tự động thứ 2 → nhãn needs-owner; từ vòng 3 Claude quyết theo §4.1 mục 11
+           vòng thứ 2 trở đi: vẫn về Claude sửa và Codex review lại, không gắn needs-owner (owner 16.11.2026)
 ```
 
 ### 3.1 Lịch ngày (giờ Việt Nam)
@@ -146,7 +146,7 @@ Session mà owner đang trực tiếp trò chuyện không bị lịch này ch�
 8. Áp chính sách; script **chỉ nâng** verdict, không hạ.
 9. Đăng comment PR: dòng đầu `Review verdict: … @ <SHA>`, `Reviewer: Codex (auto)`, bảng finding, SHA-256 của JSON, số vòng, đánh dấu ẩn `<!-- la-lanh-agent codex-auto-review sha=… p2=… base=… receipt=… -->` (dòng cuối; biên nhận cục bộ ghi trước khi đăng, §4.2).
 10. P2 không chặn → mở issue `fix-forward`, gắn link vào comment.
-11. REQUEST_CHANGES tự động thứ 2 trên PR → gắn `needs-owner`. **Từ vòng thứ 3, Claude quyết** (owner 31.10.2026: "kể cả có ping pong qua lại nếu bạn đánh giá rất critical thì có thể sửa, và ảnh hưởng tới người dùng. còn không thì cứ dựa trên check list để quyết định cho việc review lần >=3. ko cần chờ tôi"):
+11. **Từ 16.11.2026 (owner, gói 5 sửa luồng mục 1)** review không tự gắn `needs-owner` nữa: REQUEST_CHANGES ở vòng nào cũng về Claude sửa, author check, Codex review lại; review chưa đủ (PR quá lớn) là REQUEST_CHANGES để Claude tách PR. Dừng theo tỷ lệ (vòng sau dài thêm mà không còn lỗi chặn) là hoãn, tách hoặc đóng việc, không bao giờ bỏ qua một lỗi chặn. Luật cũ, giữ để tra: REQUEST_CHANGES tự động thứ 2 trên PR → gắn `needs-owner`. **Từ vòng thứ 3, Claude quyết** (owner 31.10.2026: "kể cả có ping pong qua lại nếu bạn đánh giá rất critical thì có thể sửa, và ảnh hưởng tới người dùng. còn không thì cứ dựa trên check list để quyết định cho việc review lần >=3. ko cần chờ tôi"):
     - phát hiện nghiêm trọng hoặc ảnh hưởng người dùng → Claude sửa, gỡ `needs-owner`, review lại, bao nhiêu vòng cũng được;
     - còn lại thì đi qua checklist Q1–Q5 (`decision-checklist.md`): cả năm câu "không" thì sửa và đi tiếp; có câu "có" (câu chữ mới, dữ liệu cá nhân, hướng sản phẩm) thì vẫn chờ owner;
     - quyết định ghi trên PR, kèm lý do gỡ nhãn.
@@ -173,7 +173,7 @@ Session mà owner đang trực tiếp trò chuyện không bị lịch này ch�
 |---|---|
 | Chưa có author check cho head | Lưới tick chạy preflight nhanh trước (thiếu G1–G10, mức S/M/L, G7 hoặc lỗi ruff/mypy thì ghi lý do, PR sang Claude sửa, không tốn lượt check; sửa mô tả PR hoặc đẩy head mới thì preflight chạy lại). Qua preflight thì tick chạy tối đa 3 author check liên tiếp (`checksPerTick`), không bắt đầu check mới sau 60 phút (`drainMinutes`), rồi review luôn nếu PASS. Claude chạy trực tiếp cũng được |
 | Có author check, chưa có verdict cho head | Codex (review) |
-| REQUEST_CHANGES @ head, chưa `needs-owner` | Claude (sửa) |
+| REQUEST_CHANGES @ head | Claude (sửa) |
 | APPROVE @ head đủ điều kiện | Merge |
 | Draft / `needs-owner` / xếp chồng chờ PR cha / bị `Bỏ #N` hôm nay | Giữ |
 
@@ -218,7 +218,7 @@ Mỗi lúc chỉ một review chạy (khóa `review.lock`), vì mọi review dù
 - Mac phải bật; app Claude phải mở cho lượt Claude tự động.
 - Review tự động không thay buổi review sâu lời văn/giọng Lá mỗi đợt.
 - Cùng tài khoản GitHub: "Codex (auto)" là ghi chú, không phải danh tính kiểm chứng được.
-- PR rất lớn (#93 ~14k dòng, #119 ~4,3k dòng) có thể vượt khả năng một lượt review; script ghi `needs-owner` nếu Codex báo không review hết.
+- PR rất lớn (#93 ~14k dòng, #119 ~4,3k dòng) có thể vượt khả năng một lượt review; nếu Codex báo không review hết thì verdict là REQUEST_CHANGES để Claude tách PR (từ 16.11.2026; trước đó script gắn `needs-owner`).
 
 ## 7. Kế hoạch xây và triển khai
 

@@ -83,7 +83,7 @@ Những chỗ chậm thật, không rút được:
 - **Thứ tự ưu tiên của plan ngày đang xếp tính năng mới sau cùng** (vận hành, rồi nội dung, rồi quyền riêng tư, rồi tính năng), mỗi ngày 3–5 việc. Kế hoạch này có khoảng 48 việc. Nếu không dành chỗ cho nó thì 7 tuần không giữ được. Xem mục chị cần quyết ở cuối.
 - Cuối tuần 1 sẽ so số việc xong với số đã định. Lệch thì báo lịch mới, không tự cắt việc.
 
-- **Duyệt chữ.** Có khoảng 29 bài học cùng truyện và lời mở. Chị đã chốt: chị duyệt bài đầu của mỗi khóa (4 bài, gồm cả nhóm bài khớp ba lô) và danh sách lằn ranh đỏ; Codex duyệt các bài sau. Phần của chị vì vậy vừa với khoảng 1 giờ mỗi 2–3 ngày. Rủi ro còn lại: Codex trả bài nhiều vòng.
+- **Duyệt chữ.** *(Thay bằng luật 15.11: bài đầu và lằn ranh đỏ cũng do Codex duyệt, chị xem ngẫu nhiên; xem `decision-checklist.md`.)* Có khoảng 29 bài học cùng truyện và lời mở. Ngày 14.11 chị đã chốt: chị duyệt bài đầu của mỗi khóa (4 bài, gồm cả nhóm bài khớp ba lô) và danh sách lằn ranh đỏ; Codex duyệt các bài sau. Phần của chị vì vậy vừa với khoảng 1 giờ mỗi 2–3 ngày. Rủi ro còn lại: Codex trả bài nhiều vòng.
 - Tuần 5 và tuần 6 dồn nhiều việc. Chữ bị trả lại nhiều thì hai tuần này trễ.
 - Mốc tuần 4 không đạt thì tuần 5–6 chỉ sửa nền, cả lịch lùi lại.
 - Hết hạn mức chấm, hoặc không tìm được 2 nhóm bạn thử Lá Dám, thì chỉ phần liên quan bị chặn.
@@ -242,7 +242,7 @@ Các mục này cần chị duyệt:
 6. **Phạm vi "lá số không cần giờ sinh".**
 7. **Câu hỗ trợ khi khủng hoảng** và nguồn của từng bài học.
 8. **Kiểm nhật ký, đường mạng và ảnh chia sẻ** không chứa dữ liệu riêng.
-9. **Ai duyệt chữ bài học: đã chốt 14.11.** Chị duyệt bài đầu của mỗi khóa và danh sách lằn ranh đỏ. Codex duyệt các bài sau theo đúng danh sách đó. Câu về quyền riêng tư, đồng ý và hỗ trợ khi khủng hoảng vẫn do chị duyệt.
+9. **Ai duyệt chữ bài học: đã chốt 14.11, đổi 15.11** (bài đầu và lằn ranh đỏ chuyển Codex duyệt, xem `decision-checklist.md`). Bản 14.11: Chị duyệt bài đầu của mỗi khóa và danh sách lằn ranh đỏ. Codex duyệt các bài sau theo đúng danh sách đó. Câu về quyền riêng tư, đồng ý và hỗ trợ khi khủng hoảng vẫn do chị duyệt.
 10. **Ghi quyết định duyệt chữ bài Học vào tài liệu quy trình và kho câu chữ** (việc của agent, không hỏi lại chị), để khớp với quy tắc "câu mới cần chị duyệt" đang có.
 
 ## Đã hoãn hoặc chưa có trong kế hoạch
