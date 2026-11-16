@@ -13,6 +13,7 @@ from httpx2 import Response as ClientResponse
 from pydantic import SecretStr
 from starlette.types import Message, Receive, Scope, Send
 
+from app.api.v1.routes.accounts import GUEST_STORAGE_NOTE_ID
 from app.config import Settings
 from app.domains.accounts.models import Challenge
 from app.domains.accounts.service import LOGIN_COOKIE, RESTORE_COOKIE, AccountService
@@ -32,6 +33,12 @@ from tests.accounts.support import (
 )
 
 ORIGIN = "http://127.0.0.1:5173"
+# Owner-approved text, character for character (15.11.2026).
+APPROVED_GUEST_STORAGE_NOTE = (
+    "Hồ sơ của bạn lưu trên Lá Lành và chỉ mở được trên trình duyệt này. "
+    "Đổi máy hoặc xoá dữ liệu trình duyệt là mất hồ sơ. "
+    "Không dùng 30 ngày, hồ sơ tự xoá. Bạn cũng tự xoá được trong Mình."
+)
 
 
 def test_account_validation_contract_matches_private_problem_runtime(tmp_path: Path) -> None:
@@ -185,6 +192,8 @@ def test_disabled_status_is_honest_and_code_never_creates_guest(tmp_path: Path) 
             "history_days": 30,
             "daily_note_hours": 24,
             "account_inactivity_days": 365,
+            # Owner approved this privacy sentence on 15.11.2026 ("C-duyệt").
+            "guest_storage_note": APPROVED_GUEST_STORAGE_NOTE,
         }
         denied = client.post(
             "/v1/account/login/code",
@@ -196,6 +205,50 @@ def test_disabled_status_is_honest_and_code_never_creates_guest(tmp_path: Path) 
         assert client.get("/v1/session").status_code == 401
         assert fake.calls == []
         assert status.headers["Cache-Control"] == "no-store, max-age=0"
+
+
+def test_guest_storage_note_is_served_only_once_the_owner_approves_it(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.domains.content import copy_approval
+
+    text = "Câu tổng hợp để thử: hồ sơ đang ở trình duyệt này."
+
+    def registry(**entry: str) -> None:
+        raw = {"id": GUEST_STORAGE_NOTE_ID, "category": "privacy", "text": text, **entry}
+        parsed = copy_approval.parse_registry(
+            {"version": copy_approval.REGISTRY_VERSION, "entries": [raw]}
+        )
+        monkeypatch.setattr(copy_approval, "_runtime_registry", lambda: parsed)
+
+    app = create_app(
+        Settings(
+            _env_file=None,
+            environment="test",
+            database_url=f"sqlite+aiosqlite:///{tmp_path / 'note.db'}",
+            cors_origins=[ORIGIN],
+        )
+    )
+    digest = copy_approval.copy_digest(text)
+    with TestClient(app, base_url=ORIGIN) as client:
+        registry(status="pending")
+        assert client.get("/v1/account").json()["guest_storage_note"] is None
+        # Codex may not approve privacy copy: the entry is broken, so nothing is served.
+        registry(status="approved", approver="codex", date="2026-11-14", digest=digest)
+        assert client.get("/v1/account").json()["guest_storage_note"] is None
+        registry(status="approved", approver="owner", date="2026-11-14", digest=digest)
+        assert client.get("/v1/account").json()["guest_storage_note"] == text
+
+
+def test_guest_storage_note_is_the_owner_approved_privacy_copy() -> None:
+    from app.domains.content.copy_approval import copy_digest, load_registry
+
+    entry = load_registry()[GUEST_STORAGE_NOTE_ID]
+    assert entry.category == "privacy"
+    assert entry.text == APPROVED_GUEST_STORAGE_NOTE
+    assert (entry.status, entry.approver, entry.date) == ("approved", "owner", "2026-11-15")
+    assert entry.digest == copy_digest(APPROVED_GUEST_STORAGE_NOTE)
+    assert entry.servable
 
 
 def rows(path: Path, table: str) -> list[tuple[object, ...]]:
@@ -484,6 +537,8 @@ def test_disabled_status_and_logout_still_resolve_real_account(tmp_path: Path) -
         status = client.get("/v1/account")
         assert status.json()["login_enabled"] is False
         assert status.json()["signed_in"] is True
+        # The guest retention sentence never reaches an account (Codex auto-1 on #503).
+        assert status.json()["guest_storage_note"] is None
         denied = client.post("/v1/account/logout", headers=headers("wrong"))
         assert denied.status_code == 403
         assert client.get("/v1/session").status_code == 200

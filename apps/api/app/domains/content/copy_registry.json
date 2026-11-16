@@ -9161,6 +9161,15 @@
    "approver": "owner",
    "date": "2026-11-15",
    "digest": "5724a4363b67c1ada609437198bfe1d0aa110ac8af973deab580c7fe53a1c576"
+  },
+  {
+   "id": "account.guest-storage-note",
+   "category": "privacy",
+   "text": "Hồ sơ của bạn lưu trên Lá Lành và chỉ mở được trên trình duyệt này. Đổi máy hoặc xoá dữ liệu trình duyệt là mất hồ sơ. Không dùng 30 ngày, hồ sơ tự xoá. Bạn cũng tự xoá được trong Mình.",
+   "status": "approved",
+   "approver": "owner",
+   "date": "2026-11-15",
+   "digest": "67f2839f0d3e3129087080f476848829bbfe1734085b3abc23e6995694a75f7e"
   }
  ],
  "version": "copy-registry/v1"
