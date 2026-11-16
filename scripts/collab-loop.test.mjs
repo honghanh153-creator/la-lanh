@@ -121,24 +121,25 @@ test('queue order is ops → content → privacy → feature, oldest first', () 
   assert.deepEqual(order, [1, 5, 4, 6, 3, 2]);
 });
 
-test('daily gate (owner 14.11): 06:50 plan, owner window, 08:00 auto start, nothing new from 23:35', () => {
+test('daily gate (owner 16.11): 06:50 plan runs as soon as it is posted, Giữ stops it at any time, nothing new from 23:35', () => {
   const date = '2026-10-30';
   const at = (hour, minute) => ({ date, hour, minute });
   const plan = { authorAssociation: 'OWNER', createdAt: '2026-10-30T01:50:00Z', body: `${trust.agentMarker} daily-plan date=${date} -->` };
   const reply = (body, createdAt = '2026-10-30T02:05:00Z', extra = {}) => ({ authorAssociation: 'OWNER', createdAt, body, ...extra });
   assert.equal(planState(at(6, 40), []).state, 'closed');
   assert.equal(planState(at(6, 55), []).state, 'not-made');
-  assert.equal(planState(at(7, 10), [plan]).state, 'waiting');
+  assert.deepEqual([planState(at(6, 51), [plan]).state, planState(at(6, 51), [plan]).reason], ['open', 'auto-start'], 'no owner window: open as soon as posted');
   assert.equal(planState(at(7, 10), [plan, reply('Duyệt')]).state, 'open');
   assert.equal(planState(at(8, 30), [plan, reply('Giữ')]).state, 'held');
-  assert.equal(planState(at(8, 5), [plan]).state, 'open');
-  assert.equal(planState(at(7, 10), [plan, reply(`Duyệt\n${trust.agentMarker} x -->`)]).state, 'waiting', 'agent-marked text is not the owner');
-  assert.equal(planState(at(7, 10), [reply('Duyệt', '2026-10-30T01:00:00Z'), plan]).state, 'waiting', 'replies before the plan do not count');
-  assert.equal(planState(at(7, 10), [plan, reply('Duyệt', undefined, { authorAssociation: 'NONE' })]).state, 'waiting');
+  assert.equal(planState(at(15, 0), [plan, reply('Giữ', '2026-10-30T07:55:00Z')]).state, 'held', 'Giữ stops the plan at any time of day');
+  assert.equal(planState(at(16, 0), [plan, reply('Giữ', '2026-10-30T07:55:00Z'), reply('Duyệt', '2026-10-30T08:30:00Z')]).state, 'open', 'Duyệt after Giữ runs again');
+  assert.equal(planState(at(7, 10), [plan, reply(`Giữ\n${trust.agentMarker} x -->`)]).state, 'open', 'agent-marked text is not the owner');
+  assert.equal(planState(at(7, 10), [reply('Giữ', '2026-10-30T01:00:00Z'), plan]).state, 'open', 'replies before the plan do not count');
+  assert.equal(planState(at(7, 10), [plan, reply('Giữ', undefined, { authorAssociation: 'NONE' })]).state, 'open');
   assert.deepEqual(planState(at(8, 5), [plan, reply('Bỏ #5')]).dropped, [5]);
   assert.equal(planState(at(23, 34), [plan, reply('Duyệt')]).state, 'open', 'the day now runs until 23:35');
   assert.equal(planState(at(23, 35), [plan, reply('Duyệt')]).state, 'closed');
-  assert.equal(planState(at(9, 55), [plan]).state, 'open', 'no owner reply: open from 08:00, not 10:00');
+  assert.equal(trust.autoStartAt, trust.planOpensAt, 'one start time: the plan time');
   assert.doesNotThrow(() => trust.assertAgentBody(renderPlan(at(8, 50), turnsFor([pr()]), { codexLeft: 12 })));
 });
 
@@ -459,10 +460,9 @@ test('tick makes the plan once, waits for the owner, then runs merges and capped
   const deps = now => ({ gh: ghFor(open), now: { date, ...now }, merge: n => { done.merge.push(n); return { status: 'merged' }; }, review: n => { done.review.push(n); return { status: 'posted' }; } });
   assert.equal(tick(deps({ hour: 6, minute: 52 })).status, 'plan-made');
   assert.match(comments[0].body, /## Plan 2026-11-02/);
-  assert.equal(tick(deps({ hour: 7, minute: 20 })).status, 'waiting');
-  assert.equal(tick(deps({ hour: 8, minute: 1 })).status, 'ran');
+  assert.equal(tick(deps({ hour: 7, minute: 2 })).status, 'ran', 'the next tick after the plan already works (owner 16.11)');
   assert.deepEqual(done, { merge: [1], review: [2, 3] });
-  assert.equal(tick(deps({ hour: 8, minute: 11 })).status, 'ran', 'the next tick keeps working (retro D1)');
+  assert.equal(tick(deps({ hour: 7, minute: 12 })).status, 'ran', 'the next tick keeps working (retro D1)');
   const queue = JSON.parse(readFileSync(join(trust.stateDir, 'claude-queue.json'), 'utf8'));
   assert.deepEqual(queue.items, [], 'author checks are the tick\'s job, not Claude\'s queue');
 });
