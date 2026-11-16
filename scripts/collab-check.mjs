@@ -33,7 +33,10 @@ export const heavyPatterns = [
   /^(\S*\/)?uv\s+run\b.*\sscripts\.persona_sim(\s|$)/,
 ];
 export const isHeavy = args => heavyPatterns.some(pattern => pattern.test(String(args).trim()));
-export function machineBusy(run = execFileSync) {
+export function machineBusy(run = execFileSync, { exceptUnder = [] } = {}) {
+  // D2 (owner 16.11): a guarded job does not count the other guard slot's own test processes; it
+  // still sees every other heavy process (an author check, the persona run, an unguarded run).
+  if (exceptUnder.length) return busyOutside(run, exceptUnder);
   let table = '';
   try { table = String(run('ps', ['-Ao', 'pid=,args='], { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 })); } catch { return null; }
   for (const line of table.split('\n')) {
@@ -41,6 +44,17 @@ export function machineBusy(run = execFileSync) {
     if (match && Number(match[1]) !== process.pid && isHeavy(match[2])) return `${match[1]} ${match[2]}`.slice(0, 120);
   }
   return null;
+}
+
+function busyOutside(run, roots) {
+  let table = '';
+  try { table = String(run('ps', ['-Ao', 'pid=,ppid=,args='], { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 })); } catch { return null; }
+  const rows = table.split('\n').map(line => /^\s*(\d+)\s+(\d+)\s+(.*)$/.exec(line)).filter(Boolean).map(m => ({ pid: Number(m[1]), ppid: Number(m[2]), args: m[3] }));
+  const parent = new Map(rows.map(r => [r.pid, r.ppid]));
+  const skip = new Set(roots.map(Number));
+  const under = pid => { for (let p = pid, hops = 0; p > 1 && hops < 64; p = parent.get(p), hops += 1) if (skip.has(p)) return true; return false; };
+  const hit = rows.find(r => r.pid !== process.pid && isHeavy(r.args) && !under(r.pid));
+  return hit ? `${hit.pid} ${hit.args}`.slice(0, 120) : null;
 }
 
 // Process-group runner (kills the whole tree at the deadline, stuck beat after 30 min): collab-heal.mjs.
