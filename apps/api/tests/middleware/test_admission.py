@@ -1,9 +1,34 @@
 import asyncio
+from types import SimpleNamespace
 
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from app.middleware import admission
 from app.middleware.admission import AdmissionControlMiddleware, AdmissionPolicy
+
+
+@pytest.fixture(autouse=True)
+def _one_window(frozen_admission_window: None) -> None:
+    """Counting tests below must not straddle a minute boundary of the admission clock."""
+
+
+def test_a_burst_across_a_minute_boundary_starts_a_new_count(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Why the counting tests freeze the clock: PR #354's CI refused nothing at the 6th
+    export because the burst crossed a minute, and the new window started from zero."""
+    ticks = iter([1_000_079.0, 1_000_081.0])
+    monkeypatch.setattr(admission, "time", SimpleNamespace(monotonic=lambda: next(ticks)))
+    middleware = AdmissionControlMiddleware(FastAPI(), window_seconds=60)
+    policy = AdmissionPolicy("boundary-test", per_peer=1, global_limit=10)
+
+    async def exercise() -> None:
+        assert (await middleware._admit(policy, "peer-a"))[0] is True
+        assert (await middleware._admit(policy, "peer-a"))[0] is True
+
+    asyncio.run(exercise())
 
 
 def test_radar_create_families_are_bounded_without_blocking_erasure() -> None:
@@ -136,6 +161,70 @@ def test_global_limit_rejects_a_new_peer_without_charging_its_bucket() -> None:
         assert (await middleware._admit(policy, "peer-c"))[0] is False
 
     asyncio.run(exercise())
+
+
+def test_daily_and_insight_reads_are_bounded_per_peer() -> None:
+    """PV-5: each chart-computing GET recomputes ephemeris work, so one peer is bounded."""
+    app = FastAPI()
+    calls = {"daily": 0, "insight": 0, "configs": 0, "save": 0}
+
+    @app.get("/v1/daily-note")
+    @app.get("/v1/daily-note/experiment")
+    @app.get("/v1/daily-note/resonance")
+    @app.get("/v1/daily-note/{daily_note_id}/mood")
+    async def daily_read(daily_note_id: str = "today") -> dict[str, str]:
+        calls["daily"] += 1
+        return {"id": daily_note_id}
+
+    @app.get("/v1/insights/overview")
+    @app.get("/v1/insights/current-sky")
+    @app.get("/v1/insights/readings/{purpose}")
+    async def insight_read(purpose: str = "overview") -> dict[str, str]:
+        calls["insight"] += 1
+        return {"purpose": purpose}
+
+    @app.get("/v1/insights/configs")
+    async def configs() -> dict[str, str]:
+        calls["configs"] += 1
+        return {"status": "static"}
+
+    @app.put("/v1/daily-note/{daily_note_id}/mood")
+    async def save_mood(daily_note_id: str) -> dict[str, str]:
+        calls["save"] += 1
+        return {"id": daily_note_id}
+
+    app.add_middleware(AdmissionControlMiddleware, window_seconds=60)
+    with TestClient(app) as client, TestClient(app, client=("203.0.113.9", 50000)) as other:
+        for _ in range(30):
+            assert client.get("/v1/daily-note").status_code == 200
+            assert client.get("/v1/daily-note/experiment").status_code == 200
+            assert client.get("/v1/daily-note/resonance").status_code == 200
+            assert client.get("/v1/daily-note/note-1/mood").status_code == 200
+        limited = client.get("/v1/daily-note")
+        assert limited.status_code == 429
+        assert limited.headers["retry-after"]
+        assert limited.headers["cache-control"] == "no-store"
+        assert limited.json()["code"] == "ADMISSION_LIMITED"
+        assert client.get("/v1/daily-note/note-1/mood").status_code == 429
+
+        for _ in range(40):
+            assert client.get("/v1/insights/overview").status_code == 200
+            assert client.get("/v1/insights/current-sky").status_code == 200
+            assert client.get("/v1/insights/readings/love").status_code == 200
+        limited = client.get("/v1/insights/readings/work")
+        assert limited.status_code == 429
+        assert limited.headers["retry-after"]
+        assert limited.headers["cache-control"] == "no-store"
+        assert limited.json()["code"] == "ADMISSION_LIMITED"
+
+        # Another peer keeps its own bucket; static configs and writes are not metered here.
+        assert other.get("/v1/daily-note").status_code == 200
+        assert other.get("/v1/insights/overview").status_code == 200
+        for _ in range(150):
+            assert client.get("/v1/insights/configs").status_code == 200
+        assert client.put("/v1/daily-note/note-1/mood").status_code == 200
+
+    assert calls == {"daily": 121, "insight": 121, "configs": 150, "save": 1}
 
 
 def test_tarot_creation_and_selection_have_separate_limits() -> None:

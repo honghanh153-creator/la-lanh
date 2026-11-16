@@ -22,13 +22,13 @@ class SafeModel(BaseModel):
 
 
 class SafeLabel(SafeModel):
+    # PV-28: no "house" and no "angle". Both follow from the birth time, so a payload that
+    # still carries one (such as a job queued before this version) fails closed unsent.
     name: Literal[
         "body",
         "sign",
-        "house",
         "aspect",
         "other_body",
-        "angle",
         "phase",
         "motion",
     ]

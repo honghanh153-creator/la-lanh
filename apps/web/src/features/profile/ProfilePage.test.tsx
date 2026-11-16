@@ -19,8 +19,10 @@ import {
   logoutAccount,
   exportMyData,
   ApiProblem,
+  type DailyNote,
   type DataExport,
 } from "../../shared/api/client";
+import { readCachedDailyNote, writeCachedDailyNote } from "../../shared/storage/noteCache";
 import { saveDataExport } from "./downloadMyData";
 import { ProfilePage } from "./ProfilePage";
 import { OPENAI_ABUSE_RETENTION_NOTICE, OPENAI_REWRITE_SCOPE_NOTICE } from "../../shared/config/externalRewriteDisclosure";
@@ -90,6 +92,28 @@ describe("ProfilePage resonance privacy controls", () => {
     await waitFor(() => expect(clearReadingHistory).toHaveBeenCalledOnce());
     expect(await screen.findByRole("status")).toHaveTextContent("Đã xoá lịch sử");
     expect(screen.getByRole("heading", { name: "Mình" })).toBeInTheDocument();
+  });
+
+  it("drops yesterday's and today's Daily note text from memory after a history clear (PV-21)", async () => {
+    // A tab left open past midnight: the date-less keys still hold yesterday's note, and the
+    // reload after the clear fails (offline), so nothing may fall back to the old text.
+    const yesterday = { id: "synthetic-note-yesterday", local_date: "2026-01-01", title: "synthetic yesterday text" };
+    const today = { id: "synthetic-note-today", local_date: "2026-01-02", title: "synthetic today text" };
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    client.setQueryData(["daily-note"], yesterday);
+    client.setQueryData(["daily-note", "roast", "auto"], yesterday);
+    client.setQueryData(["daily-note-context", "work"], today);
+    writeCachedDailyNote(yesterday as unknown as DailyNote);
+    const user = userEvent.setup(); renderPage(client);
+    await user.click(await screen.findByRole("button", { name: /Xoá lịch sử đã xem/ }));
+    await user.click(screen.getByRole("button", { name: "Xoá lịch sử" }));
+    expect(await screen.findByRole("status")).toHaveTextContent("Đã xoá lịch sử");
+    await waitFor(() => {
+      const held = JSON.stringify(client.getQueryCache().getAll().map((query) => query.state.data));
+      expect(held).not.toContain("synthetic yesterday text");
+      expect(held).not.toContain("synthetic today text");
+    });
+    expect(readCachedDailyNote()).toBeNull();
   });
 
   it("states the 24-hour Daily-note window and the 30-day window for other history", async () => {

@@ -1,18 +1,18 @@
-// Daily plan gate: 08:50 plan, owner replies Duyệt/Giữ/Bỏ #N between 9 and 10, 10:00 auto start, stop at 23:30.
-import { pathToFileURL } from 'node:url';
+// Daily plan gate: plan at planOpensAt, owner replies Duyệt/Giữ/Bỏ #N before autoStartAt, then auto start,
+// nothing new after lastStartAt (hours in collab-trust.mjs; owner 14.11.2026: 06:50, 08:00, 23:35, end 23:59).
 import { join } from 'node:path';
-import { agentMarker, clean, codexDailyCap, isTrusted, makeGh, parseOwnerReply, readJson, repo, stateDir, vnNow, writeJson } from './collab-trust.mjs';
+import { agentMarker, autoStartAt, clean, codexDailyCap, cutoffAt, hhmmOf, isTrusted, lastStartAt, makeGh, parseOwnerReply, planOpensAt, readJson, repo, stateDir, vnNow, writeJson } from './collab-trust.mjs';
+import { isMain } from './is-main.mjs';
 
 export const planTitle = 'Kế hoạch chạy tự động hằng ngày';
 const planMarker = date => `${agentMarker} daily-plan date=${date} -->`;
 const minutes = now => now.hour * 60 + now.minute;
-export const planOpensAt = 8 * 60 + 50;
-export const autoStartAt = 10 * 60;
-export const lastStartAt = 23 * 60 + 30;
-// Owner decision 02.11.2026: the day's % is merged / committed. Owner 03.11.2026: commit at least
-// 16 PRs (03.11 merged 16 and finished the 6–8 commitment by 15:37). 20 stays inside the Codex cap.
-export const commitMin = 16;
-export const commitMax = 20;
+export { autoStartAt, lastStartAt, planOpensAt };
+// Owner 12.11.2026: no PR quota. The plan picks 3–5 work items, each with its source (US/AC) and
+// what the user sees; progress is items done / items picked. Claude works under WIP 1 + 1
+// (collab-buffer.mjs), so the plan is a short list, not a count to reach.
+export const planMin = 3;
+export const planMax = 5;
 
 // Fix C (04.11.2026): the owner approves new user-facing copy and clarity-ratchet rises together
 // with the plan. Detected from the PR's files: content sources, and the clarity baseline or
@@ -35,7 +35,7 @@ export function copyReview(files = []) {
   return copy.length || ratchet.length ? { copy, ratchet } : null;
 }
 
-export const committedTurns = turns => turns.filter(t => t.turn !== 'hold').slice(0, commitMax);
+export const committedTurns = turns => turns.filter(t => t.turn !== 'hold').slice(0, planMax);
 
 export function planState(now, comments = []) {
   const at = minutes(now);
@@ -53,7 +53,7 @@ export function planState(now, comments = []) {
     if (reply.action !== 'drop') action = reply.action;
   }
   const state = action === 'hold' ? 'held' : action === 'approve' ? 'open' : at >= autoStartAt ? 'open' : 'waiting';
-  return { state, reason: action ?? (state === 'open' ? 'auto-10h' : 'waiting-owner'), plan, dropped: [...dropped].sort((a, b) => a - b) };
+  return { state, reason: action ?? (state === 'open' ? 'auto-start' : 'waiting-owner'), plan, dropped: [...dropped].sort((a, b) => a - b) };
 }
 
 function copyLines(committed) {
@@ -65,25 +65,52 @@ function copyLines(committed) {
   return rows.length ? ['', '**Câu chữ cần duyệt cùng plan** (`Duyệt` là duyệt luôn các câu này; `Bỏ #N` nếu chưa muốn):', ...rows, ''] : [];
 }
 
-export function renderPlan(now, turns, { codexLeft, gap = null, health = [] }) {
+// One unit of the day's list (collab-quota.mjs): its PRs, or the task issue Claude still has to open.
+const unitLines = (u, i) => {
+  const t = u.turns?.find(x => x.turn !== 'hold') ?? u.turns?.[0];
+  const head = u.prs.length ? u.prs.map(n => `#${n}`).join(', ') : `việc #${u.item} (chưa có PR, Claude mở khi còn chỗ)`;
+  return [
+    `${i + 1}. ${head} ${clean(t?.title ?? u.title, 90)}${u.plan7w ? ' **[Kế hoạch 7 tuần]**' : ''}`,
+    `   - Nguồn / AC: ${clean(t?.source ?? (u.item ? `issue #${u.item}` : 'chưa ghi'), 160)}`,
+    `   - Người dùng thấy gì: ${clean(t?.userSees ?? 'chưa ghi', 160)}`,
+  ].join('\n');
+};
+
+export function renderPlan(now, turns, { codexLeft, cap = codexDailyCap, gap = null, health = [], list = null }) {
   const label = { 'claude-check': 'Claude chạy author check', 'codex-review': 'Codex review', 'claude-fix': 'Claude sửa', merge: 'Merge integration', hold: 'Giữ' };
-  const committed = committedTurns(turns);
-  const short = commitMin - committed.length;
-  const rows = turns.map(t => `| #${t.number} | ${t.area} | ${label[t.turn] ?? t.turn} | ${clean(t.reason, 120).replace(/\|/g, '\\|')} | ${clean(t.title, 90).replace(/\|/g, '\\|')} |`);
+  const committed = list ? list.items.flatMap(u => u.turns) : committedTurns(turns);
+  const short = planMin - (list ? list.items.length : committed.length);
+  const items = list ? list.items.map(unitLines) : committed.map((t, i) => [
+    `${i + 1}. #${t.number} ${clean(t.title, 90)}`,
+    `   - Nguồn / AC: ${clean(t.source ?? 'chưa ghi', 160)}`,
+    `   - Người dùng thấy gì: ${clean(t.userSees ?? 'chưa ghi', 160)}`,
+  ].join('\n'));
+  const have7w = list ? list.items.filter(u => u.plan7w).length : 0;
+  const quota = !list ? [] : [
+    list.note,
+    list.unknown ? '**Kế hoạch 7 tuần:** chưa xác định được (không đọc được nhãn), cần xem lại.'
+      : `**Kế hoạch 7 tuần:** ${have7w} việc trong plan (giữ tối thiểu ${list.want}; đang sẵn sàng ${list.available7w}).${list.short7w ? ` Thiếu ${list.short7w} chỗ vì không đủ việc sẵn sàng.` : ''}`,
+    ...(list.incidents?.length ? ['', '**Sự cố nghiêm trọng chen trước** (ngoài 3–5 việc, không chiếm chỗ của kế hoạch 7 tuần):', ...list.incidents.map((u, i) => unitLines(u, i))] : []),
+    ...(list.incidents?.length && list.incidents.length + list.items.length > planMax ? [`Quá tải: ${list.incidents.length} sự cố cộng ${list.items.length} việc vượt ${planMax}. Owner xem có cần bỏ bớt việc không.`] : []),
+    '',
+  ];
+  const rows = turns.map(t => `| #${t.number} | ${t.area} | ${label[t.turn] ?? t.turn} | ${clean(t.reason, 120).replace(/\\/g, '\\\\').replace(/\|/g, '\\|')} | ${clean(t.title, 90).replace(/\\/g, '\\\\').replace(/\|/g, '\\|')} |`);
   return [
     `## Plan ${now.date}`,
     '',
     'Thứ tự ưu tiên: quy trình (ops) → content → privacy → tính năng mới. Trong nhóm, PR cũ trước.',
-    `Lượt Codex tự động còn hôm nay: ${codexLeft}/${codexDailyCap}. Chạy tới 23:30, không merge vào main, không deploy.`,
+    `Lượt Codex tự động còn hôm nay: ${codexLeft}/${cap}. Chạy tới ${hhmmOf(cutoffAt)} (không bắt đầu lượt mới sau ${hhmmOf(lastStartAt)}), không merge vào main, không deploy.`,
     // A long pause before the plan means the Mac slept or was off (retro D3, 31.10.2026).
     ...(gap ? [`**Máy không chạy tick từ ${gap.from} tới ${gap.to}** (Mac ngủ hoặc tắt), nên plan có thể trễ.`] : []),
     // Health of the unattended Claude runs (watchdog, owner 03.11.2026): a stall shows every morning.
     ...(health.length ? ['', '**Tác vụ hẹn giờ:**', ...health] : []),
     '',
-    `**Cam kết hôm nay (${commitMin}–${commitMax} PR):** ${committed.length ? committed.map(t => `#${t.number}`).join(', ') : 'chưa có PR nào sẵn sàng'}.`,
-    ...(short > 0 ? [`Còn thiếu ${short} PR so với mức ${commitMin}: Claude mở thêm từ backlog \`auto: yes\` và ghi số PR vào issue này.`] : []),
+    ...quota,
+    `**Việc chọn hôm nay (${planMin}–${planMax} việc):**`,
+    ...(items.length ? items : ['Chưa có việc nào sẵn sàng.']),
+    ...(short > 0 ? [`Còn thiếu ${short} việc so với mức ${planMin}: Claude chọn tiếp từ backlog \`auto: yes\` khi có chỗ (mỗi lúc 1 việc đang làm + 1 việc đang review), và ghi nguồn / AC cùng dòng "Người dùng thấy gì" vào issue này.`] : []),
     ...copyLines(committed),
-    `% hôm nay = số PR cam kết đã merge vào integration / số PR cam kết. PR còn lại trong bảng làm nếu kịp, không tính vào %.`,
+    'Tiến độ hôm nay = việc xong / việc đã chọn (xong là đã merge vào integration). PR khác trong bảng làm nếu kịp.',
     '',
     '| PR | Nhóm | Lượt kế tiếp | Lý do | Tiêu đề |',
     '|---|---|---|---|---|',
@@ -91,11 +118,11 @@ export function renderPlan(now, turns, { codexLeft, gap = null, health = [] }) {
     '',
     'Khi hàng đợi review trống, Claude làm tiếp việc `auto: yes` trong backlog theo cùng thứ tự ưu tiên.',
     '',
-    'Trả lời bằng một comment mới trên issue này (trước 10:00 nếu muốn chặn):',
+    `Trả lời bằng một comment mới trên issue này (trước ${hhmmOf(autoStartAt)} nếu muốn chặn):`,
     '- chữ `Duyệt` để chạy ngay;',
     '- chữ `Giữ` để hôm nay không chạy tự động;',
     '- dòng `Bỏ #N` để bỏ PR N khỏi hôm nay.',
-    'Không trả lời: 10:00 tự chạy.',
+    `Không trả lời: ${hhmmOf(autoStartAt)} tự chạy.`,
     '',
     planMarker(now.date),
   ].join('\n');
@@ -122,16 +149,16 @@ export function planIssue(gh) {
 export function readPlanStatus(gh, now = vnNow()) {
   const number = planIssue(gh);
   const issue = gh.json(['issue', 'view', String(number), '--repo', repo, '--json', 'comments']);
-  return { issue: number, ...planState(now, issue.comments ?? []) };
+  return { issue: number, comments: issue.comments ?? [], ...planState(now, issue.comments ?? []) };
 }
 
-export function makePlan(gh, now, turns, { codexLeft, gap = null, health = [] }) {
+export function makePlan(gh, now, turns, { codexLeft, cap = codexDailyCap, gap = null, health = [], list = null }) {
   const number = planIssue(gh);
-  gh.comment('issue', number, renderPlan(now, turns, { codexLeft, gap, health }));
+  gh.comment('issue', number, renderPlan(now, turns, { codexLeft, cap, gap, health, list }));
   return number;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (isMain(import.meta.url)) {
   try {
     const status = readPlanStatus(makeGh());
     process.stdout.write(`${JSON.stringify({ issue: status.issue, state: status.state, reason: status.reason, dropped: status.dropped })}\n`);

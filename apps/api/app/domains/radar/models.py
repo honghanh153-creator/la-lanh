@@ -32,8 +32,9 @@ class RadarInviteView:
 
 @dataclass(frozen=True, slots=True)
 class RadarPublicInvite:
+    """What a link holder may see. The sender's private label is never part of it."""
+
     request_id: UUID
-    recipient_label: str
     context: str
     voice: str
     expires_at: datetime

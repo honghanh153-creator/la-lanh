@@ -36,7 +36,10 @@ from app.domains.readings.models import (
     ReadingRevisionSource,
     canonical_lens_variant,
 )
-from app.domains.readings.renderers import DeterministicVietnameseRenderer
+from app.domains.readings.renderers import (
+    JYOTISH_MEANINGS_VERSION,
+    DeterministicVietnameseRenderer,
+)
 
 NOW = datetime(2026, 9, 7, 4, 30, tzinfo=UTC)
 
@@ -975,3 +978,64 @@ async def test_exact_reading_detail_names_the_sourced_house_meanings() -> None:
 
     text = str(projection.active.sections)
     assert any(f"chuyện {house_phrase(house)}" in text for house in range(1, 13))
+
+
+@pytest.mark.asyncio
+async def test_stored_jyotish_reading_from_the_old_renderer_is_repaired_not_replayed() -> None:
+    """Hotfix #427: a Jyotish revision stored by the position-only renderer must not share a
+    revision key with the new planet x sign x house prose (postgres would raise
+    ImmutableReadingConflictError and the overview would answer 503)."""
+
+    old_hook = "Lá số Ấn Độ đã tính xong."
+
+    class PositionOnlyRenderer(DeterministicVietnameseRenderer):
+        def render(self, plan):  # type: ignore[no-untyped-def]
+            candidate = super().render(plan)
+            assert candidate.semantic_blueprint is not None
+            return candidate.model_copy(
+                update={
+                    "hook": old_hook,
+                    "renderer_version": candidate.renderer_version.replace(
+                        f"+{JYOTISH_MEANINGS_VERSION}", ""
+                    ),
+                    "semantic_blueprint": candidate.semantic_blueprint.model_copy(
+                        update={"hook": old_hook}
+                    ),
+                }
+            )
+
+    engine = NatalChartEngine()
+    repository = MemoryReadingRepository()
+    guest_id = UUID("20000000-0000-4000-8000-000000000427")
+    profile_id = UUID("30000000-0000-4000-8000-000000000427")
+    snapshot = _exact_snapshot(guest_id, profile_id, engine)
+    jyotish = engine.calculate_chart(
+        ChartInput(
+            utc_datetime=datetime(1990, 1, 1, 12, tzinfo=UTC),
+            latitude=10.8231,
+            longitude=106.6297,
+        ),
+        CalculationConfig.jyotish_recommended(),
+    )
+
+    first = await ReadingApplicationService(
+        repository, engine, renderer=PositionOnlyRenderer()
+    ).project(
+        guest_id=guest_id,
+        snapshot=snapshot,
+        purpose=ReadingPurpose.AURA,
+        chart=jyotish,
+        requested_at=NOW,
+    )
+    repaired = await ReadingApplicationService(repository, engine).project(
+        guest_id=guest_id,
+        snapshot=snapshot,
+        purpose=ReadingPurpose.AURA,
+        chart=jyotish,
+        requested_at=NOW,
+    )
+
+    assert first.active.sections.hook == old_hook
+    assert repaired.active.revision_id != first.active.revision_id
+    assert repaired.active.sections.hook != old_hook
+    assert repaired.available_update is None

@@ -22,9 +22,11 @@ Every natal chart here is synthetic (fixed instants, no real person's birth data
 
 from __future__ import annotations
 
+import re
 from collections.abc import Iterator
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
+from urllib.parse import urlparse
 
 import pytest
 
@@ -465,7 +467,8 @@ def test_void_of_course_definition_source_is_cited() -> None:
     import app.domains.astro.sky_events as module
 
     assert module.__doc__ is not None
-    assert "theastrologypodcast.com" in module.__doc__
+    hosts = [urlparse(url).hostname for url in re.findall(r"https://[^\s)]+", module.__doc__)]
+    assert any(host == "theastrologypodcast.com" for host in hosts)
 
 
 def test_retrograde_period_shadow_by_longitude(engine: NatalChartEngine, days: _Days) -> None:
