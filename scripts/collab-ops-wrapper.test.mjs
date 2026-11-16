@@ -1,7 +1,7 @@
 import './collab-test-home.mjs';
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { chmodSync, cpSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
+import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
@@ -57,7 +57,9 @@ test('ops wrapper runs from another cwd with spaced paths and preserves failures
   const w = world();
   const report = run(w, ['report']);
   assert.equal(report.status, 0, report.stderr);
-  assert.deepEqual(calls(w), [`${w.clone}|${join(w.home, 'ops', 'scripts', 'collab-turn.mjs')} --report`], 'runs in the Claude clone with the ops script, both paths with spaces');
+  const [reported] = calls(w);
+  const runDir = new RegExp(`^${w.clone.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\|${join(w.home, 'ops-runs').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/report-\\d{14}-\\d+/scripts/collab-turn\\.mjs --report$`);
+  assert.match(reported, runDir, 'runs in the Claude clone with the script of its own pinned copy, both paths with spaces');
   assert.equal(run(w, ['busy'], { FAKE_NODE_EXIT: '1' }).status, 1, 'a failing step keeps its exit status');
   assert.equal(run(w, ['beat', 'la-lanh-autopilot', 'done']).status, 0);
   assert.match(calls(w).at(-1), /collab-watchdog\.mjs --beat la-lanh-autopilot done$/);
@@ -108,7 +110,9 @@ test('L19: the wrapper exposes the shared slot snapshot step and refuses any oth
   for (const slot of ['08', '14', '22', 'retro']) {
     const res = run(w, ['snapshot', slot]);
     assert.equal(res.status, 0, res.stderr);
-    assert.equal(calls(w).at(-1), `${w.clone}|${join(w.home, 'ops', 'scripts', 'collab-snapshot.mjs')} --slot ${slot}`);
+    const [cwd, cmd] = calls(w).at(-1).split('|');
+    assert.equal(cwd, w.clone);
+    assert.ok(cmd.startsWith(join(w.home, 'ops-runs', 'snapshot-')) && cmd.endsWith(`/scripts/collab-snapshot.mjs --slot ${slot}`), cmd);
   }
   const before = calls(w).length;
   for (const bad of [['snapshot'], ['snapshot', '12'], ['snapshot', '08;id'], ['snapshot', 'retro x']]) assert.equal(run(w, bad).status, 2, `refused: ${bad.join(' ')}`);
@@ -137,4 +141,60 @@ test('L19: both scheduled reports must call their snapshot step; a disconnected 
   const w = world();
   installWrapper({ root: join(w.home, 'ops'), home: w.home });
   assert.match(wrapperHealth({ root: join(w.home, 'ops'), home: w.home, prompts: prompts({ owner: 'no snapshot' }) })[0], /⚠️.*báo cáo owner/);
+});
+
+// Owner 16.11.2026 (5-fix package item 3c, Codex C2): a report, status or snapshot never re-checks-out
+// the shared ops tree a tick may be running from; each run uses its own pinned copy and removes it.
+test('E: each ops run uses its own pinned copy of the reviewed commit and never moves the shared ops tree', () => {
+  const w = world();
+  const ops = join(w.home, 'ops');
+  const first = git(ops, 'rev-parse', 'HEAD');
+  // origin moves on after the ops tree was checked out
+  const seed = join(w.base, 'seed');
+  writeFileSync(join(seed, 'scripts', 'new.txt'), 'x\n');
+  git(seed, 'add', '.');
+  git(seed, 'commit', '-q', '-m', 'next');
+  git(seed, 'push', '-q', w.origin, 'collab/integration');
+  const latest = git(seed, 'rev-parse', 'HEAD');
+  // the fake node records which commit its script came from
+  writeFileSync(join(w.bin, 'node'), `#!/bin/bash\nprintf '%s|%s\\n' "$(/usr/bin/git -C "$(dirname "$(dirname "$1")")" rev-parse HEAD)" "$1" >> "${w.log}"\n`);
+  chmodSync(join(w.bin, 'node'), 0o755);
+  // a leftover copy whose run is gone is swept; a copy whose run is alive is kept
+  const runs = join(w.home, 'ops-runs');
+  mkdirSync(runs, { recursive: true });
+  for (const [name, pid] of [['report-dead-1', '999999999'], ['report-live-2', String(process.pid)]]) {
+    git(ops, 'worktree', 'add', '-q', '--detach', join(runs, name), first);
+    writeFileSync(join(runs, `.${name}.pid`), `${pid}\n`);
+  }
+  for (const step of [['report'], ['status'], ['snapshot', '14']]) {
+    const out = run(w, step);
+    assert.equal(out.status, 0, out.stderr);
+  }
+  const lines = calls(w);
+  assert.equal(lines.length, 3);
+  for (const line of lines) assert.match(line, new RegExp(`^${latest}\\|${runs.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/(report|status|snapshot)-\\d{14}-\\d+/scripts/`), 'the run used a fresh copy at the latest reviewed commit');
+  assert.equal(git(ops, 'rev-parse', 'HEAD'), first, 'the shared ops tree was not moved');
+  assert.deepEqual(readdirSync(runs).filter(n => !n.startsWith('.')), ['report-live-2'], 'each run removed its copy; the dead leftover was swept, the live one kept');
+  assert.ok(!existsSync(join(runs, '.report-dead-1.pid')));
+});
+
+test('E: the scheduled tick runs from its own pinned copy and keeps the shared tree current for the hooks', () => {
+  const w = world();
+  const ops = join(w.home, 'ops');
+  const seed = join(w.base, 'seed');
+  writeFileSync(join(seed, 'scripts', 'next.txt'), 'y\n');
+  git(seed, 'add', '.');
+  git(seed, 'commit', '-q', '-m', 'next');
+  git(seed, 'push', '-q', w.origin, 'collab/integration');
+  const latest = git(seed, 'rev-parse', 'HEAD');
+  const localBin = join(w.base, '.local', 'bin');
+  mkdirSync(localBin, { recursive: true });
+  writeFileSync(join(localBin, 'node'), `#!/bin/bash\nprintf '%s|%s\\n' "$(/usr/bin/git -C "$(dirname "$(dirname "$1")")" rev-parse HEAD)" "$1" >> "${w.log}"\n`);
+  chmodSync(join(localBin, 'node'), 0o755);
+  const out = spawnSync('/bin/bash', [join(repoRoot, 'scripts', 'collab-cron.sh')], { cwd: tmpdir(), encoding: 'utf8', env: { HOME: w.base, LA_LANH_COLLAB_HOME: w.home, PATH: '/usr/bin:/bin' } });
+  assert.equal(out.status, 0, out.stderr + readFileSync(join(w.home, 'logs', readdirSync(join(w.home, 'logs'))[0]), 'utf8'));
+  const [line] = calls(w);
+  assert.match(line, new RegExp(`^${latest}\\|${join(w.home, 'ops-runs').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/tick-\\d{14}-\\d+/scripts/collab-tick\\.mjs$`));
+  assert.equal(git(ops, 'rev-parse', 'HEAD'), latest, 'the shared tree the hooks read is current');
+  assert.deepEqual(readdirSync(join(w.home, 'ops-runs')).filter(n => !n.startsWith('.')), [], 'the tick removed its copy');
 });
