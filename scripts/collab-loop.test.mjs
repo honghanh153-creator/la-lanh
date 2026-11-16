@@ -256,7 +256,7 @@ test('daily cap refuses automatic reviews', () => {
   assert.equal(result.status, 'refused');
 });
 
-test('#571: a manual review stops at the same cap; only --over-cap with the owner\'s words runs, and they are recorded', () => {
+test('#571: a manual review stops at the same cap; only --over-cap with recorded owner words runs', () => {
   const now = { date: '2027-01-11', hour: 12, minute: 0 };
   const cap = trust.dayCap({}) - 1;
   trust.writeJson(trust.dayStatePath(now.date), { codexRuns: cap });
@@ -276,6 +276,22 @@ test('#571: a manual review stops at the same cap; only --over-cap with the owne
   // Under the cap a manual run needs nothing extra.
   trust.writeJson(trust.dayStatePath('2027-01-12'), { codexRuns: 0 });
   assert.equal(review.runReview(7, { gh: fakeGh({ pr: pr({ comments: [check(A)] }) }), run: fakeRun().run, readOut: () => approveOut, now: { ...now, date: '2027-01-12' } }).status, 'posted');
+});
+
+test('#586: --over-cap needs real words: a following option, blanks or control characters are no quote', () => {
+  assert.equal(review.overCapWords('--pr'), '', '"--over-cap --pr 7" names no owner words');
+  assert.equal(review.overCapWords(' '.repeat(301)), '', 'blanks are trimmed before shortening');
+  assert.equal(review.overCapWords(' '.repeat(100001)), '', 'a very long blank is no quote either (#588)');
+  assert.equal(review.overCapWords('\u0001\u0002 '), '', 'control characters only');
+  assert.equal(review.overCapWords(null), '');
+  assert.equal(review.overCapWords('  cho thêm 1 lượt  '), 'cho thêm 1 lượt');
+  assert.match(review.overCapWords(`ok ${'x'.repeat(400)}`), /^ok x+ \[\.\.\.truncated\]$/);
+  const now = { date: '2027-01-13', hour: 12, minute: 0 };
+  trust.writeJson(trust.dayStatePath(now.date), { codexRuns: trust.dayCap({}) - 1 });
+  const go = overCap => review.runReview(7, { gh: fakeGh({ pr: pr({ comments: [check(A)] }) }), run: fakeRun().run, readOut: () => JSON.stringify(output()), now, overCap });
+  assert.equal(go('--pr').status, 'refused');
+  assert.equal(go(' '.repeat(301)).status, 'refused');
+  assert.equal(trust.readJson(trust.dayStatePath(now.date), {}).overCapLog, undefined, 'nothing recorded for a refused override');
 });
 
 test('merge gate needs APPROVE and PASS on head, integration base and a fix-forward link', () => {
