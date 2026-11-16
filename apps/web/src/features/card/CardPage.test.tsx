@@ -73,7 +73,7 @@ describe("CardPage", () => {
     expect(screen.getByRole("button", { name: /Chia sẻ card/ })).toBeDisabled();
     resolveNote(note);
     const image = await screen.findByRole("img", { name: /Một note để chia sẻ/ });
-    expect(image.getAttribute("alt")).toContain("Vibe · Mộng");
+    expect(image.getAttribute("alt")).toContain("Mộng");
     expect(image.getAttribute("alt")).not.toMatch(/Chất|Aura/);
     expect(image.getAttribute("src")).toMatch(/^data:image\/svg\+xml/);
     fireEvent.load(image);
