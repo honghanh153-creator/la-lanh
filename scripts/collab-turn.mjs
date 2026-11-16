@@ -3,7 +3,7 @@ import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { agentMarker, areaOrder, classifyArea, clean, codexDailyCap, dayCap, dayStatePath, integration, isOwnPr, makeGh, readJson, repo, reviewState, sortByPriority, stateDir, trustedComments, vnNow, writeJson } from './collab-trust.mjs';
 import { autoStartAt, committedTurns, lastStartAt, makePlan, planIssue, readPlanStatus } from './collab-plan.mjs';
-import { dayList, min7w, pickPlan, planCap, plannedEntry, quotaIssues, unitKey, workUnits } from './collab-quota.mjs';
+import { dayList, label7w, min7w, pickPlan, planCap, plannedEntry, quotaIssues, unitKey, workUnits } from './collab-quota.mjs';
 import { auditReserve } from './collab-audit.mjs';
 import { ownerNotes } from './collab-status.mjs';
 import { bodyHash } from './collab-heal.mjs';
@@ -32,11 +32,23 @@ export const prFiles = pr => (pr.files ?? []).map(f => f.path ?? f).filter(Boole
 const canMove = (o, dropped) => isOwnPr(o) && !o.isDraft && o.baseRefName === integration
   && !(o.labels ?? []).some(l => (l.name ?? l) === 'needs-owner') && !dropped.includes(o.number);
 
-export function fileBlocker(pr, prs = [], { dropped = [] } = {}) {
+// Fix-forward #575 (16.11.2026): a PR whose own turn is claude-fix (conflict, failed check,
+// REQUEST_CHANGES at head, preflight) or hold cannot merge soon, so it never holds another PR on a
+// shared file; the one that merges later syncs. On 16.11 #505 and #503 waited behind #404 (open
+// findings since 10.11) and #491 (red check) on copy_registry.json. Its turn is read without the
+// file gate (open: []), so two PRs never wait on each other's turn.
+const waitsOnClaude = (o, opts) => ['claude-fix', 'hold'].includes(prTurn(o, { ...opts, open: [] }).turn);
+// Inside one owner group a 7-week-plan PR goes first on a shared file (#575). Across groups the
+// group order still wins, so the group gate and the file gate never wait on each other.
+const is7w = p => (p.labels ?? []).some(l => (l.name ?? l) === label7w);
+const fileOrder = prs => sortByPriority(prs).sort((a, b) => areaOrder.indexOf(classifyArea(a)) - areaOrder.indexOf(classifyArea(b)) || Number(is7w(b)) - Number(is7w(a)));
+
+export function fileBlocker(pr, prs = [], { dropped = [], ...opts } = {}) {
   const mine = new Set(prFiles(pr));
   if (!mine.size) return null;
-  const order = sortByPriority([pr, ...prs.filter(o => o.number !== pr.number && canMove(o, dropped))]);
-  return order.slice(0, order.indexOf(pr)).find(o => prFiles(o).some(f => mine.has(f)))?.number ?? null;
+  const shared = prs.filter(o => o.number !== pr.number && canMove(o, dropped) && prFiles(o).some(f => mine.has(f)));
+  const order = fileOrder([pr, ...shared]);
+  return order.slice(0, order.indexOf(pr)).find(o => !waitsOnClaude(o, { dropped, ...opts }))?.number ?? null;
 }
 
 // L25: the dispute state is read by default, so the review command (codex-review.mjs) routes the
@@ -56,7 +68,7 @@ export function prTurn(pr, { dropped = [], open = [], preflight = {}, baseFiles,
   if (disputes[pr.number]?.hold) return out('hold', disputes[pr.number].hold);
   if (dropped.includes(pr.number)) return out('hold', 'owner bỏ khỏi plan hôm nay');
   if (pr.baseRefName !== integration) return out('hold', `xếp chồng trên ${pr.baseRefName}`);
-  const blocker = fileBlocker(pr, open, { dropped });
+  const blocker = fileBlocker(pr, open, { dropped, preflight, baseFiles, disputes });
   if (blocker) return out('hold', `chờ PR #${blocker} cùng file`);
   // A conflict needs Claude at any stage: on 02.11 an approved PR in conflict kept every tick on a
   // refused merge for three hours, and checking or reviewing a head that cannot merge wastes the run (K24).

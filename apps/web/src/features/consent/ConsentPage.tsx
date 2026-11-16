@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import { acceptBasicBirthConsent, enableHistoryRetention, createGuest, getSession, isGuestSessionUnavailable } from "../../shared/api/client";
+import { CRISIS_CHECK_DISCLOSURE } from "../../shared/config/crisisCheckDisclosure";
 import { OPENAI_ABUSE_RETENTION_NOTICE, OPENAI_REWRITE_SCOPE_NOTICE } from "../../shared/config/externalRewriteDisclosure";
 import { SESSION_RESTART_REQUIRED_KEY } from "../../shared/session/sessionIdentity";
 import { RADAR_PENDING_REQUEST_KEY } from "../radar/radarOptions";
@@ -76,6 +77,7 @@ export function ConsentPage() {
           <article><Trash aria-hidden="true" /><div><strong>Bạn luôn có quyền xóa</strong><p>Xem, tải bản sao, sửa, rút đồng ý hoặc xóa toàn bộ trong mục Mình. Dữ liệu trên máy có thể mất nếu gỡ app.</p></div></article>
         </div>
         {isDetail ? <>
+          <p className="privacy-plain crisis-check-note">{CRISIS_CHECK_DISCLOSURE}</p>
           <h2 className="consent-detail-title">Chi tiết thêm</h2>
           <div className="consent-details">
             <details className="consent-detail"><summary>Đăng nhập Google nhận gì?</summary><p>Google và Supabase xử lý mã định danh, email và thông tin hồ sơ cơ bản như tên, ảnh đại diện để xác thực. Lá Lành lưu mã tài khoản đã xác minh và email che một phần, không lưu ảnh đại diện. App không xin quyền đọc Gmail, danh bạ hay lịch. Đăng nhập không tự bật AI và không cấp quyền dùng dữ liệu của người khác.</p></details>

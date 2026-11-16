@@ -39,6 +39,7 @@ import { NightSky } from "../../shared/ui/NightSky";
 import { clearPendingMood } from "../../shared/storage/pendingMood";
 import { dropQueuedSaves } from "../../shared/storage/savedNoteMutationQueue";
 import { saveDataExport } from "./downloadMyData";
+import { personaTag } from "../card/shareArt";
 
 function formatBirthDate(isoDate: string): string {
   const [year, month, day] = isoDate.split("-");
@@ -78,6 +79,8 @@ export function ProfilePage() {
   const [confirmingRetention, setConfirmingRetention] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const accountQuery = useQuery({ queryKey: ["account-status"], queryFn: ({ signal }) => getAccountStatus(signal), retry: false, gcTime: 0 });
+  // Sign-in invites only when the API confirms Google sign-in is on (Wave 1, #479 P1).
+  const loginOff = Boolean(accountQuery.data && !accountQuery.data.google_login_enabled);
   const historyQuery = useQuery({ queryKey: ["history-retention"], queryFn: ({ signal }) => getHistoryRetention(signal), retry: false });
   const [confirmingAI, setConfirmingAI] = useState(false);
   const [confirmingExport, setConfirmingExport] = useState(false);
@@ -199,7 +202,7 @@ export function ProfilePage() {
         <p className="eyebrow">Lá Khai Sinh của bạn</p>
         <h2 id="profile-identity-title">{sign ? <><span aria-hidden="true" className="profile-identity__glyph">{signDetails[sign].symbol}</span>{signDetails[sign].label}</> : "Lá Khai Sinh"}</h2>
         <p className="profile-identity__tags">
-          {[element ? `Nguyên tố ${ELEMENT_LABEL[element]}` : null, noteQuery.data ? `${noteQuery.data.persona_mode === "aura" ? "Aura" : "Vibe"} ${noteQuery.data.persona_label}` : null].filter(Boolean).join(" · ")}
+          {[element ? `Nguyên tố ${ELEMENT_LABEL[element]}` : null, personaTag(noteQuery.data?.persona_label)].filter(Boolean).join(" · ")}
         </p>
         <ul aria-label="Bộ ba của bạn" className="profile-identity__trio">
           {identity.map((slot) => slot.sign
@@ -235,9 +238,9 @@ export function ProfilePage() {
         <VibeSegmented />
       </section>
       <section className="settings-section" aria-labelledby="account-settings">
-        <h2 id="account-settings">Giữ hồ sơ khi đổi máy</h2>
+        <h2 id="account-settings">{loginOff && !accountQuery.data?.signed_in ? "Hồ sơ khách" : "Giữ hồ sơ khi đổi máy"}</h2>
         <p>{accountQuery.data?.signed_in ? "Hồ sơ đã liên kết tài khoản, giữ tới 365 ngày không sử dụng." : "Hồ sơ khách giữ 30 ngày không hoạt động; dùng lại sẽ gia hạn."}</p>
-        {accountQuery.isPending ? <p role="status">Đang kiểm tra đăng nhập…</p> : accountQuery.data?.signed_in ? <><p>Đã đăng nhập · {accountQuery.data.masked_email}</p><p>Đăng xuất chỉ đóng phiên trên máy này. Các máy khác và hồ sơ vẫn được giữ.</p><button className="text-button" disabled={logoutMutation.isPending} onClick={() => { setError(null); logoutMutation.mutate(); }} type="button">{logoutMutation.isPending ? "Đang đăng xuất…" : "Đăng xuất trên máy này"}</button></> : <><p>Đăng nhập Google là tuỳ chọn. Liên kết một lần để mở lại đúng hồ sơ khi đổi máy hoặc xoá cookie.</p><Link className="settings-link" to="/existing-user?returnTo=/profile">Đăng nhập để giữ hồ sơ</Link>{accountQuery.data && !accountQuery.data.google_login_enabled ? <p>Đăng nhập Google chưa bật trên bản này; chế độ khách vẫn dùng bình thường.</p> : null}</>}
+        {accountQuery.isPending ? <p role="status">Đang kiểm tra đăng nhập…</p> : accountQuery.data?.signed_in ? <><p>Đã đăng nhập · {accountQuery.data.masked_email}</p><p>Đăng xuất chỉ đóng phiên trên máy này. Các máy khác và hồ sơ vẫn được giữ.</p><button className="text-button" disabled={logoutMutation.isPending} onClick={() => { setError(null); logoutMutation.mutate(); }} type="button">{logoutMutation.isPending ? "Đang đăng xuất…" : "Đăng xuất trên máy này"}</button></> : loginOff ? <p>{accountQuery.data?.guest_storage_note?.trim() || "Đăng nhập Google chưa bật trên bản này; chế độ khách vẫn dùng bình thường."}</p> : accountQuery.data?.google_login_enabled ? <><p>Đăng nhập Google là tuỳ chọn. Liên kết một lần để mở lại đúng hồ sơ khi đổi máy hoặc xoá cookie.</p><Link className="settings-link" to="/existing-user?returnTo=/profile">Đăng nhập để giữ hồ sơ</Link></> : null}
       </section>
       <details className="profile-more">
       <summary><GearSix aria-hidden="true" /> Dữ liệu & quyền riêng tư</summary>
@@ -362,7 +365,7 @@ export function ProfilePage() {
       {error && !confirmingHistory && !confirmingRetention && !confirmingExport ? <p className="inline-error" role="alert">{error}</p> : null}
       <p className="sr-only" aria-live="polite" role="status">{statusMessage}</p>
       {statusMessage ? <p className="profile-status" aria-hidden="true">{statusMessage}</p> : null}
-      <AppSheet open={confirming} title="Xoá hồ sơ Lá Lành?" closeDisabled={deleting} onClose={() => setConfirming(false)}><p>Xoá hồ sơ sinh, mọi bản đọc, note đã lưu và liên kết tài khoản trên hệ thống Lá Lành. Tất cả thiết bị mất quyền truy cập hồ sơ này; không thể khôi phục bằng đăng nhập lại.</p><p>Nếu đã liên kết tài khoản, hệ thống cũng yêu cầu xoá danh tính đăng nhập tại Supabase. Chỉ báo hoàn tất sau khi xác nhận; nếu lỗi sẽ khoá hồ sơ và thử lại. Tài khoản Google của bạn không bị xoá.</p><button className="danger-button" disabled={deleting} onClick={() => void remove()} type="button">{deleting ? "Đang xoá…" : "Xóa vĩnh viễn"}</button><button className="text-button" disabled={deleting} onClick={() => setConfirming(false)} type="button">Giữ lại</button></AppSheet>
+      <AppSheet open={confirming} title="Xoá hồ sơ Lá Lành?" closeDisabled={deleting} onClose={() => setConfirming(false)}><p>Xoá hồ sơ sinh, mọi bản đọc, note đã lưu và liên kết tài khoản trên hệ thống Lá Lành. Tất cả thiết bị mất quyền truy cập hồ sơ này; không thể khôi phục bằng đăng nhập lại.</p>{accountQuery.data && !accountQuery.data.signed_in ? null : <p>Nếu đã liên kết tài khoản, hệ thống cũng yêu cầu xoá danh tính đăng nhập tại Supabase. Chỉ báo hoàn tất sau khi xác nhận; nếu lỗi sẽ khoá hồ sơ và thử lại. Tài khoản Google của bạn không bị xoá.</p>}<button className="danger-button" disabled={deleting} onClick={() => void remove()} type="button">{deleting ? "Đang xoá…" : "Xóa vĩnh viễn"}</button><button className="text-button" disabled={deleting} onClick={() => setConfirming(false)} type="button">Giữ lại</button></AppSheet>
       <AppNav />
     </main>
   );

@@ -1,5 +1,5 @@
 // Run one Codex review of a PR head, apply the owner's P2 policy, and post the verdict.
-// Usage: node scripts/codex-review.mjs --pr N [--auto]
+// Usage: node scripts/codex-review.mjs --pr N [--auto] [--over-cap "<owner words>"]
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -121,7 +121,7 @@ export function runReview(number, options = {}) {
 // Time kept after Codex for the git check and up to five gh calls (60 s each) that publish the result.
 export const reviewFinalizeReserveMs = 5 * 60000;
 
-function reviewOnce(number, { auto = false, gh: ghIn = makeGh(), run = execFileSync, now = vnNow(), clock = vnNow, readOut, nowMs = Date.now, onCodexStart = () => {} } = {}) {
+function reviewOnce(number, { auto = false, overCap = null, gh: ghIn = makeGh(), run = execFileSync, now = vnNow(), clock = vnNow, readOut, nowMs = Date.now, onCodexStart = () => {} } = {}) {
   // Scheduled runs: every gh and git call ends by cutoffAt (minus 15 s cleanup); direct runs keep fixed caps.
   const cutoff = cutoffMs(now.date) - 15000;
   const left = auto && Number.isFinite(cutoff) ? () => cutoff - nowMs() : () => Infinity;
@@ -139,7 +139,16 @@ function reviewOnce(number, { auto = false, gh: ghIn = makeGh(), run = execFileS
   if (turn.turn !== 'codex-review') return { status: 'refused', reason: `lượt hiện tại là ${turn.turn}: ${turn.reason}` };
   const dayPath = dayStatePath(now.date);
   const day = readJson(dayPath, { codexRuns: 0, failures: 0 });
-  if (auto && day.codexRuns >= dayCap(day) - auditReserve) return { status: 'refused', reason: `hết ${dayCap(day) - auditReserve} lượt Codex tự động hôm nay (1 lượt giữ cho soát đêm)` };
+  // #571 (16.11.2026): a manual run counts against the same cap as the loop. On 15.11 two manual
+  // reviews took the day to 81 of 80 and spent the night audit's reserve. Past the cap only an
+  // explicit --over-cap with the owner's words runs, and those words are kept in the day state.
+  const cap = dayCap(day) - auditReserve;
+  if (day.codexRuns >= cap) {
+    const words = auto ? '' : clean(String(overCap ?? ''), 300).trim();
+    if (!words) return { status: 'refused', reason: auto ? `hết ${cap} lượt Codex tự động hôm nay (1 lượt giữ cho soát đêm)` : `hết ${cap} lượt Codex hôm nay (1 lượt giữ cho soát đêm); chạy tay vượt trần cần --over-cap "<lời owner>"` };
+    const cur = readJson(dayPath, day);
+    writeJson(dayPath, { ...cur, overCapLog: [...(cur.overCapLog ?? []), { at: new Date(nowMs()).toISOString(), pr: number, codexRuns: cur.codexRuns ?? 0, quote: words }] });
+  }
 
   const trusted = trustedComments(pr.comments);
   // Only a signed earlier review narrows the re-review to a delta: an unsigned one could be forged to
@@ -232,10 +241,11 @@ if (isMain(import.meta.url)) {
   const args = process.argv.slice(2);
   const number = Number(args[args.indexOf('--pr') + 1]);
   if (!args.includes('--pr') || !Number.isInteger(number) || number <= 0) {
-    process.stderr.write('Usage: node scripts/codex-review.mjs --pr N [--auto]\n'); process.exit(2);
+    process.stderr.write('Usage: node scripts/codex-review.mjs --pr N [--auto] [--over-cap "<owner words>"]\n'); process.exit(2);
   }
+  const overCap = args.includes('--over-cap') ? args[args.indexOf('--over-cap') + 1] ?? '' : null;
   try {
-    const result = runReview(number, { auto: args.includes('--auto') });
+    const result = runReview(number, { auto: args.includes('--auto'), overCap });
     process.stdout.write(`${JSON.stringify(result)}\n`);
     if (result.status !== 'posted') process.exitCode = 3;
   } catch (error) { process.stderr.write(`codex-review failed: ${clean(error.message, 500)}\n`); process.exitCode = 1; }

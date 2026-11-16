@@ -152,7 +152,7 @@ export function NoteDetailPage() {
             <article className="reading-content reading-content--legacy">
               <header className="reading-content__intro">
                 <NightSky moon planet stars={4} />
-                <p className="reading-mode">Vibe · Bản tương thích</p>
+                <p className="reading-mode">Bản tương thích</p>
                 <h1>{note.title}</h1>
                 <p>{note.full_body}</p>
               </header>
