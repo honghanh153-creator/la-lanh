@@ -162,7 +162,12 @@ Session mà owner đang trực tiếp trò chuyện không bị lịch này ch�
       - cổng verify, cổng QA API và web;
       - project Docker Compose và cổng Postgres.
       Chỗ 0 giữ đúng giá trị mặc định hiện nay.
-    - **D2:** bật semaphore 2 chỗ trong `collab-test-guard.mjs`. Bước này cũng đưa các việc chưa có khóa (qa:journey, verify, chụp ảnh buổi sáng) vào guard. Tới khi D2 xong, mỗi lúc vẫn chỉ một việc nặng.
+    - **D2 (đã bật, 16.11.2026):** `collab-test-guard.mjs` có 2 chỗ: `test-guard.lock` và `test-guard-1.lock`.
+      - Hai lượt test của agent được chạy cùng lúc. Mỗi lượt chạy với biến môi trường của chỗ mình; lượt thứ ba phải chờ.
+      - Khi kiểm máy bận, một lượt không tính các tiến trình con của chỗ kia, nhưng vẫn tính mọi việc nặng khác.
+      - Author check và lượt người giả đêm vẫn chạy một mình: author check chờ cả hai chỗ trống, và guard lùi lại khi có `check.lock`.
+      - Chỗ có chủ đã chết thì không bị lấy lại; guard dùng chỗ còn lại.
+      - Còn lại: chạy qa:journey, verify và script chụp ảnh buổi sáng qua guard. Script chụp ảnh nằm ngoài repo, do phiên khác giữ.
 12. JSON và log lưu ở `~/.cache/la-lanh-collab/logs/`, không vào repo.
 
 ### 4.2 `collab-merge.mjs` — điều kiện merge (tất cả phải đúng)
