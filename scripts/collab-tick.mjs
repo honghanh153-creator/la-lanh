@@ -52,7 +52,7 @@ export function runTick(gh = makeGh(), preflight = () => missingTools(), { run =
       try { dailyReceiptAudit({ gh, alert: text => opsAlert(gh, text, receiptSubject), now: vnNow() }); } catch {}
       // L06: the sub-agent gate hooks are still installed and on (one alert a day, closed when fixed).
       try { gateWatch({ alert: text => opsAlert(gh, text, gateAlertSubject), resolve: text => resolveOpsAlert(gh, text, gateAlertSubject), today: vnNow().date }); } catch {}
-      // L33: the owner-rules hook (re-load of the rules sheet, R3 deny) is installed and passes its selftest.
+      // L37: the owner-rules hook (re-load of the rules sheet, R3 deny) is installed and passes its selftest.
       try { rulesWatch({ alert: text => opsAlert(gh, text, rulesHookAlertSubject), resolve: text => resolveOpsAlert(gh, text, rulesHookAlertSubject), today: vnNow().date }); } catch {}
       return watch({ alert: text => opsAlert(gh, text, watchdogSubject), resolve: text => resolveOpsAlert(gh, text, watchdogSubject) });
     }, health: () => [...healthLines(readBeats()), ...hookHealth(), ...wrapperHealth(), ...skillRuleHealth(), ...rulesHookHealth()], copyPending: () => pendingCount(), copyBatch: () => runCopyBatch(), copySaved: () => Boolean(readSaved(savedPath, vnNow().date)),

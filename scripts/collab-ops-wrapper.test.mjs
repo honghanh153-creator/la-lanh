@@ -193,23 +193,23 @@ test('scheduled-task prompts: a dropped report slot is caught and every prompt p
   assert.deepEqual(verifySkillRules({ dir }), []);
 });
 
-test('L33: the tick opens one alert a day while the rules hook is broken and closes it when fixed', () => {
+test('L37: the tick opens one alert a day while the rules hook is broken and closes it when fixed', () => {
   const marker = join(realpathSync(mkdtempSync(join(tmpdir(), 'rules-watch-'))), 'm.json');
   const sent = [];
   const closed = [];
   const watch = (bad, today) => rulesHookWatch({ verify: () => bad, alert: t => sent.push(t), resolve: t => closed.push(t), marker, today });
   assert.equal(watch(['hook PreToolUse của luật owner thiếu hoặc khác bản chuẩn'], 'd1').status, 'alerted');
-  assert.match(sent[0], /^Hook luật owner \(L33.*PreToolUse.*collab-rules-hook\.mjs --install$/);
+  assert.match(sent[0], /^Hook luật owner \(L37.*PreToolUse.*collab-rules-hook\.mjs --install$/);
   assert.equal(watch(['x'], 'd1').status, 'already-alerted');
   assert.equal(watch(['x'], 'd2').status, 'alerted');
   assert.equal(watch([], 'd2').status, 'resolved');
   assert.deepEqual(closed, ['hook luật owner đã khớp bản chuẩn']);
   assert.equal(watch([], 'd3').status, 'ok');
-  assert.match(rulesHookHealth({ verify: () => ['selftest trượt'] })[0], /^- ⚠️ hook luật owner \(L33\): selftest trượt/);
+  assert.match(rulesHookHealth({ verify: () => ['selftest trượt'] })[0], /^- ⚠️ hook luật owner \(L37\): selftest trượt/);
   assert.match(rulesHookHealth({ verify: () => [] })[0], /^- ✅ hook luật owner/);
 });
 
-test('L33: the production tick watchdog calls the rules-hook watch with its ops-alert subject', async () => {
+test('L37: the production tick watchdog calls the rules-hook watch with its ops-alert subject', async () => {
   const { runTick } = await import('./collab-tick.mjs');
   let seen = null;
   const given = runTick({ raw: () => '', json: () => [] }, () => [], { run: g => g, gateWatch: () => ({ status: 'ok' }), rulesWatch: args => { seen = args; return { status: 'ok' }; } });

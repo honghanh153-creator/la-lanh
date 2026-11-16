@@ -125,17 +125,17 @@ export function verifyReportPrompts({ dir = join(homedir(), '.claude', 'schedule
 // ops-alert a day; the marker is written only after the alert was delivered. When the gate is
 // healthy again the open alert is closed once.
 export const gateAlertSubject = 'cổng dev con';
-// L33: the owner-rules hook (re-load + R3 deny) is watched the same way: one alert a day while it is
+// L37: the owner-rules hook (re-load + R3 deny) is watched the same way: one alert a day while it is
 // missing, changed or its selftest fails; closed once it is healthy again.
 export const rulesHookAlertSubject = 'hook luật owner';
 export function rulesHookWatch({ verify = () => verifyRulesHook(), alert, resolve, marker = join(stateDir, 'rules-hook-alert.json'), today }) {
-  return agentGateWatch({ verify, alert, resolve, marker, today, what: 'Hook luật owner (L33: nạp lại luật, chặn hỏi owner trong chat)', fix: 'node ~/.cache/la-lanh-collab/ops/scripts/collab-rules-hook.mjs --install', healthy: 'hook luật owner đã khớp bản chuẩn' });
+  return agentGateWatch({ verify, alert, resolve, marker, today, what: 'Hook luật owner (L37: nạp lại luật, chặn hỏi owner trong chat)', fix: 'node ~/.cache/la-lanh-collab/ops/scripts/collab-rules-hook.mjs --install', healthy: 'hook luật owner đã khớp bản chuẩn' });
 }
 export function rulesHookHealth({ verify = () => verifyRulesHook() } = {}) {
   try {
     const bad = verify();
-    return bad.length ? [`- ⚠️ hook luật owner (L33): ${bad.join('; ')}`] : ['- ✅ hook luật owner (L33): đã cài, tự kiểm chặn được câu hỏi'];
-  } catch (error) { return [`- ⚠️ hook luật owner (L33): chưa kiểm được (${error.message})`]; }
+    return bad.length ? [`- ⚠️ hook luật owner (L37): ${bad.join('; ')}`] : ['- ✅ hook luật owner (L37): đã cài, tự kiểm chặn được câu hỏi'];
+  } catch (error) { return [`- ⚠️ hook luật owner (L37): chưa kiểm được (${error.message})`]; }
 }
 export function agentGateWatch({ verify = () => verifyAgentGate(), alert, resolve, marker = join(stateDir, 'agent-gate-alert.json'), today, what = 'Cổng kiểm dev con (L06)', fix = 'node ~/.cache/la-lanh-collab/ops/scripts/collab-ops-wrapper.mjs --install-agent-gate', healthy = 'cổng dev con đã khớp bản chuẩn' }) {
   let state = {};
