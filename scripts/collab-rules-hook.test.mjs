@@ -1,12 +1,12 @@
 import './collab-test-home.mjs';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
+import { appendFileSync, mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { changedIds, handle, inScope, installRulesHook, metrics, r3Reason, rulesHooks, verifyRulesHook } from './collab-rules-hook.mjs';
+import { changedIds, handle, inScope, installRulesHook, metrics, r3Reason, recordRepeat, rulesHooks, verifyRulesHook } from './collab-rules-hook.mjs';
 import { sheetPath } from './collab-rules.mjs';
 
 const script = join(dirname(fileURLToPath(import.meta.url)), 'collab-rules-hook.mjs');
@@ -102,7 +102,7 @@ test('L33 (R3): a question to the owner in chat is refused and points to the dec
 });
 
 test('L33 (R3): the installed hook keeps other hooks, routes the question tools to the deny and fails closed', () => {
-  const { home } = fixture();
+  let { home } = fixture();
   const settings = join(mkdtempSync(join(tmpdir(), 'settings-')), 'settings.json');
   const other = { matcher: 'Bash', hooks: [{ type: 'command', command: 'node guard.mjs' }] };
   writeFileSync(settings, JSON.stringify({ model: 'x', hooks: { PreToolUse: [other] } }));
@@ -118,12 +118,19 @@ test('L33 (R3): the installed hook keeps other hooks, routes the question tools 
   assert.match(pre.matcher, /(^|\|)mcp__ccd_turn__wrap_up(\||$)/);
   assert.equal(pre.hooks[0].onFailure, 'block');
   for (const event of ['SessionStart', 'UserPromptSubmit', 'PostToolUse']) assert.ok(data.hooks[event]?.length === 1, event);
-  // verify needs the script in the ops clone too.
+  // verify needs a script in the ops clone that really refuses a question: an empty file fails.
   mkdirSync(join(home, 'ops', 'scripts'), { recursive: true });
   writeFileSync(join(home, 'ops', 'scripts', 'collab-rules-hook.mjs'), '');
-  assert.deepEqual(verifyRulesHook({ home, settings }), []);
+  assert.match(verifyRulesHook({ home, settings }).join('\n'), /selftest trượt/);
+  const real = mkdtempSync(join(tmpdir(), 'ops-real-'));
+  mkdirSync(join(real, 'ops'), { recursive: true });
+  symlinkSync(dirname(script), join(real, 'ops', 'scripts'));
+  installRulesHook({ home: real, settings });
+  assert.deepEqual(verifyRulesHook({ home: real, settings }), []);
+  data.hooks = JSON.parse(readFileSync(settings, 'utf8')).hooks;
+  home = real;
   // Removing the R3 route, or switching hooks off, is detected.
-  data.hooks.PreToolUse = [other];
+  data.hooks.PreToolUse = data.hooks.PreToolUse.filter(e => e === other || JSON.stringify(e) === JSON.stringify(other));
   writeFileSync(settings, JSON.stringify(data));
   assert.match(verifyRulesHook({ home, settings }).join('\n'), /PreToolUse/);
   writeFileSync(settings, JSON.stringify({ ...data, disableAllHooks: true }));
@@ -131,16 +138,28 @@ test('L33 (R3): the installed hook keeps other hooks, routes the question tools 
   assert.match(r3Reason, /R3/);
 });
 
-test('rules hook: metrics give the delay from publish to each session and count sessions left behind', () => {
+test('rules hook: metrics give the delay from commit to each session, blocked attempts and owner repeats', () => {
   const { home, repo, publish } = fixture();
   const clock = iso => () => new Date(iso);
   handle({ hook_event_name: 'UserPromptSubmit', session_id: 'old', cwd: repo }, { home, now: clock('2026-11-16T15:00:00Z') });
   publish(sheet.replace(R9, `${R9} `));
   handle({ hook_event_name: 'UserPromptSubmit', session_id: 'a', cwd: repo }, { home, now: clock('2026-11-16T16:02:00Z') });
   handle({ hook_event_name: 'PostToolUse', session_id: 'b', cwd: repo }, { home, now: clock('2026-11-16T16:10:00Z') });
-  const m = metrics({ home, publishedAt: '2026-11-16T16:00:00Z' });
+  // A broken line is skipped alone; the rotated generation still counts.
+  appendFileSync(join(home, 'rules', 'deliveries.jsonl'), '{broken\n');
+  writeFileSync(join(home, 'rules', 'violations.jsonl.1'), `${JSON.stringify({ at: '2026-11-16T10:00:00Z', session: 'x', rule: 'R3' })}\n`);
+  const m = metrics({ home, committedAt: '2026-11-16T16:00:00Z' });
   assert.equal(m.sessionsReached, 2);
+  assert.equal(m.firstSeenAt, '2026-11-16T16:02:00.000Z');
   assert.deepEqual(m.lagMinutes, { median: 10, max: 10 });
-  assert.equal(m.lagMinutes.max, 10);
+  assert.deepEqual(m.attemptsBlocked, { R3: 1 });
+  // The owner repeats R3: counted once per session and hour, unknown ids refused, no words stored.
+  assert.equal(recordRepeat({ home, rule: 'R3', session: 'a', now: clock('2026-11-16T17:00:00Z') }), true);
+  assert.equal(recordRepeat({ home, rule: 'R3', session: 'a', now: clock('2026-11-16T17:20:00Z') }), false);
+  assert.equal(recordRepeat({ home, rule: 'R3', session: 'a', now: clock('2026-11-16T18:30:00Z') }), true);
+  assert.throws(() => recordRepeat({ home, rule: 'R99', session: 'a' }), /không có luật R99/);
+  assert.deepEqual(metrics({ home }).ownerRepeats, { R3: 2 });
+  // No hook, no log: "not measurable", never zero.
+  assert.deepEqual(metrics({ home, hookOk: false }), { measurable: false, reason: 'hook luật chưa cài hoặc hỏng' });
   assert.deepEqual(changedIds(sheet, sheet.replace(R9, `${R9} `)), ['R9']);
 });

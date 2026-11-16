@@ -13,10 +13,10 @@
 // Fail-open for the re-load (a missing sheet must not stop work; the context says so instead),
 // fail-closed for R3 (the deny is a constant, the log write may fail without changing it).
 // Usage (from ~/.claude/settings.json):  node scripts/collab-rules-hook.mjs   (hook JSON on stdin)
-//        node scripts/collab-rules-hook.mjs --install | --verify | --metrics
-import { execFileSync } from 'node:child_process';
-import { appendFileSync, copyFileSync, existsSync, mkdirSync, readFileSync, realpathSync, renameSync, statSync, writeFileSync } from 'node:fs';
-import { homedir } from 'node:os';
+//        node scripts/collab-rules-hook.mjs --install | --verify | --metrics [since] | --selftest | --repeat Rn [session]
+import { execFileSync, spawnSync } from 'node:child_process';
+import { appendFileSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, renameSync, statSync, writeFileSync } from 'node:fs';
+import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { parseRules, rulesVersion, sheetRel } from './collab-rules.mjs';
 import { stateDir } from './collab-trust.mjs';
@@ -163,29 +163,75 @@ export function verifyRulesHook({ home = stateDir, settings = settingsPath() } =
     const got = (data.hooks?.[event] ?? []).filter(e => isRulesHook(e, home));
     if (got.length !== 1 || JSON.stringify(got[0]) !== JSON.stringify(want)) bad.push(`hook ${event} của luật owner thiếu hoặc khác bản chuẩn`);
   }
-  if (data.disableAllHooks === true) bad.push('disableAllHooks đang bật');
+  for (const file of [settings, settings.replace(/settings\.json$/, 'settings.local.json')]) {
+    try { if (JSON.parse(readFileSync(file, 'utf8')).disableAllHooks === true) bad.push(`disableAllHooks đang bật trong ${file}`); } catch {}
+  }
+  // The installed script must really refuse a question (Codex r2: an empty file passed "exists").
   if (!existsSync(hookScript(home))) bad.push('không thấy collab-rules-hook.mjs trong clone ops');
+  else if (!selftestPasses(hookScript(home))) bad.push('collab-rules-hook.mjs trong clone ops không tự chặn được câu hỏi (selftest trượt)');
   return bad;
 }
 
-const readLines = path => { try { return readFileSync(path, 'utf8').split('\n').filter(Boolean).map(l => JSON.parse(l)); } catch { return []; } };
+// Runs the R3 path on a throwaway state dir: a synthetic AskUserQuestion in a la-lanh folder must be denied.
+export function selftest() {
+  const home = mkdtempSync(join(tmpdir(), 'rules-hook-selftest-'));
+  const out = handle({ hook_event_name: 'PreToolUse', tool_name: 'AskUserQuestion', tool_input: {}, session_id: 'selftest', cwd: '/selftest/la-lanh' }, { home });
+  return out?.hookSpecificOutput?.permissionDecision === 'deny';
+}
+export function selftestPasses(script) {
+  const r = spawnSync(process.execPath, [script, '--selftest'], { encoding: 'utf8', timeout: 20000 });
+  return r.status === 0 && /^selftest ok$/m.test(r.stdout ?? '');
+}
 
-// How fast the current sheet reached sessions, and how often R3 was attempted. publishedAt is the
-// commit time of the sheet in the ops clone (when reviewed code carried it), not when a session wrote it.
-export function metrics({ home = stateDir, publishedAt = null, since = null } = {}) {
+// Owner repeated a rule: the session that heard it records it (Codex r2: an explicit event, not a
+// keyword scan of transcripts). No owner words are stored; the same rule from the same session within
+// an hour counts once.
+export function recordRepeat({ home = stateDir, rule, session, now = () => new Date() }) {
+  const text = readSheetText(home);
+  const ids = new Set(text ? parseRules(text).rows.map(r => r.id) : []);
+  if (!ids.has(rule)) throw new Error(`không có luật ${rule} trong bảng`);
+  const at = now();
+  const id = safeId(session);
+  const recent = readLines(join(rulesDir(home), 'repeats.jsonl')).some(r => r.rule === rule && r.session === id && at - Date.parse(r.at) < 3600000);
+  if (recent) return false;
+  log(home, 'repeats.jsonl', { at: at.toISOString(), rule, session: id, version: text ? rulesVersion(text) : null });
+  return true;
+}
+
+// Both generations of a log (the rotated .1 first); a broken line is skipped alone.
+function readLines(path) {
+  const out = [];
+  for (const p of [`${path}.1`, path]) {
+    let text = '';
+    try { text = readFileSync(p, 'utf8'); } catch { continue; }
+    for (const l of text.split('\n')) { if (!l.trim()) continue; try { out.push(JSON.parse(l)); } catch {} }
+  }
+  return out;
+}
+
+// How fast the current sheet reached sessions, how often the R3 route refused a question (an attempt
+// that was blocked, not a proven breach), and how often the owner had to repeat a rule. When the hook
+// is not installed nothing is logged, so the numbers are "not measurable", never "zero".
+// committedAt: commit time of the sheet in the ops clone; firstSeenAt: the first delivery of this
+// version to any session (when the clone really had it).
+export function metrics({ home = stateDir, committedAt = null, since = null, hookOk = true } = {}) {
+  if (!hookOk) return { measurable: false, reason: 'hook luật chưa cài hoặc hỏng' };
   const deliveries = readLines(join(rulesDir(home), 'deliveries.jsonl'));
-  const violations = readLines(join(rulesDir(home), 'violations.jsonl')).filter(v => !since || v.at >= since);
+  const recent = file => readLines(join(rulesDir(home), file)).filter(v => !since || v.at >= since);
   const text = readSheetText(home);
   const version = text ? rulesVersion(text) : null;
   const firstBySession = new Map();
   for (const d of deliveries) if (d.version === version && d.session && !firstBySession.has(d.session)) firstBySession.set(d.session, d.at);
-  const lags = publishedAt ? [...firstBySession.values()].map(at => (Date.parse(at) - Date.parse(publishedAt)) / 60000).filter(m => m >= 0).sort((a, b) => a - b) : [];
-  // Sessions that kept working on an older version after this one was published: a turn logged
-  // with a different version later than publishedAt means a session the hook did not reach.
-  const stale = publishedAt ? new Set(deliveries.filter(d => d.version && d.version !== version && d.at > publishedAt).map(d => d.session)).size : 0;
-  const byRule = {};
-  for (const v of violations) byRule[v.rule] = (byRule[v.rule] ?? 0) + 1;
-  return { version, publishedAt, sessionsReached: firstBySession.size, lagMinutes: lags.length ? { median: lags[Math.floor(lags.length / 2)], max: lags.at(-1) } : null, staleSessions: stale, attemptsBlocked: byRule };
+  const firstSeenAt = [...firstBySession.values()].sort()[0] ?? null;
+  const lags = committedAt ? [...firstBySession.values()].map(at => (Date.parse(at) - Date.parse(committedAt)) / 60000).filter(m => m >= 0).sort((a, b) => a - b) : [];
+  const count = rows => rows.reduce((acc, v) => ({ ...acc, [v.rule]: (acc[v.rule] ?? 0) + 1 }), {});
+  return {
+    measurable: true, version, committedAt, firstSeenAt,
+    sessionsReached: firstBySession.size,
+    lagMinutes: lags.length ? { median: lags[Math.floor(lags.length / 2)], max: lags.at(-1) } : null,
+    attemptsBlocked: count(recent('violations.jsonl')),
+    ownerRepeats: count(recent('repeats.jsonl')),
+  };
 }
 
 function sheetCommitTime(home) {
@@ -196,7 +242,13 @@ if (isMain(import.meta.url)) {
   const arg = process.argv[2];
   if (arg === '--install') console.log(`đã cài hook luật owner vào ${installRulesHook()}`);
   else if (arg === '--verify') { const bad = verifyRulesHook(); for (const b of bad) console.log(`- ${b}`); process.exitCode = bad.length ? 1 : 0; }
-  else if (arg === '--metrics') console.log(JSON.stringify(metrics({ publishedAt: sheetCommitTime(stateDir), since: process.argv[3] ?? null }), null, 2));
+  else if (arg === '--metrics') console.log(JSON.stringify(metrics({ committedAt: sheetCommitTime(stateDir), since: process.argv[3] ?? null, hookOk: verifyRulesHook().length === 0 }), null, 2));
+  else if (arg === '--selftest') { const ok = selftest(); console.log(ok ? 'selftest ok' : 'selftest FAILED'); process.exitCode = ok ? 0 : 1; }
+  else if (arg === '--repeat') {
+    // node scripts/collab-rules-hook.mjs --repeat R3 [session id]: the owner had to say rule R3 again.
+    const added = recordRepeat({ rule: process.argv[3], session: process.argv[4] ?? process.env.LA_LANH_SESSION ?? null });
+    console.log(added ? `đã ghi: owner nhắc lại ${process.argv[3]}` : `đã có trong 1 giờ qua: ${process.argv[3]}`);
+  }
   else {
     let raw = '';
     try { raw = readFileSync(0, 'utf8'); } catch {}
