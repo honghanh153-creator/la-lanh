@@ -121,15 +121,15 @@ export function overCapWords(raw) {
 // P1 on #590 (16.11.2026): an incomplete review is never the baseline of a delta re-review. Once a
 // review stopped short, the next one reads the whole change; otherwise splitting a PR by removing half
 // would leave the kept, never-read half to a delta review that only checks what changed. The local
-// review log (keyed by the verdict's receipt) is the trusted record; for a review logged before the
-// field existed, the posted verdict's "review chưa đủ" mark counts.
+// review log (keyed by the verdict's receipt) is the only trusted record. Without it (a review logged
+// before the field existed, or on another machine) the review counts as incomplete: the posted text is
+// editable and the receipt does not cover it (Codex r2 on #590), so the cost is one full review.
 export const incompleteMark = 'review chưa đủ';
 export function reviewWasComplete(comment, logs = readReviewLogs()) {
   const sha = comment?.verdict?.sha ?? parseVerdict(comment?.body)?.sha;
   const receipt = sha ? parseVerdictSeal(comment?.body, sha)?.receipt : null;
   const record = receipt ? logs.find(l => l?.receipt === receipt) : null;
-  if (typeof record?.complete === 'boolean') return record.complete;
-  return !String(comment?.body ?? '').includes(incompleteMark);
+  return record?.complete === true;
 }
 function readReviewLogs(dir = join(stateDir, 'logs')) {
   let names = [];

@@ -36,6 +36,13 @@ const sealable = (kind, claims) => ({ ...owner(sealBody(kind, claims, 7)), seal:
 const check = (sha, status = 'PASS', base = BASE) => sealable('check', { head: sha, result: status, base });
 const approve = (sha, { p2 = 0, base = BASE, fix = null } = {}) => sealable('verdict', { head: sha, result: 'APPROVE', base, p2, fix });
 const requestChanges = (sha, base = BASE) => sealable('verdict', { head: sha, result: 'REQUEST_CHANGES', base });
+// The local review log codex-review.mjs writes for each verdict; only a logged complete review may be
+// the baseline of a delta re-review (P1 on #590).
+const logReview = (c, complete = true) => {
+  const receipt = /receipt=([0-9a-f]{32})/.exec(c.body)[1];
+  trust.writeJson(join(trust.stateDir, 'logs', `review-fixture-${receipt}.json`), { receipt, complete });
+  return c;
+};
 const resign = (n, c) => (c?.seal && n !== 7 ? asPosted(trust, { ...c, body: sealBody(c.seal.kind, c.seal.claims, n) }) : c);
 const pr = (extra = {}) => {
   const p = { number: 7, title: 'feat(tarot): plain summary', author: { login: 'honghanh153-creator' }, isCrossRepository: false, state: 'OPEN', isDraft: false, baseRefName: 'collab/integration', headRefName: 'feat/x', headRefOid: A, baseTipOid: BASE, mergeable: 'MERGEABLE', labels: [], createdAt: '2026-10-29T00:00:00Z', comments: [], body: goodBody, ...extra };
@@ -209,7 +216,7 @@ test('the scheduled PR list asks GitHub for mergeability (K24 needs it)', () => 
 });
 
 test('a re-review across an integration merge reads only the PR files (K25)', () => {
-  const prior = requestChanges(B);
+  const prior = logReview(requestChanges(B));
   const raw = JSON.stringify(output());
   for (const [merges, scoped] of [['d'.repeat(40), true], ['', false]]) {
     const runner = fakeRun();
@@ -239,7 +246,7 @@ test('review refuses without an author check, stops on limits, and escalates to 
   assert.equal(trust.readJson(trust.dayStatePath(now.date), {}).codexRuns ?? 0, 0, 'limits do not use a daily run');
 
   const blocking = JSON.stringify(output({ verdict: 'REQUEST_CHANGES', findings: [finding('P1', 'correctness')] }));
-  const state = { pr: pr({ headRefOid: B, comments: [check(A), requestChanges(A), check(B)] }) };
+  const state = { pr: pr({ headRefOid: B, comments: [check(A), logReview(requestChanges(A)), check(B)] }) };
   const gh = fakeGh(state);
   const runner = fakeRun({ head: B });
   const result = review.runReview(7, { gh, run: runner.run, readOut: () => blocking.replace(A, B), now });
@@ -274,18 +281,21 @@ test('5-fix A, P1 on #590: after an incomplete review the next review reads the 
     review.runReview(7, { gh: fakeGh(state), run: runner.run, readOut: () => approveB, now });
     return runner.calls.find(c => c[0] === review.codexBin)[2].input;
   };
-  // Marked incomplete in the posted verdict (reviews logged before the field existed).
-  const fromMark = rerun(markIncomplete(requestChanges(A)));
-  assert.doesNotMatch(fromMark, new RegExp(`git diff ${A}\\.\\.${B}`), 'no delta from an incomplete review');
-  assert.match(fromMark, /read the full change now/);
-  // The local review log is the trusted record, even if the posted text looks complete.
-  const quiet = requestChanges(A);
-  const receipt = /receipt=([0-9a-f]{32})/.exec(quiet.body)[1];
-  trust.writeJson(join(trust.stateDir, 'logs', `review-2027-01-15-pr7-${receipt}.json`), { pr: 7, head: A, receipt, complete: false });
-  assert.match(rerun(quiet), /read the full change now/);
+  // Logged incomplete: a full review, whatever the posted text says.
+  const quiet = logReview(requestChanges(A), false);
   assert.equal(review.reviewWasComplete(quiet), false);
-  // A complete earlier review still narrows the re-review to the delta.
-  assert.match(rerun(requestChanges(A)), new RegExp(`git diff ${A}\\.\\.${B}`));
+  const full = rerun(quiet);
+  assert.doesNotMatch(full, new RegExp(`git diff ${A}\\.\\.${B}`), 'no delta from an incomplete review');
+  assert.match(full, /read the full change now/);
+  // Codex r2 on #590: no trusted record (an older review whose text was edited to drop the mark) is
+  // treated as incomplete, so an edited legacy verdict never unlocks a delta.
+  const legacyEdited = requestChanges(A);
+  assert.doesNotMatch(legacyEdited.body, new RegExp(review.incompleteMark));
+  assert.equal(review.reviewWasComplete(legacyEdited), false);
+  assert.match(rerun(legacyEdited), /read the full change now/);
+  assert.match(rerun(markIncomplete(requestChanges(A))), /read the full change now/);
+  // Logged complete: the re-review still narrows to the delta.
+  assert.match(rerun(logReview(requestChanges(A))), new RegExp(`git diff ${A}\\.\\.${B}`));
 });
 
 test('daily cap refuses automatic reviews', () => {
