@@ -10,8 +10,10 @@
 //   node scripts/collab-pr-claim.mjs --release N
 //   node scripts/collab-pr-claim.mjs --force-release N --reason "<why>"
 //   node scripts/collab-pr-claim.mjs --status [N]
+import { randomUUID } from 'node:crypto';
 import { appendFileSync, mkdirSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { acquireLock } from './collab-lock.mjs';
 import { clean, stateDir } from './collab-trust.mjs';
 import { isMain } from './is-main.mjs';
 
@@ -20,22 +22,36 @@ const pathOf = n => join(claimDir(), `pr-${Number(n)}.json`);
 const sessionPattern = /^[A-Za-z0-9._-]{4,64}$/;
 export const sessionId = (env = process.env) => (sessionPattern.test(String(env.LA_LANH_SESSION ?? '')) ? env.LA_LANH_SESSION : null);
 
+// Codex r1 on #597: every change of a claim, and every write to its branch (the sync), runs under one
+// per-PR lock (collab-lock.mjs, self-recovering), and each claim carries an incarnation id. So a slow
+// release or prune never deletes a claim another session took meanwhile, and nobody takes a PR while
+// its branch is being written. A busy lock changes nothing.
+const lockOf = n => join(claimDir(), `pr-${Number(n)}.lock`);
+export const prLockStaleMs = 30 * 60000;
+export function withPrLock(n, fn, { waitMs = 5000 } = {}) {
+  mkdirSync(claimDir(), { recursive: true });
+  const release = acquireLock(lockOf(n), { staleMs: prLockStaleMs, waitMs });
+  if (!release) return { ok: false, reason: 'claim-busy' };
+  try { return fn(); } finally { release(); }
+}
+
 export function readClaim(n) {
   try { return JSON.parse(readFileSync(pathOf(n), 'utf8')); }
   catch (error) { return error?.code === 'ENOENT' ? null : { unreadable: true }; }
 }
 
-export function claimPr(n, { session, branch = null, now = new Date() } = {}) {
+export function claimPr(n, { session, branch = null, now = new Date(), waitMs = 5000 } = {}) {
   if (!Number.isInteger(Number(n)) || Number(n) <= 0) return { ok: false, reason: 'pr-number' };
   if (!sessionPattern.test(String(session ?? ''))) return { ok: false, reason: 'session-id' };
-  mkdirSync(claimDir(), { recursive: true });
-  try {
-    writeFileSync(pathOf(n), `${JSON.stringify({ pr: Number(n), session, branch, at: now.toISOString() })}\n`, { flag: 'wx', mode: 0o600 });
-    return { ok: true, created: true };
-  } catch (error) { if (error?.code !== 'EEXIST') throw error; }
-  const held = readClaim(n);
-  if (held?.session === session) return { ok: true, created: false };
-  return { ok: false, reason: held?.unreadable ? 'claim-unreadable' : 'claimed', holder: held?.session ?? null, since: held?.at ?? null };
+  return withPrLock(n, () => {
+    try {
+      writeFileSync(pathOf(n), `${JSON.stringify({ pr: Number(n), session, branch, at: now.toISOString(), id: randomUUID() })}\n`, { flag: 'wx', mode: 0o600 });
+      return { ok: true, created: true };
+    } catch (error) { if (error?.code !== 'EEXIST') throw error; }
+    const held = readClaim(n);
+    if (held?.session === session) return { ok: true, created: false };
+    return { ok: false, reason: held?.unreadable ? 'claim-unreadable' : 'claimed', holder: held?.session ?? null, since: held?.at ?? null };
+  }, { waitMs });
 }
 
 // Who may write to PR n (push, sync with integration, fix): nobody else while a session holds it.
@@ -49,13 +65,15 @@ export function mayTouch(n, session = null) {
 
 const releaseLog = () => join(claimDir(), 'releases.jsonl');
 export function releasePr(n, { session = null, force = null, now = new Date() } = {}) {
-  const held = readClaim(n);
-  if (!held) return { ok: true, released: false };
   const reason = clean(String(force ?? ''), 300).trim();
-  if (held.session !== session && !reason) return { ok: false, reason: 'not-holder', holder: held.session ?? null };
-  if (held.session !== session) appendFileSync(releaseLog(), `${JSON.stringify({ pr: Number(n), holder: held.session ?? null, by: session, reason, at: now.toISOString() })}\n`);
-  unlinkSync(pathOf(n));
-  return { ok: true, released: true };
+  return withPrLock(n, () => {
+    const held = readClaim(n);
+    if (!held) return { ok: true, released: false };
+    if (held.session !== session && !reason) return { ok: false, reason: 'not-holder', holder: held.session ?? null };
+    if (held.session !== session) appendFileSync(releaseLog(), `${JSON.stringify({ pr: Number(n), holder: held.session ?? null, by: session, reason, at: now.toISOString() })}\n`);
+    unlinkSync(pathOf(n));
+    return { ok: true, released: true };
+  });
 }
 
 export function claimsByPr() {
@@ -64,16 +82,25 @@ export function claimsByPr() {
   return Object.fromEntries(names.map(f => { const n = Number(/\d+/.exec(f)[0]); return [n, readClaim(n)]; }));
 }
 
-// A merged or closed PR needs no claim: the tick drops claims of PRs that are no longer open. It is
-// given the complete open list only; a failed or partial read prunes nothing.
-export function pruneClaims(openNumbers, { now = new Date() } = {}) {
+// A merged or closed PR needs no claim. Codex r1 on #597: absence from an open list is not proof (the
+// list may predate a PR opened and claimed a moment ago), so a claim goes only when GitHub confirms
+// that PR is CLOSED or MERGED, checked under its lock, and only the same incarnation is deleted.
+export function pruneClaims(openNumbers, { closed, now = new Date() } = {}) {
   const open = new Set(openNumbers.map(Number));
   const dropped = [];
-  for (const [n, held] of Object.entries(claimsByPr())) {
-    if (open.has(Number(n))) continue;
-    unlinkSync(pathOf(n));
-    appendFileSync(releaseLog(), `${JSON.stringify({ pr: Number(n), holder: held?.session ?? null, by: 'tick', reason: 'PR không còn mở', at: now.toISOString() })}\n`);
-    dropped.push(Number(n));
+  for (const [n, seen] of Object.entries(claimsByPr())) {
+    if (open.has(Number(n)) || !seen?.id) continue;
+    let gone = false;
+    try { gone = closed(Number(n)) === true; } catch { gone = false; }
+    if (!gone) continue;
+    const done = withPrLock(n, () => {
+      const held = readClaim(n);
+      if (held?.id !== seen.id) return false;
+      unlinkSync(pathOf(n));
+      appendFileSync(releaseLog(), `${JSON.stringify({ pr: Number(n), holder: held.session ?? null, by: 'tick', reason: 'PR đã đóng hoặc đã merge', at: now.toISOString() })}\n`);
+      return true;
+    });
+    if (done === true) dropped.push(Number(n));
   }
   return dropped;
 }

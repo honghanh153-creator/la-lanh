@@ -344,9 +344,10 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       // Every tick works when the plan is open (retro D1, 31.10.2026): the locks keep heavy jobs
       // serial and the state on GitHub keeps work from repeating, so an hourly gate only cost time.
       const prs = gh.openPrs();
-      // One session per PR (owner 16.11): a merged or closed PR's claim goes; a list that may be
-      // cut at the 100-PR read limit prunes nothing.
-      if (prs.length < 100) { try { const gone = pruneClaims(prs.map(p => p.number)); if (gone.length) log(`claims dropped for PRs no longer open: ${gone.join(', ')}`); } catch (error) { log(`claim prune failed: ${clean(error.message, 200)}`); } }
+      // One session per PR (owner 16.11): a claim goes only once GitHub confirms its PR is closed or
+      // merged (Codex r1 on #597: absence from this list is not proof).
+      try { const gone = pruneClaims(prs.map(p => p.number), { closed: n => ['CLOSED', 'MERGED'].includes(gh.pr(n)?.state) }); if (gone.length) log(`claims dropped for closed PRs: ${gone.join(', ')}`); }
+      catch (error) { log(`claim prune failed: ${clean(error.message, 200)}`); }
       const drops = dropSet(plan, prs, dayPath, day);
       const gone = drops.keys;
       const turns = applyDrops(ciRechecks(turnsFor(prs, { dropped: drops.prs, baseFiles: gh.compareFiles }), prs, { ci: ciStatus, seen: recheckedKeys(now.date), log }), gone);
