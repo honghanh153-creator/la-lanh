@@ -143,7 +143,7 @@ test('daily gate (owner 14.11): 06:50 plan, owner window, 08:00 auto start, noth
 });
 
 const finding = (severity, category) => ({ severity, category, file: 'apps/web/x.ts', line: 3, title: 't', detail: 'd' });
-const output = (extra = {}) => ({ verdict: 'APPROVE', sha: A, reviewed_range: 'x..y', complete: true, summary: 'ok', findings: [], ...extra });
+const output = (extra = {}) => ({ verdict: 'APPROVE', sha: A, reviewed_range: 'x..y', complete: true, summary: 'ok', findings: [], owner_actions: [], ...extra });
 
 test('P2 policy blocks privacy/security/copy only, and the script never lowers a verdict', () => {
   assert.deepEqual(review.applyPolicy(output({ findings: [finding('P2', 'docs')] })).verdict, 'APPROVE');
@@ -296,6 +296,34 @@ test('5-fix A, P1 on #590: after an incomplete review the next review reads the 
   assert.match(rerun(markIncomplete(requestChanges(A))), /read the full change now/);
   // Logged complete: the re-review still narrows to the delta.
   assert.match(rerun(logReview(requestChanges(A))), new RegExp(`git diff ${A}\\.\\.${B}`));
+});
+
+test('5-fix A2: only the owner\'s four kinds wait on her; a merge hold adds needs-owner, pending sensitive copy waits for release', () => {
+  const act = (kind, blocks = 'merge') => ({ kind, evidence: 'apps/api/x.py:3 synthetic', blocks });
+  // Validation: the live path needs the field; the audit of older outputs does not.
+  assert.throws(() => review.validateOutput({ ...output(), owner_actions: undefined }, A, { requireOwnerActions: true }), /owner_actions missing/);
+  assert.doesNotThrow(() => review.validateOutput({ ...output(), owner_actions: undefined }, A));
+  assert.throws(() => review.validateOutput(output({ owner_actions: [act('roadmap')] }), A), /owner action shape/);
+  assert.throws(() => review.validateOutput(output({ owner_actions: [{ ...act('release'), evidence: ' ' }] }), A), /owner action shape/);
+  // The script may only make a hold stricter: only pending sensitive copy may wait for release.
+  const h = review.ownerHolds(output({ owner_actions: [act('sensitive_copy', 'release'), act('cost_access', 'release'), act('data_collection')] }));
+  assert.deepEqual(h.actions.map(a => [a.kind, a.hold]), [['sensitive_copy', 'release'], ['cost_access', 'merge'], ['data_collection', 'merge']]);
+
+  const run = owner_actions => {
+    const gh = fakeGh({ pr: pr({ comments: [check(A)] }) });
+    const result = review.runReview(7, { gh, run: fakeRun().run, readOut: () => JSON.stringify(output({ owner_actions })), now: { date: '2027-01-16', hour: 12, minute: 0 } });
+    const labels = gh.calls.filter(c => c[0] === 'raw' && c[1].includes('--add-label')).map(c => c[1].at(-1));
+    return { result, labels, body: gh.calls.find(c => c[0] === 'comment')[3] };
+  };
+  const none = run([]);
+  assert.deepEqual([none.result.verdict, none.result.needsOwner, none.labels], ['APPROVE', false, []], 'ordinary work goes to Codex only');
+  const cost = run([act('cost_access')]);
+  assert.deepEqual([cost.result.verdict, cost.result.needsOwner, cost.labels], ['APPROVE', true, ['needs-owner']], 'a correct PR can still need the owner');
+  assert.match(cost.body, /Cần owner/);
+  assert.ok(!mergeGate({ ...pr({ comments: [check(A), approve(A)] }), labels: [{ name: 'needs-owner' }] }).ok, 'the merge gate refuses a merge hold');
+  const copy = run([act('sensitive_copy', 'release')]);
+  assert.deepEqual([copy.result.needsOwner, copy.result.ownerRelease, copy.labels], [false, true, [review.releaseLabel]], 'pending sensitive copy merges and waits for release');
+  assert.match(copy.body, /phát hành/);
 });
 
 test('daily cap refuses automatic reviews', () => {

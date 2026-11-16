@@ -46,6 +46,14 @@ can review in full. A review never sends a PR to the owner: only the owner's fou
 (cost or new service/access, release, privacy/consent/crisis/safety copy, switching on new personal-data
 collection).
 
+Name those four kinds in `owner_actions` (empty when the PR touches none). They are not findings and do
+not change the verdict: a correct PR can still need the owner. Use `cost_access` for a new cost, paid
+service, provider or access; `release` for shipping to real users; `data_collection` only when the PR
+turns on collecting or storing new personal data (work kept behind a switched-off flag is not it);
+`sensitive_copy` for privacy, consent, crisis or safety text a user can see. Set `blocks` to `release`
+only for sensitive copy kept pending (`status: pending`, served only after approval); otherwise `merge`.
+Give `file:line` evidence with synthetic wording.
+
 Same class (retro S2, #124 took seven rounds): when a finding is a pattern (a regex, a missing check, a
 copy rule, a lock), search the whole repository for every other place with the same pattern, for example
 with `git grep`, and name all of them in that one finding's `detail` as `file:line` entries. A re-review
