@@ -637,6 +637,26 @@
     "pr": 613
    },
    "note": "streak counted by tick sequence (tick-seq.json) from #622"
+  },
+  {
+   "id": "L38",
+   "title": "Trên file dùng chung, PR sự cố đi trước, rồi PR kế hoạch 7 tuần và PR sửa ngưỡng người giả (persona-fix), rồi phần còn lại; persona-fix chạy ở làn kế hoạch (rà soát 16.11: #505 an toàn chờ 43,5 giờ sau một PR thường)",
+   "from": "rà soát luồng 16.11 mục 2 và 5; fix-forward #631",
+   "who": "claude",
+   "due": "2026-11-17",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-loop.test.mjs",
+    "name": "review 16.11: inside a group an incident, then 7-week and persona-fix PRs go before an older ordinary PR on a shared file"
+   },
+   "caller": {
+    "file": "scripts/collab-turn.mjs",
+    "contains": "fileRank(b) - fileRank(a)"
+   },
+   "closedBy": {
+    "pr": 628
+   },
+   "note": "persona-fix in the plan lane: scripts/collab-buffer.mjs laneOf, test 'review 16.11: a persona-fix PR is plan-lane work'; first persona-fix items #626, #627"
   }
  ]
 }
