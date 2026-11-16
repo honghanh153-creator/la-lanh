@@ -93,7 +93,7 @@ Session mà owner đang trực tiếp trò chuyện không bị lịch này ch�
 5. **Trong ngày.** Một quyết định mới của owner được ghi ngay vào file này hoặc vào issue hub #2, để mọi session đều đọc được (bài học từ #136).
 6. **Cuối ngày.** Claude nhìn lại quy trình trong ngày, viết report ở `docs/reviews/YYYY-MM-DD-collab-loop-retro.md` (số liệu, chỗ kẹt, đã sửa, đề xuất) và mở PR `area:ops` để Codex review qua vòng tự động.
 
-7. **Bổ sung plan khi còn chỗ** (owner 31.10.2026; WIP 1 + 1 từ 12.11.2026). Tick đếm PR mở của agent (nhánh `agent/*` vào integration, không tính `needs-owner`): PR đang tới lượt máy (check, review, merge) là "đang review", PR còn lại là "đang làm". Tick chỉ ghi `topUp: true` (`topUpCount` luôn là 1) khi không có việc nào đang làm, tối đa 1 PR đang review và chưa tới 23:35 (giờ chạy từ 14.11.2026). Claude lấy việc kế tiếp theo thứ tự ưu tiên: issue task mở có nhãn `area:*` và không `needs-owner` trước, rồi việc `auto: yes` trong backlog. Mỗi việc đi qua checklist quyết định (Q1–Q5). Claude đăng một comment "Bổ sung plan HH:MM" trên issue plan (mang marker agent, không dùng cú pháp trả lời của owner), ghi việc gì, nguồn / AC, dòng "Người dùng thấy gì", và mở PR để máy chạy tiếp. Việc cần owner (copy mới, dữ liệu cá nhân, hướng sản phẩm) vẫn mở PR nhưng gắn `needs-owner`.
+7. **Bổ sung plan khi còn chỗ** (owner 31.10.2026; WIP 1 + 1 từ 12.11.2026). **Từ 16.11.2026 (owner, gói 5 mục 5): hai làn chạy song song.** Làn kế hoạch 7 tuần gồm PR có nhãn `ke-hoach-7-tuan` và PR của việc 7 tuần đã chọn hôm nay; mọi PR khác thuộc làn quy trình. Mỗi làn có WIP 1 + 1 riêng và tự bổ sung việc; làn quy trình bận không chặn làn 7 tuần. `claude-queue.json` ghi `topUpLanes` (làn được mở việc mới, làn 7 tuần trước) và `lanes`. Hàng chờ Codex và merge dùng chung, theo thứ tự: sự cố, rồi việc 7 tuần, rồi phần còn lại (#544). Việc quy trình không bị giới hạn một việc mỗi ngày. Câu cũ, giữ để tra: Tick đếm PR mở của agent (nhánh `agent/*` vào integration, không tính `needs-owner`): PR đang tới lượt máy (check, review, merge) là "đang review", PR còn lại là "đang làm". Tick chỉ ghi `topUp: true` (`topUpCount` luôn là 1) khi không có việc nào đang làm, tối đa 1 PR đang review và chưa tới 23:35 (giờ chạy từ 14.11.2026). Claude lấy việc kế tiếp theo thứ tự ưu tiên: issue task mở có nhãn `area:*` và không `needs-owner` trước, rồi việc `auto: yes` trong backlog. Mỗi việc đi qua checklist quyết định (Q1–Q5). Claude đăng một comment "Bổ sung plan HH:MM" trên issue plan (mang marker agent, không dùng cú pháp trả lời của owner), ghi việc gì, nguồn / AC, dòng "Người dùng thấy gì", và mở PR để máy chạy tiếp. Việc cần owner (copy mới, dữ liệu cá nhân, hướng sản phẩm) vẫn mở PR nhưng gắn `needs-owner`.
 
 ### 3.3 Plan trong ngày gồm
 
@@ -168,6 +168,12 @@ Session mà owner đang trực tiếp trò chuyện không bị lịch này ch�
       - Author check và lượt người giả đêm vẫn chạy một mình: author check chờ cả hai chỗ trống, và guard lùi lại khi có `check.lock`.
       - Chỗ có chủ đã chết thì không bị lấy lại; guard dùng chỗ còn lại.
       - Còn lại: chạy qa:journey, verify và script chụp ảnh buổi sáng qua guard. Script chụp ảnh nằm ngoài repo, do phiên khác giữ.
+11c. **Mã ops cố định cho mỗi lượt chạy (owner 16.11.2026, gói 5 mục 3c).**
+    - Tick (`collab-cron.sh`) và các bước `status`, `report`, `snapshot` của `ops-run.sh` không còn checkout lại cây `ops` dùng chung.
+    - Mỗi lượt tạo một worktree tách riêng, đúng commit đã review vừa fetch (`ops-runs/<bước>-<giờ>-<pid>`), chạy ở đó rồi xóa khi xong. Báo cáo chạy giữa chừng vì vậy không đổi được mã mà tick đang chạy.
+    - Worktree sót lại chỉ bị dọn khi tiến trình của nó đã dừng.
+    - Cây `ops` vẫn được tick cập nhật để git hook và cổng dev con đọc.
+    - **Sau merge:** cài lại bản `ops-run.sh` (`collab-ops-wrapper.mjs --install`) và bản `collab-cron.sh` ở `~/.cache/la-lanh-collab/bin/`. Bản cron đang cài có thêm một bước "cap-override" chưa qua review; từ khi trần cố định 80 thì bước này không cần nữa.
 12. JSON và log lưu ở `~/.cache/la-lanh-collab/logs/`, không vào repo.
 
 ### 4.2 `collab-merge.mjs` — điều kiện merge (tất cả phải đúng)
