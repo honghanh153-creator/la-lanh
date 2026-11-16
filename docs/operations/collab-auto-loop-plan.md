@@ -168,6 +168,12 @@ Session mà owner đang trực tiếp trò chuyện không bị lịch này ch�
       - Author check và lượt người giả đêm vẫn chạy một mình: author check chờ cả hai chỗ trống, và guard lùi lại khi có `check.lock`.
       - Chỗ có chủ đã chết thì không bị lấy lại; guard dùng chỗ còn lại.
       - Còn lại: chạy qa:journey, verify và script chụp ảnh buổi sáng qua guard. Script chụp ảnh nằm ngoài repo, do phiên khác giữ.
+11c. **Mã ops cố định cho mỗi lượt chạy (owner 16.11.2026, gói 5 mục 3c).**
+    - Tick (`collab-cron.sh`) và các bước `status`, `report`, `snapshot` của `ops-run.sh` không còn checkout lại cây `ops` dùng chung.
+    - Mỗi lượt tạo một worktree tách riêng, đúng commit đã review vừa fetch (`ops-runs/<bước>-<giờ>-<pid>`), chạy ở đó rồi xóa khi xong. Báo cáo chạy giữa chừng vì vậy không đổi được mã mà tick đang chạy.
+    - Worktree sót lại chỉ bị dọn khi tiến trình của nó đã dừng.
+    - Cây `ops` vẫn được tick cập nhật để git hook và cổng dev con đọc.
+    - **Sau merge:** cài lại bản `ops-run.sh` (`collab-ops-wrapper.mjs --install`) và bản `collab-cron.sh` ở `~/.cache/la-lanh-collab/bin/`. Bản cron đang cài có thêm một bước "cap-override" chưa qua review; từ khi trần cố định 80 thì bước này không cần nữa.
 12. JSON và log lưu ở `~/.cache/la-lanh-collab/logs/`, không vào repo.
 
 ### 4.2 `collab-merge.mjs` — điều kiện merge (tất cả phải đúng)
