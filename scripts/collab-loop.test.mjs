@@ -1492,6 +1492,7 @@ test('copy batch: an unresolved error keeps the run red, a lost alert is resent,
   const quiet = tick(deps(30, { result: { status: 'opened', codex: false } }));
   assert.equal(day().copyBatch.status, 'error', 'no more attempts today');
   assert.equal(quiet.status, 'ran-with-errors', 'a quiet tick after the last retry is still red');
+  assert.match(quiet.stuck ?? '', /^Lô duyệt câu chữ còn lỗi chưa xử lý \(lần 3\/3\): /, '16.11: the logged result says why the tick is red');
 
   const capped = '2026-12-02';
   trust.writeJson(trust.dayStatePath(capped), { codexRuns: trust.codexDailyCap, failures: 0 });
