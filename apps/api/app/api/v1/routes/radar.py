@@ -2,10 +2,11 @@ from datetime import date, datetime
 from typing import Annotated, Any, Literal, cast
 from uuid import UUID
 
-from fastapi import APIRouter, Cookie, Header, Query, Request, Response
+from fastapi import APIRouter, Cookie, Depends, Header, Query, Request, Response
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from app.api.crisis_guard import crisis_guard
 from app.domains.guest.errors import CsrfRejected, GuestDomainError
 from app.domains.guest.service import GuestSessionService
 from app.domains.identity.models import OwnerIdentity
@@ -243,7 +244,10 @@ def _invite(view: RadarInviteView, share_url: str | None = None) -> RadarInviteR
 
 
 @router.post(
-    "/radar/private-checks", response_model=RadarResultResponse, responses=RADAR_CREATE_ERRORS
+    "/radar/private-checks",
+    response_model=RadarResultResponse,
+    responses=RADAR_CREATE_ERRORS,
+    dependencies=[Depends(crisis_guard("recipient_label"))],
 )
 async def create_private_check(
     body: RadarPrivateCheckRequest,
@@ -280,7 +284,12 @@ async def create_private_check(
     return RadarResultResponse.model_validate(result)
 
 
-@router.post("/radar/requests", response_model=RadarInviteResponse, responses=RADAR_CREATE_ERRORS)
+@router.post(
+    "/radar/requests",
+    response_model=RadarInviteResponse,
+    responses=RADAR_CREATE_ERRORS,
+    dependencies=[Depends(crisis_guard("recipient_label"))],
+)
 async def create_request(
     body: RadarCreateRequest,
     request: Request,
