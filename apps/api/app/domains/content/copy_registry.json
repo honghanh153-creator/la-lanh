@@ -267,133 +267,133 @@
   {
    "id": "daily.action.capacity-before-agreement.01",
    "category": "reading",
-   "text": "Hỏi người nhờ cần xong lúc nào rồi mới mở lịch xem.",
+   "text": "Hỏi người nhờ việc cần xong lúc nào rồi mới xem lịch.",
    "status": "pending"
   },
   {
    "id": "daily.action.capacity-before-agreement.02",
    "category": "reading",
-   "text": "Kiểm tra lịch tuần này và chọn một buổi trống cho việc được nhờ.",
+   "text": "Ghi thời gian việc cần rồi tìm chỗ trống trong lịch.",
    "status": "pending"
   },
   {
    "id": "daily.action.capacity-before-agreement.03",
    "category": "reading",
-   "text": "Nhắn người nhờ giờ bạn sẽ làm, chọn theo chỗ trống trong lịch.",
+   "text": "Nói: Lịch mình trống vào giờ này, có kịp cho bạn không?",
    "status": "pending"
   },
   {
    "id": "daily.action.capacity-before-agreement.04",
    "category": "reading",
-   "text": "Hỏi việc được nhờ gồm những bước nào để tính đủ thời gian.",
+   "text": "Nói rõ việc nào trong lịch của bạn sẽ lùi lại nếu nhận thêm.",
    "status": "pending"
   },
   {
    "id": "daily.action.capacity-before-agreement.05",
    "category": "reading",
-   "text": "Ghi việc được nhờ vào lịch ngay khi nhận lời, có cả giờ bắt đầu.",
+   "text": "Nói giờ bạn còn trống trong lịch trước khi nhận lời nhờ.",
    "status": "pending"
   },
   {
    "id": "daily.action.capacity-before-agreement.06",
    "category": "reading",
-   "text": "Nói rõ việc nào trong lịch của bạn phải dời để làm việc được nhờ.",
+   "text": "Hỏi việc cần bao nhiêu thời gian trước khi nhận lời.",
    "status": "pending"
   },
   {
    "id": "daily.action.capacity-before-agreement.07",
    "category": "reading",
-   "text": "Nhắn người nhờ khoảng thời gian bạn rảnh, ví dụ tối thứ Năm, rồi hỏi có kịp không.",
+   "text": "Ghi việc được nhờ vào lịch ngay khi nhận lời.",
    "status": "pending"
   },
   {
    "id": "daily.action.capacity-before-agreement.08",
    "category": "reading",
-   "text": "Ghi thời gian của từng việc được nhờ hôm nay rồi cộng lại.",
+   "text": "Nói: Để mình xem lịch rồi báo bạn trong hôm nay.",
    "status": "pending"
   },
   {
    "id": "daily.action.capacity-before-agreement.09",
    "category": "reading",
-   "text": "Đặt thêm nửa tiếng dự phòng khi ước thời gian cho việc được nhờ.",
+   "text": "Chọn một thời gian cụ thể trong lịch rồi mới nói được.",
    "status": "pending"
   },
   {
    "id": "daily.action.capacity-before-agreement.10",
    "category": "reading",
-   "text": "Đặt giờ nghỉ trưa vào lịch như một việc không nhận đè lên.",
+   "text": "Đặt thêm thời gian dự phòng khi ước lượng việc được nhờ.",
    "status": "pending"
   },
   {
    "id": "daily.action.capacity-before-agreement.11",
    "category": "reading",
-   "text": "Chọn một phần việc vừa với thời gian bạn có và nói rõ phần đó.",
+   "text": "Kiểm tra lịch ba ngày tới trước khi trả lời lời nhờ.",
    "status": "pending"
   },
   {
    "id": "daily.action.capacity-before-agreement.12",
    "category": "reading",
-   "text": "Hỏi người nhờ có thể chờ tới ngày nào để xếp vào lịch.",
+   "text": "Hỏi người nhờ cần bạn làm phần nào để ước lượng thời gian.",
    "status": "pending"
   },
   {
    "id": "daily.action.capacity-before-agreement.13",
    "category": "reading",
-   "text": "Ghi cả thời gian đi đường vào lịch khi nhận giúp việc ở xa.",
+   "text": "Nói thời gian bạn có thể bắt đầu, không hứa sớm hơn lịch cho phép.",
    "status": "pending"
   },
   {
    "id": "daily.action.capacity-before-agreement.14",
    "category": "reading",
-   "text": "Kiểm tra lịch cuối tuần rồi báo người nhờ ngày bạn đi được.",
+   "text": "Ghi thời gian thật bạn đã dùng cho lần giúp trước để ước lượng lần này.",
    "status": "pending"
   },
   {
    "id": "daily.action.capacity-before-agreement.15",
    "category": "reading",
-   "text": "Nói giờ sớm nhất bạn bắt đầu được, dựa trên lịch hôm nay.",
+   "text": "Đặt lời nhờ vào lịch như một việc có giờ bắt đầu và kết thúc.",
    "status": "pending"
   },
   {
    "id": "daily.action.capacity-before-agreement.16",
    "category": "reading",
-   "text": "Bỏ một việc ít gấp khỏi lịch để có giờ cho việc được nhờ.",
+   "text": "Bỏ một việc ít cần trong lịch nếu bạn muốn nhận việc được nhờ.",
    "status": "pending"
   },
   {
    "id": "daily.action.capacity-before-agreement.17",
    "category": "reading",
-   "text": "Hỏi người nhờ có lùi hạn thêm một ngày được không để xếp lại lịch.",
+   "text": "Kiểm tra lịch trước khi trả lời lời nhờ nào trong hôm nay.",
    "status": "pending"
   },
   {
    "id": "daily.action.capacity-before-agreement.18",
    "category": "reading",
-   "text": "Viết ra lần giúp trước mất bao nhiêu thời gian để ước lần này.",
+   "text": "Ghi thời gian đi lại vào lịch cùng với việc được nhờ.",
    "status": "pending"
   },
   {
    "id": "daily.action.capacity-before-agreement.19",
    "category": "reading",
-   "text": "Đặt giới hạn thời gian cho việc giúp, ví dụ chỉ hai tiếng tối nay.",
+   "text": "Hỏi người nhờ có thể chờ đến ngày nào trong lịch của bạn.",
    "status": "pending"
   },
   {
    "id": "daily.action.capacity-before-agreement.20",
    "category": "reading",
-   "text": "Đặt giờ dừng cho việc được nhờ tối nay để còn đủ thời gian ngủ.",
+   "text": "Nói bạn sẽ trả lời sau khi xem lịch tối nay.",
    "status": "pending"
   },
   {
    "id": "daily.action.capacity-before-agreement.21",
    "category": "reading",
-   "text": "Nói với người nhờ bạn chỉ có thời gian giúp một buổi trong tuần này.",
+   "text": "Đặt một giới hạn thời gian cho việc được nhờ trong tuần này.",
    "status": "pending"
   },
   {
    "id": "daily.action.capacity-before-agreement.22",
    "category": "reading",
-   "text": "Đổi giờ giúp sang ngày lịch còn trống và báo người nhờ biết.",
+   "text": "Kiểm tra lịch ngày mai trước khi nhận thêm một việc.",
    "status": "pending"
   },
   {
@@ -2487,145 +2487,145 @@
   {
    "id": "daily.headline.capacity-before-agreement.01",
    "category": "reading",
-   "text": "Bạn gật đầu giúp bạn bè trước khi xem lịch.",
+   "text": "Bạn muốn nhận việc trước khi xem lịch.",
    "status": "pending"
   },
   {
    "id": "daily.headline.capacity-before-agreement.02",
    "category": "reading",
-   "text": "Bạn nhận thêm việc dù tuần này đã kín lịch.",
+   "text": "Lịch của bạn chưa có chỗ cho việc mới.",
    "status": "pending"
   },
   {
    "id": "daily.headline.capacity-before-agreement.03",
    "category": "reading",
-   "text": "Bạn nói được rồi mới hỏi việc gồm những gì.",
+   "text": "Bạn muốn giúp, giờ trống thì chưa rõ.",
    "status": "pending"
   },
   {
    "id": "daily.headline.capacity-before-agreement.04",
    "category": "reading",
-   "text": "Bạn nghĩ việc được nhờ chỉ mất mười phút.",
+   "text": "Bạn nhận lời rồi mới tìm giờ để làm.",
    "status": "pending"
   },
   {
    "id": "daily.headline.capacity-before-agreement.05",
    "category": "reading",
-   "text": "Bạn hứa giúp vào cuối tuần đã có hẹn.",
+   "text": "Việc được nhờ chưa có chỗ trong ngày bạn.",
    "status": "pending"
   },
   {
    "id": "daily.headline.capacity-before-agreement.06",
    "category": "reading",
-   "text": "Bạn nhận việc của đồng nghiệp rồi phải làm tới khuya.",
+   "text": "Muốn làm và có giờ làm là hai chuyện.",
    "status": "pending"
   },
   {
    "id": "daily.headline.capacity-before-agreement.07",
    "category": "reading",
-   "text": "Bạn quên tính giờ đi lại khi nhận lời giúp.",
+   "text": "Bạn muốn giúp mà chưa tính thời gian cần.",
    "status": "pending"
   },
   {
    "id": "daily.headline.capacity-before-agreement.08",
    "category": "reading",
-   "text": "Bạn nhận lời giúp ngay giữa cuộc gọi.",
+   "text": "Lời nhờ đến khi lịch bạn đã khá kín.",
    "status": "pending"
   },
   {
    "id": "daily.headline.capacity-before-agreement.09",
    "category": "reading",
-   "text": "Bạn nhận cả ba việc được nhờ trong một ngày.",
+   "text": "Bạn chưa biết việc mới cần bao lâu.",
    "status": "pending"
   },
   {
    "id": "daily.headline.capacity-before-agreement.10",
    "category": "reading",
-   "text": "Bạn ngại hỏi việc được nhờ cần xong lúc nào.",
+   "text": "Bạn muốn nói được trước khi xem ngày mình.",
    "status": "pending"
   },
   {
    "id": "daily.headline.capacity-before-agreement.11",
    "category": "reading",
-   "text": "Bạn nhận lời giúp vào đúng giờ nghỉ trưa của mình.",
+   "text": "Thời gian của bạn có hạn, lời nhờ thì nhiều.",
    "status": "pending"
   },
   {
    "id": "daily.headline.capacity-before-agreement.12",
    "category": "reading",
-   "text": "Bạn nhận lời rồi phải dời việc riêng của mình.",
+   "text": "Xem lịch trước giúp lời nhận của bạn vững hơn.",
    "status": "pending"
   },
   {
    "id": "daily.headline.capacity-before-agreement.13",
    "category": "reading",
-   "text": "Bạn chỉ tính bước đầu của việc được nhờ.",
+   "text": "Bạn chưa biết việc được nhờ sẽ chen vào đâu.",
    "status": "pending"
   },
   {
    "id": "daily.headline.capacity-before-agreement.14",
    "category": "reading",
-   "text": "Bạn khó nói chưa được với người quen nhờ việc.",
+   "text": "Ngày của bạn đã kín hơn bạn nhớ.",
    "status": "pending"
   },
   {
    "id": "daily.headline.capacity-before-agreement.15",
    "category": "reading",
-   "text": "Bạn nhận việc gấp mà chưa xem chiều nay còn gì.",
+   "text": "Bạn nghĩ việc được nhờ sẽ xong nhanh.",
    "status": "pending"
   },
   {
    "id": "daily.headline.capacity-before-agreement.16",
    "category": "reading",
-   "text": "Bạn nhận lời vì nghĩ tuần sau sẽ rảnh hơn.",
+   "text": "Bạn chưa so việc mới với lịch đang có.",
    "status": "pending"
   },
   {
    "id": "daily.headline.capacity-before-agreement.17",
    "category": "reading",
-   "text": "Bạn nhận việc trong nhóm chat trước khi xem lịch.",
+   "text": "Lời nhận của bạn cần một chỗ trong lịch.",
    "status": "pending"
   },
   {
    "id": "daily.headline.capacity-before-agreement.18",
    "category": "reading",
-   "text": "Bạn nhận lời giúp khi đang mệt sau một ngày dài.",
+   "text": "Biết mình còn bao nhiêu giờ, lời nhận dễ giữ hơn.",
    "status": "pending"
   },
   {
    "id": "daily.headline.capacity-before-agreement.19",
    "category": "reading",
-   "text": "Bạn giúp xong việc này lại nhận thêm việc khác.",
+   "text": "Lòng muốn nhận, lịch thì chưa trả lời.",
    "status": "pending"
   },
   {
    "id": "daily.headline.capacity-before-agreement.20",
    "category": "reading",
-   "text": "Bạn trễ hẹn riêng vì việc nhận giúp người khác.",
+   "text": "Bạn hứa trước, giờ trống tính sau.",
    "status": "pending"
   },
   {
    "id": "daily.headline.capacity-before-agreement.21",
    "category": "reading",
-   "text": "Bạn nhận lời nhờ mà không ghi vào lịch.",
+   "text": "Một cái nhìn vào lịch giúp lời hứa nhẹ hơn.",
    "status": "pending"
   },
   {
    "id": "daily.headline.capacity-before-agreement.22",
    "category": "reading",
-   "text": "Bạn nhận giúp dọn đồ mà chưa hỏi làm ngày nào.",
+   "text": "Bạn quên tính thời gian đi lại cho việc mới.",
    "status": "pending"
   },
   {
    "id": "daily.headline.capacity-before-agreement.23",
    "category": "reading",
-   "text": "Bạn nhận làm thêm giờ dù tối nay có hẹn.",
+   "text": "Ngày mai của bạn đã có nhiều việc chờ.",
    "status": "pending"
   },
   {
    "id": "daily.headline.capacity-before-agreement.24",
    "category": "reading",
-   "text": "Bạn nhận lời giúp rồi quên tới khi được nhắc.",
+   "text": "Xem lịch trước là cách giữ lời dễ hơn.",
    "status": "pending"
   },
   {
@@ -4839,133 +4839,133 @@
   {
    "id": "daily.scene.capacity-before-agreement.01",
    "category": "reading",
-   "text": "Khi sếp nhờ làm thêm một bản báo cáo, bạn nhận ngay dù chiều nay kín lịch.",
+   "text": "Khi được nhờ trong lúc đang vội, bạn có thể nhận lời mà chưa mở lịch xem.",
    "status": "pending"
   },
   {
    "id": "daily.scene.capacity-before-agreement.02",
    "category": "reading",
-   "text": "Khi bạn thân nhờ chở ra sân bay sáng sớm, bạn nhận mà quên mình có ca làm.",
+   "text": "Khi người kia nhờ và hỏi bạn rảnh không, bạn có thể nói có trước khi biết việc mất bao lâu.",
    "status": "pending"
   },
   {
    "id": "daily.scene.capacity-before-agreement.03",
    "category": "reading",
-   "text": "Khi đồng nghiệp nhờ sửa giúp một tệp, bạn nghĩ mười phút là xong rồi mất cả chiều.",
+   "text": "Khi muốn giúp một người quen, bạn có thể nhận việc dù tuần này lịch đã kín.",
    "status": "pending"
   },
   {
    "id": "daily.scene.capacity-before-agreement.04",
    "category": "reading",
-   "text": "Khi nhóm chat hỏi ai nhận việc, bạn nhận trước khi mở lịch tuần sau.",
+   "text": "Khi việc được nhờ nghe có vẻ nhanh, bạn có thể nhận mà chưa tính thời gian thật cần.",
    "status": "pending"
   },
   {
    "id": "daily.scene.capacity-before-agreement.05",
    "category": "reading",
-   "text": "Khi mẹ nhờ về quê cuối tuần, bạn nhận lời dù hôm đó có hẹn bạn bè.",
+   "text": "Khi được nhờ vào đầu tuần, bạn có thể nhận lời mà chưa xem lịch cả tuần còn gì.",
    "status": "pending"
   },
   {
    "id": "daily.scene.capacity-before-agreement.06",
    "category": "reading",
-   "text": "Khi hàng xóm nhờ trông chó mấy ngày, bạn gật đầu mà chưa xem lịch công tác.",
+   "text": "Khi người kia nhờ một việc nghe quen, bạn có thể nghĩ nó nhanh mà chưa xem lịch còn chỗ.",
    "status": "pending"
   },
   {
    "id": "daily.scene.capacity-before-agreement.07",
    "category": "reading",
-   "text": "Khi được nhờ giúp chuyển nhà, bạn nhận mà chưa hỏi mất bao nhiêu tiếng.",
+   "text": "Khi nhiều người nhờ trong cùng một ngày, bạn có thể nhận hết mà chưa sắp vào lịch.",
    "status": "pending"
   },
   {
    "id": "daily.scene.capacity-before-agreement.08",
    "category": "reading",
-   "text": "Khi người quen nhờ lúc đang vui, bạn nhận lời rồi tối về mới thấy lịch kín.",
+   "text": "Khi được nhờ qua tin nhắn, bạn có thể trả lời được ngay mà chưa mở lịch.",
    "status": "pending"
   },
   {
    "id": "daily.scene.capacity-before-agreement.09",
    "category": "reading",
-   "text": "Khi một ngày có ba người nhờ việc, bạn nhận cả ba mà chưa cộng giờ.",
+   "text": "Khi người kia nhờ và nói không gấp, bạn có thể nhận mà chưa ghi vào lịch bao giờ làm.",
    "status": "pending"
   },
   {
    "id": "daily.scene.capacity-before-agreement.10",
    "category": "reading",
-   "text": "Khi việc được nhờ gồm nhiều bước, bạn chỉ tính bước đầu nên lịch bị lố.",
+   "text": "Khi lịch tuần này đã kín, bạn có thể vẫn nhận lời nhờ vì nghĩ sẽ xoay xở được.",
    "status": "pending"
   },
   {
    "id": "daily.scene.capacity-before-agreement.11",
    "category": "reading",
-   "text": "Khi đồng nghiệp nhờ vào giờ nghỉ trưa, bạn nhận và bỏ bữa để làm.",
+   "text": "Khi được nhờ việc cho tuần sau, bạn có thể nhận vì nghĩ lịch tuần sau còn trống.",
    "status": "pending"
   },
   {
    "id": "daily.scene.capacity-before-agreement.12",
    "category": "reading",
-   "text": "Khi lời nhờ đến lúc tối muộn, bạn vẫn nhận và làm tới nửa đêm.",
+   "text": "Khi người kia nhờ gấp trong hôm nay, bạn có thể nhận mà chưa xem lịch chiều còn gì.",
    "status": "pending"
   },
   {
    "id": "daily.scene.capacity-before-agreement.13",
    "category": "reading",
-   "text": "Khi được nhờ việc cho tuần sau, bạn nhận vì nghĩ tuần sau rảnh hơn.",
+   "text": "Khi việc được nhờ gồm nhiều bước, bạn có thể chỉ tính bước đầu khi xem lịch.",
    "status": "pending"
   },
   {
    "id": "daily.scene.capacity-before-agreement.14",
    "category": "reading",
-   "text": "Khi em nhờ kèm bài mỗi tối, bạn nhận mà chưa xem tối nào mình bận.",
+   "text": "Khi được nhờ lúc đang vui, bạn có thể nhận lời trước khi nhìn lại lịch của mình.",
    "status": "pending"
   },
   {
    "id": "daily.scene.capacity-before-agreement.15",
    "category": "reading",
-   "text": "Khi người nhờ bảo không gấp, bạn nhận mà không ghi vào lịch nên quên.",
+   "text": "Khi lịch đã có giờ nghỉ, bạn có thể nhận lời nhờ vào đúng giờ đó mà chưa để ý.",
    "status": "pending"
   },
   {
    "id": "daily.scene.capacity-before-agreement.16",
    "category": "reading",
-   "text": "Khi khách nhờ làm gấp trong hôm nay, bạn nhận dù việc cũ chưa xong.",
+   "text": "Khi được nhờ nhiều việc nhỏ liên tiếp, bạn có thể quên cộng chúng lại khi xem lịch.",
    "status": "pending"
   },
   {
    "id": "daily.scene.capacity-before-agreement.17",
    "category": "reading",
-   "text": "Khi bạn bè nhờ làm giúp tấm thiệp, bạn nhận mà chưa hỏi họ cần lúc nào.",
+   "text": "Khi được nhờ giúp một việc dài, bạn có thể nhận mà chưa chia nó vào lịch.",
    "status": "pending"
   },
   {
    "id": "daily.scene.capacity-before-agreement.18",
    "category": "reading",
-   "text": "Khi lịch tuần này kín, bạn vẫn nhận thêm việc và định thức khuya để bù.",
+   "text": "Khi lời nhờ đến giữa cuộc trò chuyện vui, bạn có thể nhận trước khi xem lịch.",
    "status": "pending"
   },
   {
    "id": "daily.scene.capacity-before-agreement.19",
    "category": "reading",
-   "text": "Khi sếp nhờ trong cuộc họp, bạn nhận trước mặt mọi người dù chưa xem lịch.",
+   "text": "Khi người kia nhờ cho cuối tuần, bạn có thể quên lịch cuối tuần đã có hẹn.",
    "status": "pending"
   },
   {
    "id": "daily.scene.capacity-before-agreement.20",
    "category": "reading",
-   "text": "Khi được nhờ đi đám cưới thay, bạn nhận mà quên tính giờ đi đường.",
+   "text": "Khi được nhờ thêm sau một ngày dài, bạn có thể nhận mà chưa xem lịch mai.",
    "status": "pending"
   },
   {
    "id": "daily.scene.capacity-before-agreement.21",
    "category": "reading",
-   "text": "Khi người quen nhờ lần thứ hai trong tuần, bạn ngại từ chối nên nhận tiếp.",
+   "text": "Khi được nhờ việc quen tay, bạn có thể nhận mà chưa tính giờ trong lịch.",
    "status": "pending"
   },
   {
    "id": "daily.scene.capacity-before-agreement.22",
    "category": "reading",
-   "text": "Khi được nhờ việc quen tay, bạn nhận luôn vì nghĩ nhanh, rồi lịch bị dồn.",
+   "text": "Khi lời nhờ đến lúc lịch vừa trống, bạn có thể nhận ngay mà quên giờ nghỉ.",
    "status": "pending"
   },
   {
@@ -9142,6 +9142,222 @@
    "id": "daily.bundle.perfect-before-start.12.scene",
    "category": "reading",
    "text": "Ảnh chuyến đi biển cả nhóm đang chờ, nhưng bạn muốn sửa ánh sáng xong từng tấm mới gửi.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.capacity-before-agreement.01.action",
+   "category": "reading",
+   "text": "Nhắn sếp giờ bạn nộp được báo cáo, tính theo chỗ trống trong lịch.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.capacity-before-agreement.01.headline",
+   "category": "reading",
+   "text": "Bạn nhận thêm báo cáo dù chiều nay kín lịch.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.capacity-before-agreement.01.scene",
+   "category": "reading",
+   "text": "Sếp nhờ làm thêm một bản báo cáo, bạn nhận ngay dù lịch chiều nay đã kín.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.capacity-before-agreement.02.action",
+   "category": "reading",
+   "text": "Kiểm tra lịch ca làm sáng mai rồi nhắn bạn thân bạn chở được hay không.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.capacity-before-agreement.02.headline",
+   "category": "reading",
+   "text": "Bạn hứa chở bạn thân ra sân bay sáng mai.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.capacity-before-agreement.02.scene",
+   "category": "reading",
+   "text": "Bạn thân nhờ chở ra sân bay sáng mai, bạn nhận lời rồi mới nhớ lịch có ca làm.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.capacity-before-agreement.03.action",
+   "category": "reading",
+   "text": "Hỏi đồng nghiệp tệp cần sửa những gì để tính đủ thời gian.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.capacity-before-agreement.03.headline",
+   "category": "reading",
+   "text": "Bạn nghĩ sửa giúp tệp chỉ mất mười phút.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.capacity-before-agreement.03.scene",
+   "category": "reading",
+   "text": "Đồng nghiệp nhờ sửa giúp một tệp, bạn nghĩ mười phút là xong nên không xem lịch.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.capacity-before-agreement.04.action",
+   "category": "reading",
+   "text": "Ghi việc đặt chỗ vào lịch tuần sau, có ngày làm cụ thể.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.capacity-before-agreement.04.headline",
+   "category": "reading",
+   "text": "Bạn nhận đặt chỗ liên hoan cho cả nhóm.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.capacity-before-agreement.04.scene",
+   "category": "reading",
+   "text": "Nhóm bạn hỏi ai đặt chỗ liên hoan, bạn nhận trước khi mở lịch tuần sau.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.capacity-before-agreement.05.action",
+   "category": "reading",
+   "text": "Kiểm tra lịch cuối tuần rồi báo mẹ ngày bạn về được.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.capacity-before-agreement.05.headline",
+   "category": "reading",
+   "text": "Bạn hứa về quê cuối tuần đã có hẹn.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.capacity-before-agreement.05.scene",
+   "category": "reading",
+   "text": "Mẹ nhờ về quê cuối tuần này, bạn nhận lời dù lịch hôm đó có hẹn với bạn.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.capacity-before-agreement.06.action",
+   "category": "reading",
+   "text": "Kiểm tra lịch công tác rồi nói hàng xóm những ngày bạn trông được.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.capacity-before-agreement.06.headline",
+   "category": "reading",
+   "text": "Bạn nhận trông chó giúp hàng xóm ba ngày.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.capacity-before-agreement.06.scene",
+   "category": "reading",
+   "text": "Hàng xóm nhờ trông chó ba ngày, bạn gật đầu mà chưa xem lịch công tác.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.capacity-before-agreement.07.action",
+   "category": "reading",
+   "text": "Hỏi bạn ấy chuyển phòng mất mấy tiếng rồi ghi thời gian vào lịch thứ Bảy.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.capacity-before-agreement.07.headline",
+   "category": "reading",
+   "text": "Bạn nhận giúp chuyển phòng trọ vào thứ Bảy.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.capacity-before-agreement.07.scene",
+   "category": "reading",
+   "text": "Bạn cùng lớp nhờ chuyển phòng trọ thứ Bảy, bạn nhận lời khi chưa hỏi mất mấy tiếng.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.capacity-before-agreement.08.action",
+   "category": "reading",
+   "text": "Ghi thời gian của từng việc vào lịch rồi cộng lại xem có đủ không.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.capacity-before-agreement.08.headline",
+   "category": "reading",
+   "text": "Bạn nhận cả ba việc được nhờ trong một ngày.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.capacity-before-agreement.08.scene",
+   "category": "reading",
+   "text": "Hôm nay có ba người nhờ việc, bạn nhận cả ba mà chưa cộng thời gian trong lịch.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.capacity-before-agreement.09.action",
+   "category": "reading",
+   "text": "Đổi giờ kiểm số liệu sang đầu giờ chiều và đặt bữa trưa vào lịch.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.capacity-before-agreement.09.headline",
+   "category": "reading",
+   "text": "Bạn nhận lời giúp vào đúng giờ nghỉ trưa.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.capacity-before-agreement.09.scene",
+   "category": "reading",
+   "text": "Đồng nghiệp nhờ kiểm số liệu lúc nghỉ trưa, bạn nhận và định bỏ bữa để làm.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.capacity-before-agreement.10.action",
+   "category": "reading",
+   "text": "Kiểm tra lịch các buổi tối rồi nói với em những tối bạn kèm được.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.capacity-before-agreement.10.headline",
+   "category": "reading",
+   "text": "Bạn nhận kèm em học mỗi tối trong tuần.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.capacity-before-agreement.10.scene",
+   "category": "reading",
+   "text": "Em nhờ kèm bài mỗi tối, bạn nhận mà chưa xem lịch tối nào mình bận.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.capacity-before-agreement.11.action",
+   "category": "reading",
+   "text": "Ghi việc in ảnh vào lịch tuần này, có ngày giao cho chị.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.capacity-before-agreement.11.headline",
+   "category": "reading",
+   "text": "Bạn nhận lời nhờ mà không ghi vào lịch.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.capacity-before-agreement.11.scene",
+   "category": "reading",
+   "text": "Chị họ nhờ in giúp tập ảnh và bảo không gấp, bạn nhận mà không ghi vào lịch.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.capacity-before-agreement.12.action",
+   "category": "reading",
+   "text": "Nói với khách giờ sớm nhất bạn giao được, dựa trên lịch hôm nay.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.capacity-before-agreement.12.headline",
+   "category": "reading",
+   "text": "Bạn nhận việc gấp của khách khi việc cũ chưa xong.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.capacity-before-agreement.12.scene",
+   "category": "reading",
+   "text": "Khách nhờ làm gấp trong hôm nay, bạn nhận dù lịch còn hai việc cũ chưa xong.",
    "status": "pending"
   },
   {

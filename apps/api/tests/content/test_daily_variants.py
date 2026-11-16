@@ -281,36 +281,39 @@ def test_every_headline_fits_the_home_title_budget() -> None:
     assert not over, over
 
 
-# Codex review @ 7fd009e (#404): scenes and actions rotate independently, so every action a
-# capacity-before-agreement card can draw must fit every scene. Rewritten scenes say the reader
-# already said yes, so no action may require going back to before the reply, and no action may
-# name a recipient that only one scene has.
+# Codex review @ 94963fe (#404): a line naming one recipient (sếp, mẹ, khách …) must never be
+# paired with a line about someone else. The plain rewrite of capacity-before-agreement therefore
+# lives only in bundles, which are served whole; the independently rotated lines stay generic.
+_RECIPIENTS = re.compile(
+    r"\b(?:sếp|mẹ|bố|đồng nghiệp|hàng xóm|khách|bạn thân|chị họ|bạn cùng lớp)\b"
+)
+# The reader has already said yes in every bundle scene, so the action must be doable after
+# the reply, never "before you answer".
 _PRE_AGREEMENT = re.compile(
     r"trước khi (?:trả lời|nhận|hứa|đồng ý)|rồi mới (?:trả lời|chốt)|nếu (?:muốn )?nhận"
 )
-# Live shared-pool lines: changing them needs a fallback-approval refresh, tracked in #405.
-_LIVE_PENDING_FIX = {
-    "Ghi thời gian bắt đầu và dừng trước khi nhận phần việc giúp.",
-    "Nói mình cần xem lịch rồi mới trả lời phần có thể giúp.",
-    "Nói với người kia mình cần xem lịch rồi mới chốt thời gian giúp.",
-}
-_RECIPIENTS = re.compile(r"\b(?:sếp|mẹ|bố|đồng nghiệp|hàng xóm|khách|bạn thân|người quen)\b")
 
 
-def test_capacity_actions_fit_every_scene_in_rotation() -> None:
-    issue = ISSUES["capacity-before-agreement"]
-    registry = [
+def test_capacity_recipient_lines_live_only_in_whole_bundles() -> None:
+    prefix = "daily.bundle.capacity-before-agreement."
+    bundles: dict[str, dict[str, str]] = {}
+    for key, entry in DAILY.items():
+        if key.startswith(prefix):
+            number, part = key[len(prefix) :].split(".")
+            bundles.setdefault(number, {})[part] = entry.text
+    assert len(bundles) == 12 and all(set(found) == set(PARTS) for found in bundles.values())
+    for number, found in bundles.items():
+        assert not _PRE_AGREEMENT.search(found["action"].lower()), number
+        # An action that names a person names one the same bundle's scene names.
+        named = set(_RECIPIENTS.findall(found["action"].lower()))
+        assert named <= set(_RECIPIENTS.findall(found["scene"].lower())), number
+    loose = [
         entry.text
         for key, entry in DAILY.items()
-        if key.startswith("daily.action.capacity-before-agreement.")
+        if (m := ID.match(key)) is not None and m["issue"] == "capacity-before-agreement"
     ]
-    assert registry
-    live = (*issue.advice, *issue.relationship_advice)
-    assert _LIVE_PENDING_FIX <= set(live), "#405 fixed: drop the exemption"
-    pool = (*(text for text in live if text not in _LIVE_PENDING_FIX), *registry)
-    timing = [text for text in pool if _PRE_AGREEMENT.search(text.lower())]
-    named = [text for text in pool if _RECIPIENTS.search(text.lower())]
-    assert timing == [] and named == [], (timing, named)
+    assert len(loose) == 68
+    assert [text for text in loose if _RECIPIENTS.search(text.lower())] == []
 
 
 # Lesson from #404: headline, scene and action rotate independently, so every changed-plan
