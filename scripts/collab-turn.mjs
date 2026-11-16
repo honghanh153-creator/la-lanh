@@ -257,6 +257,10 @@ export const copyBatchAttempts = 3;
 
 export const autopilotSession = 'autopilot';
 
+// Owner 16.11 (two lanes): today's picked 7-week items' PRs belong to the 7-week lane even before
+// their PR carries the plan label.
+export const plan7wPrNumbers = (turns, date) => { const keys = new Set(readJson(dayStatePath(date), {}).planned7wKeys ?? []); return turns.filter(t => keys.has(unitKey(t))).map(t => t.number); };
+
 export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], prPreflight: preflight = () => ({ status: 'PASS' }), heavyFree = () => true, nowMs = Date.now, check = () => ({ status: 'skipped' }), review, merge, alert, board = () => {}, log = () => {}, watchdog = () => {}, health = () => [], copyPending = () => 0, copyBatch = null, copySaved = () => false, notify = () => {}, metrics = () => null, audit = null, incidents = null, ciStatus = null, settle = defaultSettle, mergeAudit = null } = {}) {
   // The clock is read again before each action, so a long review cannot push the next one past lastStartAt.
   const time = clock ?? (now ? () => now : () => vnNow());
@@ -353,7 +357,7 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       const turns = applyDrops(ciRechecks(turnsFor(prs, { dropped: drops.prs, baseFiles: gh.compareFiles }), prs, { ci: ciStatus, seen: recheckedKeys(now.date), log }), gone);
       // #253: the scheduled tick samples the flow metric and owns the buffer top-up, so the
       // persisted queue and --status agree and the metric does not depend on report reads.
-      const { queue: startBuffer } = bufferStatus(prs, turns);
+      const { queue: startBuffer } = bufferStatus(prs, turns, { plan7wPrs: plan7wPrNumbers(turns, now.date) });
       measure(prs, turns);
       const area = activeArea(turns);
       // Owner 15.11: the kept 7-week items are worked first, whatever area is active, or the seats
@@ -501,7 +505,7 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       // top-up describes what is left now, not the list fetched before this run's work.
       const left = done.length ? gh.openPrs() : prs;
       const leftTurns = done.length ? applyDrops(turnsFor(left, { dropped: dropSet(plan, left, null, readJson(dayPath, day)).prs, baseFiles: gh.compareFiles }), gone) : turns;
-      const buffer = done.length ? queueTopUp(wipCount(left, leftTurns)) : startBuffer;
+      const buffer = done.length ? queueTopUp(wipCount(left, leftTurns, { plan7wPrs: plan7wPrNumbers(leftTurns, now.date) })) : startBuffer;
       writeJson(join(stateDir, 'claude-queue.json'), {
         // One session per PR (owner 16.11): the hourly autopilot (session id `autopilot`) gets only
         // fix items no other session holds; the held ones are listed apart.
@@ -511,6 +515,8 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
         // only when nothing is in progress and review has room, and never from lastStartAt on.
         topUp: buffer.topUp && !late(),
         topUpCount: late() ? 0 : buffer.topUpCount, buffer: buffer.buffer, inProgress: buffer.inProgress, inReview: buffer.inReview,
+        // Two lanes (owner 16.11): where a new task may open, 7-week first, and each lane's counts.
+        topUpLanes: late() ? [] : buffer.topUpLanes ?? [], lanes: buffer.lanes ?? null,
         idleRuns,
       });
       if (idleRuns >= idleAlertRuns && !idleAlerted && alert) {
@@ -613,11 +619,11 @@ if (isMain(import.meta.url)) {
       process.stderr.write('Use: node scripts/collab-tick.mjs\n'); process.exitCode = 2;
     } else if (args.includes('--status')) {
       const { plan, prs, turns } = planTurns(gh);
-      const { queue: buffer } = bufferStatus(prs, turns);
+      const { queue: buffer } = bufferStatus(prs, turns, { plan7wPrs: plan7wPrNumbers(turns, vnNow().date) });
       process.stdout.write(`${JSON.stringify({ plan: plan.state, reason: plan.reason, dropped: plan.dropped, queue: { ...readJson(join(stateDir, 'claude-queue.json'), null), ...buffer } })}\n`);
     } else {
       const { prs, turns } = planTurns(gh);
-      const { lines } = bufferStatus(prs, turns);
+      const { lines } = bufferStatus(prs, turns, { plan7wPrs: plan7wPrNumbers(turns, vnNow().date) });
       process.stdout.write(`${args.includes('--json') ? JSON.stringify(turns, null, 2) : [renderReport(turns), ...lines].join('\n')}\n`);
     }
   } catch (error) { process.stderr.write(`collab-turn failed: ${clean(error.message, 500)}\n`); process.exitCode = 1; }
