@@ -9,7 +9,7 @@ Trạng thái: **ĐÃ CHỐT với owner ngày 30.10.2026.** Code xây theo đú
 | Thời gian một vòng review | ≤ vài giờ (chờ owner chuyển lời) | ≤ 15 phút |
 | Mở PR → merge integration (trung vị) | 22 giờ | ≤ 2 giờ |
 | PR có ≥ 3 vòng verdict | 32 / 106 | ≤ 10% |
-| Owner phải chuyển lời giữa hai agent | mỗi vòng | 0 (chỉ duyệt plan buổi sáng, trước 08:00 từ 14.11.2026, và buổi review sâu mỗi đợt) |
+| Owner phải chuyển lời giữa hai agent | mỗi vòng | 0 (từ 16.11.2026 plan tự chạy khi đăng, owner chỉ `Giữ` khi muốn dừng; buổi review sâu mỗi đợt) |
 | PR chỉ để ghi registry | ~10 | 0 |
 
 Ngoài phạm vi: merge vào `main`, release, deploy, server/DB thật, provider, IAM, secret, budget. Những việc này giữ nguyên quyền owner.
@@ -19,7 +19,7 @@ Ngoài phạm vi: merge vào `main`, release, deploy, server/DB thật, provider
 1. Claude gọi Codex trực tiếp để review; lịch mỗi giờ là lưới an toàn.
 2. Merge tự động vào `collab/integration` khi đủ điều kiện ở mục 4.2, **bắt buộc có `Author check: PASS @ <SHA>`**.
 3. Chính sách P2: P2 về **privacy, bảo mật, lời văn gửi người dùng** chặn merge; P2 khác được APPROVE kèm issue sửa tiếp (fix-forward); P3 không chặn; P0/P1 luôn chặn.
-4. **Lịch ngày:** 9h owner xem plan trong ngày. Owner duyệt thì chạy ngay; 10h chưa có trả lời thì tự chạy; chạy đến 24h. *Đổi 14.11.2026:* plan 06:50, 08:00 tự chạy, không bắt đầu lượt mới từ 23:35, dừng 23:59 (§3.1).
+4. **Lịch ngày:** 9h owner xem plan trong ngày. Owner duyệt thì chạy ngay; 10h chưa có trả lời thì tự chạy; chạy đến 24h. *Đổi 14.11.2026:* plan 06:50, 08:00 tự chạy, không bắt đầu lượt mới từ 23:35, dừng 23:59 (§3.1). *Đổi 16.11.2026 (owner, gói 5 sửa luồng mục 2):* plan chạy ngay khi đăng lúc 06:50, không còn khung chờ owner; owner trả lời `Giữ` bất cứ lúc nào để dừng, `Duyệt` để chạy lại.
 5. **Model Codex:** `gpt-6.1-sol`, mức suy nghĩ `high`. Hết hạn mức thì chờ reset và chạy tiếp nếu còn lượt trong ngày.
 6. **Ngừng PR registry**, thay bằng `collab-turn --report`.
 7. **Thứ tự ưu tiên công việc:** xong **toàn bộ content** → **data privacy** → **tính năng mới**. Không giữ PR theo kích thước; xếp theo thứ tự này. PR quy trình (`area:ops`: vòng tự động, CI, test) đi trước cả ba nhóm (owner giao Claude tự chọn, 30.10.2026).
@@ -63,7 +63,7 @@ Claude xong việc trên branch, push (hook trước push: quét dữ liệu ri�
 
 ### 3.1 Lịch ngày (giờ Việt Nam)
 
-Owner đổi giờ ngày 14.11.2026: bắt đầu chạy PR lúc 08:00 thay 10:00, kết thúc 23:59; các bước khác dời sớm theo. Giờ nằm ở một chỗ: `planOpensAt`, `autoStartAt`, `lastStartAt`, `cutoffAt` trong `scripts/collab-trust.mjs`.
+Owner đổi giờ ngày 14.11.2026: bắt đầu chạy PR lúc 08:00 thay 10:00, kết thúc 23:59; các bước khác dời sớm theo. Giờ nằm ở một chỗ: `planOpensAt`, `autoStartAt`, `lastStartAt`, `cutoffAt` trong `scripts/collab-trust.mjs`. Từ 16.11.2026 `autoStartAt = planOpensAt` (plan chạy ngay khi đăng); lô duyệt câu chữ hằng ngày giữ giờ riêng 08:00 (`copyBatchAt`).
 
 | Giờ | Việc |
 |---|---|
@@ -87,7 +87,7 @@ Session mà owner đang trực tiếp trò chuyện không bị lịch này ch�
 1. **Việc nặng nối tiếp, việc nhẹ song song.** Việc nặng là `pnpm check`, cài đặt hoặc build trong clone. Mỗi lúc chỉ một việc nặng trên cả máy (`check.lock`, từ chối khi máy đang có check). Trong lúc việc nặng chạy, Claude làm việc nhẹ của nhóm ưu tiên đang mở: sửa fix-forward, viết code, viết test, viết docs. Claude không ngồi chờ.
 2. **Việc nặng đi qua vòng tự động.** Author check, review và merge chạy qua tick hoặc qua `collab-check` → `codex-review` → `collab-merge`. Không session nào tự chạy `pnpm check` bằng script riêng; `checkshas.sh` đã thay (§7.1).
 3. **Fix-forward là việc kế tiếp.** Issue `fix-forward` mới thuộc cùng nhóm với PR gốc và được làm ngay trong ngày, qua PR riêng.
-4. **Đầu ngày.** Mac phải thức trước 05:40, lúc tác vụ chuẩn bị buổi sáng chạy. Plan đăng 06:50, 08:00 tự chạy.
+4. **Đầu ngày.** Mac phải thức trước 05:40, lúc tác vụ chuẩn bị buổi sáng chạy. Plan đăng 06:50 và chạy ngay (từ 16.11.2026).
    - Nếu Mac ngủ ban đêm, owner chạy một lần `sudo pmset repeat wakeorpoweron MTWRFSU 05:30:00`. Lệnh này thay giờ thức 08:45 cũ; agent không tự đổi thiết lập hệ thống.
    - Ngày 14.11 kiểm tra thấy máy không có lịch thức lặp lại, nhưng tick vẫn chạy suốt đêm 13–14.11. Máy hiện không ngủ, nên chưa cần lệnh này. Claude đọc `collab-turn --report`, dừng lượt autopilot còn treo từ hôm trước và kiểm tra plan #133 đã được đăng.
 5. **Trong ngày.** Một quyết định mới của owner được ghi ngay vào file này hoặc vào issue hub #2, để mọi session đều đọc được (bài học từ #136).
@@ -232,7 +232,7 @@ Mỗi lúc chỉ một review chạy (khóa `review.lock`), vì mọi review dù
 | 6 | Mở PR; **script review PR của chính nó** bằng Codex thật | Verdict thật đăng trên PR |
 | 7 | Merge PR theo luồng mới | Merge bằng `collab-merge` |
 | 8 | Cài launchd + đổi `la-lanh-autopilot` | Một lần chạy lưới thành công, có heartbeat |
-| 9 | Plan 08:50 đầu tiên; PR content đang mở đi qua luồng mới | Ít nhất một PR content merge không cần owner |
+| 9 | Plan đầu tiên (giờ lúc đó 08:50; nay 06:50, chạy ngay khi đăng); PR content đang mở đi qua luồng mới | Ít nhất một PR content merge không cần owner |
 | 10 | Báo cáo tuần đầu theo bảng mục 1 | Owner quyết giữ/chỉnh |
 
 ### 7.1 Đánh giá vòng `checkshas.sh` (owner giao 31.10.2026)

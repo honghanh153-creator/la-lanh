@@ -21,7 +21,11 @@ export const dayCap = day => codexDailyCap + Math.max(0, Math.floor(Number(day?.
 // instead of 10:00 and end at 23:59; the earlier steps moved up with it). The one place to change them:
 // plan gate, tick, author check, Codex review, board and plan text all read these.
 export const planOpensAt = 6 * 60 + 50;
-export const autoStartAt = 8 * 60;
+// Owner 16.11.2026 (5-fix package, item 2): the plan runs as soon as it is posted; "Giữ" still stops it
+// at any time. The owner window (08:00 before) left the loop idle for 70 minutes every morning.
+export const autoStartAt = planOpensAt;
+// The daily Codex copy batch keeps its own 08:00 start (owner 06.11/14.11); item 2 moved only the plan.
+export const copyBatchAt = 8 * 60;
 // Nothing new starts from lastStartAt; every automatic run ends by cutoffAt (24 minutes later, the
 // same room the old 23:30/23:55 pair gave a review or a check to finish and publish).
 export const lastStartAt = 23 * 60 + 35;
