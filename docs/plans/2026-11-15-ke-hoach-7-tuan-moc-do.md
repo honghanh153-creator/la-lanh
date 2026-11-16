@@ -161,6 +161,28 @@ Luật này đã ghi trước lượt chấm 14.11. Mốc riêng của từng t�
 | Che nhanh, máy dùng chung | Người dùng chung máy chấm từ 3,5; lo riêng tư không quá 3%; Che nhanh xóa hết chữ đang chọn (đo bằng máy) | 3,47; 1,4% |
 | Cả app sau tuần 4 | "Thấy được hiểu" từ 3,5 và hơn bản trước tuần 1 ít nhất 0,6; "bình yên" từ 3,5; không loại hại nào quá 3% | Bản mô tả cả gói (gồm cả phần sau tuần 4): 3,56; hơn 0,86; bình yên 3,61 |
 
+### Sau tuần 4. Ghim chuyện đang lo (chị chọn 15.11)
+
+Chị chọn trong chat tối 15.11: "E1", tức S12 "Ghim chuyện đang lo" trong `docs/reviews/2026-11-15-sang-tao-viral.md`. Việc này làm sau mốc tuần 4, vì nó gắn vào ba lô của "Gánh hôm nay".
+
+**Dựng nhưng tắt sẵn.** Code vào app sau tuần 4, nhưng chưa ai thấy. Bốn điều cố định:
+
+1. Ghim tối đa 2 món.
+2. Nút [Bỏ ghim] luôn có, bấm là xóa ngay. Che nhanh không xóa ghim.
+3. Trang chủ không bao giờ hiện tên món, chỉ hiện "Ba lô có 1 món đang ghim" cho tới khi người dùng bấm vào.
+4. Không ghim gì về mood, Tarot hay chữ tự viết.
+
+**Chỉ bật khi có đủ hai quyết định của chị:**
+
+- Duyệt câu đồng ý hiện trước khi ghim. Bản nháp trong S12 cần viết lại cho đúng nơi lưu chị chọn.
+- Chọn nơi lưu món ghim:
+  - **Trên máy:** hợp với bản nháp S12, nhưng ngược luật hiện tại là không lưu dữ liệu cá nhân trong bộ nhớ trình duyệt. Món ghim là hoàn cảnh sống, và người cầm máy dùng chung có thể thấy.
+  - **Trên máy chủ:** đi cùng hồ sơ, theo hạn và cách xóa của hồ sơ. Cần thêm một dòng trong trang /privacy và trong bản tải dữ liệu, và các câu đó cũng cần chị duyệt.
+
+| Việc | Mốc đạt | Số tham khảo |
+|---|---|---|
+| Ghim chuyện đang lo | Theo luật chung: người dùng tới chấm "thấy được hiểu" từ 3,5; lo riêng tư không quá 3%. Đo bằng máy: không ghim quá 2 món; bỏ ghim là xóa ngay; Trang chủ không hiện tên món; tắt sẵn thì không lưu gì | Trên mô tả, 90 cặp: thấy được hiểu +0,24; bình yên −0,03; 9 người lo riêng tư (10%, chưa đạt) |
+
 ### Tuần 5. Mầm xanh thay "Vibe", Học theo bạn, sticker
 
 | Việc | Mốc đạt | Số tham khảo |
@@ -226,5 +248,5 @@ Các mục này cần chị duyệt:
 ## Đã hoãn hoặc chưa có trong kế hoạch
 
 - **"Mời hẹn thử":** chị chốt chưa làm.
-- **Lá nhớ hoàn cảnh của người dùng:** điều người giả muốn nhất (179 câu chê trên 1000). Chưa vào kế hoạch vì cần chị quyết về lưu dữ liệu. Hai cách "nhớ" đã thử chỉ nâng điểm ít (0,12 và 0,24) và làm 10% đến 17% người lo riêng tư.
+- **Lá nhớ hoàn cảnh của người dùng:** điều người giả muốn nhất (179 câu chê trên 1000). Chưa vào kế hoạch vì cần chị quyết về lưu dữ liệu. Riêng S12 "Ghim chuyện đang lo" đã vào kế hoạch sau tuần 4 (chị chọn 15.11): dựng tắt sẵn, chỉ bật khi chị duyệt câu đồng ý và chọn nơi lưu. Hai cách "nhớ" đã thử chỉ nâng điểm ít (0,12 và 0,24) và làm 10% đến 17% người lo riêng tư.
 - **Lá Dám trong app, phòng chơi từ xa, ô viết "Kể ra rồi thả":** để sau 7 tuần.
