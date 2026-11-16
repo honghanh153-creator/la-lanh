@@ -326,6 +326,19 @@ test('5-fix A2: only the owner\'s four kinds wait on her; a merge hold adds need
   assert.match(copy.body, /phát hành/);
 });
 
+test('5-fix A2, P1 on #591: a failed owner label posts no verdict, so an APPROVE never lacks its hold', () => {
+  for (const [kind, blocks, label] of [['cost_access', 'merge', 'needs-owner'], ['sensitive_copy', 'release', review.releaseLabel]]) {
+    const state = { pr: pr({ comments: [check(A)] }) };
+    const gh = fakeGh(state);
+    const raw = gh.raw;
+    gh.raw = (args, input) => { if (args.includes('--add-label') && args.includes(label)) throw new Error('HTTP 502'); return raw(args, input); };
+    const out = JSON.stringify(output({ owner_actions: [{ kind, evidence: 'apps/api/x.py:3 synthetic', blocks }] }));
+    assert.throws(() => review.runReview(7, { gh, run: fakeRun().run, readOut: () => out, now: { date: '2027-01-17', hour: 12, minute: 0 } }), /HTTP 502/);
+    assert.equal(gh.calls.filter(c => c[0] === 'comment').length, 0, `${kind}: no verdict posted`);
+    assert.notEqual(prTurn(state.pr).turn, 'merge', `${kind}: the PR is not routed to merge`);
+  }
+});
+
 test('daily cap refuses automatic reviews', () => {
   const now = { date: '2026-11-01', hour: 12, minute: 0 };
   trust.writeJson(trust.dayStatePath(now.date), { codexRuns: trust.codexDailyCap });

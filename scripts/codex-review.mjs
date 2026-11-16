@@ -251,19 +251,15 @@ function reviewOnce(number, { auto = false, overCap = null, gh: ghIn = makeGh(),
     if (!fixIssue) throw new Error('Fix-forward issue was not created; verdict not posted.');
   }
 
-  const round = trusted.filter(c => c.auto && c.verdict).length + 1;
-  // P1-B: the receipt is written before the comment, so every posted verdict has one.
-  const receipt = signReceipt({ kind: 'verdict', pr: pr.number, head, base: reviewedBase, result: policy.verdict, p2: policy.fixForward.length });
-  const body = renderVerdict({ pr, out, policy, round, range: deltaFrom ? `${deltaFrom.slice(0, 7)}..${head.slice(0, 7)}` : `${mergeBase.slice(0, 7)}..${head.slice(0, 7)}`, digest, fixIssue, base: reviewedBase, receipt });
-  const posted = gh.comment('pr', pr.number, body);
-  // Bound to the new comment's id: a later copy of this verdict never counts (replay, #456 auto-1).
-  if (!bindReceipt({ kind: 'verdict', pr: pr.number, id: receipt, url: posted })) process.stderr.write(`codex-review: receipt ${receipt} not bound to a comment id; the verdict will not count\n`);
   // Owner 16.11.2026 (5-fix package, item 1): a review never sends a PR to the owner by itself. A
   // second REQUEST_CHANGES stays claude-fix (Claude fixes, checks, Codex re-reviews; the proportionality
   // stop defers, splits or closes work, never bypasses a blocking finding), and an incomplete review is
   // REQUEST_CHANGES for Claude to split the PR. needs-owner is only for the owner's four kinds, which
   // Codex names in owner_actions (A2): a merge hold adds needs-owner (the merge gate refuses it), a
   // release hold for pending sensitive copy adds owner-release-check and lets the PR merge.
+  // P1 on #591: the labels go on before the verdict is posted, so a failed label call never leaves a
+  // usable APPROVE without its hold; it throws and nothing is posted. A label without a verdict only
+  // holds more.
   const holdsNow = ownerHolds(out);
   const needsOwner = holdsNow.merge.length > 0;
   if (needsOwner) {
@@ -274,6 +270,14 @@ function reviewOnce(number, { auto = false, overCap = null, gh: ghIn = makeGh(),
     ensureLabel(gh, releaseLabel, 'C5DEF5', 'Chữ privacy/consent/crisis/safety chờ owner duyệt trước phát hành');
     gh.raw(['pr', 'edit', String(pr.number), '--repo', repo, '--add-label', releaseLabel]);
   }
+
+  const round = trusted.filter(c => c.auto && c.verdict).length + 1;
+  // P1-B: the receipt is written before the comment, so every posted verdict has one.
+  const receipt = signReceipt({ kind: 'verdict', pr: pr.number, head, base: reviewedBase, result: policy.verdict, p2: policy.fixForward.length });
+  const body = renderVerdict({ pr, out, policy, round, range: deltaFrom ? `${deltaFrom.slice(0, 7)}..${head.slice(0, 7)}` : `${mergeBase.slice(0, 7)}..${head.slice(0, 7)}`, digest, fixIssue, base: reviewedBase, receipt });
+  const posted = gh.comment('pr', pr.number, body);
+  // Bound to the new comment's id: a later copy of this verdict never counts (replay, #456 auto-1).
+  if (!bindReceipt({ kind: 'verdict', pr: pr.number, id: receipt, url: posted })) process.stderr.write(`codex-review: receipt ${receipt} not bound to a comment id; the verdict will not count\n`);
   writeJson(join(stateDir, 'logs', `review-${stamp}.json`), { pr: pr.number, head, base: reviewedBase, verdict: policy.verdict, complete: out.complete, ownerActions: holdsNow.actions, receipt, digest, fixIssue, needsOwner, at: new Date().toISOString() });
   return { status: 'posted', verdict: policy.verdict, blocking: policy.blocking.length, fixIssue, needsOwner, ownerRelease: holdsNow.release.length > 0 };
 }
