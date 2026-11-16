@@ -163,3 +163,17 @@ def test_malformed_registry_shapes_fall_back(
         assert copy_approval.copy_text("tarot.closing_prompt", "cũ") == "cũ"
     finally:
         copy_approval._runtime_registry.cache_clear()
+
+
+def test_crisis_check_disclosure_is_the_owner_approved_privacy_copy() -> None:
+    """Owner approved this /privacy sentence on 15.11.2026 ("D duyệt"), character for character."""
+
+    text = (
+        "Khi bạn gõ câu hỏi hoặc tên, Lá Lành đọc qua để xem bạn có đang muốn làm hại bản thân "
+        "không. Nếu có, Lá không trả bài đọc mà chỉ gửi bạn một lời nhắn hỗ trợ. Câu đó không "
+        "được lưu lại và không gửi cho ai khác. Lá có thể nhận nhầm hoặc bỏ sót."
+    )
+    entry = copy_approval.load_registry()["privacy.crisis-check-disclosure"]
+    assert (entry.category, entry.text) == ("privacy", text)
+    assert (entry.status, entry.approver, entry.date) == ("approved", "owner", "2026-11-15")
+    assert entry.servable

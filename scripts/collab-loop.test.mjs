@@ -1093,6 +1093,52 @@ test('fix B fix-forward: a PR that is itself on hold never holds another PR on a
   assert.equal(fileBlocker(feature, [feature, priv]), 199, 'the earlier group goes first on a shared file');
 });
 
+test('#575: a PR waiting on Claude never holds another on a shared file; a 7-week PR goes first in its group', () => {
+  const f = (...paths) => paths.map(path => ({ path }));
+  const reg = f('apps/api/app/domains/content/copy_registry.json');
+  const head = n => String(n).padStart(40, '0');
+  const plan = [{ name: 'ke-hoach-7-tuan' }];
+  // 16.11.2026 morning: #404 had REQUEST_CHANGES at its head since 10.11, #491 was red at the author check.
+  const p404 = pr({ number: 404, createdAt: '2026-11-10T00:00:00Z', headRefOid: head(404), files: reg, comments: [check(head(404)), requestChanges(head(404))] });
+  const p491 = pr({ number: 491, createdAt: '2026-11-12T00:00:00Z', headRefOid: head(491), files: reg, comments: [check(head(491), 'FAIL')] });
+  const p470 = pr({ number: 470, createdAt: '2026-11-11T00:00:00Z', headRefOid: head(470), files: reg, mergeable: 'CONFLICTING', comments: [] });
+  const p500 = pr({ number: 500, createdAt: '2026-11-13T00:00:00Z', headRefOid: head(500), files: reg, comments: [] });
+  const p505 = pr({ number: 505, createdAt: '2026-11-14T00:00:00Z', headRefOid: head(505), labels: plan, files: reg, comments: [] });
+  const p503 = pr({ number: 503, createdAt: '2026-11-15T00:00:00Z', headRefOid: head(503), labels: plan, files: reg, comments: [] });
+  const all = [p404, p491, p470, p500, p505, p503];
+  assert.equal(fileBlocker(p505, all), null, 'REQUEST_CHANGES, a failed check or a conflict at head never holds');
+  const turns = Object.fromEntries(turnsFor(all).map(t => [t.number, t]));
+  assert.equal(turns[505].turn, 'claude-check');
+  assert.equal(turns[503].reason, 'chờ PR #505 cùng file', 'two ready 7-week PRs: the earlier goes first');
+  assert.equal(turns[500].reason, 'chờ PR #505 cùng file', 'a ready 7-week PR goes before an older ready PR of the same group');
+  assert.equal(turns[404].reason, 'chờ PR #505 cùng file', 'the PR waiting on a fix now waits for the 7-week PR, then syncs and is fixed');
+  // A PR that can still merge holds as before, and a later group never holds an earlier one.
+  const ready = pr({ number: 480, createdAt: '2026-11-09T00:00:00Z', headRefOid: head(480), files: reg, comments: [check(head(480))] });
+  assert.equal(fileBlocker(p505, [ready, p505]), null, 'the 7-week PR goes first inside the group');
+  const ops = pr({ number: 481, title: 'ops(collab): x', labels: [{ name: 'area:ops' }], createdAt: '2026-11-16T00:00:00Z', headRefOid: head(481), files: reg, comments: [] });
+  assert.equal(fileBlocker(p505, [ops, p505]), 481, 'an earlier group still goes first over a 7-week PR');
+});
+
+test('#581: each repair-waiting state releases a newer PR on a shared file, with no 7-week label involved', () => {
+  const reg = [{ path: 'apps/api/app/domains/content/copy_registry.json' }];
+  const head = n => String(n).padStart(40, '0');
+  const newer = pr({ number: 600, createdAt: '2026-11-15T00:00:00Z', headRefOid: head(600), files: reg, comments: [] });
+  const older = (n, extra) => pr({ number: n, createdAt: '2026-11-01T00:00:00Z', headRefOid: head(n), files: reg, comments: [], ...extra });
+  const cases = [
+    ['REQUEST_CHANGES at head', older(601, { comments: [check(head(601)), requestChanges(head(601))] }), {}],
+    ['author check FAIL at head', older(602, { comments: [check(head(602), 'FAIL')] }), {}],
+    ['conflict', older(603, { mergeable: 'CONFLICTING' }), {}],
+    ['preflight failure at head', older(604), { preflight: { 604: { head: head(604), reasons: ['ruff: apps/api/app/x.py có lỗi'] } } }],
+    ['dispute hold', older(605), { disputes: { 605: { hold: 'bất đồng đang chờ chốt' } } }],
+  ];
+  for (const [why, blocker, opts] of cases) {
+    assert.equal(fileBlocker(newer, [blocker, newer], opts), null, why);
+  }
+  // The same older PR that can still merge holds the newer one, so the exemption is what releases it.
+  assert.equal(fileBlocker(newer, [older(606, { comments: [check(head(606))] }), newer], {}), 606, 'a movable older PR still holds');
+  assert.equal(fileBlocker(newer, [older(607), newer], {}), 607, 'an older PR waiting for its check still holds');
+});
+
 test('review 228: a deleted Python file is not linted by default', () => {
   const calls = [];
   assert.deepEqual(preflightMod.lintProblems(['app/deleted_for_test_only.py'], { cwd: '/nonexistent-la-lanh', spawn: () => { calls.push(1); return { status: 1 }; } }), []);

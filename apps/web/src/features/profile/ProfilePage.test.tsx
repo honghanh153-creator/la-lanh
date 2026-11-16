@@ -116,6 +116,15 @@ describe("ProfilePage resonance privacy controls", () => {
     expect(readCachedDailyNote()).toBeNull();
   });
 
+  it("offers no sign-in and no Supabase wording to a guest while Google sign-in is off (Wave 1)", async () => {
+    const user = userEvent.setup(); renderPage();
+    expect(await screen.findByRole("heading", { name: "Hồ sơ khách" })).toBeInTheDocument();
+    expect(screen.getByText("Đăng nhập Google chưa bật trên bản này; chế độ khách vẫn dùng bình thường.")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Đăng nhập để giữ hồ sơ" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Xóa Lá và dữ liệu/ }));
+    expect(screen.getByRole("dialog")).not.toHaveTextContent("Supabase");
+  });
+
   it("states the 24-hour Daily-note window and the 30-day window for other history", async () => {
     renderPage();
     expect(await screen.findByText("Note ngày tự động hiện tối đa 24 giờ (có thể được dọn sớm hơn); lịch sử khác tối đa 30 ngày, tính từ lúc tạo; mở lại không kéo dài thời hạn.")).toBeInTheDocument();

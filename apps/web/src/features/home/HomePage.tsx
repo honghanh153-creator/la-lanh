@@ -241,6 +241,7 @@ export function HomePage() {
       if (intent.savedAt >= latestMoodAt.current) {
         latestMoodAt.current = intent.savedAt;
         setMood(value);
+        setLineDismissed(false);
         setMessage("Đang lưu cảm xúc này cho bạn…");
       }
       return { previous };
@@ -398,7 +399,7 @@ export function HomePage() {
         <MoodPicker mood={mood} onOpenChange={setMoodSheetOpen} onSelect={(value) => { tapFeedback(); moodMutation.mutate({ mood: value, intent: captureMoodIntent() }); }} open={moodSheetOpen} pending={moodMutation.isPending} />
       </section>
 
-      <HomeCompanion line={lineDismissed ? null : homeCompanionLine({ vibe, companion: activeReading?.sections.companion }).text} onDismissLine={() => setLineDismissed(true)}>
+      <HomeCompanion line={lineDismissed ? null : homeCompanionLine({ vibe, companion: activeReading?.sections.companion, mood }).text} onDismissLine={() => setLineDismissed(true)}>
         {showGift && availableUpdate && note.reading_projection ? (
           <ReadingUpdateGift
             activeMode={activeReading?.mode}

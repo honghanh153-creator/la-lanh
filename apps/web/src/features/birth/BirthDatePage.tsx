@@ -128,7 +128,7 @@ function BirthDateOnboarding() {
       setError(stage === "supplement"
         ? "Ngày sinh đã lưu, nhưng giờ/nơi sinh chưa lưu được. Thử lại hoặc bỏ qua phần bổ sung nhé."
         : hasProfile
-        ? "Ngày sinh đã khớp, nhưng Vibe chưa về kịp. Thử tải lại nhé."
+        ? "Ngày sinh đã khớp, nhưng kết quả chưa về kịp. Thử tải lại nhé."
         : "Kết nối vừa lỗi một nhịp. Ngày sinh của bạn vẫn được giữ để thử lại.");
     } finally {
       setPending(false);
@@ -174,7 +174,7 @@ function BirthDateOnboarding() {
         <p className="signal-station__privacy">Bấm Khớp tín hiệu là đồng ý dùng ngày sinh để tính lá số và note. Không tự bật AI viết lại.</p>
         <OptionalBirthDetails value={details} onChange={(value) => { setDetails(value); setError(null); }} disabled={pending || supplementSaved} error={error && birthDetailsError(details) === error ? error : null} />
         {profileCreated && !pending ? <small>Ngày sinh đã lưu. Thử lại sẽ không tạo hồ sơ mới.</small> : null}
-        {pending ? <p className="signal-station__notice" role="status">{hasBirthDetails(details) ? "Đang lưu thông tin bạn cho phép và tính lại lá số…" : "Đang tìm Mặt Trời và viết Vibe đầu tiên…"}</p> : null}
+        {pending ? <p className="signal-station__notice" role="status">{hasBirthDetails(details) ? "Đang lưu thông tin bạn cho phép và tính lại lá số…" : "Đang tìm Mặt Trời và viết note đầu tiên…"}</p> : null}
         {error && !errorAtField ? <p className="signal-station__error" id="birth-error" role="alert">{error}</p> : null}
       </form>
     </SignalStationFrame>
