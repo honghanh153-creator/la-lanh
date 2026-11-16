@@ -19,7 +19,7 @@ export type ShareArtSpec = {
   support?: string | null;
   /** Main lime sticker, e.g. "Mặt Trời Song Tử · Khí". */
   badge: string;
-  /** Optional second sticker, e.g. "Vibe · Lanh". */
+  /** Optional second sticker, e.g. "Lanh". */
   tag?: string | null;
   element: ShareElement | null;
   /** When set, the hero disc shows the zodiac glyph; otherwise the element emblem. */
@@ -58,10 +58,10 @@ export function elementForPersonaLabel(label: string | null | undefined): ShareE
   return label ? elementByPersonaLabel[label] ?? null : null;
 }
 
-/** Persona label as the product names it: "Vibe · X" (owner decision 2026-10-11). */
+/** Persona label as the product names it: the personality name alone, no "Vibe" (owner, 7-week plan 15.11). */
 export function personaTag(label: string | null | undefined): string | null {
   const clean = sanitize(label ?? "");
-  return clean ? `Vibe · ${clean}` : null;
+  return clean || null;
 }
 
 export const shareCanvasSize: Record<ShareFormat, { width: number; height: number }> = {

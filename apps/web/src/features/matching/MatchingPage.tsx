@@ -18,6 +18,7 @@ import { Link, useSearchParams } from "react-router-dom";
 
 import {
   ApiProblem,
+  crisisNoticeFrom,
   claimOwner,
   getMatchingReadiness,
   grantMatchingConsent,
@@ -125,7 +126,7 @@ export function MatchingPage() {
       setMessage("Đã giữ ranh giới ghép. Chốt tiếp theo đã mở.");
       await refresh();
     },
-    onError: () => setMessage("Chưa lưu được hồ sơ. Các lựa chọn vẫn ở đây để bạn thử lại."),
+    onError: (error) => setMessage(crisisNoticeFrom(error) ?? "Chưa lưu được hồ sơ. Các lựa chọn vẫn ở đây để bạn thử lại."),
   });
   const consent = useMutation({
     mutationFn: (active: boolean) => active ? grantMatchingConsent() : withdrawMatchingConsent(),
@@ -292,7 +293,7 @@ export function MatchingPage() {
         <div className="matching-form__row"><label><span>Tuổi từ</span><input max={maxAge} min={18} onChange={(event) => setMinAge(Number(event.target.value))} type="number" value={minAge} /></label><label><span>Đến</span><input max={120} min={minAge} onChange={(event) => setMaxAge(Number(event.target.value))} type="number" value={maxAge} /></label></div>
         <div className="matching-form__field"><label htmlFor="matching-region"><span>Khu vực muốn kết nối</span></label><select aria-describedby="matching-region-note" id="matching-region" onChange={(event) => setRegionCode(event.target.value)} required value={regionCode}><option disabled value="">Chọn thành phố</option>{regionOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><small id="matching-region-note">Chỉ lưu thành phố; không dùng GPS hoặc hiển thị khoảng cách số.</small></div>
         <fieldset><legend>Tuần này bạn muốn</legend><div className="matching-weekly">{weeklyOptions.map(([value, label]) => <button aria-pressed={weeklyIntent === value} className={weeklyIntent === value ? "is-selected" : ""} key={value} onClick={() => setWeeklyIntent(value)} type="button">{label}</button>)}</div><small>Chỉ đổi thứ tự ưu tiên trong nhóm đã qua điều kiện cứng.</small></fieldset>
-        {save.isError ? <p className="matching-sheet-error" role="alert">Chưa lưu được. Các lựa chọn vẫn ở đây để bạn thử lại.</p> : null}
+        {save.isError ? <p className="matching-sheet-error" role="alert">{crisisNoticeFrom(save.error) ?? "Chưa lưu được. Các lựa chọn vẫn ở đây để bạn thử lại."}</p> : null}
         <div className="matching-form__submit">
           <small>{profileReadyToSave ? "Bạn có thể sửa hoặc rút hồ sơ bất cứ lúc nào." : "Điền tên, khoảng tuổi hợp lệ và thành phố để lưu."}</small>
           <button className="matching-primary" disabled={save.isPending} type="submit">{save.isPending ? "Đang lưu…" : readiness.profile ? "Lưu thay đổi" : "Lưu hồ sơ ghép"}<ArrowRight /></button>

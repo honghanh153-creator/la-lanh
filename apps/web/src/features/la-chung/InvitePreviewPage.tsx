@@ -1,9 +1,9 @@
 import { ArrowLeft, Check, Copy, PaperPlaneTilt, ShieldCheck } from "@phosphor-icons/react";
 import { useMutation } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
-import { ApiProblem, claimOwner, createLaChungInvite, type LaChungInvite } from "../../shared/api/client";
+import { ApiProblem, claimOwner, createLaChungInvite, crisisNoticeFrom, type LaChungInvite } from "../../shared/api/client";
 import "./la-chung.css";
 
 type Draft = { recipientLabel: string; context: "bff" | "crush" | "couple" | "friend" | "workmate" };
@@ -11,7 +11,14 @@ type Draft = { recipientLabel: string; context: "bff" | "crush" | "couple" | "fr
 export function InvitePreviewPage() {
   const location = useLocation();
   const navigate = useNavigate();
-  const draft = location.state as Draft | null;
+  // The draft lives in memory only: the history-state copy is dropped on arrival, so a blocked
+  // (or any) label never stays in browser history (Codex auto-1 on #505).
+  const [draft] = useState(() => location.state as Draft | null);
+  useEffect(() => {
+    if (location.state) void navigate(location.pathname, { replace: true, state: null });
+    // Runs once on arrival; later renders already see the cleared state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [invite, setInvite] = useState<LaChungInvite | null>(null);
   const [idempotencyKey] = useState(() => crypto.randomUUID().replaceAll("-", ""));
   const [checkpoint, setCheckpoint] = useState(false);
@@ -23,7 +30,7 @@ export function InvitePreviewPage() {
       idempotency_key: idempotencyKey,
     }),
     onSuccess: (payload) => { setInvite(payload); setMessage("Link đã sẵn sàng. Chưa có trạng thái đã gửi hay đã xem."); },
-    onError: (error) => { if (error instanceof ApiProblem && error.status === 401) setCheckpoint(true); else setMessage("Chưa tạo được link. Draft vẫn còn nguyên."); },
+    onError: (error) => { const notice = crisisNoticeFrom(error); if (notice) setMessage(notice); else if (error instanceof ApiProblem && error.status === 401) setCheckpoint(true); else setMessage("Chưa tạo được link. Draft vẫn còn nguyên."); },
   });
   const claim = useMutation({
     mutationFn: claimOwner,

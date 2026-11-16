@@ -228,6 +228,7 @@ export function HomePage() {
       const previous = mood;
       setMood(value);
       setMoodSheetOpen(false);
+      setLineDismissed(false);
       setMessage("Đang lưu cảm xúc này cho bạn…");
       return { previous };
     },
@@ -365,7 +366,7 @@ export function HomePage() {
         </section>
       )}
 
-      <HomeCompanion line={lineDismissed ? null : homeCompanionLine({ vibe, companion: activeReading?.sections.companion }).text} onDismissLine={() => setLineDismissed(true)}>
+      <HomeCompanion line={lineDismissed ? null : homeCompanionLine({ vibe, companion: activeReading?.sections.companion, mood }).text} onDismissLine={() => setLineDismissed(true)}>
         {showGift && availableUpdate && note.reading_projection ? (
           <ReadingUpdateGift
             activeMode={activeReading?.mode}

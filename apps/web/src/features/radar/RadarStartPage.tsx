@@ -5,6 +5,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import {
   ApiProblem,
+  crisisNoticeFrom,
   createRadarInvite,
   deleteRadarResult,
   getRadarShareLink,
@@ -85,7 +86,9 @@ export function RadarStartPage() {
       await queryClient.invalidateQueries({ queryKey: RADAR_HISTORY_QUERY_KEY });
     },
     onError: (error) => {
-      if (error instanceof ApiProblem && error.status === 429) {
+      const notice = crisisNoticeFrom(error);
+      if (notice) setMessage(notice);
+      else if (error instanceof ApiProblem && error.status === 429) {
         setMessage(error.code === "RADAR_LIMIT_REACHED" ? "Bạn đã giữ 100 lần Radar. Xoá một kết quả cũ để tạo thêm nhé." : "Bạn đang tạo Radar hơi nhanh. Chờ một phút rồi thử lại nhé.");
       } else if (error instanceof ApiProblem && error.code === "RADAR_IDEMPOTENCY_CONFLICT") {
         retryKey.reset();

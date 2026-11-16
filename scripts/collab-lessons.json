@@ -313,8 +313,19 @@
    "from": "owner 13.11: báo cáo trung thực",
    "who": "claude",
    "due": "2026-11-18",
-   "status": "open",
-   "note": "prompts pointed 15.11 07:52; tick health now checks both prompts call the snapshot step (#552); 14:00 receipt https://github.com/honghanh153-creator/la-lanh/issues/133#issuecomment-6890824794 (snapshot 336e56277e1e); closes after the 15.11 retro shows its snapshot line"
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-ops-wrapper.test.mjs",
+    "name": "L19: both scheduled reports must call their snapshot step; a disconnected one is reported"
+   },
+   "caller": {
+    "file": "scripts/collab-ops-wrapper.mjs",
+    "contains": "ops-run\\.sh snapshot retro"
+   },
+   "closedBy": {
+    "pr": 552
+   },
+   "note": "prompts pointed 15.11 07:52; tick health checks both prompts call the snapshot step (#552); receipts 15.11: 14:00 report https://github.com/honghanh153-creator/la-lanh/issues/133#issuecomment-6890824794 (snapshot 336e56277e1e); retro 23:36 https://github.com/honghanh153-creator/la-lanh/issues/133#issuecomment-6897840317 (snapshot 4ee95dcdc33b)"
   },
   {
    "id": "L20",
@@ -506,6 +517,26 @@
    "closedBy": {
     "pr": 544
    }
+  },
+  {
+   "id": "L31",
+   "title": "PR đang chờ sửa (trả sửa, check đỏ, xung đột, preflight, tranh chấp) không được giữ PR khác cùng file; trong một nhóm, việc kế hoạch 7 tuần đi trước (sự cố 16.11: #505 và #503 kẹt sau #404 và #491 trên copy_registry.json)",
+   "from": "phiên điều phối 16.11; fix-forward #575, #581",
+   "who": "claude",
+   "due": "2026-11-17",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-loop.test.mjs",
+    "name": "#581: each repair-waiting state releases a newer PR on a shared file, with no 7-week label involved"
+   },
+   "caller": {
+    "file": "scripts/collab-turn.mjs",
+    "contains": "find(o => !waitsOnClaude(o, { dropped, ...opts }))"
+   },
+   "closedBy": {
+    "pr": 582
+   },
+   "note": "fix #580 (merged 16.11 10:49), isolated per-state test #582 (merged 10:53); #404 and #491 set back to ready 16.11"
   }
  ]
 }
