@@ -28,7 +28,7 @@ import {
   type ResonanceChoice,
   type SignalContext,
 } from "../../shared/api/client";
-import { dailyMoodKey, noteDailyMood, useDailyActionView, type DailyActionChoice } from "../../shared/hooks/useDailyActionView";
+import { dailyMoodKey, noteDailyMood, retireDailyMoodIntent, useDailyActionView, type DailyActionChoice } from "../../shared/hooks/useDailyActionView";
 import { currentSessionEpoch, sessionGeneration } from "../../shared/session/sessionIdentity";
 import { useReadingUpdateActivation } from "../../shared/hooks/useReadingUpdateActivation";
 import { chartDataRevision } from "../../shared/storage/clearChartDerivedData";
@@ -256,6 +256,8 @@ export function HomePage() {
       ) {
         queryClient.setQueryData(dailyMoodKey(payload.daily_note_id), payload);
       }
+      // Confirmed: the pick is no longer pending and must never come back, whatever is saved later.
+      retireDailyMoodIntent(queryClient, payload.daily_note_id);
       setMoodChoice({ noteId: payload.daily_note_id, value: payload.mood });
       setMessage(laMoodReaction(payload.mood, vibe));
     },

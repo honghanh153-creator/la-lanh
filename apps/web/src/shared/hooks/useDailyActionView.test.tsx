@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 
 import type { MoodValue, ReadingContent } from "../api/client";
 import { clearChartDerivedData } from "../storage/clearChartDerivedData";
-import { dailyMoodKey, noteDailyMood, useDailyActionView } from "./useDailyActionView";
+import { dailyActionViewKey, dailyMoodKey, noteDailyMood, retireDailyMoodIntent, useDailyActionView } from "./useDailyActionView";
 
 const NOTE_ID = "00000000-0000-4000-8000-000000000001";
 const reading = {
@@ -68,6 +68,50 @@ describe("useDailyActionView (#627)", () => {
     expect(result.current).toMatchObject({ lighterShown: false, canSwitch: false });
     act(() => saveMood("Đuối"));
     await waitFor(() => expect(result.current).toMatchObject({ lighterShown: true, canSwitch: true }));
+  });
+
+  it("never brings a confirmed pick back when the saved mood returns to where it started (review auto-3)", async () => {
+    // Saved Chill, pick Đuối here, the check-in succeeds, then another tab goes back to Chill.
+    const tired = setup("Chill");
+    act(() => noteDailyMood(tired.client, NOTE_ID, "Đuối"));
+    await waitFor(() => expect(tired.result.current.lighterShown).toBe(true));
+    act(() => { tired.saveMood("Đuối"); retireDailyMoodIntent(tired.client, NOTE_ID); });
+    await waitFor(() => expect(tired.client.getQueryData(dailyActionViewKey(NOTE_ID))).toEqual({}));
+    expect(tired.result.current.lighterShown).toBe(true);
+    act(() => tired.saveMood("Chill"));
+    await waitFor(() => expect(tired.result.current).toMatchObject({ lighterShown: false, canSwitch: false }));
+
+    // The reverse: saved Đuối, pick Chill here, confirmed, then another tab goes back to Đuối.
+    const rested = setup("Đuối");
+    act(() => noteDailyMood(rested.client, NOTE_ID, "Chill"));
+    await waitFor(() => expect(rested.result.current.lighterShown).toBe(false));
+    act(() => { rested.saveMood("Chill"); retireDailyMoodIntent(rested.client, NOTE_ID); });
+    act(() => rested.saveMood("Đuối"));
+    await waitFor(() => expect(rested.result.current).toMatchObject({ lighterShown: true, canSwitch: true }));
+  });
+
+  it("removes an unconfirmed pick for good once any other saved mood arrives (review auto-3)", async () => {
+    // Offline pick over saved Chill; another tab saves Rực, then Chill again. Nothing here retires
+    // the pick by hand: the hook must do it when the newer saved mood arrives.
+    const { client, result, saveMood } = setup("Chill");
+    act(() => noteDailyMood(client, NOTE_ID, "Đuối"));
+    await waitFor(() => expect(result.current.lighterShown).toBe(true));
+    act(() => saveMood("Rực"));
+    expect(result.current).toMatchObject({ lighterShown: false, canSwitch: false });
+    await waitFor(() => expect(client.getQueryData(dailyActionViewKey(NOTE_ID))).toEqual({}));
+    act(() => saveMood("Chill"));
+    expect(result.current).toMatchObject({ lighterShown: false, canSwitch: false });
+  });
+
+  it("keeps the reader's manual choice when the pick is confirmed", async () => {
+    const { client, result, saveMood } = setup(null);
+    act(() => noteDailyMood(client, NOTE_ID, "Đuối"));
+    await waitFor(() => expect(result.current.lighterShown).toBe(true));
+    act(() => result.current.switchAction());
+    await waitFor(() => expect(result.current).toMatchObject({ lighterShown: false, canSwitch: true }));
+    act(() => { saveMood("Đuối"); retireDailyMoodIntent(client, NOTE_ID); });
+    await waitFor(() => expect(client.getQueryData(dailyActionViewKey(NOTE_ID))).toEqual({ choice: "original" }));
+    expect(result.current).toMatchObject({ lighterShown: false, canSwitch: true });
   });
 
   it("keeps an unconfirmed pick while the saved mood has not changed (offline check-in)", async () => {

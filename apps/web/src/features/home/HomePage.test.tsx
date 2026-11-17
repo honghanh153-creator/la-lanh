@@ -528,18 +528,23 @@ describe("HomePage rich reading", () => {
     expect(screen.queryByRole("button", { name: "Xem việc ban đầu" })).not.toBeInTheDocument();
   });
 
+  // `start` is the mood already saved when Home opens. The rows that start from the mood the
+  // other tab returns to are the ones where a confirmed pick used to come back (review auto-3).
   it.each([
-    { here: "Đuối", elsewhere: "Chill", lighterAfter: false },
-    { here: "Chill", elsewhere: "Đuối", lighterAfter: true },
-  ] as const)("follows a mood changed in another tab after picking $here here (#627 review auto-2)", async ({ here, elsewhere, lighterAfter }) => {
+    { start: null, here: "Đuối", elsewhere: "Chill", lighterAfter: false },
+    { start: null, here: "Chill", elsewhere: "Đuối", lighterAfter: true },
+    { start: "Chill", here: "Đuối", elsewhere: "Chill", lighterAfter: false },
+    { start: "Đuối", here: "Chill", elsewhere: "Đuối", lighterAfter: true },
+  ] as const)("follows a mood changed in another tab: saved $start, picked $here here, $elsewhere elsewhere (#627)", async ({ start, here, elsewhere, lighterAfter }) => {
     const user = userEvent.setup();
     const withLighter = { ...vibe, lighter_action: { action: "Uống một ly nước rồi ngồi yên hai phút.", weight: "light" as const, experiment: null } };
     const row = (mood: "Đuối" | "Chill") => ({ id: "00000000-0000-4000-8000-000000000092", daily_note_id: baseNoteId, mood, checked_in_at: "2026-09-07T10:00:00Z" });
     vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(withLighter)));
+    vi.mocked(getCurrentMood).mockResolvedValue(start ? row(start) : null);
     vi.mocked(checkInMood).mockResolvedValue(row(here));
     const { client } = renderPage();
-    await user.click(await screen.findByRole("button", { name: "Chọn mood hôm nay" }));
-    await user.click(screen.getByRole("button", { name: new RegExp(here) }));
+    await user.click(await screen.findByRole("button", { name: start ? `Mood hôm nay: ${start}` : "Chọn mood hôm nay" }));
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: new RegExp(here) }));
     await screen.findByRole("button", { name: `Mood hôm nay: ${here}` });
     // The confirmed check-in is the saved mood now, for Home and for the note page.
     await waitFor(() => expect(client.getQueryData<{ mood: string }>(["daily-note-mood", baseNoteId])?.mood).toBe(here));
