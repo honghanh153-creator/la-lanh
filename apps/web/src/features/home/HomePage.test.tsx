@@ -677,6 +677,10 @@ describe("HomePage rich reading", () => {
       await act(async () => { await client.invalidateQueries({ queryKey: ["daily-note-mood"] }); });
       await waitFor(() => expect(client.getQueryData<{ id: string }>(["daily-note-mood", baseNoteId])?.id).toBe(savedElsewhere(elsewhere).id));
 
+      // Let the screen finish reacting to the new row before looking at it (the cache changes a
+      // tick before the page re-renders, and an assertion made in between proves nothing).
+      await act(async () => { await new Promise((resolve) => setTimeout(resolve, 30)); });
+
       // The new row is the saved mood now, but the pick here is still unsaved: the control keeps
       // the pick and the card keeps its own action, even though the saved mood may be Đuối.
       expect(screen.getByRole("button", { name: `Mood hôm nay: ${pick}` })).toBeInTheDocument();
