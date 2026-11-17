@@ -81,8 +81,9 @@ tương lai, không nói mình biết hết về người đọc và không nói
   cũ được sửa vì chạm chuẩn này: lời chào buổi trưa ("xem số phận"), lời chào buổi chiều ("Lá biết
   hết á") và một câu chờ ("Vũ trụ đang gõ"). Chủ sản phẩm cần duyệt trước khi đưa cho người dùng thật.
 
-Nhãn persona trên app và thẻ chia sẻ giữ dạng **"Vibe · X"** (quyết định 2026-10-11; không đổi thành
-"Chất X").
+Nhãn persona trên app và thẻ chia sẻ chỉ hiện **tên tính cách**, ví dụ "Rực", không có chữ "Vibe"
+hay "Aura" đứng trước (owner chốt 2026-11-15 trong kế hoạch 7 tuần; chạy từ PR #503). Câu này thay
+quyết định 2026-10-11 giữ dạng "Vibe · X". Vẫn không đổi thành "Chất X".
 
 ## Thứ tự bắt buộc của một bài đọc
 
