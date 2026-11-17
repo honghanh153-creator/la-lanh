@@ -44,7 +44,9 @@ export function pytestCiFiles(pkg, { base = root } = {}) {
   const api = String(pkg.scripts?.['api:test'] ?? '').trim();
   const config = read(base, 'apps/api/pyproject.toml');
   if (!/\bpnpm api:test\b/.test(check) || api !== 'uv run --directory apps/api pytest' || !config) return [];
-  if (!/^testpaths = \["tests"\]$/m.test(config) || /^\s*addopts\s*=.*(\s-k\b|\s-m\b|--ignore|--deselect)/m.test(config)) return [];
+  // #667: a filter anywhere in addopts, also its first option ("-k x", "-m slow"), can drop tests.
+  const addopts = /^\s*addopts\s*=\s*(.*)$/m.exec(config)?.[1] ?? '';
+  if (!/^testpaths = \["tests"\]$/m.test(config) || /(?:^|[\s"'=[,])(?:-k|-m|--ignore(?:-glob)?|--deselect)(?=[\s=]|$)/.test(addopts.replace(/["'\]]/g, ' '))) return [];
   const found = [];
   const walk = dir => {
     for (const entry of readdirSync(join(base, dir), { withFileTypes: true })) {
@@ -86,12 +88,23 @@ const hasTest = (text, name) => [...code(text).matchAll(/\btest\(\s*(['"`])((?:\
 // module-level skip, means CI never proves it.
 const pyCode = text => text.replace(/^\s*#.*$/gm, '');
 const hasPyTest = (text, name) => new RegExp(`^(?:async\\s+)?def\\s+${name.replace(/[^\w]/g, '')}\\s*\\(`, 'm').test(pyCode(text)) && /^test_\w+$/.test(name);
+// #667: markers may span lines. A module `pytestmark = …` runs until the next top-level line; a
+// test's decorators are every non-blank line between the previous blank or top-level statement and
+// its `def`.
+const skipMark = /\bpytest\.mark\.(skip|skipif|xfail)\b/;
 const pySkipped = (text, name) => {
   const lines = pyCode(text).split('\n');
-  if (lines.some(l => /^pytestmark\s*=.*\b(skip|skipif|xfail)\b/.test(l))) return true;
+  const mark = lines.findIndex(l => /^pytestmark\s*=/.test(l));
+  if (mark >= 0) {
+    let end = mark + 1;
+    while (end < lines.length && (/^\s/.test(lines[end]) || /^[\])}]/.test(lines[end]))) end++;
+    if (skipMark.test(lines.slice(mark, end).join('\n')) || /\b(skip|skipif|xfail)\b/.test(lines[mark])) return true;
+  }
   const at = lines.findIndex(l => new RegExp(`^(?:async\\s+)?def\\s+${name}\\s*\\(`).test(l));
-  for (let i = at - 1; i >= 0 && /^\s*@/.test(lines[i]); i--) if (/@pytest\.mark\.(skip|skipif|xfail)\b/.test(lines[i])) return true;
-  return false;
+  let start = at;
+  while (start > 0 && lines[start - 1].trim() !== '' && !/^(?:async\s+)?def\s|^class\s/.test(lines[start - 1])) start--;
+  const decorators = lines.slice(start, at).join('\n');
+  return /^\s*@/m.test(decorators) && skipMark.test(decorators);
 };
 
 // Offline problems: shape, and for "done" the evidence that exists in this checkout.
