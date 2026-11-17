@@ -6,7 +6,7 @@ import test from 'node:test';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { acquireLock } from './collab-lock.mjs';
-import { dayStatePath, readJson, stateDir, writeJson } from './collab-trust.mjs';
+import { dayCap, dayStatePath, readJson, stateDir, writeJson } from './collab-trust.mjs';
 import { checkJudgeOutput, checkLabelOutput, classifyChanges, codex, compareRuns, crossLeaks, dayDir, nextDay, pickCodexItems, pickIds, raiseNew, renderNightly, safetyReasons, seedOf, startRun, unionLabels } from './personas-nightly.mjs';
 
 test('only app-facing or unknown changes trigger a run', () => {
@@ -144,9 +144,9 @@ test('the nightly Codex call waits for the shared review lock and respects the c
   const release = acquireLock(join(stateDir, 'review.lock'), { staleMs: 60000 });
   try { assert.equal(codex(day, { run: () => { throw new Error('no'); }, ...at('23:10') }).status, 'busy'); }
   finally { release(); }
-  writeJson(dayStatePath(day), { codexRuns: 59, failures: 0 });
+  writeJson(dayStatePath(day), { codexRuns: dayCap({}) - 1, failures: 0 });
   assert.equal(codex(day, { run: () => { throw new Error('no'); }, ...at('23:10') }).reason, 'hết lượt Codex trong ngày');
-  assert.equal(readJson(dayStatePath(day), {}).codexRuns, 59);
+  assert.equal(readJson(dayStatePath(day), {}).codexRuns, dayCap({}) - 1);
   assert.equal(codex(day, { run: () => { throw new Error('no'); }, ...at('23:59') }).status, 'refused');
 });
 

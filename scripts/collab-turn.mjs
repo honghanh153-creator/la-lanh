@@ -41,8 +41,13 @@ const canMove = (o, dropped) => isOwnPr(o) && !o.isDraft && o.baseRefName === in
 const waitsOnClaude = (o, opts) => ['claude-fix', 'hold'].includes(prTurn(o, { ...opts, open: [] }).turn);
 // Inside one owner group a 7-week-plan PR goes first on a shared file (#575). Across groups the
 // group order still wins, so the group gate and the file gate never wait on each other.
-const is7w = p => (p.labels ?? []).some(l => (l.name ?? l) === label7w);
-const fileOrder = prs => sortByPriority(prs).sort((a, b) => areaOrder.indexOf(classifyArea(a)) - areaOrder.indexOf(classifyArea(b)) || Number(is7w(b)) - Number(is7w(a)));
+// Review of 16.11 (item 2): #505 (safety) waited 43.5 h behind an ordinary PR on a shared file. Inside
+// one group an incident goes first, then 7-week plan and persona-threshold fixes (`persona-fix`), then
+// the rest.
+export const personaFixLabel = 'persona-fix';
+const has = (p, name) => (p.labels ?? []).some(l => (l.name ?? l) === name);
+export const fileRank = p => (has(p, 'incident') ? 2 : has(p, label7w) || has(p, personaFixLabel) ? 1 : 0);
+const fileOrder = prs => sortByPriority(prs).sort((a, b) => areaOrder.indexOf(classifyArea(a)) - areaOrder.indexOf(classifyArea(b)) || fileRank(b) - fileRank(a));
 
 export function fileBlocker(pr, prs = [], { dropped = [], ...opts } = {}) {
   const mine = new Set(prFiles(pr));
@@ -257,8 +262,13 @@ export const idleAlertRuns = 6;
 
 // A failed daily copy batch is retried on later ticks, at most this many attempts a day.
 export const copyBatchAttempts = 3;
+export const stuckAlertRuns = 3;
 
 export const autopilotSession = 'autopilot';
+
+// Owner 16.11 (two lanes): today's picked 7-week items' PRs belong to the 7-week lane even before
+// their PR carries the plan label.
+export const plan7wPrNumbers = (turns, date) => { const keys = new Set(readJson(dayStatePath(date), {}).planned7wKeys ?? []); return turns.filter(t => keys.has(unitKey(t))).map(t => t.number); };
 
 export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], prPreflight: preflight = () => ({ status: 'PASS' }), heavyFree = () => true, nowMs = Date.now, check = () => ({ status: 'skipped' }), review, merge, alert, board = () => {}, log = () => {}, watchdog = () => {}, health = () => [], copyPending = () => 0, copyBatch = null, copySaved = () => false, notify = () => {}, metrics = () => null, audit = null, incidents = null, ciStatus = null, settle = defaultSettle, mergeAudit = null } = {}) {
   // The clock is read again before each action, so a long review cannot push the next one past lastStartAt.
@@ -267,6 +277,13 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
   return withLock(() => {
     const dayPath = dayStatePath(now.date);
     const day = readJson(dayPath, { codexRuns: 0, failures: 0 });
+    // Fix-forward #622: every tick takes the next number, whatever path it leaves by, so the quiet red
+    // streak counts only back-to-back ticks. Kept apart from the day state, which must stay absent
+    // until the plan writes it.
+    const seqPath = join(stateDir, 'tick-seq.json');
+    const seqNow = readJson(seqPath, {});
+    const seq = (seqNow.date === now.date ? seqNow.seq ?? 0 : 0) + 1;
+    writeJson(seqPath, { date: now.date, seq });
     const heartbeat = status => writeJson(join(stateDir, 'heartbeat.json'), { at: new Date().toISOString(), vn: now, status });
     // The phone-visible board must never break a tick.
     // Outcome numbers (collab-metrics.mjs) are read once per tick, never at night.
@@ -358,7 +375,7 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       try { if (gh.raw) syncStatusLabels(gh, prs, turns); } catch (error) { log(`status labels: ${String(error.message ?? error).slice(0, 200)}`); }
       // #253: the scheduled tick samples the flow metric and owns the buffer top-up, so the
       // persisted queue and --status agree and the metric does not depend on report reads.
-      const { queue: startBuffer } = bufferStatus(prs, turns);
+      const { queue: startBuffer } = bufferStatus(prs, turns, { plan7wPrs: plan7wPrNumbers(turns, now.date) });
       measure(prs, turns);
       const area = activeArea(turns);
       // Owner 15.11: the kept 7-week items are worked first, whatever area is active, or the seats
@@ -380,7 +397,12 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       const work = [...first, ...second, ...live.filter(t => t.area === area && !first.includes(t) && !second.includes(t))];
       const done = [];
       const late = () => { const t = time(); return t.hour * 60 + t.minute >= lastStartAt; };
-      for (const t of work.filter(t => t.turn === 'merge').slice(0, 2)) {
+      // 17.11.2026 (#633): a PR ready to merge is merged whatever its area. Merging costs no Codex run
+      // or heavy job, while waiting lets another area's merge move integration and void its check and
+      // review (#633 waited 45 minutes behind content work, then needed a new check and review).
+      // Checks and reviews keep the area order; the merge gate still checks every PR.
+      const merges = [...work, ...live.filter(t => !work.includes(t))].filter(t => t.turn === 'merge').slice(0, 2);
+      for (const t of merges) {
         if (late()) break;
         show({ status: 'running', doing: `merge #${t.number}`, expectMinutes: 5, area, turns, done });
         const result = merge(t.number);
@@ -506,7 +528,7 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       // top-up describes what is left now, not the list fetched before this run's work.
       const left = done.length ? gh.openPrs() : prs;
       const leftTurns = done.length ? applyDrops(turnsFor(left, { dropped: dropSet(plan, left, null, readJson(dayPath, day)).prs, baseFiles: gh.compareFiles }), gone) : turns;
-      const buffer = done.length ? queueTopUp(wipCount(left, leftTurns)) : startBuffer;
+      const buffer = done.length ? queueTopUp(wipCount(left, leftTurns, { plan7wPrs: plan7wPrNumbers(leftTurns, now.date) })) : startBuffer;
       writeJson(join(stateDir, 'claude-queue.json'), {
         // One session per PR (owner 16.11): the hourly autopilot (session id `autopilot`) gets only
         // fix items no other session holds; the held ones are listed apart.
@@ -516,6 +538,8 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
         // only when nothing is in progress and review has room, and never from lastStartAt on.
         topUp: buffer.topUp && !late(),
         topUpCount: late() ? 0 : buffer.topUpCount, buffer: buffer.buffer, inProgress: buffer.inProgress, inReview: buffer.inReview,
+        // Two lanes (owner 16.11): where a new task may open, 7-week first, and each lane's counts.
+        topUpLanes: late() ? [] : buffer.topUpLanes ?? [], lanes: buffer.lanes ?? null,
         idleRuns,
       });
       if (idleRuns >= idleAlertRuns && !idleAlerted && alert) {
@@ -537,9 +561,23 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       const capped = !done.length && work.some(t => t.turn === 'codex-review') && (readJson(dayPath, day).codexRuns ?? 0) >= dayCap(readJson(dayPath, day)) - auditReserve;
       show({ status: red ? 'ran-with-errors' : done.length ? 'ran' : capped ? 'cap' : 'idle', area, turns, done, error: red ? [errors.length ? JSON.stringify(errors) : null, stuck].filter(Boolean).join(' · ') : null });
       if (failures === 2 && alert) alert(`collab tick có lỗi 2 lần liên tiếp (${now.date} ${now.hour}h): ${clean(JSON.stringify(errors), 300)}`);
+      // Review of 16.11: 34 red ticks from 15:43 to 21:41 raised no alert, because a tick red only from the
+      // unresolved copy batch is not a new failure. Three such ticks in a row open one ops-alert a day,
+      // with the reason; the count resets on a green tick.
+      const prevStuck = readJson(dayPath, day);
+      const stuckRuns = stuck && !errors.length ? (prevStuck.stuckSeq === seq - 1 ? (prevStuck.stuckRuns ?? 0) + 1 : 1) : 0;
+      writeJson(dayPath, { ...readJson(dayPath, day), stuckRuns, stuckSeq: stuckRuns ? seq : null });
+      if (stuckRuns >= stuckAlertRuns && !readJson(dayPath, day).stuckAlerted && alert) {
+        try {
+          alert(`collab tick đỏ ${stuckRuns} lượt liền mà không có lỗi mới (${now.date} ${now.hour}:${String(now.minute).padStart(2, '0')}): ${stuck}`);
+          writeJson(dayPath, { ...readJson(dayPath, day), stuckAlerted: true });
+        } catch (error) { log(`stuck alert failed, retry next run: ${clean(error.message, 200)}`); }
+      }
       tell({ turns: leftTurns, comments: plan.comments });
       log(JSON.stringify(done));
-      return { status: red ? 'ran-with-errors' : 'ran', area, done };
+      // 16.11.2026: the tick log printed only "ran-with-errors" for a whole day; the reason a quiet tick is
+      // still red (the unresolved copy batch) now rides in the logged result too.
+      return { status: red ? 'ran-with-errors' : 'ran', area, done, ...(stuck ? { stuck } : {}) };
     } catch (error) {
       const failures = (readJson(dayPath, day).failures ?? 0) + 1;
       writeJson(dayPath, { ...readJson(dayPath, day), failures, streakAt: streak(failures, readJson(dayPath, day).streakAt) });
@@ -618,11 +656,11 @@ if (isMain(import.meta.url)) {
       process.stderr.write('Use: node scripts/collab-tick.mjs\n'); process.exitCode = 2;
     } else if (args.includes('--status')) {
       const { plan, prs, turns } = planTurns(gh);
-      const { queue: buffer } = bufferStatus(prs, turns);
+      const { queue: buffer } = bufferStatus(prs, turns, { plan7wPrs: plan7wPrNumbers(turns, vnNow().date) });
       process.stdout.write(`${JSON.stringify({ plan: plan.state, reason: plan.reason, dropped: plan.dropped, queue: { ...readJson(join(stateDir, 'claude-queue.json'), null), ...buffer } })}\n`);
     } else {
       const { prs, turns } = planTurns(gh);
-      const { lines } = bufferStatus(prs, turns);
+      const { lines } = bufferStatus(prs, turns, { plan7wPrs: plan7wPrNumbers(turns, vnNow().date) });
       process.stdout.write(`${args.includes('--json') ? JSON.stringify(turns, null, 2) : [renderReport(turns), ...lines].join('\n')}\n`);
     }
   } catch (error) { process.stderr.write(`collab-turn failed: ${clean(error.message, 500)}\n`); process.exitCode = 1; }
