@@ -1,6 +1,6 @@
 import './collab-test-home.mjs';
 import assert from 'node:assert/strict';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
@@ -114,13 +114,52 @@ test('dream: symlinks in the memory folder are skipped, the proposal cannot live
   assert.throws(() => dream({ memory: dir, out: join(dir, '2026-11-17'), sheet, date: '2026-11-17' }), /outside the memory folder/);
   const root = mkdtempSync(join(tmpdir(), 'dream-root-'));
   for (const d of ['2026-10-01', '2026-11-10', 'keep-me']) mkdirSync(join(root, d));
-  for (const d of ['2026-10-01', '2026-11-10']) writeFileSync(join(root, d, 'manifest.json'), JSON.stringify({ kind: proposalKind }));
+  for (const d of ['2026-10-01', '2026-11-10']) writeFileSync(join(root, d, '.dream-owner'), JSON.stringify({ kind: proposalKind }));
+  // A manifest alone is not ownership (anyone can write one with the kind).
+  mkdirSync(join(root, '2026-08-01'));
+  writeFileSync(join(root, '2026-08-01', 'manifest.json'), JSON.stringify({ kind: proposalKind }));
   // An old dated folder that this script did not write is kept (Codex r1 on #618, P1).
   mkdirSync(join(root, '2026-09-01'));
   writeFileSync(join(root, '2026-09-01', 'notes.md'), 'not a proposal');
   assert.deepEqual(prune(root, '2026-11-17'), ['2026-10-01']);
   assert.equal(existsSync(join(root, 'keep-me')), true);
   assert.equal(existsSync(join(root, '2026-09-01', 'notes.md')), true);
+  assert.equal(existsSync(join(root, '2026-08-01', 'manifest.json')), true);
+});
+
+// Codex r2 on #618: a run that stops after copying private memory still leaves a folder it owns, so the
+// next run of that date and the 14-day prune remove it.
+test('dream: an interrupted run leaves an owned folder that the next run and the prune remove', () => {
+  const { dir } = store();
+  const root = mkdtempSync(join(tmpdir(), 'dream-root-'));
+  const out = join(root, '2026-10-01');
+  assert.throws(() => dream({ memory: dir, out, sheet, date: '2026-10-01', stage: s => { if (s === 'copied') throw new Error('stop'); } }), /stop/);
+  assert.equal(existsSync(join(out, 'manifest.json')), false, 'stopped before the manifest');
+  assert.ok(readdirSync(join(out, 'before')).length > 0, 'private copies were written');
+  // The next run of the same date takes the folder over.
+  dream({ memory: dir, out, sheet, date: '2026-10-01' });
+  assert.equal(existsSync(join(out, 'before')), false);
+  assert.throws(() => dream({ memory: dir, out: join(root, '2026-10-02'), sheet, date: '2026-10-02', stage: s => { if (s === 'copied') throw new Error('stop'); } }), /stop/);
+  // Fourteen days later both are gone.
+  dream({ memory: dir, out: join(root, '2026-11-17'), sheet, date: '2026-11-17' });
+  assert.deepEqual(readdirSync(root).sort(), ['2026-11-17']);
+});
+
+// Codex r2 on #618: a store without an index gets one, and only while the index is still missing.
+test('dream apply: a missing index is created, but not over one written meanwhile', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'dream-noindex-'));
+  writeFileSync(join(dir, 'note.md'), entry('note', 'a note', 'Plain text.'));
+  const out = join(mkdtempSync(join(tmpdir(), 'dream-out-')), '2026-11-17');
+  dream({ memory: dir, out, sheet, date: '2026-11-17' });
+  assert.deepEqual(apply({ out, memory: dir, accept: ['MEMORY.md'], sheet }).applied, ['MEMORY.md']);
+  assert.match(readFileSync(join(dir, 'MEMORY.md'), 'utf8'), /\(note\.md\)/);
+  const dir2 = mkdtempSync(join(tmpdir(), 'dream-noindex-'));
+  writeFileSync(join(dir2, 'note.md'), entry('note', 'a note', 'Plain text.'));
+  const out2 = join(mkdtempSync(join(tmpdir(), 'dream-out-')), '2026-11-17');
+  dream({ memory: dir2, out: out2, sheet, date: '2026-11-17' });
+  writeFileSync(join(dir2, 'MEMORY.md'), '- [mine](mine.md) — written by the owner\n');
+  assert.deepEqual(apply({ out: out2, memory: dir2, accept: ['MEMORY.md'], sheet }).refused.map(r => r.why), ['file gốc đã đổi sau đề xuất']);
+  assert.match(readFileSync(join(dir2, 'MEMORY.md'), 'utf8'), /written by the owner/);
 });
 
 // Codex r1 on #618 (P1): the source memory can never be deleted, whatever path is given.

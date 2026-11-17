@@ -42,8 +42,9 @@ export function readStore(dir) {
     entries.push({ file, slug: file.replace(/\.md$/, ''), name: field('name'), description: field('description'), front, body, text });
   }
   const indexPath = join(dir, 'MEMORY.md');
-  const index = existsSync(indexPath) && lstatSync(indexPath).isFile() ? readFileSync(indexPath, 'utf8') : '';
-  return { entries, index };
+  const indexExists = existsSync(indexPath) && lstatSync(indexPath).isFile();
+  const index = indexExists ? readFileSync(indexPath, 'utf8') : '';
+  return { entries, index, indexExists };
 }
 
 // Statements that contradict the sheet's numbers. A line that itself says the value is old
@@ -166,10 +167,14 @@ const mkdirPrivate = path => { mkdirSync(path, { recursive: true, mode: 0o700 })
 // memory folder never overlap in either direction.
 export const proposalKind = 'la-lanh-memory-dream';
 const dated = /^\d{4}-\d{2}-\d{2}$/;
+// Codex r2 on #618: ownership is written (atomically) before any private content, so a run that stops
+// half-way still leaves a folder that prune and the next run recognise and remove.
+const ownerFile = '.dream-owner';
 function ownedProposal(path) {
   try {
     if (!lstatSync(path).isDirectory()) return false;
-    return JSON.parse(readFileSync(join(path, 'manifest.json'), 'utf8')).kind === proposalKind;
+    const marker = join(path, ownerFile);
+    return lstatSync(marker).isFile() && JSON.parse(readFileSync(marker, 'utf8')).kind === proposalKind;
   } catch { return false; }
 }
 // The real path of a folder that may not exist yet: its nearest existing parent, resolved, plus the rest.
@@ -198,7 +203,7 @@ export function prune(root, today, keepDays = 14, { memory = null } = {}) {
   return gone;
 }
 
-export function dream({ memory, out, sheet = readFileSync(sheetPath(), 'utf8'), date = new Date().toISOString().slice(0, 10) }) {
+export function dream({ memory, out, sheet = readFileSync(sheetPath(), 'utf8'), date = new Date().toISOString().slice(0, 10), stage = () => {} }) {
   if (!dated.test(String(date))) throw new Error('date must be YYYY-MM-DD');
   // Dated names only (Codex r1 P2): every proposal expires through prune.
   if (!dated.test(basename(resolve(out)))) throw new Error('the proposal folder must be named YYYY-MM-DD');
@@ -207,13 +212,19 @@ export function dream({ memory, out, sheet = readFileSync(sheetPath(), 'utf8'), 
   const store = readStore(memory);
   const result = propose(store, sheet, { date });
   rmSync(out, { recursive: true, force: true });
-  mkdirPrivate(dirname(out));
+  mkdirPrivate(out);
+  const tmpOwner = join(out, `${ownerFile}.tmp-${process.pid}`);
+  writePrivate(tmpOwner, `${JSON.stringify({ kind: proposalKind, date })}\n`);
+  renameSync(tmpOwner, join(out, ownerFile));
+  stage('owned');
   mkdirPrivate(join(out, 'memory'));
   mkdirPrivate(join(out, 'before'));
   const sources = {};
   for (const e of store.entries) { writePrivate(join(out, 'before', e.file), e.text); sources[e.file] = hash(e.text); }
+  stage('copied');
   writePrivate(join(out, 'before', 'MEMORY.md'), store.index);
-  sources['MEMORY.md'] = hash(store.index);
+  // Codex r2 on #618: an index that did not exist is recorded as absent (null), so apply may create it.
+  sources['MEMORY.md'] = store.indexExists === false ? null : hash(store.index);
   const proposed = new Map(result.files);
   proposed.set('MEMORY.md', result.index);
   const touched = [];
@@ -247,9 +258,12 @@ export function apply({ out, memory, accept, sheet = readFileSync(sheetPath(), '
     const why = file === pointerName ? 'không sửa mục trỏ luật' : basename(file) !== file ? 'tên file không hợp lệ' : !manifest.touched.includes(file) ? 'không có trong đề xuất' : null;
     if (why) { result.refused.push({ file, why }); continue; }
     const target = join(memory, file);
-    let current = '';
-    try { current = lstatSync(target).isFile() ? readFileSync(target, 'utf8') : null; } catch { current = file === 'MEMORY.md' ? null : ''; }
-    if (current === null || hash(current ?? '') !== manifest.sources[file]) { result.refused.push({ file, why: 'file gốc đã đổi sau đề xuất' }); continue; }
+    // undefined: no file; null: something that is not a regular file. A source recorded as absent may
+    // only be created while it is still absent.
+    let current;
+    try { current = lstatSync(target).isFile() ? readFileSync(target, 'utf8') : null; } catch { current = undefined; }
+    const unchanged = manifest.sources[file] === null ? current === undefined : typeof current === 'string' && hash(current) === manifest.sources[file];
+    if (!unchanged) { result.refused.push({ file, why: 'file gốc đã đổi sau đề xuất' }); continue; }
     const next = readFileSync(join(out, 'memory', file), 'utf8');
     if (hash(next) !== manifest.proposed[file]) { result.refused.push({ file, why: 'bản đề xuất đã bị sửa' }); continue; }
     const mode = existsSync(target) ? statSync(target).mode & 0o777 : 0o600;
