@@ -19,6 +19,7 @@ import {
   writeCachedDailyNote,
 } from "../../shared/storage/noteCache";
 import { useReadingUpdateActivation } from "../../shared/hooks/useReadingUpdateActivation";
+import { dailyMoodKey, readDailyMood, useDailyActionView } from "../../shared/hooks/useDailyActionView";
 import { useDailyExperiment } from "../../shared/hooks/useDailyExperiment";
 import { saveNoteLocally } from "../../shared/storage/savedNoteCache";
 import "../../shared/styles/signal-note.css";
@@ -86,15 +87,27 @@ export function NoteDetailPage() {
     onReflected: () => setMessage("Đã lưu phần nhìn lại riêng cho thử nghiệm này."),
   });
 
+  // The mood is read here only when this reading has a lighter action to offer (#627).
+  const moodQuery = useQuery({
+    queryKey: dailyMoodKey(note?.id),
+    queryFn: ({ signal }) => readDailyMood(queryClient, note!.id, signal),
+    enabled: Boolean(note?.id && activeReading?.lighter_action),
+    retry: false,
+  });
+  const actionView = useDailyActionView(note?.id, activeReading, moodQuery.data?.mood);
+  const shownExperiment = actionView.lighterShown
+    ? activeReading?.lighter_action?.experiment
+    : activeReading?.experiment;
+
   const chooseExperiment = () => {
-    if (!note || !activeReading?.experiment) return;
+    if (!note || !activeReading || !shownExperiment) return;
     const held = dailyExperiment.experiment;
-    const expectedHeld = held && held.action_key !== activeReading.experiment.action_key ? held : null;
+    const expectedHeld = held && held.action_key !== shownExperiment.action_key ? held : null;
     dailyExperiment.choose({
       daily_note_id: note.id,
       revision_id: activeReading.revision_id,
       background_lens: context,
-      action_key: activeReading.experiment.action_key,
+      action_key: shownExperiment.action_key,
       consent_version: "action-experiment-v1",
       expected_experiment_id: expectedHeld?.id ?? null,
       expected_version: expectedHeld?.version ?? null,
@@ -133,6 +146,7 @@ export function NoteDetailPage() {
             currentExperiment={dailyExperiment.experiment}
             experimentError={dailyExperiment.errorMessage}
             experimentStatus={dailyExperiment.status}
+            lighter={actionView.canSwitch ? { shown: actionView.lighterShown, onSwitch: actionView.switchAction } : null}
             onChoose={chooseExperiment}
             onReflect={(outcome) => {
               const held = dailyExperiment.experiment;

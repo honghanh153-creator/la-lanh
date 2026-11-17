@@ -130,6 +130,15 @@ def approved_texts(prefix: str) -> tuple[str, ...]:
     )
 
 
+def approved_ids(prefix: str) -> tuple[str, ...]:
+    """Ids of the approved entries that start with ``prefix``, in id order."""
+
+    registry = _runtime_registry()
+    return tuple(
+        key for key in sorted(registry) if key.startswith(prefix) and registry[key].servable
+    )
+
+
 def copy_text(entry_id: str, fallback: str) -> str:
     """The approved sentence for ``entry_id``, or ``fallback`` (current approved copy)."""
 

@@ -734,6 +734,18 @@ Rollback changes the application image/source only. It does not downgrade the li
 If the previous image was pruned, rebuild it only from the matching public Git commit. If schema
 compatibility is uncertain, stop traffic and diagnose rather than guessing or downgrading.
 
+### Rollback limit: kept lighter Daily actions (#627, not released)
+
+Applies from the first release that both serves an approved `lighter.action.*` sentence and ships
+the web switch (#627 PR B). From then on a person can keep the lighter action, and that held
+experiment row stores the lighter sentence in its encrypted payload. An image older than the #627
+API change cannot read such a row (`docs/decisions/2026-11-17-viec-nhe-hon-daily.md`, "Lùi bản").
+Saved notes are not affected. Before rolling back past that release, prefer a forward fix; if a
+rollback is unavoidable, the held experiments created since that release must first expire or be
+removed (the payload is encrypted, so rows with a lighter action cannot be told apart by a query);
+that removal is the owner's decision. Until a lighter sentence is
+approved no such row can exist and this limit does not apply.
+
 ## Incident triage
 
 ```sh

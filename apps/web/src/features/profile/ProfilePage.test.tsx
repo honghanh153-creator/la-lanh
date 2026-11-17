@@ -22,6 +22,7 @@ import {
   type DailyNote,
   type DataExport,
 } from "../../shared/api/client";
+import { dailyActionViewKey, dailyMoodKey } from "../../shared/hooks/useDailyActionView";
 import { readCachedDailyNote, writeCachedDailyNote } from "../../shared/storage/noteCache";
 import { saveDataExport } from "./downloadMyData";
 import { ProfilePage } from "./ProfilePage";
@@ -114,6 +115,20 @@ describe("ProfilePage resonance privacy controls", () => {
       expect(held).not.toContain("synthetic today text");
     });
     expect(readCachedDailyNote()).toBeNull();
+  });
+
+  it("forgets the saved mood and the action choice after a history clear, so the lighter action is not kept (#627)", async () => {
+    const noteId = "synthetic-note-today";
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    client.setQueryData(dailyMoodKey(noteId), { id: "synthetic-mood", daily_note_id: noteId, mood: "Đuối" });
+    client.setQueryData(dailyActionViewKey(noteId), { choice: "lighter" });
+    const user = userEvent.setup(); renderPage(client);
+    await user.click(await screen.findByRole("button", { name: /Xoá lịch sử đã xem/ }));
+    await user.click(screen.getByRole("button", { name: "Xoá lịch sử" }));
+    expect(await screen.findByRole("status")).toHaveTextContent("Đã xoá lịch sử");
+    expect(client.getQueryData(dailyActionViewKey(noteId))).toBeUndefined();
+    expect(client.getQueryData(["daily-note-mood", noteId])).toBeUndefined();
+    expect(JSON.stringify(client.getQueryCache().getAll().map((query) => query.state.data))).not.toContain("Đuối");
   });
 
   it("offers no sign-in and no Supabase wording to a guest while Google sign-in is off (Wave 1)", async () => {
