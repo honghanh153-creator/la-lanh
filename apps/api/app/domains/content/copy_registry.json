@@ -10184,6 +10184,78 @@
    "approver": "owner",
    "date": "2026-11-15",
    "digest": "67f2839f0d3e3129087080f476848829bbfe1734085b3abc23e6995694a75f7e"
+  },
+  {
+   "id": "lighter.action.01",
+   "category": "reading",
+   "text": "Uống một cốc nước rồi ngồi yên hai phút.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.action.02",
+   "category": "reading",
+   "text": "Tắt điện thoại năm phút rồi nằm nghỉ.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.action.03",
+   "category": "reading",
+   "text": "Tìm chỗ ngồi yên, nhắm mắt và thở chậm năm hơi.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.action.04",
+   "category": "reading",
+   "text": "Đi bộ một vòng quanh nhà rồi quay lại, không cầm điện thoại.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.action.05",
+   "category": "reading",
+   "text": "Duỗi vai và cổ một phút rồi uống một ngụm nước.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.action.06",
+   "category": "reading",
+   "text": "Ghi một dòng: hôm nay việc gì làm bạn mệt nhất.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.action.07",
+   "category": "reading",
+   "text": "Nghỉ năm phút để ăn một món nhẹ, chưa xem điện thoại.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.action.08",
+   "category": "reading",
+   "text": "Nằm xuống năm phút, đặt điện thoại ở xa tầm tay.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.action.09",
+   "category": "reading",
+   "text": "Mở cửa sổ, đứng thở chậm một phút.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.action.10",
+   "category": "reading",
+   "text": "Rửa mặt bằng nước ấm rồi ngồi nghỉ ba phút.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.action.11",
+   "category": "reading",
+   "text": "Uống một cốc nước ấm, chờ năm phút rồi mới cầm điện thoại.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.action.12",
+   "category": "reading",
+   "text": "Ngồi yên ba phút, giữ hai bàn chân chạm sàn và thở đều.",
+   "status": "pending"
   }
  ],
  "version": "copy-registry/v1"
