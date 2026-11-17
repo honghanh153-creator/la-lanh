@@ -216,11 +216,25 @@ test('E: a run tree outlives its wrapper while a child still uses it, and is swe
   // The fake node leaves a child that keeps naming its script inside the tree, then returns.
   // The child is fully started before the fake node returns: on Linux a process caught mid-exec shows an
   // empty command line for a moment, which is a test race, not the case under test (CI on #628).
-  writeFileSync(join(w.bin, 'node'), `#!/bin/bash\n/usr/bin/perl -e 'sleep 60' "$1" </dev/null >/dev/null 2>&1 &\nh=$!\necho $h > "${holderPid}"\nfor i in $(seq 1 50); do ps -p $h -o args= 2>/dev/null | grep -q perl && break; sleep 0.1; done\n`);
+  // #641 (17.11): the readiness wait now uses the script's own test (pgrep -f on the tree path) instead
+  // of `ps | grep perl`, the holder is the real node binary, and a failure prints what pgrep and ps saw.
+  const seen = join(w.base, 'holder.seen');
+  // Same escaping as ops-run.sh, so the wait and the script look for the same thing.
+  writeFileSync(join(w.bin, 'node'), [
+    '#!/bin/bash',
+    `"${process.execPath}" -e 'setTimeout(() => {}, 60000)' "$1" </dev/null >/dev/null 2>&1 &`,
+    'h=$!',
+    `echo $h > "${holderPid}"`,
+    String.raw`pat="$(printf '%s' "$(dirname "$(dirname "$1")")" | sed 's/[][\\.^$*+?(){}|]/\\&/g')"`,
+    String.raw`for i in $(seq 1 100); do /usr/bin/pgrep -f -- "$pat" | grep -qx "$h" && break; sleep 0.1; done`,
+    String.raw`{ echo "pattern: $pat"; echo "pgrep: $(/usr/bin/pgrep -f -- "$pat" | tr '\n' ' ')"; ps -o pid=,args= -p $h; } > "SEEN" 2>&1`.replace('SEEN', seen),
+    '',
+  ].join('\n'));
   chmodSync(join(w.bin, 'node'), 0o755);
   assert.equal(run(w, ['report']).status, 0);
   const left = readdirSync(runs).filter(n => !n.startsWith('.'));
-  assert.equal(left.length, 1, 'the wrapper exited but its child still uses the tree: it stays');
+  const saw = () => { try { return readFileSync(seen, 'utf8'); } catch { return 'no holder record'; } };
+  assert.equal(left.length, 1, `the wrapper exited but its child still uses the tree: it stays. Holder: ${saw()}`);
   assert.match(left[0], /^report-\d{14}-\d+$/);
   const pid = Number(readFileSync(holderPid, 'utf8'));
   process.kill(pid, 'SIGKILL');

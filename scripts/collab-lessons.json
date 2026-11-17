@@ -740,6 +740,34 @@
   },
   {
    "id": "L42",
+   "title": "Test E (cây chạy sống lâu hơn wrapper) không được đỏ vô cớ trên CI Linux: 20 lần chạy liền không đỏ (sự cố #641: đỏ ở #628 và #637; #645 cho test chờ đúng phép kiểm của script và in pgrep/ps khi đỏ)",
+   "from": "fix-forward #641, #650",
+   "who": "claude",
+   "status": "open",
+   "due": "2026-11-20"
+  },
+  {
+   "id": "L43",
+   "title": "Lượt CI bị hủy (do sửa mô tả PR) không phải kết quả: author check lấy lượt mới nhất không bị hủy, chỉ có lượt bị hủy thì chờ (sự cố #630: #628 bị ghi FAIL dù cùng head đã xanh)",
+   "from": "fix-forward #630",
+   "who": "claude",
+   "due": "2026-11-18",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-loop.test.mjs",
+    "name": "12.11 trial: ciCheck passes only a completed success of the pr-check check job at the exact head"
+   },
+   "caller": {
+    "file": "scripts/collab-check.mjs",
+    "contains": "r.conclusion === 'cancelled'"
+   },
+   "closedBy": {
+    "pr": 651
+   },
+   "note": ""
+  },
+  {
+   "id": "L44",
    "title": "Luật owner chỉ có một bản (docs/operations/luat-dang-hieu-luc.md) và mọi con số trong bảng phải bằng code: trần Codex, giờ dừng, giờ báo cáo, 4 loại việc của owner (sự cố 15–16.11: owner phải nhắc lại luật vì bản chép cũ còn ghi 60 lượt, 08:00)",
    "from": "owner 16.11 (\"bạn quên nhiều\"); fix-forward #643",
    "who": "claude",
