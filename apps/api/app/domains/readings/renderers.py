@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from app.domains.astro.models import Tradition
+from app.domains.astro.models import TimePrecision, Tradition
+from app.domains.readings.companion_pool import daily_companion_line
 from app.domains.readings.daily_psychology import (
     DAILY_PSYCHOLOGY_CONTENT_FINGERPRINT,
     apply_daily_psychology,
@@ -19,6 +20,7 @@ from app.domains.readings.knowledge import (
     vibe_frame,
 )
 from app.domains.readings.models import (
+    COMPANION_CANDIDATE_SCHEMA_VERSION,
     BackgroundLens,
     ClaimSlot,
     ClaimSlotName,
@@ -39,6 +41,12 @@ from app.domains.readings.models import (
 
 DETERMINISTIC_RENDERER_VERSION = "deterministic-vi-v12"
 JYOTISH_MEANINGS_VERSION = "jyotish-meanings-v2"
+# #665 (US-03 AC22): an approximate-time Daily lists every placement of its plan as evidence, so
+# that a lens never changes it. Stored approximate revisions from before keep their own identity
+# (Codex r1 on #666): a new key, not an ImmutableReadingConflictError when an old note reopens.
+# Kept short (Codex r2 on #666): renderer_version is at most 64 characters, and with a published
+# runtime catalog the version already carries "+daily-<8>" and "+content-<12>".
+APPROXIMATE_DAILY_EVIDENCE_VERSION = "ax1"
 
 _SIGN_LABELS = {
     "aries": "Bạch Dương",
@@ -398,6 +406,8 @@ class DeterministicVietnameseRenderer:
             if frame.daily_meaning is not None
             else self.version
         )
+        if plan.precision is TimePrecision.APPROXIMATE and frame.daily_meaning is not None:
+            base_version = f"{base_version}+{APPROXIMATE_DAILY_EVIDENCE_VERSION}"
         if plan.tradition is Tradition.JYOTISH:
             # Jyotish prose moved from position-only text to planet x sign x house meanings;
             # a new identity keeps stored revisions from colliding with the new prose.
@@ -407,7 +417,18 @@ class DeterministicVietnameseRenderer:
             if catalog_version is not None
             else base_version
         )
+        # Lá's line: the authored first line stays out of storage (read from the catalog). An
+        # approved extra pair is stored with the card, both voices (Codex r1 on #657), so a card
+        # already opened keeps its line when pairs are approved, edited or withdrawn later.
+        extra = (
+            daily_companion_line(frame.mechanism_key, plan.daily_variety)
+            if frame.daily_meaning is not None
+            else None
+        )
         candidate = ReadingCandidate(
+            **({"schema_version": COMPANION_CANDIDATE_SCHEMA_VERSION} if extra else {}),
+            companion=extra.direct if extra else None,
+            companion_roast=extra.roast if extra else None,
             renderer_version=renderer_version,
             plan_hash=plan.plan_hash,
             hook=hook,

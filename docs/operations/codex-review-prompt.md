@@ -41,7 +41,18 @@ prove the behaviour, and say so when they do not.
 
 Return `REQUEST_CHANGES` only when at least one finding blocks under this policy. Otherwise return
 `APPROVE` and still list the non-blocking findings. Set `complete` to false when you could not read the
-whole diff (for example, it is too large); the PR then goes to the owner.
+whole diff (for example, it is too large); the PR then goes back to Claude to split it into parts you
+can review in full. A review never sends a PR to the owner: only the owner's four kinds wait on her
+(cost or new service/access, release, privacy/consent/crisis/safety copy, switching on new personal-data
+collection).
+
+Name those four kinds in `owner_actions` (empty when the PR touches none). They are not findings and do
+not change the verdict: a correct PR can still need the owner. Use `cost_access` for a new cost, paid
+service, provider or access; `release` for shipping to real users; `data_collection` only when the PR
+turns on collecting or storing new personal data (work kept behind a switched-off flag is not it);
+`sensitive_copy` for privacy, consent, crisis or safety text a user can see. Set `blocks` to `release`
+only for sensitive copy kept pending (`status: pending`, served only after approval); otherwise `merge`.
+Give `file:line` evidence with synthetic wording.
 
 Same class (retro S2, #124 took seven rounds): when a finding is a pattern (a regex, a missing check, a
 copy rule, a lock), search the whole repository for every other place with the same pattern, for example

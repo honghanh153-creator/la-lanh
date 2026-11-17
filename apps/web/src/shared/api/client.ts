@@ -475,6 +475,17 @@ export function isGuestSessionUnavailable(error: unknown): boolean {
     && (problem.code === "GUEST_SESSION_MISSING" || problem.code === "GUEST_EXPIRED");
 }
 
+/**
+ * Crisis safety layer (owner decision 14.11.2026): free text that reads as self-harm gets no result;
+ * the server answers with one short owner-approved notice instead. Returns that notice, or null
+ * for any other error.
+ */
+export function crisisNoticeFrom(error: unknown): string | null {
+  if (!(error instanceof ApiProblem) || error.code !== "CRISIS_NOTICE") return null;
+  const notice = error.details.notice as { text?: unknown } | undefined;
+  return notice && typeof notice.text === "string" && notice.text.trim() ? notice.text : null;
+}
+
 /** #143 E2: the server could not produce this reading's content; retrying the same chart cannot help. */
 export function isReadingContentRejected(error: unknown): boolean {
   if (!error || typeof error !== "object") return false;

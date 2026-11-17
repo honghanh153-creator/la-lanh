@@ -9,6 +9,7 @@ import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { bindReceipt, boundedTimeout, checkSeal, clean, cutoffAt, cutoffMs, hhmmOf, integration, isOwnPr, isSha, lastStartAt, makeGh, planOpensAt, repo, signReceipt, stateDir, vnNow } from './collab-trust.mjs';
 import { withFileLock } from './collab-lock.mjs';
+import { mayTouch, readClaim, sessionId, withPrLock } from './collab-pr-claim.mjs';
 import { preflightFailure, readPreflight, recordPreflight, runPreflight } from './collab-preflight.mjs';
 import { runGroup, syncWithIntegration } from './collab-heal.mjs';
 import { checkSteps, failDetails, guardWaitMs, openCheckLog, waitForGuard } from './collab-check-log.mjs';
@@ -32,7 +33,10 @@ export const heavyPatterns = [
   /^(\S*\/)?uv\s+run\b.*\sscripts\.persona_sim(\s|$)/,
 ];
 export const isHeavy = args => heavyPatterns.some(pattern => pattern.test(String(args).trim()));
-export function machineBusy(run = execFileSync) {
+export function machineBusy(run = execFileSync, { exceptUnder = [] } = {}) {
+  // D2 (owner 16.11): a guarded job does not count the other guard slot's own test processes; it
+  // still sees every other heavy process (an author check, the persona run, an unguarded run).
+  if (exceptUnder.length) return busyOutside(run, exceptUnder);
   let table = '';
   try { table = String(run('ps', ['-Ao', 'pid=,args='], { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 })); } catch { return null; }
   for (const line of table.split('\n')) {
@@ -40,6 +44,17 @@ export function machineBusy(run = execFileSync) {
     if (match && Number(match[1]) !== process.pid && isHeavy(match[2])) return `${match[1]} ${match[2]}`.slice(0, 120);
   }
   return null;
+}
+
+function busyOutside(run, roots) {
+  let table = '';
+  try { table = String(run('ps', ['-Ao', 'pid=,ppid=,args='], { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 })); } catch { return null; }
+  const rows = table.split('\n').map(line => /^\s*(\d+)\s+(\d+)\s+(.*)$/.exec(line)).filter(Boolean).map(m => ({ pid: Number(m[1]), ppid: Number(m[2]), args: m[3] }));
+  const parent = new Map(rows.map(r => [r.pid, r.ppid]));
+  const skip = new Set(roots.map(Number));
+  const under = pid => { for (let p = pid, hops = 0; p > 1 && hops < 64; p = parent.get(p), hops += 1) if (skip.has(p)) return true; return false; };
+  const hit = rows.find(r => r.pid !== process.pid && isHeavy(r.args) && !under(r.pid));
+  return hit ? `${hit.pid} ${hit.args}`.slice(0, 120) : null;
 }
 
 // Process-group runner (kills the whole tree at the deadline, stuck beat after 30 min): collab-heal.mjs.
@@ -147,8 +162,11 @@ export function ciCheck(gh, head) {
   const runs = (gh.json(['api', `repos/${repo}/actions/workflows/pr-check.yml/runs?head_sha=${head}&per_page=20`]).workflow_runs ?? [])
     .filter(r => r.head_sha === head && String(r.path ?? '').split('@')[0] === ciWorkflow)
     .sort((a, b) => String(b.created_at ?? '').localeCompare(String(a.created_at ?? '')) || Number(b.run_attempt ?? 0) - Number(a.run_attempt ?? 0));
-  const run = runs[0];
-  if (!run || run.status !== 'completed') return { state: 'pending', url: run?.html_url ?? '' };
+  // #630 (17.11): editing a PR body starts a second run for the same head and GitHub cancels one of
+  // them; the cancelled run is not a result. The newest run that was not cancelled decides (an
+  // unfinished one means pending); only cancelled runs means pending too, never a FAIL with a receipt.
+  const run = runs.find(r => !(r.status === 'completed' && r.conclusion === 'cancelled'));
+  if (!run || run.status !== 'completed') return { state: 'pending', url: run?.html_url ?? runs[0]?.html_url ?? '' };
   const jobs = (gh.json(['api', `repos/${repo}/actions/runs/${Number(run.id)}/jobs?filter=latest&per_page=100`]).jobs ?? [])
     .filter(j => j.name === 'check' && j.head_sha === head && Number(j.run_id) === Number(run.id));
   const job = jobs[0];
@@ -263,7 +281,18 @@ function checkOnce(number, { gh, cwd, git, spawn, now, busy, budget, terms = rea
   // its normal state, not a failure for Claude to fix. It waits; the sync comes when it is the front.
   try { git(['merge-base', '--is-ancestor', base, 'HEAD']); }
   catch {
-    if (waiting) return { status: source === 'ci' ? 'ci-pending' : 'waiting', reason: `chưa chứa ${integration} mới nhất (${base.slice(0, 7)}): đồng bộ khi tới lượt đầu hàng` };
+    if (waiting) {
+      // 17.11.2026: a PR another session holds is never synced by the machine (#597), so "when it is
+      // the front" was wrong for it: #614 showed that line for 12+ ticks while an idle session held it.
+      // The reason names the holder and how the claim ends.
+      const held = readClaim(pr.number ?? number);
+      const claimed = held && (held.unreadable || held.session !== sessionId());
+      const why = claimed
+        ? held.unreadable ? 'claim của PR không đọc được; sửa file claim rồi đồng bộ'
+          : `phiên ${clean(String(held.session), 64)} đang giữ PR từ ${clean(String(held.at ?? '?'), 30)}: phiên đó đồng bộ, hoặc thả claim (collab-pr-claim.mjs --release ${pr.number ?? number})`
+        : 'đồng bộ khi tới lượt đầu hàng';
+      return { status: source === 'ci' ? 'ci-pending' : 'waiting', reason: `chưa chứa ${integration} mới nhất (${base.slice(0, 7)}): ${why}`, ...(claimed ? { claimedBy: held.unreadable ? null : held.session } : {}) };
+    }
     return { status: 'preflight', reasons: [`nhánh chưa chứa ${integration} mới nhất (${base.slice(0, 7)}): merge ${integration} vào nhánh rồi push`] };
   }
   const prNumber = pr.number ?? number;
@@ -392,7 +421,17 @@ export function runCheckInClone(number, { gh = makeGh(), run = execFileSync, aut
     const gitD = args => git(args, cwd, run, boundedTimeout(600000, leftMs));
     // L14: the tick passes sync=false for every PR except the front of its area queue; a manual
     // `--clone` run keeps the old behaviour.
-    const synced = rest.sync === false ? null : syncWithIntegration(pr, { git: (args, ms) => git(args, cwd, run, ms), gh: ghD, left: leftMs });
+    // One session per PR (owner 16.11): nobody but the holding session syncs a claimed PR, the tick
+    // (no session) and another session's manual run included (LA_LANH_SESSION names the session).
+    // Such a PR waits like one behind the front (L14); being behind is not a failure for Claude.
+    // Codex r1 on #597: the check of the claim and the whole sync (merge and push) run under the
+    // PR's lock, so no session takes the PR while its branch is written; a busy lock means wait.
+    let synced = null;
+    if (rest.sync !== false) {
+      const held = withPrLock(number, () => (mayTouch(number, rest.session ?? sessionId()).ok ? { synced: syncWithIntegration(pr, { git: (args, ms) => git(args, cwd, run, ms), gh: ghD, left: leftMs }) } : { claimed: true }), { waitMs: 0 });
+      if (held.ok === false || held.claimed) rest.sync = false;
+      else synced = held.synced;
+    }
     if (synced) return synced;
     // The clock is read again after the clone and install, which can take minutes.
     // pnpm stops early enough that the receipt still fits inside leftMs (#243).

@@ -173,11 +173,30 @@ def approved_texts(prefix: str) -> tuple[str, ...]:
     )
 
 
+def approved_ids(prefix: str) -> tuple[str, ...]:
+    """Ids of the approved entries that start with ``prefix``, in id order."""
+
+    registry = _runtime_registry()
+    return tuple(
+        key for key in sorted(registry) if key.startswith(prefix) and registry[key].servable
+    )
+
+
 def copy_text(entry_id: str, fallback: str) -> str:
     """The approved sentence for ``entry_id``, or ``fallback`` (current approved copy)."""
 
     entry = _runtime_registry().get(entry_id)
     return entry.text if entry is not None and entry.servable else fallback
+
+
+def approved_copy(entry_id: str) -> str | None:
+    """The approved sentence for ``entry_id``, or ``None`` while it is pending or broken.
+
+    For copy that has no current approved sentence to fall back to: the caller shows nothing.
+    """
+
+    entry = _runtime_registry().get(entry_id)
+    return entry.text if entry is not None and entry.servable else None
 
 
 # Daily bundles (owner decision 10.11.2026): headline, scene and action written together as

@@ -1,10 +1,11 @@
 from datetime import datetime
 from typing import Annotated, cast
 
-from fastapi import APIRouter, Header, Request, Response
+from fastapi import APIRouter, Depends, Header, Request, Response
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.api.crisis_guard import crisis_guard
 from app.domains.birth.errors import BirthDomainError
 from app.domains.guest.errors import GuestDomainError
 from app.domains.guest.service import GuestSessionService
@@ -188,7 +189,10 @@ async def get_readiness(
 
 
 @router.put(
-    "/profile", response_model=MatchingProfileResponse, responses={401: {}, 403: {}, 410: {}}
+    "/profile",
+    response_model=MatchingProfileResponse,
+    responses={401: {}, 403: {}, 410: {}},
+    dependencies=[Depends(crisis_guard("display_name"))],
 )
 async def put_profile(
     payload: MatchingProfileInput,

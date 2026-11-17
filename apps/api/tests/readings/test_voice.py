@@ -1,11 +1,14 @@
 import re
 import unicodedata
+from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 from uuid import uuid4
 
 import pytest
 
 from app.domains.astro.models import TimePrecision, Tradition, ZodiacSign
+from app.domains.content.copy_approval import approved_texts
+from app.domains.readings import voice as voice_module
 from app.domains.readings.daily_personalization import PLACEMENT_MEANINGS
 from app.domains.readings.daily_psychology import (
     _ARENA_LEADS,
@@ -95,11 +98,56 @@ def test_every_direct_headline_has_one_distinct_roast_headline() -> None:
         for original, replacement in voice.headlines
     }
 
-    assert len(direct) == len(set(direct)) == 90
-    assert set(roast) == set(direct)
+    # Headlines approved through the copy registry may not have a roast pair yet; every
+    # headline written in code must have one.
+    approved = {
+        text for issue in DAILY_ISSUES for text in approved_texts(f"daily.headline.{issue.key}.")
+    }
+    authored = [headline for headline in direct if headline in roast or headline not in approved]
+
+    assert len(direct) == len(set(direct))
+    assert len(authored) == 90
+    assert set(roast) == set(authored)
     assert len(set(roast.values())) == len(roast)
-    assert all(roast[headline] != headline for headline in direct)
+    assert all(roast[headline] != headline for headline in authored)
     assert set(ROAST_PLACEMENT_MEANINGS) == set(PLACEMENT_MEANINGS)
+
+
+def test_approved_registry_headline_without_roast_pair_keeps_the_catalog_loadable() -> None:
+    # 16.11.2026: the daily copy batch approved headline variants and the module then
+    # refused to import ("Roast headlines ... must cover every direct headline").
+    issue = DAILY_ISSUES[0]
+    new_headline = "Một tiêu đề mới được duyệt qua sổ câu chữ."
+    issues = {
+        **{item.key: item for item in DAILY_ISSUES},
+        issue.key: replace(issue, headlines=(*issue.headlines, new_headline)),
+    }
+
+    def approved(prefix: str) -> tuple[str, ...]:
+        return (new_headline,) if prefix == f"daily.headline.{issue.key}." else ()
+
+    voice_module._validate_catalog(issues, approved)
+
+    # A headline that is neither paired nor approved in the registry is still an error.
+    with pytest.raises(ValueError, match="must cover every direct headline"):
+        voice_module._validate_catalog(issues, lambda prefix: ())
+
+
+def test_roast_keeps_the_direct_headline_when_no_roast_pair_is_written() -> None:
+    key = "missing-context"
+    paired = _sections_for(key, arena=SemanticArena.WORK)
+    direct = DailySections(
+        "Một tiêu đề mới được duyệt qua sổ câu chữ.",
+        paired.thesis,
+        paired.manifestation,
+        paired.micro_action,
+    )
+    roast = roast_daily_sections(direct)
+    voice = ROAST_ISSUES[key]
+
+    assert roast.hook == direct.hook
+    assert roast.thesis.startswith(f"{voice.jab} ")
+    assert roast.micro_action == f"{voice.action_frame} {direct.micro_action}"
 
 
 def test_roast_lines_avoid_banned_words_and_stay_readable() -> None:

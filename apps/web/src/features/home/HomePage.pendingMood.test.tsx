@@ -82,6 +82,7 @@ function noteWith(readingProjection: ReadingProjection): DailyNote {
 
 
 const vibe = content("00000000-0000-4000-8000-000000000010", "vibe_fallback", "Chậm lại một nhịp.");
+const savedRuc = {id:"00000000-0000-4000-8000-000000000099",daily_note_id:baseNoteId,mood:"Rực" as const,checked_in_at:"2026-10-22T00:00:00Z"};
 
 describe("Home pending mood lifecycle (P04)", () => {
  beforeEach(() => {
@@ -110,7 +111,8 @@ describe("Home pending mood lifecycle (P04)", () => {
   expect(JSON.parse(localStorage.getItem("la-lanh-pending-mood-v1")!).saved_at).toBe(savedAt);
  });
  it("removes the prior pending mood once a later deliberate choice is acknowledged", async () => {
-  vi.mocked(checkInMood).mockRejectedValueOnce(new Error("offline")).mockResolvedValueOnce({id:"00000000-0000-4000-8000-000000000099",daily_note_id:baseNoteId,mood:"Rực",checked_in_at:"2026-10-22T00:00:00Z"});
+  // Home reads the mood again after a save (#627), so the fake read returns what was saved.
+  vi.mocked(checkInMood).mockRejectedValueOnce(new Error("offline")).mockImplementationOnce(()=>{vi.mocked(getCurrentMood).mockResolvedValue(savedRuc);return Promise.resolve(savedRuc);});
   const user=userEvent.setup(); renderPage();
   await user.click(await screen.findByRole("button",{name:"Chọn mood hôm nay"}));
   await user.click(screen.getByRole("button",{name:/Chill/}));
@@ -148,7 +150,8 @@ describe("P04 late failure after remount", () => {
  });
  it("cannot resurrect a superseded mood after a newer choice was acknowledged on a remount", async () => {
   let reject!:(reason:Error)=>void;
-  vi.mocked(checkInMood).mockImplementationOnce(()=>new Promise((_resolve,r)=>{reject=r;})).mockResolvedValueOnce({id:"00000000-0000-4000-8000-000000000099",daily_note_id:baseNoteId,mood:"Rực",checked_in_at:"2026-10-22T00:00:00Z"});
+  // Home reads the mood again after a save (#627), so the fake read returns what was saved.
+  vi.mocked(checkInMood).mockImplementationOnce(()=>new Promise((_resolve,r)=>{reject=r;})).mockImplementationOnce(()=>{vi.mocked(getCurrentMood).mockResolvedValue(savedRuc);return Promise.resolve(savedRuc);});
   const user=userEvent.setup();const first=renderPage();
   await user.click(await screen.findByRole("button",{name:"Chọn mood hôm nay"}));
   await user.click(screen.getByRole("button",{name:/Chill/}));
