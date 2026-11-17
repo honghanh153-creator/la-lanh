@@ -62,6 +62,13 @@ REGISTRY_LINES = {
 }
 
 
+@pytest.fixture(autouse=True)
+def _selection_on(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The pick is deferred in the product (decision D); these tests cover it behind the switch."""
+
+    monkeypatch.setattr(companion, "EXTRA_LINE_SELECTION_ENABLED", True)
+
+
 def _variety(local_date: date) -> DailyVariety:
     return DailyVariety(
         key_version=VARIETY_KEY_VERSION,
@@ -132,6 +139,34 @@ def _month_of_lines() -> list[str]:
 
 
 # ------------------------------------------------------------------ AC2: 29 days, one person
+
+
+def test_selection_is_deferred_so_no_extra_line_is_served_by_default(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Decision D (17.11.2026, Codex r2 on #657): until the owner decides how Lá knows the line of
+    # an issue's last appearance, approved pairs are not served and Lá keeps the authored line.
+    monkeypatch.setattr(companion, "EXTRA_LINE_SELECTION_ENABLED", False)
+    monkeypatch.setattr(companion, "extra_lines_by_issue", lambda: _synthetic_pool(3))
+    for offset in range(2 * DAILY_TOP_K):
+        variety = _variety(START + timedelta(days=offset))
+        assert daily_companion_line("psychology:missing-context", variety) is None
+    plan = ReadingPlanner().plan(
+        _date_only_snapshot(GUEST, OWNER).result,
+        purpose=ReadingPurpose.DAILY_NOTE,
+        editorial_seed=START.isoformat(),
+        daily_variety=_variety(START),
+    )
+    card = DeterministicVietnameseRenderer().render(plan)
+    assert card.companion is None and card.companion_roast is None
+    assert "companion" not in card.model_dump()
+
+
+def test_the_shipped_default_keeps_selection_off() -> None:
+    from pathlib import Path
+
+    source = Path(companion.__file__).read_text(encoding="utf-8")
+    assert "\nEXTRA_LINE_SELECTION_ENABLED = False\n" in source
 
 
 def test_la_repeats_on_at_most_a_fifth_of_29_days_once_the_pool_is_deep_enough(

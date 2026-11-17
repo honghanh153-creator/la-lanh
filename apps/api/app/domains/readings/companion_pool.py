@@ -40,6 +40,13 @@ from app.domains.readings.models import DailyVariety
 from app.domains.readings.review_agent import BANNED_CORE_FRAGMENTS
 
 COMPANION_LINE_PREFIX = "la.issue."
+# Selection deferred (decision D, coordinator 17.11.2026, Codex r2 on #657): a calendar-day pick
+# can lock onto an issue's rhythm (served every 2 days with 2 lines: always the same line), which
+# breaks the content standard. A correct pick needs the line shown at the issue's last appearance,
+# and that is an owner decision (it reverses "Daily selection reads no stored history", 21.10).
+# Until then no extra line is served: Lá keeps the authored line, and the pool and the stored pair
+# are ready for when selection is decided. Tests switch this on to cover them.
+EXTRA_LINE_SELECTION_ENABLED = False
 COMPANION_LINE_VOICES = ("direct", "roast")
 _SENTENCE_ENDS = (".", "?", "!", "…")
 
@@ -127,6 +134,8 @@ def daily_companion_line(
     changes.
     """
 
+    if not EXTRA_LINE_SELECTION_ENABLED:
+        return None
     if variety is None or not mechanism_key or not mechanism_key.startswith("psychology:"):
         return None
     issue_key = mechanism_key.removeprefix("psychology:")
