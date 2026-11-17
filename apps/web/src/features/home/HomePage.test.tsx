@@ -898,7 +898,10 @@ describe("HomePage rich reading", () => {
       await waitFor(() => expect(client.getQueryData<{ mood: string }>(["daily-note-mood", baseNoteId])?.mood).toBe(second));
       await settled();
 
-      // Now A's answer arrives, in the callback of the Home that is no longer on screen.
+      // Now A's answer arrives, in the callback of the Home that is no longer on screen. The read
+      // that follows an answer is held back here, so only the ordering rule stands between A's
+      // older row and the saved mood.
+      vi.mocked(getCurrentMood).mockImplementationOnce(() => new Promise(() => {}));
       await act(async () => { saveA.succeed(); await Promise.resolve(); });
       await settled();
 
