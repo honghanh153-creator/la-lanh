@@ -12,6 +12,7 @@ import {
   getDailyNote,
   getContextualReading,
   getCurrentDailyExperiment,
+  getCurrentMood,
   listSavedNotes,
   type DailyNote,
   type ReadingProjection,
@@ -26,6 +27,7 @@ vi.mock("../../shared/api/client", async (original) => {
     activateReadingProjection: vi.fn(),
     chooseDailyExperiment: vi.fn(),
     getCurrentDailyExperiment: vi.fn(),
+    getCurrentMood: vi.fn(),
     getDailyNote: vi.fn(),
     getContextualReading: vi.fn(),
     listSavedNotes: vi.fn(),
@@ -88,6 +90,62 @@ describe("NoteDetailPage rich reading", () => {
       revision_id: selected.active.revision_id,
       action_key: selected.active.experiment?.action_key,
     })));
+  });
+
+  it("offers the lighter action on a Đuối day and keeps whichever action is on screen (#627)", async () => {
+    const own = { action_key: "d".repeat(64), action: "Nhắn một người để hẹn lại lịch.", observation: "Bạn đã nhắn chưa?", permission: "Không hợp thì bỏ qua." };
+    const light = { action_key: "e".repeat(64), action: "Uống một ly nước rồi ngồi yên hai phút.", observation: "Bạn thấy người dịu hơn chưa?", permission: "Không hợp thì bỏ qua." };
+    const withLighter: DailyNote = {
+      ...note,
+      reading_projection: {
+        ...note.reading_projection,
+        active: { ...note.reading_projection.active, experiment: own, lighter_action: { action: light.action, weight: "light", experiment: light } },
+      },
+    };
+    vi.mocked(getDailyNote).mockResolvedValue(withLighter);
+    vi.mocked(getCurrentMood).mockResolvedValue({ id: "00000000-0000-4000-8000-000000000095", daily_note_id: note.id, mood: "Đuối", checked_in_at: "2026-09-07T00:00:00Z" });
+    vi.mocked(chooseDailyExperiment).mockRejectedValue(new ApiProblem(503, "UNAVAILABLE", "Test rejection"));
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(<QueryClientProvider client={client}><MemoryRouter><NoteDetailPage /></MemoryRouter></QueryClientProvider>);
+
+    expect(await screen.findByText(light.action)).toBeInTheDocument();
+    expect(screen.queryByText(own.action)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /Giữ để thử hôm nay/ }));
+    await waitFor(() => expect(chooseDailyExperiment).toHaveBeenLastCalledWith(note.id, expect.objectContaining({ action_key: light.action_key })));
+
+    await userEvent.click(screen.getByRole("button", { name: "Xem việc ban đầu" }));
+    expect(screen.getByText(own.action)).toBeInTheDocument();
+    expect(screen.queryByText(light.action)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /Giữ để thử hôm nay/ }));
+    await waitFor(() => expect(chooseDailyExperiment).toHaveBeenLastCalledWith(note.id, expect.objectContaining({ action_key: own.action_key })));
+    expect(screen.getByRole("button", { name: "Xem việc nhẹ hơn" })).toBeInTheDocument();
+  });
+
+  it("keeps the card's own action for another mood and does not read the mood without a lighter action (#627)", async () => {
+    const light = { action_key: "e".repeat(64), action: "Uống một ly nước rồi ngồi yên hai phút.", observation: "Bạn thấy người dịu hơn chưa?", permission: "Không hợp thì bỏ qua." };
+    const withLighter: DailyNote = {
+      ...note,
+      reading_projection: {
+        ...note.reading_projection,
+        active: { ...note.reading_projection.active, lighter_action: { action: light.action, weight: "light", experiment: light } },
+      },
+    };
+    vi.mocked(getDailyNote).mockResolvedValue(withLighter);
+    vi.mocked(getCurrentMood).mockResolvedValue({ id: "00000000-0000-4000-8000-000000000094", daily_note_id: note.id, mood: "Chill", checked_in_at: "2026-09-07T00:00:00Z" });
+    const first = render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><MemoryRouter><NoteDetailPage /></MemoryRouter></QueryClientProvider>);
+
+    expect(await screen.findByText(note.reading_projection.active.sections.micro_action)).toBeInTheDocument();
+    await waitFor(() => expect(getCurrentMood).toHaveBeenCalledTimes(1));
+    expect(screen.queryByText(light.action)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Xem việc nhẹ hơn" })).not.toBeInTheDocument();
+    first.unmount();
+
+    clearCachedDailyNote();
+    vi.mocked(getCurrentMood).mockClear();
+    vi.mocked(getDailyNote).mockResolvedValue(note);
+    render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><MemoryRouter><NoteDetailPage /></MemoryRouter></QueryClientProvider>);
+    expect(await screen.findByText(note.reading_projection.active.sections.micro_action)).toBeInTheDocument();
+    expect(getCurrentMood).not.toHaveBeenCalled();
   });
 
   it("does not display the cached auto note when the selected context cannot be fetched", async () => {

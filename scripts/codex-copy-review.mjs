@@ -1,6 +1,6 @@
 // Codex approves the daily batch of pending copy (owner decision 06.11.2026).
 // Usage: node scripts/codex-copy-review.mjs [--dry-run] [--fake-codex decisions.json]
-// The scheduled tick (collab-turn.mjs) runs it once a day after the auto-start (autoStartAt) through runCopyBatch (12.11.2026).
+// The scheduled tick (collab-turn.mjs) runs it once a day from copyBatchAt (08:00, apart from the plan start) through runCopyBatch (12.11.2026).
 // Codex runs read-only, the same way scripts/codex-review.mjs calls it. Privacy, consent, crisis
 // and safety copy is never sent: it stays owner-only. The result goes into a PR on
 // agent/claude/copy-batch-YYYYMMDD; the script never writes main or collab/integration and
@@ -23,6 +23,12 @@ export const schemaPath = join(here, 'codex-copy-review-schema.json');
 export const codexBin = process.env.CODEX_BIN || '/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex';
 export const codexModel = 'gpt-6.1-sol';
 export const ownerOnly = new Set(['privacy', 'consent', 'crisis', 'safety']);
+// 16.11.2026: approving a Daily direct headline changes its served text, but the roast voice pairs in
+// apps/api/app/domains/readings/voice.py are keyed by that exact text, and the module refuses to load
+// when they no longer cover every direct headline. The batch of 16.11 approved 20 such headlines, the
+// API import failed in scripts.fallback_approval, and the loop stayed red all day. These entries change
+// together with their roast pair in a code PR, so the daily Codex batch neither sends nor approves them.
+export const codeCoupled = id => /^daily\.headline\./.test(String(id ?? ''));
 export const ruleDocs = [
   'docs/foundation/la-lanh-plain-vietnamese-content-standard.md',
   'docs/operations/decision-checklist.md',
@@ -32,7 +38,7 @@ export const ruleDocs = [
 export const digest = text => createHash('sha256').update(String(text).normalize('NFC')).digest('hex');
 
 export function selectPending(registry) {
-  return (registry.entries ?? []).filter(e => e.status === 'pending' && !ownerOnly.has(e.category));
+  return (registry.entries ?? []).filter(e => e.status === 'pending' && !ownerOnly.has(e.category) && !codeCoupled(e.id));
 }
 
 // One daily batch: a PR body with one row per entry must stay well under GitHub's 65 536-character
@@ -103,10 +109,21 @@ export function validateDecisions(out, pending) {
 }
 
 // `reviewed` maps id -> digest of the text Codex saw; an entry whose text changed since is left alone.
+// The step and its cause, not the first 300 characters of a traceback: a failed command's message
+// starts with "Command failed: <cmd>" and its last error line says why (16.11.2026: the log showed only
+// "Traceback ... [...truncated]").
+export function failReason(error) {
+  const text = [error?.message, error?.stderr].filter(Boolean).map(String).join('\n');
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  const head = lines[0] ?? 'không rõ lỗi';
+  const cause = [...lines].reverse().find(l => /^[A-Za-z_.]*(Error|Exception)\b|^error:|^fatal:/.test(l));
+  return clean(cause && cause !== head ? `${head} — ${cause}` : head, 300);
+}
+
 export function applyDecisions(registry, decisions, date, reviewed = null) {
   const approve = new Set(decisions.filter(d => d.decision === 'approve').map(d => d.id));
   const entries = registry.entries.map(e =>
-    e.status === 'pending' && !ownerOnly.has(e.category) && approve.has(e.id)
+    e.status === 'pending' && !ownerOnly.has(e.category) && !codeCoupled(e.id) && approve.has(e.id)
       && (!reviewed || reviewed.get(e.id) === digest(e.text))
       ? { ...e, status: 'approved', approver: 'codex', date, digest: digest(e.text) }
       : e);
@@ -258,7 +275,7 @@ export function runCopyBatch({ lock = () => { mkdirSync(stateDir, { recursive: t
   try {
     const result = run(progress);
     return { status: result.status, codex: Boolean(progress.codexRan), ...(result.url ? { url: result.url } : {}) };
-  } catch (error) { return { status: 'error', codex: Boolean(progress.codexRan), reason: clean(error.message, 300) }; }
+  } catch (error) { return { status: 'error', codex: Boolean(progress.codexRan), reason: failReason(error) }; }
   finally { release(); }
 }
 

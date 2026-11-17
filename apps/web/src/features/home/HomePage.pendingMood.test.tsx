@@ -82,6 +82,10 @@ function noteWith(readingProjection: ReadingProjection): DailyNote {
 
 
 const vibe = content("00000000-0000-4000-8000-000000000010", "vibe_fallback", "Chậm lại một nhịp.");
+const savedRuc = {id:"00000000-0000-4000-8000-000000000099",daily_note_id:baseNoteId,mood:"Rực" as const,checked_in_at:"2026-10-22T00:00:00Z"};
+// Home reads the mood again after a save (#627): this fake server stores the row it answers with.
+type SavedRow = typeof savedRuc | {id:string;daily_note_id:string;mood:"Chill";checked_in_at:string};
+const storing = (row: SavedRow) => () => { vi.mocked(getCurrentMood).mockResolvedValue(row); return Promise.resolve(row); };
 
 describe("Home pending mood lifecycle (P04)", () => {
  beforeEach(() => {
@@ -110,7 +114,8 @@ describe("Home pending mood lifecycle (P04)", () => {
   expect(JSON.parse(localStorage.getItem("la-lanh-pending-mood-v1")!).saved_at).toBe(savedAt);
  });
  it("removes the prior pending mood once a later deliberate choice is acknowledged", async () => {
-  vi.mocked(checkInMood).mockRejectedValueOnce(new Error("offline")).mockResolvedValueOnce({id:"00000000-0000-4000-8000-000000000099",daily_note_id:baseNoteId,mood:"Rực",checked_in_at:"2026-10-22T00:00:00Z"});
+  // Home reads the mood again after a save (#627), so the fake read returns what was saved.
+  vi.mocked(checkInMood).mockRejectedValueOnce(new Error("offline")).mockImplementationOnce(()=>{vi.mocked(getCurrentMood).mockResolvedValue(savedRuc);return Promise.resolve(savedRuc);});
   const user=userEvent.setup(); renderPage();
   await user.click(await screen.findByRole("button",{name:"Chọn cảm giác hôm nay"}));
   await user.click(screen.getByRole("button",{name:/Chill/}));
@@ -124,7 +129,7 @@ describe("Home pending mood lifecycle (P04)", () => {
 
  it("re-sends a queued offline mood exactly once when the device comes back online (AC-GWT-04)", async () => {
   localStorage.setItem("la-lanh-pending-mood-v1",JSON.stringify({session_epoch:"epoch-a",note_id:baseNoteId,mood:"Chill",saved_at:Date.now()-60*1000}));
-  vi.mocked(checkInMood).mockResolvedValue({id:"00000000-0000-4000-8000-000000000099",daily_note_id:baseNoteId,mood:"Chill",checked_in_at:"2026-10-22T00:00:00Z"});
+  vi.mocked(checkInMood).mockImplementation(storing({id:"00000000-0000-4000-8000-000000000099",daily_note_id:baseNoteId,mood:"Chill",checked_in_at:"2026-10-22T00:00:00Z"}));
   Object.defineProperty(navigator,"onLine",{value:false,configurable:true});
   renderPage(); await screen.findByRole("heading",{name:vibe.sections.hook});
   expect(checkInMood).not.toHaveBeenCalled();
@@ -139,7 +144,7 @@ describe("Home pending mood lifecycle (P04)", () => {
  });
  it("never replays an older queued mood over a newer choice made offline (Codex #449)", async () => {
   const rực={id:"00000000-0000-4000-8000-000000000099",daily_note_id:baseNoteId,mood:"Rực" as const,checked_in_at:"2026-10-22T00:00:00Z"};
-  vi.mocked(checkInMood).mockRejectedValueOnce(new Error("server error")).mockResolvedValue(rực);
+  vi.mocked(checkInMood).mockRejectedValueOnce(new Error("server error")).mockImplementation(storing(rực));
   const user=userEvent.setup(); renderPage();
   await user.click(await screen.findByRole("button",{name:"Chọn cảm giác hôm nay"}));
   await user.click(screen.getByRole("button",{name:/Chill/}));
@@ -160,7 +165,7 @@ describe("Home pending mood lifecycle (P04)", () => {
  });
  it("sends only the newer offline choice when an older one was queued on an earlier visit (Codex #449)", async () => {
   localStorage.setItem("la-lanh-pending-mood-v1",JSON.stringify({session_epoch:"epoch-a",note_id:baseNoteId,mood:"Chill",saved_at:Date.now()-60*1000}));
-  vi.mocked(checkInMood).mockResolvedValue({id:"00000000-0000-4000-8000-000000000098",daily_note_id:baseNoteId,mood:"Rực",checked_in_at:"2026-10-22T00:01:00Z"});
+  vi.mocked(checkInMood).mockImplementation(storing({id:"00000000-0000-4000-8000-000000000098",daily_note_id:baseNoteId,mood:"Rực",checked_in_at:"2026-10-22T00:01:00Z"}));
   Object.defineProperty(navigator,"onLine",{value:false,configurable:true});
   act(()=>{window.dispatchEvent(new Event("offline"));});
   const user=userEvent.setup(); renderPage();
@@ -213,7 +218,8 @@ describe("P04 late failure after remount", () => {
  });
  it("cannot resurrect a superseded mood after a newer choice was acknowledged on a remount", async () => {
   let reject!:(reason:Error)=>void;
-  vi.mocked(checkInMood).mockImplementationOnce(()=>new Promise((_resolve,r)=>{reject=r;})).mockResolvedValueOnce({id:"00000000-0000-4000-8000-000000000099",daily_note_id:baseNoteId,mood:"Rực",checked_in_at:"2026-10-22T00:00:00Z"});
+  // Home reads the mood again after a save (#627), so the fake read returns what was saved.
+  vi.mocked(checkInMood).mockImplementationOnce(()=>new Promise((_resolve,r)=>{reject=r;})).mockImplementationOnce(()=>{vi.mocked(getCurrentMood).mockResolvedValue(savedRuc);return Promise.resolve(savedRuc);});
   const user=userEvent.setup();const first=renderPage();
   await user.click(await screen.findByRole("button",{name:"Chọn cảm giác hôm nay"}));
   await user.click(screen.getByRole("button",{name:/Chill/}));

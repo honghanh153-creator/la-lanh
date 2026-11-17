@@ -1,4 +1,4 @@
-// Daily plan gate: plan at planOpensAt, owner replies Duyệt/Giữ/Bỏ #N before autoStartAt, then auto start,
+// Daily plan gate: plan at planOpensAt and it runs at once (owner 16.11.2026); the owner may reply Giữ or Bỏ #N at any time,
 // nothing new after lastStartAt (hours in collab-trust.mjs; owner 14.11.2026: 06:50, 08:00, 23:35, end 23:59).
 import { join } from 'node:path';
 import { agentMarker, autoStartAt, clean, codexDailyCap, cutoffAt, hhmmOf, isTrusted, lastStartAt, makeGh, parseOwnerReply, planOpensAt, readJson, repo, stateDir, vnNow, writeJson } from './collab-trust.mjs';
@@ -118,11 +118,10 @@ export function renderPlan(now, turns, { codexLeft, cap = codexDailyCap, gap = n
     '',
     'Khi hàng đợi review trống, Claude làm tiếp việc `auto: yes` trong backlog theo cùng thứ tự ưu tiên.',
     '',
-    `Trả lời bằng một comment mới trên issue này (trước ${hhmmOf(autoStartAt)} nếu muốn chặn):`,
-    '- chữ `Duyệt` để chạy ngay;',
-    '- chữ `Giữ` để hôm nay không chạy tự động;',
-    '- dòng `Bỏ #N` để bỏ PR N khỏi hôm nay.',
-    `Không trả lời: ${hhmmOf(autoStartAt)} tự chạy.`,
+    'Plan này chạy ngay khi đăng, không cần chị duyệt. Muốn dừng hay bỏ việc thì trả lời bằng một comment mới, bất cứ lúc nào trong ngày:',
+    '- chữ `Giữ` để dừng chạy tự động hôm nay;',
+    '- dòng `Bỏ #N` để bỏ PR hoặc việc N khỏi hôm nay;',
+    '- chữ `Duyệt` để chạy lại sau khi đã `Giữ`.',
     '',
     planMarker(now.date),
   ].join('\n');

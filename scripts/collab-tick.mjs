@@ -9,14 +9,13 @@ import { clean, makeGh, vnNow } from './collab-trust.mjs';
 import { opsAlert, resolveOpsAlert, tick } from './collab-turn.mjs';
 import { postOwnerNotes, renderBoard, upsertBoard } from './collab-status.mjs';
 import { collectMetrics, renderMetrics } from './collab-metrics.mjs';
-import { ghFetch, workProgress } from './collab-work.mjs';
-import { realSources, takeSnapshot } from './collab-snapshot.mjs';
+import { realSources } from './collab-snapshot.mjs';
 import { planIssue } from './collab-plan.mjs';
 import { healthLines, readBeats, watch } from './collab-watchdog.mjs';
 import { alertMissed, ghIssues } from './collab-missed-run.mjs';
 import { pendingCount, readSaved, runCopyBatch, savedPath } from './codex-copy-review.mjs';
 import { hookHealth } from './collab-hooks.mjs';
-import { agentGateWatch, gateAlertSubject, wrapperHealth } from './collab-ops-wrapper.mjs';
+import { agentGateWatch, gateAlertSubject, rulesHookAlertSubject, rulesHookHealth, rulesHookWatch, rulesSheetHealth, skillRuleHealth, wrapperHealth } from './collab-ops-wrapper.mjs';
 import { runMergeAudit } from './collab-merge-audit.mjs';
 import { isMain } from './is-main.mjs';
 import { loadAuditDeps } from './collab-audit.mjs';
@@ -44,7 +43,7 @@ export function tickLog(line, write = text => process.stderr.write(text)) {
 const watchdogSubject = 'tác vụ hẹn giờ bị treo';
 const receiptSubject = 'merge thiếu biên nhận';
 
-export function runTick(gh = makeGh(), preflight = () => missingTools(), { run = tick, log = tickLog, gateWatch = agentGateWatch } = {}) {
+export function runTick(gh = makeGh(), preflight = () => missingTools(), { run = tick, log = tickLog, gateWatch = agentGateWatch, rulesWatch = rulesHookWatch } = {}) {
   const board = info => upsertBoard(gh, planIssue(gh), renderBoard(info));
   return run({ gh, preflight, log, prPreflight: n => runPreflight(gh.pr(n)), heavyFree: () => heavyJobFree(), board, check: (n, o) => runCheckInClone(n, { ...o, gh }), ciStatus: head => ciCheck(gh, head), review: (n, o) => runReview(n, { ...o, gh }), merge: n => runMerge(n, { gh }), alert: text => opsAlert(gh, text),
     watchdog: () => {
@@ -53,15 +52,13 @@ export function runTick(gh = makeGh(), preflight = () => missingTools(), { run =
       try { dailyReceiptAudit({ gh, alert: text => opsAlert(gh, text, receiptSubject), now: vnNow() }); } catch {}
       // L06: the sub-agent gate hooks are still installed and on (one alert a day, closed when fixed).
       try { gateWatch({ alert: text => opsAlert(gh, text, gateAlertSubject), resolve: text => resolveOpsAlert(gh, text, gateAlertSubject), today: vnNow().date }); } catch {}
+      // L37: the owner-rules hook (re-load of the rules sheet, R3 deny) is installed and passes its selftest.
+      try { rulesWatch({ alert: text => opsAlert(gh, text, rulesHookAlertSubject), resolve: text => resolveOpsAlert(gh, text, rulesHookAlertSubject), today: vnNow().date }); } catch {}
       return watch({ alert: text => opsAlert(gh, text, watchdogSubject), resolve: text => resolveOpsAlert(gh, text, watchdogSubject) });
-    }, health: () => [...healthLines(readBeats()), ...hookHealth(), ...wrapperHealth()], copyPending: () => pendingCount(), copyBatch: () => runCopyBatch(), copySaved: () => Boolean(readSaved(savedPath, vnNow().date)),
+    }, health: () => [...healthLines(readBeats()), ...hookHealth(), ...wrapperHealth(), ...skillRuleHealth(), ...rulesSheetHealth(), ...rulesHookHealth()], copyPending: () => pendingCount(), copyBatch: () => runCopyBatch(), copySaved: () => Boolean(readSaved(savedPath, vnNow().date)),
     notify: (notes, comments) => postOwnerNotes(gh, planIssue(gh), notes, comments),
     metrics: ({ prs, turns }) => renderMetrics(collectMetrics({ gh, prs, turns })),
     audit: () => nightAudit(gh),
-    progress: (day, date) => workProgress({ date, planned: day.plannedItems ?? [], fetch: ghFetch(gh) }),
-    // No recorded list is unmeasured, not "no work picked" (Codex r1 on #497).
-    progress: (day, date) => (Array.isArray(day.plannedItems) ? workProgress({ date, planned: day.plannedItems, fetch: ghFetch(gh) }) : { unmeasured: 'chưa có danh sách việc đã chọn' }),
-    snapshot: (slot, date) => takeSnapshot({ slot, date, gh }),
     incidents: () => realSources(gh, vnNow().date).alerts(),
     mergeAudit: options => runMergeAudit(options) });
 }
