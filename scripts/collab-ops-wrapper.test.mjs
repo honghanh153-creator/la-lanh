@@ -308,6 +308,12 @@ test('L37: the tick opens one alert a day while the rules hook is broken and clo
   assert.equal(watch([], 'd2').status, 'resolved');
   assert.deepEqual(closed, ['hook luật owner đã khớp bản chuẩn']);
   assert.equal(watch([], 'd3').status, 'ok');
+  // Fix-forward #648: broken, fixed and broken again on one day opens a second incident.
+  assert.equal(watch(['x'], 'd4').status, 'alerted');
+  assert.equal(watch([], 'd4').status, 'resolved');
+  assert.equal(watch(['x'], 'd4').status, 'alerted', 'a failure after recovery is a new incident');
+  assert.equal(watch(['x'], 'd4').status, 'already-alerted');
+  assert.equal(sent.length, 4);
   assert.match(rulesHookHealth({ verify: () => ['selftest trượt'] })[0], /^- ⚠️ hook luật owner \(L37\): selftest trượt/);
   assert.match(rulesHookHealth({ verify: () => [] })[0], /^- ✅ hook luật owner/);
 });
