@@ -28,6 +28,7 @@ import {
   type ResonanceChoice,
   type SignalContext,
 } from "../../shared/api/client";
+import { noteDailyMood, useDailyActionView, type DailyActionChoice } from "../../shared/hooks/useDailyActionView";
 import { useReadingUpdateActivation } from "../../shared/hooks/useReadingUpdateActivation";
 import { chartDataRevision } from "../../shared/storage/clearChartDerivedData";
 import {
@@ -51,6 +52,7 @@ import { useOnboardingMotion } from "../../shared/ui/onboardingMotion";
 import { AppNav } from "../../shared/ui/AppNav";
 import { AppSheet } from "../../shared/ui/AppSheet";
 import { BrandMark } from "../../shared/ui/BrandMark";
+import { SHOW_LIGHTER_ACTION, SHOW_ORIGINAL_ACTION } from "../../shared/ui/ReadingContent";
 import { ReadingUpdateGift } from "../../shared/ui/ReadingUpdateGift";
 import { WHY_TODAY_ID } from "../../shared/ui/readingLabels";
 import { ResonanceFeedback } from "../../shared/ui/ResonanceFeedback";
@@ -137,6 +139,7 @@ export function HomePage() {
     retry: false,
   });
   const [mood, setMood] = useState<MoodValue | null>(null);
+  const actionView = useDailyActionView(note?.id, activeReading, mood);
   const moonLabel = useMemo(() => moonPhase().label, []);
   const ritual = useDailyRitual(note?.note_date);
   const [moodSheetOpen, setMoodSheetOpen] = useState(false);
@@ -227,6 +230,8 @@ export function HomePage() {
     onMutate: ({ mood: value }) => {
       const previous = mood;
       setMood(value);
+      // In memory only: lets the note page show the same action before the server answers.
+      if (note) noteDailyMood(queryClient, note.id, value);
       setMoodSheetOpen(false);
       setLineDismissed(false);
       setMessage("Đang lưu cảm xúc này cho bạn…");
@@ -345,6 +350,7 @@ export function HomePage() {
       {activeReading ? (
         <HomeDailySignal
           activeReading={activeReading}
+          actionView={actionView}
           detailPath={dailyContextPath("/note/today", context)}
           decoration={noteDecoration}
           toolbar={quickActions}
@@ -521,11 +527,13 @@ function HomeValueHero({ date, moon, whyPath, children }: { date?: string; moon?
 
 function HomeDailySignal({
   activeReading,
+  actionView,
   detailPath,
   decoration,
   toolbar,
 }: {
   activeReading: NonNullable<DailyNote["reading_projection"]>["active"];
+  actionView: DailyActionChoice;
   detailPath: string;
   decoration: ReactNode;
   toolbar: ReactNode;
@@ -533,7 +541,9 @@ function HomeDailySignal({
   if (!activeReading) return null;
   const experiment = activeReading.experiment;
   const body = activeReading.sections.manifestation || activeReading.sections.thesis;
-  const action = experiment?.action || activeReading.sections.micro_action;
+  // The lighter action replaces what is shown, never the note itself (US-04 AC14).
+  const lighter = actionView.lighterShown ? activeReading.lighter_action : null;
+  const action = lighter?.action || experiment?.action || activeReading.sections.micro_action;
 
   return (
     <section aria-label="Note hôm nay" className="home-daily-signal">
@@ -551,6 +561,11 @@ function HomeDailySignal({
               <Sparkle aria-hidden="true" className="home-advice-star" weight="fill" />
               <span>Thử một việc nhỏ</span>
               <p>{action}</p>
+              {actionView.canSwitch ? (
+                <button className="text-button home-daily-signal__lighter-switch" onClick={actionView.switchAction} type="button">
+                  {actionView.lighterShown ? SHOW_ORIGINAL_ACTION : SHOW_LIGHTER_ACTION}
+                </button>
+              ) : null}
             </aside>
           ) : null}
           <footer className="home-note-footer"><Link to={detailPath}>Đọc đầy đủ<ArrowRight aria-hidden="true" weight="bold" /></Link>{toolbar}</footer>

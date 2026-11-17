@@ -471,6 +471,52 @@ describe("HomePage rich reading", () => {
     expect(screen.getAllByText(LA_MOOD_REACTIONS.Chill).length).toBeGreaterThan(0);
   });
 
+  it("shows the lighter action after a Đuối check-in and lets the reader switch back (#627)", async () => {
+    const user = userEvent.setup();
+    const original = vibe.sections.micro_action;
+    const withLighter = { ...vibe, lighter_action: { action: "Uống một ly nước rồi ngồi yên hai phút.", weight: "light" as const, experiment: null } };
+    vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(withLighter)));
+    vi.mocked(checkInMood).mockImplementation((_id, mood) => Promise.resolve({ id: "00000000-0000-4000-8000-000000000097", daily_note_id: baseNoteId, mood, checked_in_at: "2026-09-28T00:00:00Z" }));
+    renderPage();
+
+    // Before any check-in the card's own action shows and nothing offers a switch.
+    expect(await screen.findByText(original)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Xem việc ban đầu" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Xem việc nhẹ hơn" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Chọn mood hôm nay" }));
+    await user.click(screen.getByRole("button", { name: /Đuối/ }));
+    expect(await screen.findByText(withLighter.lighter_action.action)).toBeInTheDocument();
+    expect(screen.queryByText(original)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Xem việc ban đầu" }));
+    expect(screen.getByText(original)).toBeInTheDocument();
+    expect(screen.queryByText(withLighter.lighter_action.action)).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Xem việc nhẹ hơn" }));
+    expect(screen.getByText(withLighter.lighter_action.action)).toBeInTheDocument();
+
+    // Another mood brings the card's own action back and removes the switch.
+    await user.click(screen.getByRole("button", { name: "Mood hôm nay: Đuối" }));
+    await user.click(screen.getByRole("button", { name: /Chill/ }));
+    expect(await screen.findByText(original)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Xem việc nhẹ hơn" })).not.toBeInTheDocument();
+    // The choice never reaches device storage.
+    expect(JSON.stringify({ ...localStorage, ...sessionStorage })).not.toContain("lighter");
+  });
+
+  it("keeps the card's own action on a Đuối day when no lighter action is approved (#627)", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(vibe)));
+    vi.mocked(checkInMood).mockResolvedValue({ id: "00000000-0000-4000-8000-000000000096", daily_note_id: baseNoteId, mood: "Đuối", checked_in_at: "2026-09-28T00:00:00Z" });
+    renderPage();
+
+    await user.click(await screen.findByRole("button", { name: "Chọn mood hôm nay" }));
+    await user.click(screen.getByRole("button", { name: /Đuối/ }));
+    await waitFor(() => expect(checkInMood).toHaveBeenCalledWith(baseNoteId, "Đuối"));
+    expect(screen.getByText(vibe.sections.micro_action)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Xem việc ban đầu" })).not.toBeInTheDocument();
+  });
+
   it("dates the loading hero by the Vietnam day, not the UTC day (PL-12)", () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     try {
