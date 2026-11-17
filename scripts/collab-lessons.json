@@ -772,11 +772,19 @@
    "from": "owner 16.11 (\"bạn quên nhiều\"); fix-forward #643",
    "who": "claude",
    "due": "2026-11-18",
-   "status": "open",
+   "status": "done",
    "test": {
     "file": "scripts/collab-rules.test.mjs",
     "name": "#643: a value the rule text states must equal the facts, not merely sit beside them"
-   }
+   },
+   "caller": {
+    "file": "scripts/collab-tick.mjs",
+    "contains": "...rulesSheetHealth()"
+   },
+   "closedBy": {
+    "pr": 0
+   },
+   "note": "tick health line from scripts/collab-ops-wrapper.mjs rulesSheetHealth; test of the line: 'L44: the tick health line flags an owner-rules sheet that drifts from the code, and says when it cannot read it'"
   },
   {
    "id": "L45",
