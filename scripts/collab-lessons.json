@@ -697,6 +697,18 @@
     "pr": 638
    },
    "note": ""
+  },
+  {
+   "id": "L42",
+   "title": "Luật owner chỉ có một bản (docs/operations/luat-dang-hieu-luc.md) và mọi con số trong bảng phải bằng code: trần Codex, giờ dừng, giờ báo cáo, 4 loại việc của owner (sự cố 15–16.11: owner phải nhắc lại luật vì bản chép cũ còn ghi 60 lượt, 08:00)",
+   "from": "owner 16.11 (\"bạn quên nhiều\"); fix-forward #643",
+   "who": "claude",
+   "due": "2026-11-18",
+   "status": "open",
+   "test": {
+    "file": "scripts/collab-rules.test.mjs",
+    "name": "#643: a value the rule text states must equal the facts, not merely sit beside them"
+   }
   }
  ]
 }
