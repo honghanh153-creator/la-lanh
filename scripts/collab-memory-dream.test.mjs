@@ -2,9 +2,9 @@ import './collab-test-home.mjs';
 import assert from 'node:assert/strict';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import test from 'node:test';
-import { apply, contradictions, dream, prune, reportLine } from './collab-memory-dream.mjs';
+import { apply, contradictions, dream, overlaps, proposalKind, prune, reportLine } from './collab-memory-dream.mjs';
 import { parseRules, sheetPath } from './collab-rules.mjs';
 
 const sheet = readFileSync(sheetPath(), 'utf8');
@@ -79,8 +79,10 @@ test('dream: a stale cap, stop time or retired report slot is caught; history li
 test('dream: a run on an empty folder writes an empty proposal, never crashes', () => {
   const dir = mkdtempSync(join(tmpdir(), 'dream-empty-'));
   mkdirSync(dir, { recursive: true });
-  const out = join(mkdtempSync(join(tmpdir(), 'dream-out-')), 'x');
+  const out = join(mkdtempSync(join(tmpdir(), 'dream-out-')), '2026-11-17');
   assert.deepEqual(dream({ memory: dir, out, sheet, date: '2026-11-17' }).stale, 0);
+  // Codex r1 on #618 (P2): an undated name would never expire, so it is refused.
+  assert.throws(() => dream({ memory: dir, out: join(dirname(out), 'proposal'), sheet, date: '2026-11-17' }), /named YYYY-MM-DD/);
 });
 
 test('dream apply: only accepted files, only when the source and the rules did not change', () => {
@@ -109,9 +111,65 @@ test('dream: symlinks in the memory folder are skipped, the proposal cannot live
   dream({ memory: dir, out, sheet, date: '2026-11-17' });
   assert.equal(existsSync(join(out, 'memory', 'link.md')), false);
   assert.doesNotMatch(readFileSync(join(out, 'changes.json'), 'utf8'), /link\.md/);
-  assert.throws(() => dream({ memory: dir, out: join(dir, 'proposal'), sheet, date: '2026-11-17' }), /outside the memory folder/);
+  assert.throws(() => dream({ memory: dir, out: join(dir, '2026-11-17'), sheet, date: '2026-11-17' }), /outside the memory folder/);
   const root = mkdtempSync(join(tmpdir(), 'dream-root-'));
   for (const d of ['2026-10-01', '2026-11-10', 'keep-me']) mkdirSync(join(root, d));
+  for (const d of ['2026-10-01', '2026-11-10']) writeFileSync(join(root, d, 'manifest.json'), JSON.stringify({ kind: proposalKind }));
+  // An old dated folder that this script did not write is kept (Codex r1 on #618, P1).
+  mkdirSync(join(root, '2026-09-01'));
+  writeFileSync(join(root, '2026-09-01', 'notes.md'), 'not a proposal');
   assert.deepEqual(prune(root, '2026-11-17'), ['2026-10-01']);
   assert.equal(existsSync(join(root, 'keep-me')), true);
+  assert.equal(existsSync(join(root, '2026-09-01', 'notes.md')), true);
+});
+
+// Codex r1 on #618 (P1): the source memory can never be deleted, whatever path is given.
+test('dream: the memory folder is never inside the dream root or replaced by a proposal', () => {
+  const { dir, files } = store();
+  const parent = dirname(dir);
+  // The output is the folder that holds the memory, given as a relative "..".
+  const cwd = process.cwd();
+  process.chdir(dir);
+  try { assert.throws(() => dream({ memory: dir, out: '..', sheet, date: '2026-11-17' }), /named YYYY-MM-DD|outside/); }
+  finally { process.chdir(cwd); }
+  // A dated output next to the memory: the dream root would hold the memory folder.
+  assert.throws(() => dream({ memory: dir, out: join(parent, '2026-11-17'), sheet, date: '2026-11-17' }), /memory folder outside the dream root/);
+  // The memory folder itself named like a date, as the output.
+  const datedMem = join(mkdtempSync(join(tmpdir(), 'dream-mem-')), '2026-10-01');
+  mkdirSync(datedMem);
+  writeFileSync(join(datedMem, 'a.md'), entry('a', 'x', 'y'));
+  assert.throws(() => dream({ memory: datedMem, out: datedMem, sheet, date: '2026-11-17' }), /outside/);
+  // A symlinked path to the memory folder is seen through.
+  const alias = join(mkdtempSync(join(tmpdir(), 'dream-alias-')), 'mem');
+  symlinkSync(dir, alias);
+  assert.throws(() => dream({ memory: alias, out: join(dir, '2026-11-17'), sheet, date: '2026-11-17' }), /outside/);
+  // An existing folder with someone else's files is not overwritten.
+  const foreign = join(mkdtempSync(join(tmpdir(), 'dream-foreign-')), '2026-11-17');
+  mkdirSync(foreign);
+  writeFileSync(join(foreign, 'keep.txt'), 'keep');
+  assert.throws(() => dream({ memory: dir, out: foreign, sheet, date: '2026-11-17' }), /not a proposal/);
+  assert.equal(readFileSync(join(foreign, 'keep.txt'), 'utf8'), 'keep');
+  for (const [f, t] of Object.entries(files)) assert.equal(readFileSync(join(dir, f), 'utf8'), t, f);
+  // A proposal of this script is replaced on a re-run.
+  const out = join(mkdtempSync(join(tmpdir(), 'dream-out-')), '2026-11-17');
+  dream({ memory: dir, out, sheet, date: '2026-11-17' });
+  assert.equal(JSON.parse(readFileSync(join(out, 'manifest.json'), 'utf8')).kind, proposalKind);
+  dream({ memory: dir, out, sheet, date: '2026-11-17' });
+  assert.ok(overlaps(dir, alias));
+});
+
+// Codex r1 on #618 (P2): a stale entry missing from the index joins it with its warning; a time range
+// written with an arrow is still checked.
+test('dream: a stale unindexed entry is added with its mark; "08:00 → 23:59" is a range, not history', () => {
+  const { dir } = store();
+  writeFileSync(join(dir, 'loose-stale.md'), entry('loose-stale', 'loop limit', 'Stay within a Codex cap of 60 runs.'));
+  writeFileSync(join(dir, 'arrow-window.md'), entry('arrow-window', 'loop hours', 'The loop runs 08:00 → 23:59.'));
+  const out = join(mkdtempSync(join(tmpdir(), 'dream-out-')), '2026-11-17');
+  dream({ memory: dir, out, sheet, date: '2026-11-17' });
+  const index = readFileSync(join(out, 'memory', 'MEMORY.md'), 'utf8');
+  assert.match(index, /^- \[loose-stale \[OLD → R8\]\]\(loose-stale\.md\)/m);
+  assert.deepEqual(contradictions('The loop runs 08:00 → 23:59.', facts).map(c => c.rule), ['R9']);
+  assert.deepEqual(contradictions('Old window 08:00–23:59 → now 06:50.', facts), [], 'replacement notation is history');
+  const stale = JSON.parse(readFileSync(join(out, 'changes.json'), 'utf8')).stale.map(x => x.file);
+  assert.ok(stale.includes('arrow-window.md') && stale.includes('loose-stale.md'));
 });

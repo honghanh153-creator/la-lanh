@@ -22,7 +22,7 @@
 //        node scripts/collab-memory-dream.mjs --apply <out> --memory <dir> --accept a.md,MEMORY.md [--sheet <file>]
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { chmodSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { parseRules, rulesVersion, sheetPath, sheetRel } from './collab-rules.mjs';
 import { isMain } from './is-main.mjs';
@@ -49,10 +49,13 @@ export function readStore(dir) {
 // Statements that contradict the sheet's numbers. A line that itself says the value is old
 // ("old", "cũ", "replaces", "superseded", "→") is history, not a claim.
 const historyLine = /\b(old|OLD|retired|superseded|replaces|was|then|drop|dropped|no longer)\b|cũ|thay\s|bỏ|→|->/i;
+// Codex r1 on #618: a time range ("08:00 → 23:59") is not replacement notation; only the arrows left
+// after time ranges are removed mark a line as history.
+const timeRange = /\b[0-2]?\d:[0-5]\d\s*(?:→|->)\s*[0-2]?\d:[0-5]\d\b/g;
 export function contradictions(text, facts) {
   const out = [];
   for (const line of text.split('\n')) {
-    if (historyLine.test(line)) continue;
+    if (historyLine.test(line.replace(timeRange, ' '))) continue;
     for (const m of line.matchAll(/(?:codex[^.\n]{0,40}?(?:cap|trần)|(?:cap|trần)[^.\n]{0,20}codex)[^.\n\d]{0,25}(\d{2,3})|(\d{2,3})\s*(?:codex runs|lượt codex)/gi)) {
       const n = Number(m[1] ?? m[2]);
       if (n !== facts.codexDailyCap) out.push({ rule: 'R8', says: String(n), sheet: String(facts.codexDailyCap) });
@@ -110,8 +113,8 @@ export function propose(store, sheet, { date, duplicateAt = 0.35 } = {}) {
     const at = byFile.get(e.file);
     const marked = oldMark.test(e.description) || (at !== undefined && oldMark.test(index[at]));
     const bad = contradictions(`${e.description}\n${e.body}`, facts);
+    const rule = bad[0]?.rule;
     if (bad.length && !marked) {
-      const rule = bad[0].rule;
       changes.stale.push({ file: e.file, rules: [...new Set(bad.map(b => b.rule))], says: bad.map(b => `${b.rule}: ${b.says} ≠ ${b.sheet}`) });
       if (at !== undefined) index[at] = index[at].replace(/^(- \[[^\]]*)\]/, `$1 [OLD → ${rule}]]`);
     }
@@ -128,7 +131,9 @@ export function propose(store, sheet, { date, duplicateAt = 0.35 } = {}) {
       if (next !== text) { files.set(e.file, next); changes.rulesChecked.push({ file: e.file, rules: ids }); }
     }
     if (at === undefined) {
-      index.push(`- [${e.name || e.slug}](${e.file}) — ${e.description.slice(0, 140)}`);
+      // Codex r1 on #618: a stale entry joins the index with its warning, never as a plain link.
+      const mark = bad.length && !marked ? ` [OLD → ${rule}]` : '';
+      index.push(`- [${e.name || e.slug}${mark}](${e.file}) — ${e.description.slice(0, 140)}`);
       changes.indexAdded.push(e.file);
     }
   }
@@ -156,22 +161,49 @@ export function summarize({ changes, version }, date) {
 const writePrivate = (path, text) => { writeFileSync(path, text, { mode: 0o600 }); chmodSync(path, 0o600); };
 const mkdirPrivate = path => { mkdirSync(path, { recursive: true, mode: 0o700 }); chmodSync(path, 0o700); };
 
-// Proposals older than keepDays under the dream root are removed (only YYYY-MM-DD folders).
-export function prune(root, today, keepDays = 14) {
+// Codex r1 on #618 (P1): nothing is deleted unless it is provably a proposal this script wrote. A
+// proposal folder is named YYYY-MM-DD and holds a manifest.json with this kind; the dream root and the
+// memory folder never overlap in either direction.
+export const proposalKind = 'la-lanh-memory-dream';
+const dated = /^\d{4}-\d{2}-\d{2}$/;
+function ownedProposal(path) {
+  try {
+    if (!lstatSync(path).isDirectory()) return false;
+    return JSON.parse(readFileSync(join(path, 'manifest.json'), 'utf8')).kind === proposalKind;
+  } catch { return false; }
+}
+// The real path of a folder that may not exist yet: its nearest existing parent, resolved, plus the rest.
+function canonical(path) {
+  const parts = [];
+  let at = resolve(path);
+  while (!existsSync(at)) { parts.unshift(basename(at)); const up = dirname(at); if (up === at) break; at = up; }
+  return join(realpathSync(at), ...parts);
+}
+const within = (inner, outer) => { const rel = relative(outer, inner); return rel === '' || (!rel.startsWith('..') && !isAbsolute(rel)); };
+export function overlaps(a, b) { const x = canonical(a); const y = canonical(b); return within(x, y) || within(y, x); }
+
+// Proposals older than keepDays under the dream root are removed: only dated folders this script wrote,
+// never the memory folder or anything holding it.
+export function prune(root, today, keepDays = 14, { memory = null } = {}) {
   if (!existsSync(root)) return [];
   const cut = Date.parse(`${today}T00:00:00Z`) - keepDays * 86400000;
   const gone = [];
   for (const name of readdirSync(root)) {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(name) || Date.parse(`${name}T00:00:00Z`) >= cut) continue;
-    rmSync(join(root, name), { recursive: true, force: true });
+    if (!dated.test(name) || Date.parse(`${name}T00:00:00Z`) >= cut) continue;
+    const path = join(root, name);
+    if (!ownedProposal(path) || (memory && overlaps(path, memory))) continue;
+    rmSync(path, { recursive: true, force: true });
     gone.push(name);
   }
   return gone;
 }
 
 export function dream({ memory, out, sheet = readFileSync(sheetPath(), 'utf8'), date = new Date().toISOString().slice(0, 10) }) {
-  const rel = relative(resolve(memory), resolve(out));
-  if (rel === '' || (!rel.startsWith('..') && !isAbsolute(rel))) throw new Error('the proposal folder must be outside the memory folder');
+  if (!dated.test(String(date))) throw new Error('date must be YYYY-MM-DD');
+  // Dated names only (Codex r1 P2): every proposal expires through prune.
+  if (!dated.test(basename(resolve(out)))) throw new Error('the proposal folder must be named YYYY-MM-DD');
+  if (overlaps(memory, out) || overlaps(memory, dirname(resolve(out)))) throw new Error('the proposal folder must be outside the memory folder, and the memory folder outside the dream root');
+  if (existsSync(out) && !ownedProposal(out) && readdirSync(out).length) throw new Error('the proposal folder exists and is not a proposal of this script');
   const store = readStore(memory);
   const result = propose(store, sheet, { date });
   rmSync(out, { recursive: true, force: true });
@@ -194,11 +226,11 @@ export function dream({ memory, out, sheet = readFileSync(sheetPath(), 'utf8'), 
   writePrivate(join(out, 'diff.patch'), patch);
   rmSync(join(out, 'before'), { recursive: true, force: true });
   const summary = summarize(result, date);
-  const manifest = { date, sheetVersion: result.version, touched: touched.sort(), sources: Object.fromEntries(touched.map(f => [f, sources[f]])), proposed: Object.fromEntries(touched.map(f => [f, hash(proposed.get(f))])) };
+  const manifest = { kind: proposalKind, date, sheetVersion: result.version, touched: touched.sort(), sources: Object.fromEntries(touched.map(f => [f, sources[f]])), proposed: Object.fromEntries(touched.map(f => [f, hash(proposed.get(f))])) };
   writePrivate(join(out, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
   writePrivate(join(out, 'changes.json'), `${JSON.stringify(result.changes, null, 2)}\n`);
   writePrivate(join(out, 'summary.json'), `${JSON.stringify(summary, null, 2)}\n`);
-  prune(dirname(out), date);
+  prune(dirname(out), date, 14, { memory });
   return summary;
 }
 
