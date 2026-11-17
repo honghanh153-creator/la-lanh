@@ -754,6 +754,22 @@ class ExperimentProjection(BaseModel):
     permission: str = Field(min_length=1, max_length=240)
 
 
+LIGHTER_ACTION_MAX_CHARS = 120
+
+
+class LighterActionProjection(BaseModel):
+    """A lighter thing to do, offered next to the card's own action (#627).
+
+    The card and its action never change; the reader's device decides which one to show.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    action: str = Field(min_length=1, max_length=LIGHTER_ACTION_MAX_CHARS)
+    weight: Literal["light"] = "light"
+    experiment: ExperimentProjection | None = None
+
+
 class AuraTransitionProjection(BaseModel):
     """Evidence-derived profile transition without shadow active/available depth fields."""
 
@@ -803,6 +819,8 @@ class ReadingContentProjection(BaseModel):
     disclaimer: str
     created_at: datetime
     experiment: ExperimentProjection | None = None
+    # Daily only, and only while approved lighter actions exist.
+    lighter_action: LighterActionProjection | None = None
 
 
 class AvailableReadingUpdate(BaseModel):
