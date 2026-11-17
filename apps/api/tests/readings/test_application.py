@@ -982,9 +982,7 @@ async def test_exact_reading_detail_names_the_sourced_house_meanings() -> None:
 
 
 @pytest.mark.asyncio
-async def test_an_approximate_daily_stored_before_the_evidence_change_reopens_as_a_new_revision() -> (
-    None
-):
+async def test_an_approximate_daily_stored_before_the_evidence_change_gets_a_new_revision() -> None:
     """Codex r1 on #666: a stored approximate Daily whose evidence omitted a plan placement must
     not share a revision key with the new lens-invariant evidence (postgres would raise
     ImmutableReadingConflictError when the note reopens)."""
