@@ -6,6 +6,7 @@ import pytest
 from app.domains.astro.models import TimePrecision, Tradition
 from app.domains.daily.models import DailyNoteRecord, PersonaLabel, PersonaMode, SourceLevel
 from app.domains.readings.models import (
+    LighterActionProjection,
     PlanMode,
     ReadingContentProjection,
     ReadingEvidenceProjection,
@@ -108,3 +109,36 @@ async def test_saved_note_freezes_first_active_revision_after_a_new_one_becomes_
     assert replay_after_b.revision_id == revision_a.revision_id
     assert replay_after_b.reading_snapshot == revision_a
     assert "provider" not in str(replay_after_b.reading_snapshot.model_dump()).lower()
+
+
+@pytest.mark.asyncio
+async def test_saved_copy_leaves_out_the_live_lighter_action() -> None:
+    """#634: the lighter action is a live Daily offer; a saved note is the note itself."""
+
+    guest_id = uuid4()
+    note = DailyNoteRecord(
+        id=uuid4(),
+        guest_id=guest_id,
+        note_date=date(2026, 9, 7),
+        title="Legacy title",
+        body="Legacy body",
+        full_body="Legacy full body",
+        context_label="Legacy context",
+        content_version="daily-note-v3",
+        chart_snapshot_id=uuid4(),
+        created_at=NOW,
+        persona_mode=PersonaMode.AURA,
+        persona_label=PersonaLabel.DEEP,
+        source_level=SourceLevel.NATAL_CHART,
+    )
+    service = SavedNoteService(MemorySavedRepository(), OwnedDailyNotes(note))
+    plain = _reading(uuid4(), hook="Bản đang đọc.")
+    offered = plain.model_copy(
+        update={"lighter_action": LighterActionProjection(action="Uống một cốc nước.")}
+    )
+
+    saved = await service.save(
+        guest_id=guest_id, daily_note_id=note.id, profile_id=uuid4(), reading=offered
+    )
+
+    assert saved.reading_snapshot == plain

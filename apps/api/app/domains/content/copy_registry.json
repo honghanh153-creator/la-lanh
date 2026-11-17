@@ -9882,7 +9882,7 @@
   {
    "id": "lighter.action.02",
    "category": "reading",
-   "text": "Tắt điện thoại mười phút rồi nằm nghỉ.",
+   "text": "Tắt điện thoại năm phút rồi nằm nghỉ.",
    "status": "pending"
   },
   {
@@ -9912,13 +9912,13 @@
   {
    "id": "lighter.action.07",
    "category": "reading",
-   "text": "Nghỉ mười phút để ăn một món nhẹ, chưa xem điện thoại.",
+   "text": "Nghỉ năm phút để ăn một món nhẹ, chưa xem điện thoại.",
    "status": "pending"
   },
   {
    "id": "lighter.action.08",
    "category": "reading",
-   "text": "Nằm xuống mười phút, đặt điện thoại ở xa tầm tay.",
+   "text": "Nằm xuống năm phút, đặt điện thoại ở xa tầm tay.",
    "status": "pending"
   },
   {
@@ -9930,7 +9930,7 @@
   {
    "id": "lighter.action.10",
    "category": "reading",
-   "text": "Tắm nước ấm rồi nằm nghỉ mười lăm phút.",
+   "text": "Rửa mặt bằng nước ấm rồi ngồi nghỉ ba phút.",
    "status": "pending"
   },
   {

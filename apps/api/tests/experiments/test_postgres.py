@@ -29,7 +29,11 @@ from app.domains.experiments.postgres import (
 from app.domains.experiments.tables import DailyExperimentRow
 from app.domains.guest.tables import ConsentRow, GuestSessionRow
 from app.domains.readings.application import ReadingApplicationService
-from app.domains.readings.lighter_action import lighter_experiment_for
+from app.domains.readings.lighter_action import (
+    LIGHTER_ACTION_PREFIX,
+    lighter_action_for,
+    lighter_experiment_for,
+)
 from app.domains.readings.models import (
     BackgroundLens,
     ExperimentProjection,
@@ -241,25 +245,38 @@ async def test_payload_is_encrypted_without_action_lens_or_outcome_canaries(stor
         assert plaintext_canary not in row.payload_ciphertext
 
 
-LIGHTER_TEXT = "Uống một cốc nước rồi ngồi yên hai phút."
+LIGHTER_TEXTS = tuple(
+    entry.text
+    for key, entry in copy_approval.load_registry().items()
+    if key.startswith(LIGHTER_ACTION_PREFIX)
+)
+LATER_TEXT = "Rót một cốc nước và uống chậm."
 
 
-def _use_lighter_copy(monkeypatch: pytest.MonkeyPatch, *, approved: bool) -> None:
-    entry: dict[str, str] = {
-        "id": "lighter.action.01",
-        "category": "reading",
-        "text": LIGHTER_TEXT,
-        "status": "pending",
-    }
-    if approved:
-        entry.update(
-            status="approved",
-            approver="codex",
-            date="2026-11-17",
-            digest=copy_approval.copy_digest(LIGHTER_TEXT),
-        )
+def _use_lighter_copy(
+    monkeypatch: pytest.MonkeyPatch, *, approved: bool, one_more: bool = False
+) -> None:
+    """The checked-in lighter sentences, all approved or all pending (plus a later one)."""
+
+    texts = (*LIGHTER_TEXTS, LATER_TEXT) if one_more else LIGHTER_TEXTS
+    entries: list[dict[str, str]] = []
+    for number, text in enumerate(texts, start=1):
+        entry = {
+            "id": f"{LIGHTER_ACTION_PREFIX}{number:02d}",
+            "category": "reading",
+            "text": text,
+            "status": "pending",
+        }
+        if approved:
+            entry.update(
+                status="approved",
+                approver="codex",
+                date="2026-11-17",
+                digest=copy_approval.copy_digest(text),
+            )
+        entries.append(entry)
     registry = copy_approval.parse_registry(
-        {"version": copy_approval.REGISTRY_VERSION, "entries": [entry]}
+        {"version": copy_approval.REGISTRY_VERSION, "entries": entries}
     )
     monkeypatch.setattr(copy_approval, "_runtime_registry", lambda: registry)
 
@@ -275,9 +292,14 @@ async def test_lighter_action_is_offered_kept_and_read_back(  # type: ignore[no-
     target = await _create_target(database, envelope)
     lighter = target.lighter
     assert lighter is not None and lighter.experiment is not None
-    assert (lighter.action, lighter.weight) == (LIGHTER_TEXT, "light")
+    assert lighter.action in LIGHTER_TEXTS and lighter.weight == "light"
     assert lighter.action != target.projection.action
     assert lighter.experiment.action_key != target.projection.action_key
+
+    # Another sentence is approved between reading the card and keeping: the card's offer and
+    # its key stay the same (review of #634).
+    _use_lighter_copy(monkeypatch, approved=True, one_more=True)
+    assert lighter_action_for(target.revision_id) == lighter.action
 
     chosen = await repository.choose_with_consent(
         ExperimentDraft(
@@ -298,7 +320,7 @@ async def test_lighter_action_is_offered_kept_and_read_back(  # type: ignore[no-
 
     async with database.sessions() as session:
         row = await session.get(DailyExperimentRow, chosen.id)
-    assert row is not None and LIGHTER_TEXT not in row.payload_ciphertext
+    assert row is not None and lighter.action not in row.payload_ciphertext
 
     # The kept action still reads back after its sentence leaves the registry.
     _use_lighter_copy(monkeypatch, approved=False)
@@ -312,7 +334,7 @@ async def test_lighter_action_is_offered_kept_and_read_back(  # type: ignore[no-
         now=NOW + timedelta(minutes=5),
     )
     assert reflected is not None
-    assert reflected.projection.action == LIGHTER_TEXT
+    assert reflected.projection.action == lighter.action
     assert reflected.outcome is ExperimentOutcome.HELPFUL
 
 
@@ -325,23 +347,24 @@ async def test_pending_lighter_action_is_not_offered_and_cannot_be_kept(  # type
     target = await _create_target(database, envelope)
     assert target.lighter is None
 
-    forged = lighter_experiment_for(target.revision_id, LIGHTER_TEXT)
-    with pytest.raises(ExperimentTargetNotFound):
-        await repository.choose_with_consent(
-            ExperimentDraft(
-                id=uuid4(),
-                guest_id=target.guest_id,
-                daily_note_id=target.daily_note_id,
-                revision_id=target.revision_id,
-                background_lens=BackgroundLens.WORK,
-                action_key=forged.action_key,
-                created_at=NOW,
-                expires_at=NOW + timedelta(days=30),
-            ),
-            consent_version="action-experiment-v1",
-            expected_experiment_id=None,
-            expected_version=None,
-        )
+    for text in LIGHTER_TEXTS:
+        forged = lighter_experiment_for(target.revision_id, text)
+        with pytest.raises(ExperimentTargetNotFound):
+            await repository.choose_with_consent(
+                ExperimentDraft(
+                    id=uuid4(),
+                    guest_id=target.guest_id,
+                    daily_note_id=target.daily_note_id,
+                    revision_id=target.revision_id,
+                    background_lens=BackgroundLens.WORK,
+                    action_key=forged.action_key,
+                    created_at=NOW,
+                    expires_at=NOW + timedelta(days=30),
+                ),
+                consent_version="action-experiment-v1",
+                expected_experiment_id=None,
+                expected_version=None,
+            )
     # The card's own action is kept exactly as before.
     kept = await _choose(repository, target)
     assert kept.projection == target.projection

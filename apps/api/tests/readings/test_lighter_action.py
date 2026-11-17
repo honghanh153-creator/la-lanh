@@ -9,6 +9,7 @@ import pytest
 
 from app.domains.content import copy_approval
 from app.domains.content.copy_approval import copy_digest, load_registry, parse_registry
+from app.domains.readings import lighter_action
 from app.domains.readings.clarity_lint import (
     HARD_ZERO_RULES,
     MAX_SENTENCE_SYLLABLES,
@@ -23,8 +24,10 @@ from app.domains.readings.clarity_lint import (
 from app.domains.readings.gates import has_observable_action
 from app.domains.readings.lighter_action import (
     LIGHTER_ACTION_PREFIX,
+    LIGHTER_CATALOG,
     lighter_action_for,
     lighter_action_projection,
+    within_five_minutes,
 )
 from app.domains.readings.models import (
     LIGHTER_ACTION_MAX_CHARS,
@@ -132,6 +135,104 @@ def test_offer_is_stable_per_card_and_keyed_to_it(monkeypatch: pytest.MonkeyPatc
     assert not_keepable is not None and not_keepable.experiment is None
 
 
+def _one_slot_catalog(monkeypatch: pytest.MonkeyPatch, text: str) -> None:
+    """A catalog whose only slot is ``text``, approved: only the runtime guards can refuse it."""
+
+    monkeypatch.setattr(
+        lighter_action, "LIGHTER_CATALOG", ((f"{LIGHTER_ACTION_PREFIX}01", copy_digest(text)),)
+    )
+    _use(monkeypatch, _entry(1, text, approved=True))
+
+
 def test_overlong_approved_sentence_is_left_out(monkeypatch: pytest.MonkeyPatch) -> None:
-    _use(monkeypatch, _entry(1, "Nghỉ " * LIGHTER_ACTION_MAX_CHARS, approved=True))
+    _one_slot_catalog(monkeypatch, "Uống một cốc nước rồi ngồi yên.")
+    assert lighter_action_for(REVISIONS[0]) is not None
+    _one_slot_catalog(monkeypatch, "Nghỉ " * LIGHTER_ACTION_MAX_CHARS)
     assert lighter_action_for(REVISIONS[0]) is None
+
+
+def test_catalog_is_exactly_the_checked_in_sentences() -> None:
+    """Editing, adding or dropping a sentence must be a deliberate catalog change.
+
+    A sentence that was never released may be edited with its digest updated here. After a
+    release, add a new id under a new catalog version instead (see ``lighter_action``).
+    """
+
+    assert dict(LIGHTER_CATALOG) == {key: copy_digest(entry.text) for key, entry in POOL.items()}
+    assert len(dict(LIGHTER_CATALOG)) == len(LIGHTER_CATALOG)
+
+
+@pytest.mark.parametrize("key", sorted(POOL))
+def test_lighter_action_names_at_most_five_minutes(key: str) -> None:
+    """The rubric's "within 5 minutes", checked apart from the API's constant weight."""
+
+    assert within_five_minutes(POOL[key].text)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Tắt điện thoại mười phút rồi nằm nghỉ.",
+        "Tắm nước ấm rồi nằm nghỉ mười lăm phút.",
+        "Nằm nghỉ hai mươi phút.",
+        "Nằm nghỉ 10 phút.",
+        "Nằm nghỉ vài phút.",
+        "Nằm nghỉ nửa tiếng.",
+        "Đi bộ một giờ.",
+    ],
+)
+def test_longer_or_unclear_durations_are_not_light(
+    text: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    assert not within_five_minutes(text)
+    # Even approved and in the catalog, such a sentence is never served as light.
+    _one_slot_catalog(monkeypatch, text)
+    assert lighter_action_for(REVISIONS[0]) is None
+
+
+@pytest.mark.parametrize(
+    "text", ["Nằm nghỉ năm phút.", "Nghe tiếng mưa một phút.", "Mở cửa sổ và đứng thở chậm."]
+)
+def test_short_durations_are_light(text: str) -> None:
+    assert within_five_minutes(text)
+
+
+# --- Frozen offer (review of #634): what a card offers never moves once it was shown. ---
+
+CARD = NAMESPACE
+EXTRA = "Rót một cốc nước và uống chậm."
+
+
+def _approved_pool() -> list[dict[str, Any]]:
+    return [_entry(i, entry.text, approved=True) for i, entry in enumerate(POOL.values(), start=1)]
+
+
+def test_offer_does_not_move_when_another_sentence_is_approved(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _approve_checked_in_pool(monkeypatch)
+    before = lighter_action_projection(CARD, keepable=True)
+    assert before is not None and before.experiment is not None
+
+    _use(monkeypatch, *_approved_pool(), _entry(len(POOL) + 1, EXTRA, approved=True))
+    after = lighter_action_projection(CARD, keepable=True)
+    assert after == before
+
+
+def test_offer_is_one_fixed_sentence_or_nothing(monkeypatch: pytest.MonkeyPatch) -> None:
+    _approve_checked_in_pool(monkeypatch)
+    offered = lighter_action_for(CARD)
+    assert offered is not None
+    own = next(entry for entry in _approved_pool() if entry["text"] == offered)
+    others = [entry for entry in _approved_pool() if entry["text"] != offered]
+
+    # Its own sentence alone is enough; the rest of the pool does not matter.
+    _use(monkeypatch, own)
+    assert lighter_action_for(CARD) == offered
+    # Without its own sentence the card offers nothing, never a neighbour's sentence.
+    _use(monkeypatch, *others)
+    assert lighter_action_for(CARD) is None
+    # An edited sentence is not offered until the catalog names the new text.
+    edited = dict(own, text=offered + " Rồi thở.", digest=copy_digest(offered + " Rồi thở."))
+    _use(monkeypatch, *others, edited)
+    assert lighter_action_for(CARD) is None
