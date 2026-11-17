@@ -1333,6 +1333,18 @@ test('#575: a PR waiting on Claude never holds another on a shared file; a 7-wee
   assert.equal(fileBlocker(p505, [ops, p505]), 481, 'an earlier group still goes first over a 7-week PR');
 });
 
+test('review 16.11: inside a group an incident, then 7-week and persona-fix PRs go before an older ordinary PR on a shared file', () => {
+  const reg = [{ path: 'apps/api/app/domains/content/copy_registry.json' }];
+  const head = n => String(n).padStart(40, '0');
+  const older = pr({ number: 701, createdAt: '2026-11-01T00:00:00Z', headRefOid: head(701), files: reg, comments: [check(head(701))] });
+  const persona = pr({ number: 702, createdAt: '2026-11-10T00:00:00Z', headRefOid: head(702), labels: [{ name: 'persona-fix' }], files: reg, comments: [] });
+  const incident = pr({ number: 703, createdAt: '2026-11-12T00:00:00Z', headRefOid: head(703), labels: [{ name: 'incident' }], files: reg, comments: [] });
+  assert.equal(fileBlocker(persona, [older, persona]), null, 'a persona fix is not held behind an older ordinary PR');
+  assert.equal(fileBlocker(older, [older, persona]), 702, 'the ordinary PR waits for it');
+  assert.equal(fileBlocker(persona, [older, persona, incident]), 703, 'an incident goes first of all');
+  assert.equal(fileBlocker(incident, [older, persona, incident]), null);
+});
+
 test('#581: each repair-waiting state releases a newer PR on a shared file, with no 7-week label involved', () => {
   const reg = [{ path: 'apps/api/app/domains/content/copy_registry.json' }];
   const head = n => String(n).padStart(40, '0');
@@ -1443,6 +1455,22 @@ test('copy batch: once a day after the 08:00 auto-start, only with pending copy,
   // Codex #451 P2: a fork branch with the batch name must not stop the daily review.
   at(8, 5, { date: '2026-11-28', open: [pr({ number: 62, headRefName: 'agent/claude/copy-batch-x', isCrossRepository: true })] });
   assert.equal(runs.length, before + 1, 'a fork PR named like a batch does not block the batch');
+});
+
+// Fix-forward #622: the quiet red streak counts only back-to-back ticks; any tick in between breaks it.
+test('#622: a quiet red streak alerts only after three back-to-back ticks; a tick that leaves another way resets it', () => {
+  const date = '2027-02-03';
+  trust.writeJson(trust.dayStatePath(date), { codexRuns: 0, failures: 0, copyBatch: { status: 'error', attempts: 3, reason: 'Command failed: x — ValueError: y' } });
+  const said = [];
+  const at = (hour, minute) => tick({ gh: plannedGh([], date), now: { date, hour, minute }, merge: () => ({}), review: () => ({}), copyPending: () => 0, alert: t => said.push(t) });
+  at(12, 0);
+  at(12, 10);
+  at(5, 0); // leaves early (plan closed): not a quiet red tick, and it breaks the streak
+  at(12, 20);
+  at(12, 30);
+  assert.equal(said.filter(t => /không có lỗi mới/.test(t)).length, 0, 'two back-to-back quiet ticks after the break: no alert yet');
+  at(12, 40);
+  assert.equal(said.filter(t => /đỏ 3 lượt liền mà không có lỗi mới/.test(t)).length, 1, 'the third back-to-back quiet tick alerts');
 });
 
 // 13.11.2026: the batch failed at 10:48 and the tick treated it as the day's batch: no retry,

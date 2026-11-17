@@ -26,7 +26,9 @@ const machine = new Set(['claude-check', 'codex-review', 'merge']);
 
 // A PR is in the 7-week lane when it carries the plan label or is one of today's picked 7-week items
 // (its PRs, given by the caller); everything else is process work.
-export const laneOf = (pr, plan7wPrs = []) => (labelled(pr, label7w) || plan7wPrs.includes(pr.number) ? 'plan7w' : 'process');
+// Review of 16.11 (item 5): a fix for a failing persona threshold (`persona-fix`) is plan work for users,
+// so it runs in the plan lane too.
+export const laneOf = (pr, plan7wPrs = []) => (labelled(pr, label7w) || labelled(pr, 'persona-fix') || plan7wPrs.includes(pr.number) ? 'plan7w' : 'process');
 
 // In review: the machine has the next move (check, review, merge). In progress: everything else
 // Claude still owns (a fix, a draft, a PR waiting on another PR's file). The totals stay as before
