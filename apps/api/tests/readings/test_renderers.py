@@ -335,7 +335,18 @@ def test_every_reading_mode_keeps_evidence_while_rendering_one_contextual_scene(
     assert contextual.semantic_blueprint is not None
     assert contextual.semantic_blueprint.arena.value == lens.value
     assert contextual.transit == plain.transit
-    assert contextual.evidence == plain.evidence
+    if mode == "limited":
+        # 17.11.2026 (#626): an approximate time now gets a Daily from its time-stable placements.
+        # The evidence follows the situation the lens picks, and may name another stable placement;
+        # every claim stays a sign-only placement from the plan, never an aspect, house or transit.
+        allowed = {factor.id for factor in plain_plan.factors}
+        for card in (plain, contextual):
+            assert {claim.factor_ref for claim in card.evidence.claims} <= allowed
+            assert all(
+                claim.template_id.value == "planet_in_sign" for claim in card.evidence.claims
+            )
+    else:
+        assert contextual.evidence == plain.evidence
     assert contextual_plan.factors == plain_plan.factors
     assert contextual_plan.hero_factor_refs == plain_plan.hero_factor_refs
     assert contextual_plan.precision == plain_plan.precision

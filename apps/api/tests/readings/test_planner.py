@@ -198,6 +198,55 @@ def test_western_placement_factors_keep_degree_and_motion_as_private_evidence() 
     )
 
 
+def test_an_approximate_time_gets_a_daily_from_time_stable_placements_only() -> None:
+    """17.11.2026 (#626): no longer an empty LIMITED plan that served one situation every day."""
+    from datetime import date, timedelta
+    from uuid import UUID
+
+    from app.domains.readings.daily_psychology import DAILY_PSYCHOLOGY_MATRIX_VERSION
+    from app.domains.readings.daily_rotation import (
+        VARIETY_KEY_VERSION,
+        daily_variety_seed,
+        day_index,
+        derive_variety_key,
+    )
+    from app.domains.readings.models import DailyVariety
+
+    approximate = _chart().model_copy(
+        update={"time_precision": TimePrecision.APPROXIMATE, "houses": None, "angles": None}
+    )
+    key = derive_variety_key(b"test-only-server-secret")
+    seed = daily_variety_seed(
+        key, UUID("30000000-0000-4000-8000-0000000000a1"), DAILY_PSYCHOLOGY_MATRIX_VERSION
+    )
+    issues = set()
+    for offset in range(14):
+        day = date(2026, 11, 1) + timedelta(days=offset)
+        plan = ReadingPlanner().plan(
+            approximate,
+            purpose=ReadingPurpose.DAILY_NOTE,
+            editorial_seed=day.isoformat(),
+            daily_variety=DailyVariety(
+                key_version=VARIETY_KEY_VERSION,
+                catalog_version=DAILY_PSYCHOLOGY_MATRIX_VERSION,
+                seed=seed,
+                day_index=day_index(day),
+            ),
+        )
+        assert plan.mode is PlanMode.FULL_SYNTHESIS
+        assert plan.precision is TimePrecision.APPROXIMATE
+        # Only sign-level placements proven stable for the window: no Moon, aspect, house, angle
+        # or transit fact, and no midpoint degree, motion, orb or phase (#143 E1, #150 r1 P1).
+        assert plan.factors and all(f.kind is FactorKind.PLANET_PLACEMENT for f in plan.factors)
+        assert all("moon" not in f.subjects for f in plan.factors)
+        assert all(f.evidence_refs == (f.id,) and not f.child_refs for f in plan.factors)
+        assert plan.daily_selection is not None
+        assert plan.daily_selection.transit_ref is None
+        issues.add(plan.daily_selection.issue_key)
+    # The per-person rotation now has more than one situation to walk.
+    assert len(issues) >= 2
+
+
 def test_approximate_excludes_midpoint_facts_without_engine_stability_proof() -> None:
     """Midpoint facts are used only when stable over the whole window (#143 E1)."""
     approximate = _chart().model_copy(
