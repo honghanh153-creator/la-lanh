@@ -42,6 +42,21 @@ describe("ReadingUpdateGift", () => {
     expect(screen.getByRole("button", { name: /Mở bản đủ lớp/ })).toBeInTheDocument();
   });
 
+  it("never promises houses and angles for an approximate-time synthesis", () => {
+    render(
+      <ReadingUpdateGift
+        activeMode="vibe_fallback"
+        onActivate={vi.fn()}
+        pending={false}
+        update={{ ...update, content: { ...update.content, precision: "approximate" } }}
+      />,
+    );
+
+    expect(screen.queryByRole("heading", { name: "Note này có một bản đủ lớp" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/nhà và góc/)).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Có một bản đọc mới hơn" })).toBeInTheDocument();
+  });
+
   it("does not pretend a content refresh came from new birth data", () => {
     render(
       <ReadingUpdateGift
