@@ -111,6 +111,30 @@ test('the lessons test itself runs in CI', () => {
 });
 
 // L08 (Codex 14.11): a Playwright spec counts only through the chain CI runs, and only unskipped.
+test('#661: an API pytest is accepted as a lesson test only when CI runs it, by its exact function name', () => {
+  const pkg = JSON.parse(readFileSync(join(lessons.root, 'package.json'), 'utf8'));
+  assert.ok(lessons.ciTestFiles(pkg).has('apps/api/tests/scripts/test_persona_runs.py'), 'the real chain: check -> api:test -> pytest -> tests');
+  assert.deepEqual(lessons.pytestCiFiles({ scripts: { ...pkg.scripts, check: 'pnpm collab:test' } }), [], 'not run by pnpm check: not counted');
+  assert.deepEqual(lessons.pytestCiFiles({ scripts: { ...pkg.scripts, 'api:test': 'uv run --directory apps/api pytest tests/daily' } }), [], 'a filtered api:test proves nothing');
+  const base = mkdtempSync(join(tmpdir(), 'lessons-py-'));
+  mkdirSync(join(base, 'apps/api/tests/scripts'), { recursive: true });
+  writeFileSync(join(base, 'apps/api/pyproject.toml'), '[tool.pytest.ini_options]\naddopts = "-q --strict-markers"\ntestpaths = ["tests"]\n');
+  writeFileSync(join(base, 'apps/api/tests/scripts/test_runs.py'), 'def test_sim_uses_production_rotation() -> None:\n    assert True\n');
+  writeFileSync(join(base, 'apps/api/caller.py'), 'daily_variety_from=PRODUCTION\n');
+  assert.deepEqual(lessons.pytestCiFiles(pkg, { base }), ['apps/api/tests/scripts/test_runs.py']);
+  const lesson = name => ({ lessons: [{ id: 'L99', title: 't', who: 'claude', due: '2026-11-20', status: 'done',
+    test: { file: 'apps/api/tests/scripts/test_runs.py', name }, caller: { file: 'apps/api/caller.py', contains: 'daily_variety_from' }, closedBy: { pr: 1 } }] });
+  const ciFiles = lessons.ciTestFiles(pkg, { base });
+  assert.deepEqual(lessons.problems(lesson('test_sim_uses_production_rotation'), { base, ciFiles }), []);
+  assert.match(lessons.problems(lesson('test_sim_uses'), { base, ciFiles })[0], /no test named/, 'a prefix of a name is not the test');
+  writeFileSync(join(base, 'apps/api/tests/scripts/test_runs.py'), '# def test_sim_uses_production_rotation():\n');
+  assert.match(lessons.problems(lesson('test_sim_uses_production_rotation'), { base, ciFiles })[0], /no test named/, 'a commented-out test does not count');
+  writeFileSync(join(base, 'apps/api/tests/scripts/test_runs.py'), '@pytest.mark.skip(reason="x")\ndef test_sim_uses_production_rotation() -> None:\n    pass\n');
+  assert.match(lessons.problems(lesson('test_sim_uses_production_rotation'), { base, ciFiles })[0], /skipped or xfail/);
+  writeFileSync(join(base, 'apps/api/pyproject.toml'), '[tool.pytest.ini_options]\naddopts = "-q --deselect tests/x"\ntestpaths = ["tests"]\n');
+  assert.deepEqual(lessons.pytestCiFiles(pkg, { base }), [], 'a config that can drop tests proves nothing');
+});
+
 test('an e2e spec is accepted as a lesson test only when CI runs it, and rejected otherwise', () => {
   const pkg = JSON.parse(readFileSync(join(lessons.root, 'package.json'), 'utf8'));
   const files = lessons.ciTestFiles(pkg);
