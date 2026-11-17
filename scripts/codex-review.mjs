@@ -244,7 +244,10 @@ function reviewOnce(number, { auto = false, overCap = null, gh: ghIn = makeGh(),
   const digest = createHash('sha256').update(rawOut).digest('hex');
 
   // Head must not have moved while Codex was reading.
-  if (gh.pr(number).headRefOid !== head) return { status: 'stale', reason: 'head đổi trong lúc review; lượt sau review lại' };
+  // Codex r2 on #637: the owner answers are read from this fresh copy too, so an answer edited or
+  // deleted while Codex was reading no longer counts.
+  const after = gh.pr(number);
+  if (after.headRefOid !== head) return { status: 'stale', reason: 'head đổi trong lúc review; lượt sau review lại' };
 
   let fixIssue = null;
   if (policy.fixForward.length) {
@@ -269,7 +272,7 @@ function reviewOnce(number, { auto = false, overCap = null, gh: ghIn = makeGh(),
   // content is unchanged since) adds no label; a kind she has not answered still holds.
   const holdsAll = ownerHolds(out);
   const answeredBy = holdsAll.actions.length
-    ? coveredKinds(sealedAnswers(pr), sha => answerStillHolds({ sha, head, dir, git: (args, cwd) => git(args, cwd, run, left) }))
+    ? coveredKinds(sealedAnswers({ ...after, number: pr.number }), sha => answerStillHolds({ sha, head, dir, git: (args, cwd) => git(args, cwd, run, left) }))
     : new Map();
   const isOpen = a => !answeredBy.has(a.kind);
   const holdsNow = { actions: holdsAll.actions, merge: holdsAll.merge.filter(isOpen), release: holdsAll.release.filter(isOpen) };

@@ -371,6 +371,19 @@ test('#611: a recorded owner answer covers its kinds on later reviews; a new kin
   assert.deepEqual([more.result.needsOwner, more.labels, more.result.answered], [true, ['needs-owner'], ['cost_access']]);
 });
 
+test('#611, Codex r2 on #637: an answer withdrawn while Codex reads no longer counts', async () => {
+  const answers = await import('./collab-owner-answer.mjs');
+  const state = { pr: pr({ number: 615, comments: [check(A)] }) };
+  assert.equal(answers.recordAnswer(615, { kinds: 'cost_access', answer: 'Q1', quote: 'Q1', gh: fakeGh(state) }).status, 'recorded');
+  const gh = fakeGh(state);
+  let reads = 0;
+  // First read: the answer is there. Every read after Codex ran: it was deleted meanwhile.
+  gh.pr = () => { reads += 1; const p = structuredClone(state.pr); if (reads > 1) p.comments = p.comments.filter(c => !/owner-answer/.test(c.body ?? '')); return p; };
+  const result = review.runReview(615, { gh, run: fakeRun().run, readOut: () => JSON.stringify(output({ owner_actions: [{ kind: 'cost_access', evidence: 'x:1 synthetic', blocks: 'merge' }] })), now: { date: '2027-03-04', hour: 12, minute: 0 } });
+  assert.deepEqual([result.status, result.needsOwner, result.answered], ['posted', true, []], 'the hold stays when the answer is gone');
+  assert.ok(gh.calls.some(c => c[0] === 'raw' && c[1].includes('--add-label') && c[1].includes('needs-owner')));
+});
+
 test('#611: an answer voids when the PR\'s own files change; copies, edits and hand-typed markers never count', async () => {
   const answers = await import('./collab-owner-answer.mjs');
   const D = 'd'.repeat(40);
