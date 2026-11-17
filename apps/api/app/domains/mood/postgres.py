@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from sqlalchemy import select
@@ -77,7 +77,7 @@ class PostgresMoodRepository:
                     raise HistoryUnavailable
                 # With encrypted writes on, a legacy plain value is cleared here.
                 row.mood, row.mood_ciphertext = self._stored(row.id, record.mood)
-                row.checked_in_at = record.checked_in_at
+                row.checked_in_at = _next_check_in_time(row.checked_in_at, record.checked_in_at)
             await session.flush()
             return _record(row, self._envelope)
 
@@ -93,6 +93,18 @@ class PostgresMoodRepository:
                 )
             )
             return _record(row, self._envelope) if row is not None else None
+
+
+# Clients order answers about a mood by `checked_in_at` (#627), so on one row it must follow the
+# order in which saves are written, not the order in which requests arrived. The request's own
+# time is taken before the owner lock: a save that arrived first can be written last. This runs
+# inside the owner lock, so each written save is at least this much newer than the one before it.
+# One millisecond, because that is the precision clients compare with.
+_CHECK_IN_STEP = timedelta(milliseconds=1)
+
+
+def _next_check_in_time(stored: datetime, requested: datetime) -> datetime:
+    return max(requested, stored + _CHECK_IN_STEP)
 
 
 def _context(row_id: UUID) -> bytes:

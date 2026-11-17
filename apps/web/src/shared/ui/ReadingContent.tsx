@@ -21,10 +21,16 @@ type ReadingContentProps = {
   onChoose?: () => void;
   onUndo?: () => void;
   onReflect?: (outcome: ExperimentOutcome) => void;
+  /** Present only when the reader can switch between the card's action and the lighter one (#627). */
+  lighter?: LighterSwitch | null;
   toolbar?: ReactNode;
 };
 
+export type LighterSwitch = { shown: boolean; onSwitch: () => void };
+
 const ACTION_HEADING = "Thử một việc nhỏ";
+export const SHOW_ORIGINAL_ACTION = "Xem việc ban đầu";
+export const SHOW_LIGHTER_ACTION = "Xem việc nhẹ hơn";
 
 const outcomeLabels: Record<ExperimentOutcome, string> = {
   not_tried: "Chưa thử",
@@ -42,6 +48,7 @@ export function ReadingContent({
   onChoose,
   onUndo,
   onReflect,
+  lighter = null,
   toolbar,
 }: ReadingContentProps) {
   const isVibeFallback = content.mode === "vibe_fallback";
@@ -51,6 +58,7 @@ export function ReadingContent({
       content={content}
       currentExperiment={currentExperiment}
       error={experimentError}
+      lighter={lighter}
       onChoose={onChoose}
       onReflect={onReflect}
       onUndo={onUndo}
@@ -102,6 +110,7 @@ function ExperimentSection({
   content,
   currentExperiment,
   error,
+  lighter,
   onChoose,
   onReflect,
   onUndo,
@@ -111,12 +120,21 @@ function ExperimentSection({
   content: ReadingContentModel;
   currentExperiment: DailyExperiment | null;
   error: string | null;
+  lighter: LighterSwitch | null;
   onChoose?: () => void;
   onReflect?: (outcome: ExperimentOutcome) => void;
   onUndo?: () => void;
   status: DailyExperimentStatus;
 }) {
-  const experiment = content.experiment;
+  // The lighter action replaces what is shown, never the note itself (US-04 AC14).
+  const lighterAction = lighter?.shown ? content.lighter_action : null;
+  const experiment = lighterAction ? lighterAction.experiment : content.experiment;
+  const plainAction = lighterAction ? lighterAction.action : content.sections.micro_action;
+  const switchButton = lighter && content.lighter_action ? (
+    <button className="text-button reading-content__lighter-switch" onClick={lighter.onSwitch} type="button">
+      {lighter.shown ? SHOW_ORIGINAL_ACTION : SHOW_LIGHTER_ACTION}
+    </button>
+  ) : null;
   const [replaceConfirming, setReplaceConfirming] = useState(false);
   const [reflectionOpen, setReflectionOpen] = useState(false);
   const currentMatches = Boolean(experiment && currentExperiment?.action_key === experiment.action_key);
@@ -131,11 +149,12 @@ function ExperimentSection({
     const isDaily = content.purpose === "daily_note" || content.purpose === "personalized_sky";
     // Home already shows this action; the detail page must not drop it just
     // because a non-exact reading has no holdable experiment.
-    if (compact || !isDaily || !content.sections.micro_action) return null;
+    if (compact || !isDaily || !plainAction) return null;
     return (
       <section className="reading-content__action" aria-labelledby="reading-action-title">
         <h2 id="reading-action-title">{ACTION_HEADING}</h2>
-        <p className="reading-content__experiment-action">{content.sections.micro_action}</p>
+        <p className="reading-content__experiment-action">{plainAction}</p>
+        {switchButton}
       </section>
     );
   }
@@ -157,6 +176,7 @@ function ExperimentSection({
         <p><strong>Để ý:</strong> {experiment.observation}</p>
         <p className="reading-content__permission">{experiment.permission}</p>
       </div>
+      {switchButton}
 
       {isReflected ? (
         <div className="reading-content__reflected" role="status">
