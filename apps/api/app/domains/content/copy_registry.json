@@ -10132,6 +10132,15 @@
    "digest": "67f2839f0d3e3129087080f476848829bbfe1734085b3abc23e6995694a75f7e"
   },
   {
+   "id": "privacy.mood-lighter-task",
+   "category": "privacy",
+   "text": "Mood bạn chọn cũng dùng để gợi ý việc nhỏ nhẹ hơn trong ngày, dành cho bạn.",
+   "status": "approved",
+   "approver": "owner",
+   "date": "2026-11-17",
+   "digest": "b81afeb36dea5c63f0c4570f576189a4a6b876a5fe8da4c05fe8d5e85b83e863"
+  },
+  {
    "id": "lighter.action.01",
    "category": "reading",
    "text": "Uống một cốc nước rồi ngồi yên hai phút.",
