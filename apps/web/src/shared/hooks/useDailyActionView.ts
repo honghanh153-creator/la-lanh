@@ -27,8 +27,10 @@ export const dailyMoodKey = (noteId: string | undefined) => ["daily-note-mood", 
 /**
  * The one ordering rule for every answer about a note's mood: the first read, a refetch, and the
  * answer to a save. An answer is applied only if it is not older than the row already applied for
- * that note. "Older" is decided by the server's own `checked_in_at`, which the server sets anew on
- * every save, never by the order answers happen to arrive in or by this device's clock.
+ * that note. "Older" is decided by the server's own `checked_in_at`, never by the order answers
+ * happen to arrive in or by this device's clock. The server makes that time follow the order in
+ * which saves are written to a row: each written save is at least a millisecond newer than the one
+ * before it (`apps/api/app/domains/mood/postgres.py`), whatever order the requests arrived in.
  *
  * The marker is the applied row itself, in the shared mood query: it outlives any screen, so an
  * answer that arrives after its screen was closed is held to the same rule, and it is erased with
@@ -49,9 +51,15 @@ export async function readDailyMood(client: QueryClient, noteId: string, signal?
   return newerMoodRow(client.getQueryData<MoodCheckIn | null>(dailyMoodKey(noteId)), incoming);
 }
 
-/** Applies the answer to a save; it goes through the same ordering rule as a read. */
-export function applySavedMood(client: QueryClient, row: MoodCheckIn): void {
-  client.setQueryData<MoodCheckIn | null>(dailyMoodKey(row.daily_note_id), (applied) => newerMoodRow(applied, row));
+/**
+ * Applies the answer to a save; it goes through the same ordering rule as a read. Returns whether
+ * the answer was accepted: false means a newer row was already applied and nothing changed.
+ */
+export function applySavedMood(client: QueryClient, row: MoodCheckIn): boolean {
+  const key = dailyMoodKey(row.daily_note_id);
+  const accepted = newerMoodRow(client.getQueryData<MoodCheckIn | null>(key), row) === row;
+  if (accepted) client.setQueryData<MoodCheckIn | null>(key, row);
+  return accepted;
 }
 
 type DailyActionView = {

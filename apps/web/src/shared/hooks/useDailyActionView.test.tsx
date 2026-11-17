@@ -49,12 +49,14 @@ describe("the ordering rule for mood answers (#627)", () => {
 
   it("holds the answer to a save to the rule, whichever order answers arrive in", () => {
     const client = new QueryClient();
-    applySavedMood(client, newer);
-    applySavedMood(client, older);
+    // It says whether the answer was accepted, so the caller can leave everything else alone
+    // when an older answer is rejected.
+    expect(applySavedMood(client, newer)).toBe(true);
+    expect(applySavedMood(client, older)).toBe(false);
     expect(client.getQueryData(dailyMoodKey(NOTE_ID))).toEqual(newer);
     const client2 = new QueryClient();
-    applySavedMood(client2, older);
-    applySavedMood(client2, newer);
+    expect(applySavedMood(client2, older)).toBe(true);
+    expect(applySavedMood(client2, newer)).toBe(true);
     expect(client2.getQueryData(dailyMoodKey(NOTE_ID))).toEqual(newer);
   });
 

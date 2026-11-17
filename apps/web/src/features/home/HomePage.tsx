@@ -268,9 +268,11 @@ export function HomePage() {
       // save answered first, or another tab's save was read meanwhile), this answer changes
       // nothing. Then read the mood again: that replaces any read still on its way (which started
       // before this answer and could carry "no mood" from before the save) with a fresh one.
-      applySavedMood(queryClient, payload);
+      const accepted = applySavedMood(queryClient, payload);
       void queryClient.invalidateQueries({ queryKey: dailyMoodKey(payload.daily_note_id) });
-      resetDailyActionChoice(queryClient, payload.daily_note_id);
+      // A rejected (older) answer changed nothing, so it must not undo the reader's own choice of
+      // which action to see either.
+      if (accepted) resetDailyActionChoice(queryClient, payload.daily_note_id);
       // Saved: the pick for that note is no longer unsaved; the control reads the saved mood.
       setUnsavedPick((current) => (current?.noteId === payload.daily_note_id ? null : current));
       setMessage(laMoodReaction(payload.mood, vibe));

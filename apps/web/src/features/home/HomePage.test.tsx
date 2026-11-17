@@ -919,6 +919,66 @@ describe("HomePage rich reading", () => {
         expectOrdinary();
       }
     });
+
+    // Review auto-7 (P2): a rejected older answer must not undo the reader's own choice of action.
+    it("a rejected older answer keeps the reader's choice of action", async () => {
+      const user = userEvent.setup();
+      const { client, settle: saveA, unmount } = await pickWithPendingSave(null, "Chill");
+      saveA.commit();
+      unmount();
+      reopenHome(client);
+      await pickMood("Chill", "Đuối");
+      expect(await screen.findByText(withLighter.lighter_action.action)).toBeInTheDocument();
+      await settled();
+      // The reader switches to the card's own action before A's answer arrives.
+      await user.click(screen.getByRole("button", { name: "Xem việc ban đầu" }));
+      expect(await screen.findByRole("button", { name: "Xem việc nhẹ hơn" })).toBeInTheDocument();
+
+      vi.mocked(getCurrentMood).mockImplementationOnce(() => new Promise(() => {}));
+      await act(async () => { saveA.succeed(); await Promise.resolve(); });
+      await settled();
+
+      expect(screen.getByRole("button", { name: "Mood hôm nay: Đuối" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Xem việc nhẹ hơn" })).toBeInTheDocument();
+      expect(screen.getByText(vibe.sections.micro_action)).toBeInTheDocument();
+      expect(screen.queryByText(withLighter.lighter_action.action)).not.toBeInTheDocument();
+    });
+
+    // Review auto-7 (P1): request order and write order can differ. The server stamps a save when
+    // it writes it (the fake does the same), so the save written last is the newest, even though
+    // it was requested first and is answered last.
+    it.each([
+      { first: "Đuối", second: "Chill" },
+      { first: "Chill", second: "Đuối" },
+    ] as const)("request order reversed: $first requested first but written last, $second requested second and written first: the last written wins", async ({ first, second }) => {
+      // Save A is requested; the server has not written it yet (it waits for its turn).
+      const { client, settle: saveA, unmount } = await pickWithPendingSave(null, first);
+      unmount();
+
+      // Back on Home: the server has nothing yet. Save B is written and answered straight away.
+      reopenHome(client);
+      await pickMood(null, second);
+      await waitFor(() => expect(client.getQueryData<{ mood: string }>(["daily-note-mood", baseNoteId])?.mood).toBe(second));
+      await settled();
+      const writtenB = moodServer.read(baseNoteId)!;
+
+      // Now the server writes A, after B, and answers. The follow-up read is held back, so the
+      // answer itself must be accepted as the newest row.
+      vi.mocked(getCurrentMood).mockImplementationOnce(() => new Promise(() => {}));
+      await act(async () => { saveA.succeed(); await Promise.resolve(); });
+      await settled();
+
+      const writtenA = moodServer.read(baseNoteId)!;
+      expect(writtenA.mood).toBe(first);
+      expect(Date.parse(writtenA.checked_in_at)).toBeGreaterThan(Date.parse(writtenB.checked_in_at));
+      expect(client.getQueryData<{ mood: string }>(["daily-note-mood", baseNoteId])?.mood).toBe(first);
+      expect(screen.getByRole("button", { name: `Mood hôm nay: ${first}` })).toBeInTheDocument();
+      if (first === "Đuối") {
+        expect(screen.getByText(withLighter.lighter_action.action)).toBeInTheDocument();
+      } else {
+        expectOrdinary();
+      }
+    });
   });
 
   it("keeps the card's own action on a Đuối day when no lighter action is approved (#627)", async () => {
