@@ -55,7 +55,7 @@ test('every metric comes from its source and prints one plain line each', () => 
     'Câu đã duyệt: 7/10 câu (Codex duyệt 6, owner duyệt 1, còn chờ 2).',
     'Khoảng cách tới người dùng: 42 commit ở integration chưa lên main; main cập nhật lần cuối 3 ngày trước.',
     'Thời gian từ mở PR tới merge vào integration (7 ngày qua): trung vị 3,0 giờ (1 PR).',
-    'Việc đang làm: 0/2, đang chờ review: 1/2 (kế hoạch 7 tuần 0/1 và 0/1; quy trình 0/1 và 1/1).',
+    'Việc đang làm: 0/3, đang chờ review: 1/3 (kế hoạch 7 tuần 0/1 và 0/1; Daily 0/1 và 0/1; quy trình 0/1 và 1/1).',
     'Lời hứa sửa quy trình: 1/3 đã chạy thật (đã merge, Codex duyệt), 2 đang làm, **1 quá hạn** (L02).',
   ]);
 });

@@ -798,6 +798,46 @@
     "name": "dream: proposes stale marks, duplicates, reference checks and index fixes in a NEW store only"
    },
    "note": "caller is the local scheduled task la-lanh-memory-dream (00:20) and step 6b of la-lanh-bao-cao-7h; close once the tick checks those prompts call the script (like reportConsumers)"
+  },
+  {
+   "id": "L46",
+   "title": "Lượt người giả đo đúng cấu hình máy chủ thật: bật xoay Daily theo người như production (sự cố 17.11: lượt đêm đo khi xoay tắt, báo 13,5% thay vì 28,2%)",
+   "from": "owner hỏi về Daily trùng 17.11; fix-forward #661",
+   "who": "claude",
+   "due": "2026-11-17",
+   "status": "done",
+   "test": {
+    "file": "apps/api/tests/scripts/test_persona_runs.py",
+    "name": "test_the_simulation_runs_the_daily_rotation_production_runs"
+   },
+   "caller": {
+    "file": "apps/api/scripts/persona_sim.py",
+    "contains": "daily_variety_from=PRODUCTION_DAILY_VARIETY_FROM"
+   },
+   "closedBy": {
+    "pr": 658
+   },
+   "note": "bộ kiểm sổ nhận test pytest từ #661"
+  },
+  {
+   "id": "L47",
+   "title": "Câu trả lời của owner ghi ở head hiện tại gỡ được nhãn needs-owner gắn từ head cũ hoặc từ luật cũ; không còn vòng khóa \"nhãn chặn review, review mới gỡ được nhãn\" (sự cố 17.11: #477, #354, #652 kẹt sau V1)",
+   "from": "owner V1 17.11; Codex điểm 6 trên #637",
+   "who": "claude",
+   "due": "2026-11-18",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-loop.test.mjs",
+    "name": "deadlock (Codex point 6 on #637): an answer recorded at the current head lifts a label from an older head or from before owner_actions"
+   },
+   "caller": {
+    "file": "scripts/collab-owner-answer.mjs",
+    "contains": "return staleLift(pr, sealedAuto, events)"
+   },
+   "closedBy": {
+    "pr": 675
+   },
+   "note": ""
   }
  ]
 }
