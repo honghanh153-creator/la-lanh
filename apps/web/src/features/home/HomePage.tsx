@@ -138,7 +138,10 @@ export function HomePage() {
     enabled: Boolean(note?.id),
     retry: false,
   });
-  const [mood, setMood] = useState<MoodValue | null>(null);
+  // The mood belongs to one note. A Home left open past midnight gets the next day's note, and
+  // yesterday's mood must not follow it (US-04 AC12).
+  const [moodChoice, setMoodChoice] = useState<{ noteId: string; value: MoodValue } | null>(null);
+  const mood = moodChoice && moodChoice.noteId === note?.id ? moodChoice.value : null;
   const actionView = useDailyActionView(note?.id, activeReading, mood);
   const moonLabel = useMemo(() => moonPhase().label, []);
   const ritual = useDailyRitual(note?.note_date);
@@ -229,9 +232,11 @@ export function HomePage() {
     },
     onMutate: ({ mood: value }) => {
       const previous = mood;
-      setMood(value);
-      // In memory only: lets the note page show the same action before the server answers.
-      if (note) noteDailyMood(queryClient, note.id, value);
+      if (note) {
+        setMoodChoice({ noteId: note.id, value });
+        // In memory only: lets the note page show the same action before the server answers.
+        noteDailyMood(queryClient, note.id, value);
+      }
       setMoodSheetOpen(false);
       setLineDismissed(false);
       setMessage("Đang lưu cảm xúc này cho bạn…");
@@ -239,7 +244,7 @@ export function HomePage() {
     },
     onSuccess: (payload, { intent }) => {
       if (note) acknowledgePendingMood(note.id, intent);
-      setMood(payload.mood);
+      setMoodChoice({ noteId: payload.daily_note_id, value: payload.mood });
       setMessage(laMoodReaction(payload.mood, vibe));
     },
     onError: (_error, { mood: value, intent }) => {
@@ -254,7 +259,8 @@ export function HomePage() {
   });
 
   useEffect(() => {
-    if (moodQuery.data?.mood) setMood(moodQuery.data.mood);
+    const saved = moodQuery.data;
+    if (saved?.mood) setMoodChoice({ noteId: saved.daily_note_id, value: saved.mood });
   }, [moodQuery.data]);
 
   useEffect(() => {

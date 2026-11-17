@@ -27,6 +27,7 @@ import { signDetails } from "../../shared/astro/signs";
 import { ELEMENT_LABEL, identityFromCalculation, SIGN_ELEMENT } from "../../shared/astro/identity";
 import { VibeSegmented } from "../../shared/vibe/VibePicker";
 import "./profile-identity.css";
+import { DAILY_ACTION_VIEW_KEY } from "../../shared/hooks/useDailyActionView";
 import { clearPersonalDataOnDevice } from "../../shared/storage/clearPersonalData";
 import { clearChartDerivedData } from "../../shared/storage/clearChartDerivedData";
 import { dropCachedDailyNotes } from "../../shared/storage/dropCachedDailyNotes";
@@ -139,7 +140,8 @@ export function ProfilePage() {
       await clearReadingHistory();
     },
     onSuccess: async () => {
-      for (const key of ["tarot-session", "radar-invites", "radar-result", "daily-note-mood", "daily-note-resonance", "daily-experiment"]) {
+      // "daily-action-view" holds the mood picked in this tab (#627); it goes with the mood itself.
+      for (const key of ["tarot-session", "radar-invites", "radar-result", "daily-note-mood", DAILY_ACTION_VIEW_KEY, "daily-note-resonance", "daily-experiment"]) {
         queryClient.removeQueries({ queryKey: [key] });
       }
       clearPendingMood();

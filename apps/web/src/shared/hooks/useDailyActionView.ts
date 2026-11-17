@@ -12,7 +12,10 @@ import type { MoodValue, ReadingContent } from "../api/client";
  */
 export const LIGHTER_MOOD: MoodValue = "Đuối";
 
-export const dailyActionViewKey = (noteId: string | undefined) => ["daily-action-view", noteId] as const;
+/** Every path that erases the mood must also remove this key (history clear, chart-derived wipe). */
+export const DAILY_ACTION_VIEW_KEY = "daily-action-view";
+
+export const dailyActionViewKey = (noteId: string | undefined) => [DAILY_ACTION_VIEW_KEY, noteId] as const;
 
 type DailyActionView = {
   /** The mood picked in this tab, known before (or without) the server answering. */

@@ -504,6 +504,30 @@ describe("HomePage rich reading", () => {
     expect(JSON.stringify({ ...localStorage, ...sessionStorage })).not.toContain("lighter");
   });
 
+  it("does not carry yesterday's Đuối into the next day's note when Home stays open (US-04 AC12, #627)", async () => {
+    const user = userEvent.setup();
+    const withLighter = { ...vibe, lighter_action: { action: "Uống một ly nước rồi ngồi yên hai phút.", weight: "light" as const, experiment: null } };
+    vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(withLighter)));
+    vi.mocked(checkInMood).mockResolvedValue({ id: "00000000-0000-4000-8000-000000000093", daily_note_id: baseNoteId, mood: "Đuối", checked_in_at: "2026-09-07T10:00:00Z" });
+    const { client } = renderPage();
+    await user.click(await screen.findByRole("button", { name: "Chọn mood hôm nay" }));
+    await user.click(screen.getByRole("button", { name: /Đuối/ }));
+    expect(await screen.findByText(withLighter.lighter_action.action)).toBeInTheDocument();
+    await screen.findByRole("button", { name: "Mood hôm nay: Đuối" });
+
+    // Past midnight the refetch returns the next day's note; no mood has been picked for it.
+    const nextDay = { ...noteWith(projection(withLighter)), id: "00000000-0000-4000-8000-000000000002", note_date: "2026-09-08" };
+    vi.mocked(getDailyNote).mockResolvedValue(nextDay);
+    vi.mocked(getCurrentMood).mockResolvedValue(null);
+    await act(async () => { await client.invalidateQueries(); });
+
+    await waitFor(() => expect(getCurrentMood).toHaveBeenCalledWith(nextDay.id, expect.anything()));
+    expect(await screen.findByRole("button", { name: "Chọn mood hôm nay" })).toBeInTheDocument();
+    expect(screen.getByText(vibe.sections.micro_action)).toBeInTheDocument();
+    expect(screen.queryByText(withLighter.lighter_action.action)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Xem việc ban đầu" })).not.toBeInTheDocument();
+  });
+
   it("keeps the card's own action on a Đuối day when no lighter action is approved (#627)", async () => {
     const user = userEvent.setup();
     vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(vibe)));
