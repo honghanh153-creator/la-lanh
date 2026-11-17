@@ -719,6 +719,18 @@
    "note": "hai PR #616, #621 cùng phiên giữ"
   },
   {
+   "id": "L37",
+   "title": "Cần owner thì ghi vào file việc chờ duyệt, không hỏi trong chat (luật R3): hook chặn hộp câu hỏi và câu hỏi cuối lượt, phiên dài nhận luật mới trước lượt kế tiếp; tick báo khi hook bị gỡ",
+   "from": "owner 15.11, nhắc lại 16.11 (\"bạn quên nhiều\"); Claude + Codex 16.11",
+   "who": "claude",
+   "due": "2026-11-17",
+   "status": "open",
+   "test": {
+    "file": "scripts/collab-rules-hook.test.mjs",
+    "name": "L37 (R3): a question to the owner in chat is refused and points to the decisions file"
+   }
+  },
+  {
    "id": "L42",
    "title": "Luật owner chỉ có một bản (docs/operations/luat-dang-hieu-luc.md) và mọi con số trong bảng phải bằng code: trần Codex, giờ dừng, giờ báo cáo, 4 loại việc của owner (sự cố 15–16.11: owner phải nhắc lại luật vì bản chép cũ còn ghi 60 lượt, 08:00)",
    "from": "owner 16.11 (\"bạn quên nhiều\"); fix-forward #643",
