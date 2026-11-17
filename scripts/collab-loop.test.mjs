@@ -1017,7 +1017,7 @@ test('WIP 1 + 1 (owner 12.11): the tick asks for a new task only when nothing is
   assert.deepEqual([queue().inProgress, queue().inReview], [1, 1]);
   run([agent(3, { comments: [check(A)] })], 15);
   assert.equal(queue().lanes.process.topUp, true, 'one in review and nothing in progress: Claude starts one task');
-  assert.deepEqual(queue().topUpLanes, ['plan7w', 'process'], 'each lane with room may start one task (owner 16.11: two lanes)');
+  assert.deepEqual(queue().topUpLanes, ['plan7w', 'daily', 'process'], 'each lane with room may start one task (owner 16.11: lanes; 17.11 trial: three)');
   run([agent(4, { comments: [check(A)] }), agent(5, { comments: [check(A)] })], 25);
   assert.equal(queue().lanes.process.topUp, false, 'two in review: finish before starting');
   run([agent(6, { comments: inFix })], 35);
@@ -1546,7 +1546,7 @@ test('#158/#159: top-up is computed from the queue left after this tick merges',
   const queue = JSON.parse(readFileSync(join(trust.stateDir, 'claude-queue.json'), 'utf8'));
   assert.equal(queue.buffer, 0, 'WIP counts the PRs still open after the merges');
   assert.equal(queue.topUp, true, 'the emptied WIP asks Claude for the next task in the same tick');
-  assert.deepEqual(queue.topUpLanes, ['plan7w', 'process'], 'both lanes have room (owner 16.11: two lanes)');
+  assert.deepEqual(queue.topUpLanes, ['plan7w', 'daily', 'process'], 'every lane has room (owner 16.11; 17.11 trial: three lanes)');
 });
 
 // ---- #253: buffer rule and flow samples on the scheduled path ----
@@ -1556,7 +1556,7 @@ test('#253: the persisted queue uses the WIP rule and the tick samples the flow 
   tick({ gh: plannedGh(one, date), now: { date, hour: 15, minute: 5 }, merge: () => ({}), check: () => ({ status: 'FAIL' }), review: () => ({}) });
   const queue = JSON.parse(readFileSync(join(trust.stateDir, 'claude-queue.json'), 'utf8'));
   assert.equal(queue.topUp, true, 'one PR in review and nothing in progress');
-  assert.deepEqual(queue.topUpLanes, ['plan7w', 'process'], 'both lanes have room (owner 16.11: two lanes)');
+  assert.deepEqual(queue.topUpLanes, ['plan7w', 'daily', 'process'], 'every lane has room (owner 16.11; 17.11 trial: three lanes)');
   assert.equal(queue.buffer, 1);
   const flow = trust.readJson(join(trust.stateDir, 'beats', `flow-${trust.vnNow().date}.json`), null);
   assert.ok(flow?.samples >= 1, 'the scheduled tick records a flow sample without any CLI read');
