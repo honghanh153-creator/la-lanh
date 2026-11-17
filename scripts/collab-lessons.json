@@ -835,7 +835,7 @@
     "contains": "return staleLift(pr, sealedAuto, events)"
    },
    "closedBy": {
-    "pr": 0
+    "pr": 675
    },
    "note": ""
   }
