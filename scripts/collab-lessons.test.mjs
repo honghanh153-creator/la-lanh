@@ -133,6 +133,18 @@ test('#661: an API pytest is accepted as a lesson test only when CI runs it, by 
   assert.match(lessons.problems(lesson('test_sim_uses_production_rotation'), { base, ciFiles })[0], /skipped or xfail/);
   writeFileSync(join(base, 'apps/api/pyproject.toml'), '[tool.pytest.ini_options]\naddopts = "-q --deselect tests/x"\ntestpaths = ["tests"]\n');
   assert.deepEqual(lessons.pytestCiFiles(pkg, { base }), [], 'a config that can drop tests proves nothing');
+  // #667: a filter as the first option, and markers that span lines.
+  for (const opts of ['"-k other_test"', '"-m slow"', '"-q -m=slow"', '["-k", "x"]']) {
+    writeFileSync(join(base, 'apps/api/pyproject.toml'), `[tool.pytest.ini_options]\naddopts = ${opts}\ntestpaths = ["tests"]\n`);
+    assert.deepEqual(lessons.pytestCiFiles(pkg, { base }), [], `addopts ${opts} can drop tests`);
+  }
+  writeFileSync(join(base, 'apps/api/pyproject.toml'), '[tool.pytest.ini_options]\naddopts = "-q --strict-markers"\ntestpaths = ["tests"]\n');
+  writeFileSync(join(base, 'apps/api/tests/scripts/test_runs.py'), '@pytest.mark.skipif(\n    not ENABLED,\n    reason="opt-in",\n)\ndef test_sim_uses_production_rotation() -> None:\n    pass\n');
+  assert.match(lessons.problems(lesson('test_sim_uses_production_rotation'), { base, ciFiles })[0], /skipped or xfail/, 'a multiline skip decorator');
+  writeFileSync(join(base, 'apps/api/tests/scripts/test_runs.py'), 'pytestmark = [\n    pytest.mark.skipif(not ENABLED, reason="x"),\n]\n\n\ndef test_sim_uses_production_rotation() -> None:\n    pass\n');
+  assert.match(lessons.problems(lesson('test_sim_uses_production_rotation'), { base, ciFiles })[0], /skipped or xfail/, 'a multiline module marker');
+  writeFileSync(join(base, 'apps/api/tests/scripts/test_runs.py'), '@pytest.mark.parametrize(\n    "x", [1, 2],\n)\ndef test_sim_uses_production_rotation(x: int) -> None:\n    pass\n');
+  assert.deepEqual(lessons.problems(lesson('test_sim_uses_production_rotation'), { base, ciFiles }), [], 'other multiline decorators are fine');
 });
 
 test('an e2e spec is accepted as a lesson test only when CI runs it, and rejected otherwise', () => {
