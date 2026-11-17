@@ -37,6 +37,7 @@ from app.domains.readings.models import (
     canonical_lens_variant,
 )
 from app.domains.readings.renderers import (
+    APPROXIMATE_DAILY_EVIDENCE_VERSION,
     JYOTISH_MEANINGS_VERSION,
     DeterministicVietnameseRenderer,
 )
@@ -978,6 +979,67 @@ async def test_exact_reading_detail_names_the_sourced_house_meanings() -> None:
 
     text = str(projection.active.sections)
     assert any(f"chuyện {house_phrase(house)}" in text for house in range(1, 13))
+
+
+@pytest.mark.asyncio
+async def test_an_approximate_daily_stored_before_the_evidence_change_reopens_as_a_new_revision() -> (
+    None
+):
+    """Codex r1 on #666: a stored approximate Daily whose evidence omitted a plan placement must
+    not share a revision key with the new lens-invariant evidence (postgres would raise
+    ImmutableReadingConflictError when the note reopens)."""
+
+    class OldEvidenceRenderer(DeterministicVietnameseRenderer):
+        def render(self, plan):  # type: ignore[no-untyped-def]
+            candidate = super().render(plan)
+            assert f"+{APPROXIMATE_DAILY_EVIDENCE_VERSION}" in candidate.renderer_version
+            claims = candidate.evidence.claims
+            assert len(claims) > 1  # the old evidence named fewer placements
+            return candidate.model_copy(
+                update={
+                    "renderer_version": candidate.renderer_version.replace(
+                        f"+{APPROXIMATE_DAILY_EVIDENCE_VERSION}", ""
+                    ),
+                    "evidence": candidate.evidence.model_copy(update={"claims": claims[:-1]}),
+                }
+            )
+
+    engine = NatalChartEngine()
+    repository = MemoryReadingRepository()
+    guest_id = UUID("20000000-0000-4000-8000-000000000666")
+    profile_id = UUID("30000000-0000-4000-8000-000000000666")
+    exact = _exact_snapshot(guest_id, profile_id, engine)
+    approximate = BirthSnapshotRecord(
+        id=exact.id,
+        guest_id=exact.guest_id,
+        profile_id=exact.profile_id,
+        input_hash=exact.input_hash,
+        birth_date_ciphertext=exact.birth_date_ciphertext,
+        result=exact.result.model_copy(
+            update={"time_precision": TimePrecision.APPROXIMATE, "houses": None, "angles": None}
+        ),
+        created_at=exact.created_at,
+    )
+
+    first = await ReadingApplicationService(
+        repository, engine, renderer=OldEvidenceRenderer()
+    ).project(
+        guest_id=guest_id,
+        snapshot=approximate,
+        purpose=ReadingPurpose.DAILY_NOTE,
+        requested_at=NOW,
+    )
+    reopened = await ReadingApplicationService(repository, engine).project(
+        guest_id=guest_id,
+        snapshot=approximate,
+        purpose=ReadingPurpose.DAILY_NOTE,
+        requested_at=NOW,
+    )
+
+    assert first.active.precision is TimePrecision.APPROXIMATE
+    # The new evidence gets its own revision identity instead of colliding with the stored one.
+    assert len(repository.revision_keys) == 2
+    assert reopened is not None
 
 
 @pytest.mark.asyncio

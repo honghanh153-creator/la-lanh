@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.domains.astro.models import Tradition
+from app.domains.astro.models import TimePrecision, Tradition
 from app.domains.readings.companion_pool import daily_companion_line
 from app.domains.readings.daily_psychology import (
     DAILY_PSYCHOLOGY_CONTENT_FINGERPRINT,
@@ -41,6 +41,10 @@ from app.domains.readings.models import (
 
 DETERMINISTIC_RENDERER_VERSION = "deterministic-vi-v12"
 JYOTISH_MEANINGS_VERSION = "jyotish-meanings-v2"
+# #665 (US-03 AC22): an approximate-time Daily lists every placement of its plan as evidence, so
+# that a lens never changes it. Stored approximate revisions from before keep their own identity
+# (Codex r1 on #666): a new key, not an ImmutableReadingConflictError when an old note reopens.
+APPROXIMATE_DAILY_EVIDENCE_VERSION = "approx-evidence-v1"
 
 _SIGN_LABELS = {
     "aries": "Bạch Dương",
@@ -400,6 +404,8 @@ class DeterministicVietnameseRenderer:
             if frame.daily_meaning is not None
             else self.version
         )
+        if plan.precision is TimePrecision.APPROXIMATE and frame.daily_meaning is not None:
+            base_version = f"{base_version}+{APPROXIMATE_DAILY_EVIDENCE_VERSION}"
         if plan.tradition is Tradition.JYOTISH:
             # Jyotish prose moved from position-only text to planet x sign x house meanings;
             # a new identity keeps stored revisions from colliding with the new prose.
