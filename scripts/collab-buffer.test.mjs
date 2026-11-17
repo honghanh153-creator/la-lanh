@@ -28,7 +28,8 @@ test('WIP 1 + 1: a new task only when nothing is in progress and at most one is 
 test('WIP counts open agent PRs: machine turns are in review, the rest are in progress', () => {
   const prs = [pr(1), pr(2), pr(3, { isDraft: true }), pr(4, { labels: [{ name: 'needs-owner' }] }), pr(5, { headRefName: 'feature/x' }), pr(6)];
   const turns = [{ number: 1, turn: 'codex-review' }, { number: 2, turn: 'claude-fix' }, { number: 3, turn: 'hold' }, { number: 4, turn: 'hold' }, { number: 5, turn: 'merge' }, { number: 6, turn: 'merge' }];
-  assert.deepEqual(wipCount(prs, turns), { inProgress: 2, inReview: 2 }, 'needs-owner waits on the owner and an owner branch is not agent work');
+  const count = wipCount(prs, turns);
+  assert.deepEqual([count.inProgress, count.inReview], [2, 2], 'needs-owner waits on the owner and an owner branch is not agent work');
   assert.equal(readyBuffer(prs), 3, 'the old readiness count still skips draft and needs-owner');
 });
 
@@ -49,9 +50,39 @@ test('flow metric adds the minutes since the last sample while no PR was actiona
 test('bufferStatus is the one call collab-turn makes for the tick, --status and --report', () => {
   const dir = mkdtempSync(join(tmpdir(), 'flow-'));
   const out = bufferStatus([pr(1)], [{ number: 1, turn: 'claude-fix' }], { dir, nowMs: Date.parse('2026-11-05T03:00:00Z') });
-  assert.deepEqual(out.queue, { topUp: false, topUpCount: 0, inProgress: 1, inReview: 0, buffer: 1 });
+  // Owner 16.11: one process task in progress fills the process lane only; the 7-week lane may start.
+  assert.deepEqual([out.queue.topUp, out.queue.topUpCount, out.queue.topUpLanes, out.queue.inProgress, out.queue.buffer], [true, 1, ['plan7w'], 1, 1]);
   assert.equal(out.day.lastActionable, 0);
-  assert.match(out.lines[0], /Việc đang làm: 1\/1, đang chờ review: 0\/1; chưa mở việc mới\./);
+  assert.match(out.lines[0], /^Làn kế hoạch 7 tuần: đang làm 0\/1, chờ review 0\/1; có thể mở 1 việc mới\.$/);
+  assert.match(out.lines[1], /^Làn quy trình: đang làm 1\/1, chờ review 0\/1; chưa mở việc mới\.$/);
   const turn = readFileSync(new URL('./collab-turn.mjs', import.meta.url), 'utf8');
   assert.equal((turn.match(/bufferStatus\(/g) ?? []).length, 3, 'tick (#253), --status, --report');
+});
+
+// Owner 16.11.2026 (5-fix package item 5): the 7-week lane and the process lane run in parallel,
+// each with its own WIP 1 + 1.
+test('two lanes: each lane has its own WIP 1 + 1 and tops up on its own; 7-week first', () => {
+  const plan = [{ name: 'ke-hoach-7-tuan' }];
+  const prs = [pr(11, { labels: plan }), pr(12), pr(13), pr(14)];
+  const turns = [{ number: 11, turn: 'claude-fix' }, { number: 12, turn: 'claude-fix' }, { number: 13, turn: 'codex-review' }, { number: 14, turn: 'claude-check' }];
+  // #14 is a picked 7-week item without the label yet: it counts in the 7-week lane.
+  const count = wipCount(prs, turns, { plan7wPrs: [14] });
+  assert.deepEqual(count.lanes, { plan7w: { inProgress: 1, inReview: 1 }, process: { inProgress: 1, inReview: 1 } });
+  assert.deepEqual([count.inProgress, count.inReview], [2, 2], 'the totals the WIP metric reads are unchanged');
+  const full = queueTopUp(count);
+  assert.deepEqual([full.topUp, full.topUpLanes], [false, []], 'both lanes full');
+  // The process lane finishes its task; only that lane may start a new one.
+  const one = queueTopUp(wipCount([pr(11, { labels: plan }), pr(13), pr(14)], turns, { plan7wPrs: [14] }));
+  assert.deepEqual([one.topUp, one.topUpCount, one.topUpLanes], [true, 1, ['process']]);
+  // Both empty: both lanes may start, the 7-week lane first.
+  const both = queueTopUp(wipCount([], [], {}));
+  assert.deepEqual([both.topUpCount, both.topUpLanes], [2, ['plan7w', 'process']]);
+  // A busy process lane never blocks the 7-week lane.
+  const busy = queueTopUp(wipCount([pr(12), pr(13)], turns));
+  assert.deepEqual(busy.topUpLanes, ['plan7w']);
+});
+
+test('review 16.11: a persona-fix PR is plan-lane work', () => {
+  const count = wipCount([pr(31, { labels: [{ name: 'persona-fix' }] })], [{ number: 31, turn: 'claude-fix' }]);
+  assert.deepEqual(count.lanes, { plan7w: { inProgress: 1, inReview: 0 }, process: { inProgress: 0, inReview: 0 } });
 });
