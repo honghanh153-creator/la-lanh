@@ -557,6 +557,146 @@
     "pr": 585
    },
    "note": "cap for manual runs #585 (merged 16.11 11:47); --over-cap word validation and this entry from fix-forward #586"
+  },
+  {
+   "id": "L33",
+   "title": "Lô Codex duyệt câu chữ không được duyệt câu gắn với code (tiêu đề Daily ghép cặp roast trong voice.py); lỗi lô ghi rõ bước và dòng lỗi (sự cố 16.11: API không import được, tick đỏ cả ngày)",
+   "from": "sự cố 16.11; rà soát luồng 16.11",
+   "who": "claude",
+   "due": "2026-11-17",
+   "status": "done",
+   "test": {
+    "file": "scripts/codex-copy-review.test.mjs",
+    "name": "16.11: Daily direct headlines are never sent to or approved by the copy batch; the failure says why"
+   },
+   "caller": {
+    "file": "scripts/codex-copy-review.mjs",
+    "contains": "!codeCoupled(e.id) && approve.has(e.id)"
+   },
+   "closedBy": {
+    "pr": 606
+   },
+   "note": "reproduced with the 200 saved decisions of 16.11: ValueError before, 105 approvals and fallback_approval ok after; content follow-up #605"
+  },
+  {
+   "id": "L34",
+   "title": "Tick báo đỏ thì dòng log phải ghi lý do, kể cả khi đỏ chỉ vì lô câu chữ còn lỗi (sự cố 16.11: 34 tick đỏ chỉ ghi ran-with-errors)",
+   "from": "sự cố 16.11; fix-forward #617",
+   "who": "claude",
+   "due": "2026-11-17",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-loop.test.mjs",
+    "name": "copy batch: an unresolved error keeps the run red, a lost alert is resent, saved decisions publish past the cap"
+   },
+   "caller": {
+    "file": "scripts/collab-turn.mjs",
+    "contains": "...(stuck ? { stuck } : {})"
+   },
+   "closedBy": {
+    "pr": 610
+   },
+   "note": "the logged tick result carries stuck; the ops-alert for a quiet red streak is #613"
+  },
+  {
+   "id": "L35",
+   "title": "Prompt của tác vụ hẹn giờ phải khớp luật trong code (trần Codex, giờ chạy, không chỉ tiêu PR); tick báo từng chỗ lệch, prompt không đọc được là chưa kiểm (rà soát 16.11, S28 retro 12.11)",
+   "from": "rà soát luồng 16.11; fix-forward #620",
+   "who": "claude",
+   "due": "2026-11-17",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-ops-wrapper.test.mjs",
+    "name": "scheduled-task prompts are checked against the code: no PR quota, the 80 cap, 06:50 start, 23:35 stop"
+   },
+   "caller": {
+    "file": "scripts/collab-tick.mjs",
+    "contains": "...skillRuleHealth()"
+   },
+   "closedBy": {
+    "pr": 612
+   },
+   "note": "16.11: 7 stale lines found on the owner's Mac and fixed by the coordination session; clause-level history, Vietnamese quotas and unreadable prompts from #620"
+  },
+  {
+   "id": "L36",
+   "title": "Tick đỏ nhiều lượt liền mà không có lỗi mới thì mở một ops-alert mỗi ngày, kèm lý do (sự cố 16.11: 34 tick đỏ, không cảnh báo)",
+   "from": "rà soát luồng 16.11; fix-forward #622",
+   "who": "claude",
+   "due": "2026-11-17",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-loop.test.mjs",
+    "name": "#622: a quiet red streak alerts only after three back-to-back ticks; a tick that leaves another way resets it"
+   },
+   "caller": {
+    "file": "scripts/collab-turn.mjs",
+    "contains": "collab tick đỏ ${stuckRuns} lượt liền mà không có lỗi mới"
+   },
+   "closedBy": {
+    "pr": 613
+   },
+   "note": "streak counted by tick sequence (tick-seq.json) from #622"
+  },
+  {
+   "id": "L38",
+   "title": "Trên file dùng chung, PR sự cố đi trước, rồi PR kế hoạch 7 tuần và PR sửa ngưỡng người giả (persona-fix), rồi phần còn lại; persona-fix chạy ở làn kế hoạch (rà soát 16.11: #505 an toàn chờ 43,5 giờ sau một PR thường)",
+   "from": "rà soát luồng 16.11 mục 2 và 5; fix-forward #631",
+   "who": "claude",
+   "due": "2026-11-17",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-loop.test.mjs",
+    "name": "review 16.11: inside a group an incident, then 7-week and persona-fix PRs go before an older ordinary PR on a shared file"
+   },
+   "caller": {
+    "file": "scripts/collab-turn.mjs",
+    "contains": "fileRank(b) - fileRank(a)"
+   },
+   "closedBy": {
+    "pr": 628
+   },
+   "note": "persona-fix in the plan lane: scripts/collab-buffer.mjs laneOf, test 'review 16.11: a persona-fix PR is plan-lane work'; first persona-fix items #626, #627"
+  },
+  {
+   "id": "L39",
+   "title": "Câu trả lời của owner đã ghi trên PR đủ cho loại việc đó; review sau không gắn lại needs-owner khi file của PR không đổi (sự cố 16–17.11: #601, #609 bị gắn lại nhãn sau khi owner đã trả lời)",
+   "from": "fix-forward #611",
+   "who": "claude",
+   "due": "2026-11-17",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-loop.test.mjs",
+    "name": "#611: a recorded owner answer covers its kinds on later reviews; a new kind still holds"
+   },
+   "caller": {
+    "file": "scripts/codex-review.mjs",
+    "contains": "coveredKinds(sealedAnswers("
+   },
+   "closedBy": {
+    "pr": 637
+   },
+   "note": "ghi câu trả lời: scripts/collab-owner-answer.mjs --record; gỡ nhãn chỉ khi mọi loại giữ merge có câu trả lời còn hiệu lực"
+  },
+  {
+   "id": "L40",
+   "title": "PR đã tới lượt merge được merge ngay, bất kể nhóm; không để merge của nhóm khác làm hết hiệu lực check và review (sự cố 17.11: #633 chờ 45 phút sau việc content rồi phải check và review lại)",
+   "from": "sự cố #633; fix-forward #639",
+   "who": "claude",
+   "due": "2026-11-17",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-loop.test.mjs",
+    "name": "r1: privacy and features wait for checks while content has machine work; a ready merge in any area goes at once (#633)"
+   },
+   "caller": {
+    "file": "scripts/collab-turn.mjs",
+    "contains": "const merges = [...work, ...live.filter(t => !work.includes(t))]"
+   },
+   "closedBy": {
+    "pr": 638
+   },
+   "note": ""
   }
  ]
 }

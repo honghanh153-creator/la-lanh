@@ -360,7 +360,7 @@ Không ghi raw birth date, guest token, prompt nội bộ, free text hoặc thô
 - **AC-GWT-01 — Home value:** Given an authorized active snapshot, When app opens or foregrounds, Then Daily Note is the first primary Home content with no login wall.
 - **AC-GWT-02 — Routing:** Given no valid snapshot, When Home loads, Then route to US-02 and never render a personalized fake note.
 - **AC-GWT-03 — Stable identity:** Given repeated opens on the same `note_date`, When fetching/viewing, Then return one primary immutable note and one logical view upsert; after date boundary fetch a new day.
-- **AC-GWT-04 — Persona vocabulary:** Given Sun-only/deeper snapshot, When compact/detail renders, Then show respectively `Vibe · label`/`Aura · label`; “Hôm nay bạn thấy sao?” belongs only to US-04.
+- **AC-GWT-04 — Persona vocabulary:** Given Sun-only/deeper snapshot, When compact/detail renders, Then show the server-returned persona name alone in both cases, with no `Vibe ·`/`Aura ·` prefix (changed 15.11.2026, see [README](README.md); this also replaces the prefixed forms in S13–S15 above); “Hôm nay bạn thấy sao?” belongs only to US-04.
 - **AC-GWT-05 — Provenance:** Given persona/content shown, When opening “Vì sao note này”, Then factual placements, depth, precision and versions are available without deterministic/medical claims.
 - **AC-GWT-06 — Offline/fallback:** Given today cache, stale cache or no cache while offline, When Home loads, Then show respectively today/stale/empty state; generation failure uses approved marked fallback and retry.
 - **AC-GWT-07 — Content/a11y:** Given 320–430px, 200% text or assistive tech, When reading compact/full note, Then content reflows, controls remain usable and essential contrast meets AA.

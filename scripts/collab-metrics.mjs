@@ -80,6 +80,16 @@ export function collectMetrics({ registry = readLocalRegistry, run = execFileSyn
 const unmeasured = m => `chưa đo được (${m.error})`;
 const oneDecimal = n => n.toFixed(1).replace('.', ',');
 
+// Two lanes (owner 16.11, #604): the limit is per lane, so the totals are shown against the sum of the
+// lane limits, with each lane's counts after them (fix-forward #615: "2/1" was shown).
+const laneText = { plan7w: 'kế hoạch 7 tuần', process: 'quy trình' };
+function wipText(w) {
+  if (!w.lanes) return `${w.inProgress}/${wipLimit.inProgress}, đang chờ review: ${w.inReview}/${wipLimit.inReview}`;
+  const names = Object.keys(w.lanes);
+  const per = names.map(l => `${laneText[l] ?? l} ${w.lanes[l].inProgress}/${wipLimit.inProgress} và ${w.lanes[l].inReview}/${wipLimit.inReview}`).join('; ');
+  return `${w.inProgress}/${wipLimit.inProgress * names.length}, đang chờ review: ${w.inReview}/${wipLimit.inReview * names.length} (${per})`;
+}
+
 // One short plain line per metric.
 export function renderMetrics(m) {
   if (!m) return [];
@@ -89,7 +99,7 @@ export function renderMetrics(m) {
     `Câu đã duyệt: ${c?.error ? unmeasured(c) : `${c.codex + c.owner}/${c.total} câu (Codex duyệt ${c.codex}, owner duyệt ${c.owner}, còn chờ ${c.pending})`}.`,
     `Khoảng cách tới người dùng: ${a?.error ? unmeasured(a) : `${a.commits} commit ở integration chưa lên main`}; ${g?.error ? `ngày cập nhật main ${unmeasured(g)}` : `main cập nhật lần cuối ${g.days} ngày trước`}.`,
     `Thời gian từ mở PR tới merge vào integration (7 ngày qua): ${l?.error ? unmeasured(l) : `trung vị ${oneDecimal(l.hours)} giờ (${l.count} PR)`}.`,
-    `Việc đang làm: ${w?.error ? unmeasured(w) : `${w.inProgress}/${wipLimit.inProgress}, đang chờ review: ${w.inReview}/${wipLimit.inReview}`}.`,
+    `Việc đang làm: ${w?.error ? unmeasured(w) : wipText(w)}.`,
     ...(typeof m.lessons === 'string' ? [m.lessons] : []),
   ];
 }
