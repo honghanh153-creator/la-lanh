@@ -127,6 +127,9 @@ export function HomePage() {
     queryKey: dailyMoodKey(note?.id),
     queryFn: ({ signal }) => getCurrentMood(note!.id, signal),
     enabled: Boolean(note?.id),
+    // Home must re-render after every completed read, also one that returns the same row (see
+    // `moodReads` below), not only when the mood itself changes.
+    notifyOnChangeProps: "all",
   });
   const supplementQuery = useQuery({
     queryKey: ["birth-supplement"],
@@ -140,15 +143,22 @@ export function HomePage() {
     retry: false,
   });
   // Two separate things, never copied into each other:
-  // - the saved mood: what the server has for this note (the mood query, keyed by note id);
-  // - the unsaved pick: a mood picked here whose save is pending or failed, with its note id.
-  // The control shows the unsaved pick while there is one, otherwise the saved mood. A mood read
-  // again from the server (a refetch, another tab) only ever changes the saved mood, so it cannot
-  // replace a pick that is still unsaved. A Home left open past midnight gets the next day's note;
-  // both are keyed by note, so yesterday's mood does not follow it (US-04 AC12).
-  const [unsavedPick, setUnsavedPick] = useState<{ noteId: string; value: MoodValue } | null>(null);
+  // - the saved mood: what the server returned for this note (the mood query, keyed by note id).
+  //   Only a read from the server ever writes it. The answer to a save is never written into it,
+  //   so answers arriving out of order (a slow save from before Home was reopened) cannot put an
+  //   older mood there; after every save the mood is read again and the server's row wins.
+  // - the unsaved pick: a mood picked here, with its note id. It lasts while its save is pending
+  //   or failed, and after a successful save until the next read of the mood completes.
+  // The control shows the unsaved pick while there is one, otherwise the saved mood. A Home left
+  // open past midnight gets the next day's note; both are keyed by note, so yesterday's mood does
+  // not follow it (US-04 AC12).
+  const [unsavedPick, setUnsavedPick] = useState<{ noteId: string; value: MoodValue; savedAtRead?: number } | null>(null);
   const savedMood = moodQuery.data?.mood ?? null;
-  const unsavedMood = unsavedPick && unsavedPick.noteId === note?.id ? unsavedPick.value : null;
+  // How many reads of this note's mood have completed. A saved pick remembers the count at the
+  // moment its save succeeded and stops counting as unsaved once a later read has completed.
+  const moodReads = note ? queryClient.getQueryState(dailyMoodKey(note.id))?.dataUpdateCount ?? 0 : 0;
+  const pickHere = unsavedPick && unsavedPick.noteId === note?.id ? unsavedPick : null;
+  const unsavedMood = pickHere && (pickHere.savedAtRead === undefined || pickHere.savedAtRead === moodReads) ? pickHere.value : null;
   const mood = unsavedMood ?? savedMood;
   // The lighter action follows the saved mood only (#627): never while a pick for this note is
   // unsaved, whatever the saved mood is at that moment.
@@ -254,22 +264,26 @@ export function HomePage() {
       // next day's note if the day changes while the request is on its way (US-04 AC12).
       return { previous, noteId: note?.id, revision: chartDataRevision(queryClient), generation: sessionGeneration(), ownerEpoch: currentSessionEpoch() };
     },
-    onSuccess: async (payload, { intent }, context) => {
+    onSuccess: (payload, { intent }, context) => {
       acknowledgePendingMood(payload.daily_note_id, intent);
-      // The confirmed check-in becomes the saved mood, for Home and for the note page. A callback
-      // arriving after a session change or a data wipe must not write it back.
+      // After a session change or a data wipe this answer belongs to nobody on screen.
       if (
-        context.revision === chartDataRevision(queryClient)
-        && context.generation === sessionGeneration()
-        && context.ownerEpoch === currentSessionEpoch()
-      ) {
-        // A mood read that started before this check-in must not land after it with an older value.
-        await queryClient.cancelQueries({ queryKey: dailyMoodKey(payload.daily_note_id) });
-        queryClient.setQueryData(dailyMoodKey(payload.daily_note_id), payload);
-        resetDailyActionChoice(queryClient, payload.daily_note_id);
-      }
-      // Saved: the pick for that note is no longer unsaved, and the control reads the saved mood.
-      setUnsavedPick((current) => (current?.noteId === payload.daily_note_id ? null : current));
+        context.revision !== chartDataRevision(queryClient)
+        || context.generation !== sessionGeneration()
+        || context.ownerEpoch !== currentSessionEpoch()
+      ) return;
+      // The answer is not written into the saved mood: answers can arrive in any order, and only
+      // the server knows which save was last. Read the mood again instead (this also drops a read
+      // already on its way). The pick stays on the control until that read completes.
+      const key = dailyMoodKey(payload.daily_note_id);
+      const reads = queryClient.getQueryState(key)?.dataUpdateCount ?? 0;
+      setUnsavedPick((current) => (
+        current && current.noteId === payload.daily_note_id && current.savedAtRead === undefined
+          ? { ...current, savedAtRead: reads }
+          : current
+      ));
+      resetDailyActionChoice(queryClient, payload.daily_note_id);
+      void queryClient.invalidateQueries({ queryKey: key });
       setMessage(laMoodReaction(payload.mood, vibe));
     },
     onError: (_error, { mood: value, intent }, context) => {

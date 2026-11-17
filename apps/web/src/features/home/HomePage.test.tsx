@@ -48,6 +48,31 @@ function renderPage() {
   return { client, ...render(<QueryClientProvider client={client}><MemoryRouter><HomePage /></MemoryRouter></QueryClientProvider>) };
 }
 
+type MoodRow = Awaited<ReturnType<typeof checkInMood>>;
+
+/**
+ * A fake mood server: one saved row per note, the last save wins. Every save makes a new row (new
+ * id and time), as the real one does. Tests that need an answer to arrive late save here first and
+ * hold the answer back themselves.
+ */
+const moodServer = {
+  rows: new Map<string, MoodRow>(),
+  saves: 0,
+  reset() { this.rows.clear(); this.saves = 0; },
+  read(noteId: string): MoodRow | null { return this.rows.get(noteId) ?? null; },
+  save(noteId: string, mood: MoodRow["mood"]): MoodRow {
+    this.saves += 1;
+    const row: MoodRow = {
+      id: `00000000-0000-4000-8000-${String(900000 + this.saves).padStart(12, "0")}`,
+      daily_note_id: noteId,
+      mood,
+      checked_in_at: new Date(Date.UTC(2026, 8, 7, 10, 0, this.saves)).toISOString(),
+    };
+    this.rows.set(noteId, row);
+    return row;
+  },
+};
+
 const vibe = content("00000000-0000-4000-8000-000000000010", "vibe_fallback", "Chậm lại một nhịp.");
 const aura = content("00000000-0000-4000-8000-000000000011", "full_synthesis", "Bạn vừa mềm, vừa rất có biên giới.");
 
@@ -56,7 +81,10 @@ describe("HomePage rich reading", () => {
     vi.clearAllMocks();
     localStorage.clear();
     clearCachedDailyNote();
-    vi.mocked(getCurrentMood).mockResolvedValue(null);
+    // The mood calls talk to one fake server, so a read after a save returns what was saved.
+    moodServer.reset();
+    vi.mocked(getCurrentMood).mockImplementation((noteId) => Promise.resolve(moodServer.read(noteId)));
+    vi.mocked(checkInMood).mockImplementation((noteId, mood) => Promise.resolve(moodServer.save(noteId, mood)));
     vi.mocked(listSavedNotes).mockResolvedValue([]);
     vi.mocked(getBirthSupplement).mockRejectedValue(new Error("not found"));
     vi.mocked(getResonanceStatus).mockResolvedValue({
@@ -440,12 +468,6 @@ describe("HomePage rich reading", () => {
   it("keeps mood check-in behind one playful icon and saves the selected mood", async () => {
     const user = userEvent.setup();
     vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(vibe)));
-    vi.mocked(checkInMood).mockResolvedValue({
-      id: "00000000-0000-4000-8000-000000000099",
-      daily_note_id: baseNoteId,
-      mood: "Chill",
-      checked_in_at: "2026-09-28T00:00:00Z",
-    });
     renderPage();
 
     await user.click(await screen.findByRole("button", { name: "Chọn mood hôm nay" }));
@@ -461,7 +483,6 @@ describe("HomePage rich reading", () => {
     const user = userEvent.setup();
     const tired = { ...vibe, sections: { ...vibe.sections, companion: "Thu hẹp lựa chọn khi đang mệt." } };
     vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(tired)));
-    vi.mocked(checkInMood).mockResolvedValue({ id: "00000000-0000-4000-8000-000000000098", daily_note_id: baseNoteId, mood: "Chill", checked_in_at: "2026-09-28T00:00:00Z" });
     renderPage();
 
     expect(await screen.findByText("Thu hẹp lựa chọn khi đang mệt.")).toBeInTheDocument();
@@ -476,7 +497,6 @@ describe("HomePage rich reading", () => {
     const original = vibe.sections.micro_action;
     const withLighter = { ...vibe, lighter_action: { action: "Uống một ly nước rồi ngồi yên hai phút.", weight: "light" as const, experiment: null } };
     vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(withLighter)));
-    vi.mocked(checkInMood).mockImplementation((_id, mood) => Promise.resolve({ id: "00000000-0000-4000-8000-000000000097", daily_note_id: baseNoteId, mood, checked_in_at: "2026-09-28T00:00:00Z" }));
     renderPage();
 
     // Before any check-in the card's own action shows and nothing offers a switch.
@@ -508,7 +528,6 @@ describe("HomePage rich reading", () => {
     const user = userEvent.setup();
     const withLighter = { ...vibe, lighter_action: { action: "Uống một ly nước rồi ngồi yên hai phút.", weight: "light" as const, experiment: null } };
     vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(withLighter)));
-    vi.mocked(checkInMood).mockResolvedValue({ id: "00000000-0000-4000-8000-000000000093", daily_note_id: baseNoteId, mood: "Đuối", checked_in_at: "2026-09-07T10:00:00Z" });
     const { client } = renderPage();
     await user.click(await screen.findByRole("button", { name: "Chọn mood hôm nay" }));
     await user.click(screen.getByRole("button", { name: /Đuối/ }));
@@ -518,7 +537,6 @@ describe("HomePage rich reading", () => {
     // Past midnight the refetch returns the next day's note; no mood has been picked for it.
     const nextDay = { ...noteWith(projection(withLighter)), id: "00000000-0000-4000-8000-000000000002", note_date: "2026-09-08" };
     vi.mocked(getDailyNote).mockResolvedValue(nextDay);
-    vi.mocked(getCurrentMood).mockResolvedValue(null);
     await act(async () => { await client.invalidateQueries(); });
 
     await waitFor(() => expect(getCurrentMood).toHaveBeenCalledWith(nextDay.id, expect.anything()));
@@ -538,19 +556,17 @@ describe("HomePage rich reading", () => {
   ] as const)("follows a mood changed in another tab: saved $start, picked $here here, $elsewhere elsewhere (#627)", async ({ start, here, elsewhere, lighterAfter }) => {
     const user = userEvent.setup();
     const withLighter = { ...vibe, lighter_action: { action: "Uống một ly nước rồi ngồi yên hai phút.", weight: "light" as const, experiment: null } };
-    const row = (mood: "Đuối" | "Chill") => ({ id: "00000000-0000-4000-8000-000000000092", daily_note_id: baseNoteId, mood, checked_in_at: "2026-09-07T10:00:00Z" });
     vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(withLighter)));
-    vi.mocked(getCurrentMood).mockResolvedValue(start ? row(start) : null);
-    vi.mocked(checkInMood).mockResolvedValue(row(here));
+    if (start) moodServer.save(baseNoteId, start);
     const { client } = renderPage();
     await user.click(await screen.findByRole("button", { name: start ? `Mood hôm nay: ${start}` : "Chọn mood hôm nay" }));
     await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: new RegExp(here) }));
     await screen.findByRole("button", { name: `Mood hôm nay: ${here}` });
-    // The confirmed check-in is the saved mood now, for Home and for the note page.
+    // After the save Home reads the mood again; that read is the saved mood, also for the note page.
     await waitFor(() => expect(client.getQueryData<{ mood: string }>(["daily-note-mood", baseNoteId])?.mood).toBe(here));
 
     // The mood is changed in another tab; this tab fetches it again.
-    vi.mocked(getCurrentMood).mockResolvedValue(row(elsewhere));
+    moodServer.save(baseNoteId, elsewhere);
     await act(async () => { await client.invalidateQueries({ queryKey: ["daily-note-mood"] }); });
 
     expect(await screen.findByRole("button", { name: `Mood hôm nay: ${elsewhere}` })).toBeInTheDocument();
@@ -564,12 +580,16 @@ describe("HomePage rich reading", () => {
   it("keeps the card's own action while a Đuối pick is unsaved, even when a slow mood read lands meanwhile (review auto-4)", async () => {
     const user = userEvent.setup();
     const withLighter = { ...vibe, lighter_action: { action: "Uống một ly nước rồi ngồi yên hai phút.", weight: "light" as const, experiment: null } };
-    const row = (mood: "Đuối" | "Chill") => ({ id: "00000000-0000-4000-8000-000000000091", daily_note_id: baseNoteId, mood, checked_in_at: "2026-09-07T10:00:00Z" });
-    let landRead!: (value: ReturnType<typeof row>) => void;
-    let landSave!: (value: ReturnType<typeof row>) => void;
+    let landRead!: (value: MoodRow) => void;
+    let landSave!: () => void;
     vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(withLighter)));
-    vi.mocked(getCurrentMood).mockReturnValue(new Promise((resolve) => { landRead = resolve; }));
-    vi.mocked(checkInMood).mockReturnValue(new Promise((resolve) => { landSave = resolve; }));
+    // The first read is slow and carries the mood saved before it started (Chill).
+    const before = moodServer.save(baseNoteId, "Chill");
+    vi.mocked(getCurrentMood).mockImplementationOnce(() => new Promise((resolve) => { landRead = resolve; }));
+    vi.mocked(checkInMood).mockImplementationOnce((noteId, mood) => {
+      const saved = moodServer.save(noteId, mood);
+      return new Promise((resolve) => { landSave = () => resolve(saved); });
+    });
     renderPage();
 
     // The first mood read is still on its way when the reader picks Đuối.
@@ -584,12 +604,12 @@ describe("HomePage rich reading", () => {
     ordinary();
 
     // The slow read lands with the older saved mood while the save is still pending.
-    await act(async () => { landRead(row("Chill")); await Promise.resolve(); });
+    await act(async () => { landRead(before); await new Promise((resolve) => setTimeout(resolve, 30)); });
     ordinary();
     expect(screen.getByRole("button", { name: "Mood hôm nay: Đuối" })).toBeInTheDocument();
 
-    // Only the confirmed save brings the lighter action.
-    await act(async () => { landSave(row("Đuối")); await Promise.resolve(); });
+    // Only the confirmed save, read back from the server, brings the lighter action.
+    await act(async () => { landSave(); await Promise.resolve(); });
     expect(await screen.findByText(withLighter.lighter_action.action)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Xem việc ban đầu" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Mood hôm nay: Đuối" })).toBeInTheDocument();
@@ -603,8 +623,8 @@ describe("HomePage rich reading", () => {
     const user = userEvent.setup();
     const withLighter = { ...vibe, lighter_action: { action: "Uống một ly nước rồi ngồi yên hai phút.", weight: "light" as const, experiment: null } };
     vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(withLighter)));
-    vi.mocked(getCurrentMood).mockResolvedValue(saved ? { id: "00000000-0000-4000-8000-000000000090", daily_note_id: baseNoteId, mood: saved, checked_in_at: "2026-09-07T10:00:00Z" } : null);
-    vi.mocked(checkInMood).mockRejectedValue(new Error("offline"));
+    if (saved) moodServer.save(baseNoteId, saved);
+    vi.mocked(checkInMood).mockImplementation(() => Promise.reject(new Error("offline")));
     renderPage();
 
     await user.click(await screen.findByRole("button", { name: saved ? `Mood hôm nay: ${saved}` : "Chọn mood hôm nay" }));
@@ -620,33 +640,50 @@ describe("HomePage rich reading", () => {
 
   describe("async paths of the lighter action (#627 audit)", () => {
     const withLighter = { ...vibe, lighter_action: { action: "Uống một ly nước rồi ngồi yên hai phút.", weight: "light" as const, experiment: null } };
-    const row = (mood: "Đuối" | "Chill", noteId = baseNoteId) => ({ id: "00000000-0000-4000-8000-000000000089", daily_note_id: noteId, mood, checked_in_at: "2026-09-07T10:00:00Z" });
     const nextDay = { ...noteWith(projection(withLighter)), id: "00000000-0000-4000-8000-000000000002", note_date: "2026-09-08" };
     const expectOrdinary = () => {
       expect(screen.getByText(vibe.sections.micro_action)).toBeInTheDocument();
       expect(screen.queryByText(withLighter.lighter_action.action)).not.toBeInTheDocument();
       expect(screen.queryByRole("button", { name: /Xem việc/ })).not.toBeInTheDocument();
     };
-    /** Opens Home with `saved` as the saved mood and picks `pick`; the save stays pending. */
-    async function pickWithPendingSave(saved: "Đuối" | "Chill" | null, pick: "Đuối" | "Chill") {
+    /** The next save is held: `succeed` commits it on the server and answers, `fail` rejects it. */
+    function holdNextSave() {
+      const held: { succeed: () => void; fail: () => void; commit: () => MoodRow } = { succeed: () => {}, fail: () => {}, commit: () => { throw new Error("no save yet"); } };
+      vi.mocked(checkInMood).mockImplementationOnce((noteId, mood) => new Promise((resolve, reject) => {
+        let row: MoodRow | undefined;
+        // `commit` alone is a save the server has stored whose answer has not arrived yet.
+        held.commit = () => (row ??= moodServer.save(noteId, mood));
+        held.succeed = () => resolve(held.commit());
+        held.fail = () => reject(new Error("offline"));
+      }));
+      return held;
+    }
+    /** Picks `pick` on the Home that is on screen; resolves once the control shows it. */
+    async function pickMood(current: "Đuối" | "Chill" | null, pick: "Đuối" | "Chill") {
       const user = userEvent.setup();
-      let settle!: { resolve: (value: ReturnType<typeof row>) => void; reject: (error: Error) => void };
-      vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(withLighter)));
-      vi.mocked(getCurrentMood).mockResolvedValue(saved ? row(saved) : null);
-      vi.mocked(checkInMood).mockReturnValue(new Promise((resolve, reject) => { settle = { resolve, reject }; }));
-      const page = renderPage();
-      await user.click(await screen.findByRole("button", { name: saved ? `Mood hôm nay: ${saved}` : "Chọn mood hôm nay" }));
+      await user.click(await screen.findByRole("button", { name: current ? `Mood hôm nay: ${current}` : "Chọn mood hôm nay" }));
       await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: new RegExp(pick) }));
       await screen.findByRole("button", { name: `Mood hôm nay: ${pick}` });
+    }
+    /** Opens Home with `saved` as the saved mood and picks `pick`; the save stays pending. */
+    async function pickWithPendingSave(saved: "Đuối" | "Chill" | null, pick: "Đuối" | "Chill") {
+      vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(withLighter)));
+      if (saved) moodServer.save(baseNoteId, saved);
+      const settle = holdNextSave();
+      const page = renderPage();
+      await pickMood(saved, pick);
       return { ...page, settle };
     }
+    /** Lets the page finish reacting: the cache changes a tick before the page re-renders. */
+    const settled = () => act(async () => { await new Promise((resolve) => setTimeout(resolve, 30)); });
 
     it("refetch while a save is pending: the saved mood read again does not bring the lighter action for the unsaved pick", async () => {
       const { client, settle } = await pickWithPendingSave("Chill", "Đuối");
       expectOrdinary();
       await act(async () => { await client.invalidateQueries({ queryKey: ["daily-note-mood"] }); });
+      await settled();
       expectOrdinary();
-      await act(async () => { settle.resolve(row("Đuối")); await Promise.resolve(); });
+      await act(async () => { settle.succeed(); await Promise.resolve(); });
       expect(await screen.findByText(withLighter.lighter_action.action)).toBeInTheDocument();
     });
 
@@ -655,15 +692,17 @@ describe("HomePage rich reading", () => {
       // Saved is still Đuối, but the reader has just picked Chill: no lighter action meanwhile.
       expectOrdinary();
       await act(async () => { await client.invalidateQueries({ queryKey: ["daily-note-mood"] }); });
+      await settled();
       expectOrdinary();
-      await act(async () => { settle.resolve(row("Chill")); await Promise.resolve(); });
+      await act(async () => { settle.succeed(); await Promise.resolve(); });
       await waitFor(() => expect(client.getQueryData<{ mood: string }>(["daily-note-mood", baseNoteId])?.mood).toBe("Chill"));
+      await settled();
+      expect(screen.getByRole("button", { name: "Mood hôm nay: Chill" })).toBeInTheDocument();
       expectOrdinary();
     });
 
     // Review auto-5: another tab saves again while this tab's save is pending, so the refetch
     // returns a different row (new id and time), not the identical one the tests above return.
-    const savedElsewhere = (mood: "Đuối" | "Chill") => ({ ...row(mood), id: "00000000-0000-4000-8000-000000000088", checked_in_at: "2026-09-07T11:30:00Z" });
 
     it.each([
       { saved: "Đuối", pick: "Chill", elsewhere: "Đuối", outcome: "fails" },
@@ -673,13 +712,10 @@ describe("HomePage rich reading", () => {
       { saved: null, pick: "Chill", elsewhere: "Đuối", outcome: "fails" },
     ] as const)("a newer saved row fetched while a save is pending never replaces the unsaved pick: saved $saved, picked $pick, $elsewhere saved elsewhere, save $outcome", async ({ saved, pick, elsewhere, outcome }) => {
       const { client, settle } = await pickWithPendingSave(saved, pick);
-      vi.mocked(getCurrentMood).mockResolvedValue(savedElsewhere(elsewhere));
+      const savedElsewhere = moodServer.save(baseNoteId, elsewhere);
       await act(async () => { await client.invalidateQueries({ queryKey: ["daily-note-mood"] }); });
-      await waitFor(() => expect(client.getQueryData<{ id: string }>(["daily-note-mood", baseNoteId])?.id).toBe(savedElsewhere(elsewhere).id));
-
-      // Let the screen finish reacting to the new row before looking at it (the cache changes a
-      // tick before the page re-renders, and an assertion made in between proves nothing).
-      await act(async () => { await new Promise((resolve) => setTimeout(resolve, 30)); });
+      await waitFor(() => expect(client.getQueryData<{ id: string }>(["daily-note-mood", baseNoteId])?.id).toBe(savedElsewhere.id));
+      await settled();
 
       // The new row is the saved mood now, but the pick here is still unsaved: the control keeps
       // the pick and the card keeps its own action, even though the saved mood may be Đuối.
@@ -687,14 +723,16 @@ describe("HomePage rich reading", () => {
       expectOrdinary();
 
       if (outcome === "fails") {
-        await act(async () => { settle.reject(new Error("offline")); await Promise.resolve(); });
+        await act(async () => { settle.fail(); await Promise.resolve(); });
         expect((await screen.findAllByText("Đã giữ cảm xúc trên máy. Lá Lành sẽ đồng bộ khi có mạng.")).length).toBeGreaterThan(0);
+        await settled();
         expect(screen.getByRole("button", { name: `Mood hôm nay: ${pick}` })).toBeInTheDocument();
         expectOrdinary();
         return;
       }
-      await act(async () => { settle.resolve(row(pick)); await Promise.resolve(); });
+      await act(async () => { settle.succeed(); await Promise.resolve(); });
       await waitFor(() => expect(client.getQueryData<{ mood: string }>(["daily-note-mood", baseNoteId])?.mood).toBe(pick));
+      await settled();
       expect(screen.getByRole("button", { name: `Mood hôm nay: ${pick}` })).toBeInTheDocument();
       if (pick === "Đuối") expect(await screen.findByText(withLighter.lighter_action.action)).toBeInTheDocument();
       else expectOrdinary();
@@ -703,13 +741,16 @@ describe("HomePage rich reading", () => {
     it("day change while a save is pending, then it succeeds: yesterday's Đuối stays with yesterday's note", async () => {
       const { client, settle } = await pickWithPendingSave(null, "Đuối");
       vi.mocked(getDailyNote).mockResolvedValue(nextDay);
-      vi.mocked(getCurrentMood).mockResolvedValue(null);
       await act(async () => { await client.invalidateQueries(); });
       expect(await screen.findByRole("button", { name: "Chọn mood hôm nay" })).toBeInTheDocument();
 
-      await act(async () => { settle.resolve(row("Đuối")); await Promise.resolve(); });
-      await waitFor(() => expect(client.getQueryData<{ mood: string }>(["daily-note-mood", baseNoteId])?.mood).toBe("Đuối"));
-      // The new day has no mood and keeps its own action.
+      await act(async () => { settle.succeed(); await Promise.resolve(); });
+      await settled();
+      // The save belongs to yesterday's note: stored there, and that note's mood is marked to be
+      // read again. The new day has no mood and keeps its own action.
+      expect(moodServer.read(baseNoteId)?.mood).toBe("Đuối");
+      expect(moodServer.read(nextDay.id)).toBeNull();
+      expect(client.getQueryState(["daily-note-mood", baseNoteId])?.isInvalidated).toBe(true);
       expect(client.getQueryData(["daily-note-mood", nextDay.id])).toBeNull();
       expect(screen.getByRole("button", { name: "Chọn mood hôm nay" })).toBeInTheDocument();
       expectOrdinary();
@@ -721,11 +762,10 @@ describe("HomePage rich reading", () => {
       onTestFinished(() => sessionStorage.removeItem("la-lanh-session-epoch"));
       const { client, settle } = await pickWithPendingSave(null, "Đuối");
       vi.mocked(getDailyNote).mockResolvedValue(nextDay);
-      vi.mocked(getCurrentMood).mockResolvedValue(null);
       await act(async () => { await client.invalidateQueries(); });
       expect(await screen.findByRole("button", { name: "Chọn mood hôm nay" })).toBeInTheDocument();
 
-      await act(async () => { settle.reject(new Error("offline")); await Promise.resolve(); });
+      await act(async () => { settle.fail(); await Promise.resolve(); });
       expect((await screen.findAllByText("Đã giữ cảm xúc trên máy. Lá Lành sẽ đồng bộ khi có mạng.")).length).toBeGreaterThan(0);
       const waiting = JSON.parse(localStorage.getItem("la-lanh-pending-mood-v1") ?? "null") as { note_id?: string; mood?: string } | null;
       expect(waiting).toMatchObject({ note_id: baseNoteId, mood: "Đuối" });
@@ -746,15 +786,17 @@ describe("HomePage rich reading", () => {
       expect(checkInMood).toHaveBeenCalledTimes(1);
     });
 
-    it("unmount while a save is pending: the confirmed mood still becomes the saved one and shows on return", async () => {
+    const reopenHome = (client: QueryClient) => render(<QueryClientProvider client={client}><MemoryRouter><HomePage /></MemoryRouter></QueryClientProvider>);
+
+    it("unmount while a save is pending: the saved mood is read from the server on return and shows", async () => {
       const { client, settle, unmount } = await pickWithPendingSave(null, "Đuối");
       unmount();
-      await act(async () => { settle.resolve(row("Đuối")); await Promise.resolve(); });
-      await waitFor(() => expect(client.getQueryData<{ mood: string }>(["daily-note-mood", baseNoteId])?.mood).toBe("Đuối"));
+      await act(async () => { settle.succeed(); await Promise.resolve(); });
+      // The answer is not written into the cache; the mood is marked to be read again.
+      expect(client.getQueryData<{ mood: string } | null>(["daily-note-mood", baseNoteId])?.mood).toBeUndefined();
 
-      // Coming back to Home (same cache): the saved mood is Đuối, so the lighter action shows.
-      vi.mocked(getCurrentMood).mockResolvedValue(row("Đuối"));
-      render(<QueryClientProvider client={client}><MemoryRouter><HomePage /></MemoryRouter></QueryClientProvider>);
+      // Coming back to Home (same cache): the server has Đuối, so the lighter action shows.
+      reopenHome(client);
       expect(await screen.findByText(withLighter.lighter_action.action)).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Mood hôm nay: Đuối" })).toBeInTheDocument();
     });
@@ -762,21 +804,52 @@ describe("HomePage rich reading", () => {
     it("unmount while a save is pending, then it fails: nothing shows the lighter action on return until a save succeeds", async () => {
       const { client, settle, unmount } = await pickWithPendingSave(null, "Đuối");
       unmount();
-      await act(async () => { settle.reject(new Error("offline")); await Promise.resolve(); });
-      expect(client.getQueryData<{ mood: string } | null>(["daily-note-mood", baseNoteId])?.mood).toBeUndefined();
+      await act(async () => { settle.fail(); await Promise.resolve(); });
+      expect(moodServer.read(baseNoteId)).toBeNull();
 
       // On return the pick may be sent again; while that is unsaved the card keeps its own action.
-      vi.mocked(checkInMood).mockReturnValue(new Promise(() => {}));
-      render(<QueryClientProvider client={client}><MemoryRouter><HomePage /></MemoryRouter></QueryClientProvider>);
+      vi.mocked(checkInMood).mockImplementation(() => new Promise(() => {}));
+      reopenHome(client);
       expect(await screen.findByText(vibe.sections.micro_action)).toBeInTheDocument();
+      await settled();
       expectOrdinary();
+    });
+
+    // Review auto-6: the answer to an older save arrives after a newer save, across a remount.
+    it.each([
+      { first: "Đuối", second: "Chill" },
+      { first: "Chill", second: "Đuối" },
+    ] as const)("answers out of order across a remount: $first saved first and answered last, $second saved second: the server's last row wins", async ({ first, second }) => {
+      // Save A: the server stores it at once, but its answer is delayed.
+      const { client, settle: saveA, unmount } = await pickWithPendingSave(null, first);
+      saveA.commit();
+      unmount();
+
+      // Back on Home: the server already has A. Save B is stored and answered straight away.
+      reopenHome(client);
+      await pickMood(first, second);
+      await waitFor(() => expect(client.getQueryData<{ mood: string }>(["daily-note-mood", baseNoteId])?.mood).toBe(second));
+      await settled();
+
+      // Now A's answer arrives, in the callback of the Home that is no longer on screen.
+      await act(async () => { saveA.succeed(); await Promise.resolve(); });
+      await settled();
+
+      expect(moodServer.read(baseNoteId)?.mood).toBe(second);
+      expect(client.getQueryData<{ mood: string }>(["daily-note-mood", baseNoteId])?.mood).toBe(second);
+      expect(screen.getByRole("button", { name: `Mood hôm nay: ${second}` })).toBeInTheDocument();
+      if (second === "Đuối") {
+        expect(screen.getByText(withLighter.lighter_action.action)).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Xem việc ban đầu" })).toBeInTheDocument();
+      } else {
+        expectOrdinary();
+      }
     });
   });
 
   it("keeps the card's own action on a Đuối day when no lighter action is approved (#627)", async () => {
     const user = userEvent.setup();
     vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(vibe)));
-    vi.mocked(checkInMood).mockResolvedValue({ id: "00000000-0000-4000-8000-000000000096", daily_note_id: baseNoteId, mood: "Đuối", checked_in_at: "2026-09-28T00:00:00Z" });
     renderPage();
 
     await user.click(await screen.findByRole("button", { name: "Chọn mood hôm nay" }));
