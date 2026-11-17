@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { changedIds, fitContext, handle, inScope, installRulesHook, metrics, r3Reason, recordRepeat, rulesHooks, verifyRulesHook } from './collab-rules-hook.mjs';
+import { changedIds, fitContext, handle, inScope, installRulesHook, metrics, projectRoots, r3Reason, recordRepeat, rulesHooks, verifyRulesHook } from './collab-rules-hook.mjs';
 import { sheetPath } from './collab-rules.mjs';
 
 const script = join(dirname(fileURLToPath(import.meta.url)), 'collab-rules-hook.mjs');
@@ -49,6 +49,23 @@ test('rules hook: a long session gets a changed rule on its next prompt or tool 
   assert.equal(run(home, { hook_event_name: 'UserPromptSubmit', session_id: 's1', cwd: repo, prompt: 'y' }), null);
   // A second session that never saw the old version gets the new one on its first prompt.
   assert.match(ctx(run(home, { hook_event_name: 'UserPromptSubmit', session_id: 's2', cwd: repo, prompt: 'z' })), /kể cả cuối tuần/);
+});
+
+// Codex P1 on #616: sub-agents share the session id. A child that sees a new version first must not
+// mark it seen for the main context, which would then stay on the old rules.
+test('rules hook: a sub-agent and its parent each get a changed rule, keyed by agent', () => {
+  const { home, repo, publish } = fixture();
+  run(home, { hook_event_name: 'SessionStart', source: 'startup', session_id: 's1', cwd: repo });
+  assert.match(ctx(run(home, { hook_event_name: 'PostToolUse', session_id: 's1', agent_id: 'a1', cwd: repo, tool_name: 'Bash' })), /Luật owner đang hiệu lực/);
+  publish(sheet.replace(R9, R9.replace('Làm tới 23:59.', 'Làm tới 23:59, kể cả cuối tuần.')));
+  assert.match(ctx(run(home, { hook_event_name: 'PostToolUse', session_id: 's1', agent_id: 'a1', cwd: repo, tool_name: 'Bash' })), /vừa đổi .*R9/);
+  assert.equal(run(home, { hook_event_name: 'PostToolUse', session_id: 's1', agent_id: 'a1', cwd: repo, tool_name: 'Bash' }), null);
+  const parent = run(home, { hook_event_name: 'PostToolUse', session_id: 's1', cwd: repo, tool_name: 'Bash' });
+  assert.match(ctx(parent), /vừa đổi .*dòng đổi: R9/, 'the parent still gets the change after the child saw it');
+  assert.match(ctx(run(home, { hook_event_name: 'PostToolUse', session_id: 's1', agent_id: 'a2', cwd: repo, tool_name: 'Bash' })), /kể cả cuối tuần/);
+  // An unsafe agent id never shares or overwrites the parent's record.
+  assert.equal(run(home, { hook_event_name: 'PostToolUse', session_id: 's1', agent_id: '../s1', cwd: repo, tool_name: 'Bash' })?.hookSpecificOutput?.hookEventName ?? 'PostToolUse', 'PostToolUse');
+  assert.equal(run(home, { hook_event_name: 'PostToolUse', session_id: 's1', cwd: repo, tool_name: 'Bash' }), null);
 });
 
 test('rules hook: resume, clear and compact deliver again even when the version did not change', () => {
@@ -106,7 +123,7 @@ test('L37 (R3): the installed hook keeps other hooks, routes the question tools 
   const settings = join(mkdtempSync(join(tmpdir(), 'settings-')), 'settings.json');
   const other = { matcher: 'Bash', hooks: [{ type: 'command', command: 'node guard.mjs' }] };
   writeFileSync(settings, JSON.stringify({ model: 'x', hooks: { PreToolUse: [other] } }));
-  assert.ok(verifyRulesHook({ home, settings }).length > 0, 'not installed yet');
+  assert.ok(verifyRulesHook({ home, settings, projects: [] }).length > 0, 'not installed yet');
   installRulesHook({ home, settings });
   installRulesHook({ home, settings });
   const data = JSON.parse(readFileSync(settings, 'utf8'));
@@ -121,20 +138,34 @@ test('L37 (R3): the installed hook keeps other hooks, routes the question tools 
   // verify needs a script in the ops clone that really refuses a question: an empty file fails.
   mkdirSync(join(home, 'ops', 'scripts'), { recursive: true });
   writeFileSync(join(home, 'ops', 'scripts', 'collab-rules-hook.mjs'), '');
-  assert.match(verifyRulesHook({ home, settings }).join('\n'), /selftest trượt/);
+  assert.match(verifyRulesHook({ home, settings, projects: [] }).join('\n'), /selftest trượt/);
   const real = mkdtempSync(join(tmpdir(), 'ops-real-'));
   mkdirSync(join(real, 'ops'), { recursive: true });
   symlinkSync(dirname(script), join(real, 'ops', 'scripts'));
   installRulesHook({ home: real, settings });
-  assert.deepEqual(verifyRulesHook({ home: real, settings }), []);
+  assert.deepEqual(verifyRulesHook({ home: real, settings, projects: [] }), []);
   data.hooks = JSON.parse(readFileSync(settings, 'utf8')).hooks;
   home = real;
   // Removing the R3 route, or switching hooks off, is detected.
   data.hooks.PreToolUse = data.hooks.PreToolUse.filter(e => e === other || JSON.stringify(e) === JSON.stringify(other));
   writeFileSync(settings, JSON.stringify(data));
-  assert.match(verifyRulesHook({ home, settings }).join('\n'), /PreToolUse/);
+  assert.match(verifyRulesHook({ home, settings, projects: [] }).join('\n'), /PreToolUse/);
   writeFileSync(settings, JSON.stringify({ ...data, disableAllHooks: true }));
-  assert.match(verifyRulesHook({ home, settings }).join('\n'), /disableAllHooks/);
+  assert.match(verifyRulesHook({ home, settings, projects: [] }).join('\n'), /disableAllHooks/);
+  // Codex P2 on #616: a project's own settings can switch hooks off too.
+  writeFileSync(settings, JSON.stringify(data));
+  installRulesHook({ home, settings });
+  assert.deepEqual(verifyRulesHook({ home, settings, projects: [] }), []);
+  const project = mkdtempSync(join(tmpdir(), 'la-lanh-proj-'));
+  mkdirSync(join(project, '.claude'));
+  writeFileSync(join(project, '.claude', 'settings.local.json'), JSON.stringify({ disableAllHooks: true }));
+  assert.match(verifyRulesHook({ home, settings, projects: [project] }).join('\n'), /disableAllHooks đang bật trong .*la-lanh-proj-.*settings\.local\.json/);
+  const fakeHome = mkdtempSync(join(tmpdir(), 'home-'));
+  const checkout = join(fakeHome, 'Documents', 'New project', 'la-lanh');
+  mkdirSync(join(checkout, '.claude', 'worktrees', 'w1', '.claude'), { recursive: true });
+  assert.deepEqual(projectRoots(fakeHome), [checkout, join(checkout, '.claude', 'worktrees', 'w1')]);
+  writeFileSync(join(checkout, '.claude', 'worktrees', 'w1', '.claude', 'settings.json'), JSON.stringify({ disableAllHooks: true }));
+  assert.match(verifyRulesHook({ home, settings, projects: projectRoots(fakeHome) }).join('\n'), /worktrees\/w1\/\.claude\/settings\.json/);
   assert.match(r3Reason, /R3/);
 });
 

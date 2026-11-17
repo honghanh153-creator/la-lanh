@@ -15,7 +15,7 @@
 // Usage (from ~/.claude/settings.json):  node scripts/collab-rules-hook.mjs   (hook JSON on stdin)
 //        node scripts/collab-rules-hook.mjs --install | --verify | --metrics [since] | --selftest | --repeat Rn [session]
 import { execFileSync, spawnSync } from 'node:child_process';
-import { appendFileSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, renameSync, statSync, writeFileSync } from 'node:fs';
+import { appendFileSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, renameSync, statSync, writeFileSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { parseRules, rulesVersion, sheetRel } from './collab-rules.mjs';
@@ -67,14 +67,18 @@ export function changedIds(oldText, newText) {
 // PostToolUse reaches a long turn that gets no new prompt (Codex r1 on the plan).
 export function reload(input, { home = stateDir, now = () => new Date() } = {}) {
   const session = safeId(input.session_id);
+  // Codex P1 on #616: sub-agents share the session id; each context (the main one, each agent_id)
+  // keeps its own record, so a child that saw a new version never marks it seen for its parent.
+  const agent = input.agent_id == null ? null : safeId(input.agent_id);
+  const context = session && (input.agent_id == null || agent) ? (agent ? `${session}.agent-${agent}` : session) : null;
   const event = input.hook_event_name;
   const text = readSheetText(home);
   if (text === null) {
-    log(home, 'deliveries.jsonl', { at: now().toISOString(), session, event, version: null, error: 'sheet unreadable' });
+    log(home, 'deliveries.jsonl', { at: now().toISOString(), session, ...(agent ? { agent } : {}), event, version: null, error: 'sheet unreadable' });
     return `Luật owner đang hiệu lực: không đọc được ${sheetFile(home)}. Đọc docs/operations/luat-dang-hieu-luc.md trên origin/collab/integration trước khi làm tiếp.`;
   }
   const version = rulesVersion(text);
-  const seenPath = session ? join(rulesDir(home), 'seen', session) : null;
+  const seenPath = context ? join(rulesDir(home), 'seen', context) : null;
   let seen = null;
   if (seenPath) try { seen = readFileSync(seenPath, 'utf8').trim(); } catch {}
   if (event !== 'SessionStart' && seen === version) return null;
@@ -93,7 +97,7 @@ export function reload(input, { home = stateDir, now = () => new Date() } = {}) 
   } catch {}
   const body = fitContext(text);
   const why = seen && seen !== version ? 'changed' : event === 'SessionStart' ? 'start' : 'first';
-  log(home, 'deliveries.jsonl', { at: now().toISOString(), session, event, version, previous: seen, why, changed });
+  log(home, 'deliveries.jsonl', { at: now().toISOString(), session, ...(agent ? { agent } : {}), event, version, previous: seen, why, changed });
   const head = why === 'changed'
     ? `Luật owner vừa đổi (bản ${seen} → ${version}${changed.length ? `; dòng đổi: ${changed.join(', ')}` : ''}). Áp dụng bản dưới đây từ bây giờ, kể cả cho việc đang làm.`
     : `Luật owner đang hiệu lực (bản ${version}). Đọc trước khi làm; trước khi cần owner, xem R3.`;
@@ -167,7 +171,23 @@ export function installRulesHook({ home = stateDir, settings = settingsPath(), n
 }
 
 // Detects removal or change (same machine rights as the agent gate: it cannot prevent them).
-export function verifyRulesHook({ home = stateDir, settings = settingsPath() } = {}) {
+// Codex P2 on #616: a project's own .claude/settings(.local).json can turn every hook off for sessions
+// opened there. The owner's la-lanh checkouts (and their managed worktrees) are read too.
+export function projectRoots(home = homedir()) {
+  const base = join(home, 'Documents', 'New project');
+  const roots = ['la-lanh', 'la-lanh-claude', 'la-lanh-codex'].map(n => join(base, n)).filter(d => existsSync(d));
+  const out = [];
+  for (const root of roots) {
+    out.push(root);
+    try { for (const w of readdirSync(join(root, '.claude', 'worktrees'))) out.push(join(root, '.claude', 'worktrees', w)); } catch {}
+  }
+  return out;
+}
+export function hookSettingsFiles({ settings = settingsPath(), projects = projectRoots() } = {}) {
+  return [settings, settings.replace(/settings\.json$/, 'settings.local.json'),
+    ...projects.flatMap(p => [join(p, '.claude', 'settings.json'), join(p, '.claude', 'settings.local.json')])];
+}
+export function verifyRulesHook({ home = stateDir, settings = settingsPath(), projects = projectRoots() } = {}) {
   let data;
   try { data = JSON.parse(readFileSync(settings, 'utf8')); } catch { return [`không đọc được ${settings}`]; }
   const bad = [];
@@ -175,7 +195,7 @@ export function verifyRulesHook({ home = stateDir, settings = settingsPath() } =
     const got = (data.hooks?.[event] ?? []).filter(e => isRulesHook(e, home));
     if (got.length !== 1 || JSON.stringify(got[0]) !== JSON.stringify(want)) bad.push(`hook ${event} của luật owner thiếu hoặc khác bản chuẩn`);
   }
-  for (const file of [settings, settings.replace(/settings\.json$/, 'settings.local.json')]) {
+  for (const file of hookSettingsFiles({ settings, projects })) {
     try { if (JSON.parse(readFileSync(file, 'utf8')).disableAllHooks === true) bad.push(`disableAllHooks đang bật trong ${file}`); } catch {}
   }
   // The installed script must really refuse a question (Codex r2: an empty file passed "exists").
