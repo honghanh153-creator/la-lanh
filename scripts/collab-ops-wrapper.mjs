@@ -14,6 +14,8 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { codexDailyCap, hhmmOf, integration, lastStartAt, planOpensAt, stateDir } from './collab-trust.mjs';
 import { isMain } from './is-main.mjs';
+import { parseRules, sheetPath } from './collab-rules.mjs';
+import { hookSettingsFiles, projectRoots, verifyRulesHook } from './collab-rules-hook.mjs';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 export const sourcePath = (root = repoRoot) => join(root, 'scripts', 'ops-run.sh');
@@ -86,7 +88,8 @@ export function installAgentGate({ home = stateDir, settings = settingsPath(), n
 
 // Problems with the installed gate: entries missing or changed, fail-open, hooks turned off in a
 // settings file this machine reads. It detects removal; it cannot prevent it (same rights as L24).
-export function verifyAgentGate({ home = stateDir, settings = settingsPath(), extra = [] } = {}) {
+// Codex P2 on #616: project settings of the la-lanh checkouts can switch hooks off too.
+export function verifyAgentGate({ home = stateDir, settings = settingsPath(), extra = [], projects = projectRoots() } = {}) {
   let data;
   try { data = JSON.parse(readFileSync(settings, 'utf8')); } catch { return [`không đọc được ${settings}`]; }
   const bad = [];
@@ -95,7 +98,7 @@ export function verifyAgentGate({ home = stateDir, settings = settingsPath(), ex
     if (got.length !== 1 || JSON.stringify(got[0]) !== JSON.stringify(want)) bad.push(`hook ${event} của cổng dev con thiếu hoặc khác bản chuẩn`);
   }
   if (!existsSync(gateScript(home))) bad.push('không thấy collab-agent-gate.mjs trong clone ops');
-  for (const file of [settings, settings.replace(/settings\.json$/, 'settings.local.json'), ...extra]) {
+  for (const file of [...hookSettingsFiles({ settings, projects }), ...extra]) {
     try { if (JSON.parse(readFileSync(file, 'utf8')).disableAllHooks === true) bad.push(`disableAllHooks đang bật trong ${file}`); } catch {}
   }
   return bad;
@@ -105,7 +108,8 @@ export function verifyAgentGate({ home = stateDir, settings = settingsPath(), ex
 // the wrapper. Their prompts live outside the repo, so the tick checks them every run and shows a
 // warning when either no longer calls its snapshot step.
 export const reportConsumers = [
-  { task: 'la-lanh-owner-report', label: 'báo cáo owner 08/14/22', step: /ops-run\.sh snapshot 08\b/ },
+  // Owner 16.11 dropped the 08:00 report (R5): the owner report runs at 14:00 and 22:00.
+  { task: 'la-lanh-owner-report', label: 'báo cáo owner 14/22', step: /ops-run\.sh snapshot (?:14|22)\b/ },
   { task: 'la-lanh-retro-2026-11-02', label: 'retro 23:35', step: /ops-run\.sh snapshot retro\b/ },
 ];
 export function verifyReportPrompts({ dir = join(homedir(), '.claude', 'scheduled-tasks') } = {}) {
@@ -122,7 +126,19 @@ export function verifyReportPrompts({ dir = join(homedir(), '.claude', 'schedule
 // ops-alert a day; the marker is written only after the alert was delivered. When the gate is
 // healthy again the open alert is closed once.
 export const gateAlertSubject = 'cổng dev con';
-export function agentGateWatch({ verify = () => verifyAgentGate(), alert, resolve, marker = join(stateDir, 'agent-gate-alert.json'), today }) {
+// L37: the owner-rules hook (re-load + R3 deny) is watched the same way: one alert a day while it is
+// missing, changed or its selftest fails; closed once it is healthy again.
+export const rulesHookAlertSubject = 'hook luật owner';
+export function rulesHookWatch({ verify = () => verifyRulesHook(), alert, resolve, marker = join(stateDir, 'rules-hook-alert.json'), today }) {
+  return agentGateWatch({ verify, alert, resolve, marker, today, what: 'Hook luật owner (L37: nạp lại luật, chặn hỏi owner trong chat)', fix: 'node ~/.cache/la-lanh-collab/ops/scripts/collab-rules-hook.mjs --install', healthy: 'hook luật owner đã khớp bản chuẩn' });
+}
+export function rulesHookHealth({ verify = () => verifyRulesHook() } = {}) {
+  try {
+    const bad = verify();
+    return bad.length ? [`- ⚠️ hook luật owner (L37): ${bad.join('; ')}`] : ['- ✅ hook luật owner (L37): đã cài, tự kiểm chặn được câu hỏi'];
+  } catch (error) { return [`- ⚠️ hook luật owner (L37): chưa kiểm được (${error.message})`]; }
+}
+export function agentGateWatch({ verify = () => verifyAgentGate(), alert, resolve, marker = join(stateDir, 'agent-gate-alert.json'), today, what = 'Cổng kiểm dev con (L06)', fix = 'node ~/.cache/la-lanh-collab/ops/scripts/collab-ops-wrapper.mjs --install-agent-gate', healthy = 'cổng dev con đã khớp bản chuẩn' }) {
   let state = {};
   try { state = JSON.parse(readFileSync(marker, 'utf8')); } catch { state = {}; }
   const save = next => { const tmp = `${marker}.tmp-${process.pid}`; writeFileSync(tmp, `${JSON.stringify(next)}\n`); renameSync(tmp, marker); };
@@ -130,11 +146,11 @@ export function agentGateWatch({ verify = () => verifyAgentGate(), alert, resolv
   try { bad = verify(); } catch (error) { bad = [`chưa kiểm được (${String(error?.message ?? error).slice(0, 120)})`]; }
   if (bad.length) {
     if (state.alertedOn === today) return { status: 'already-alerted' };
-    alert(`Cổng kiểm dev con (L06) không ở trạng thái chuẩn: ${bad.join('; ')}. Cài lại bằng: node ~/.cache/la-lanh-collab/ops/scripts/collab-ops-wrapper.mjs --install-agent-gate`);
+    alert(`${what} không ở trạng thái chuẩn: ${bad.join('; ')}. Cài lại bằng: ${fix}`);
     save({ alertedOn: today, open: true });
     return { status: 'alerted' };
   }
-  if (state.open) { resolve('cổng dev con đã khớp bản chuẩn'); save({ ...state, open: false }); return { status: 'resolved' }; }
+  if (state.open) { resolve(healthy); save({ ...state, open: false }); return { status: 'resolved' }; }
   return { status: 'ok' };
 }
 
@@ -144,7 +160,11 @@ export function agentGateWatch({ verify = () => verifyAgentGate(), alert, resolv
 // a PR quota, a Codex cap other than codexDailyCap, a stop time other than lastStartAt, an auto-start
 // other than planOpensAt. A line that marks a rule as retired or superseded is history and is skipped.
 const retired = /retired|superseded|old rule|old text|history only|do not apply|luật cũ|đã bỏ|thay bằng|không áp dụng/i;
-export function skillRuleFindings(text, { cap = codexDailyCap, stop = hhmmOf(lastStartAt), start = hhmmOf(planOpensAt) } = {}) {
+// Report slots the owner dropped (R5), from the rules sheet of this same checkout.
+export function retiredReportSlots(root = repoRoot) {
+  try { return parseRules(readFileSync(sheetPath(root), 'utf8')).facts?.retiredReportSlots ?? []; } catch { return []; }
+}
+export function skillRuleFindings(text, { cap = codexDailyCap, stop = hhmmOf(lastStartAt), start = hhmmOf(planOpensAt), retiredSlots = retiredReportSlots() } = {}) {
   const out = [];
   String(text).split('\n').forEach((line, i) => {
     const at = `dòng ${i + 1}`;
@@ -157,6 +177,11 @@ export function skillRuleFindings(text, { cap = codexDailyCap, stop = hhmmOf(las
       for (const m of clause.matchAll(/(?<![\p{L}\p{N}_])(?:within|cap(?: of)?|trần(?: Codex)?|tối đa)\s+(\d+)\s+(?:Codex\s+)?(?:runs|lượt)/giu)) if (Number(m[1]) !== cap) out.push(`trần Codex ${m[1]}, code là ${cap} (${at})`);
       for (const m of clause.matchAll(/(?:no new work|not start new work|nhận việc mới)[^\n]*?(?<![\p{L}\p{N}_])(?:after|from|sau|từ)\s+(\d{1,2}:\d{2})/giu)) if (m[1] !== stop) out.push(`dừng nhận việc lúc ${m[1]}, code là ${stop} (${at})`);
       for (const m of clause.matchAll(/(?:auto-?starts?|tự chạy)[^\n]*?(?<![\p{N}])(\d{1,2}:\d{2})|(?<![\p{N}])(\d{1,2}:\d{2})\s*\(?\s*(?:tự chạy|auto-?start)/giu)) { const t = m[1] ?? m[2]; if (t !== start) out.push(`giờ tự chạy ${t}, code là ${start} (${at})`); }
+      // A report slot the owner dropped, still scheduled ("08:00: **Báo cáo…**", "report at 08:00"). A
+      // clause that says it was dropped (bỏ) is history.
+      if (!/(?<![\p{L}])bỏ(?![\p{L}])|\bdrop/iu.test(clause)) for (const slot of retiredSlots) {
+        if (new RegExp(`\\b${slot}\\b\\s*:?\\s*"?\\**\\s*Báo cáo|(?:report|báo cáo)[^.\\n]{0,25}\\b${slot}\\b`, 'i').test(clause)) out.push(`còn giờ báo cáo ${slot} đã bỏ (R5) (${at})`);
+      }
     }
   });
   return [...new Set(out)];
@@ -170,13 +195,15 @@ export function verifySkillRules({ dir = join(homedir(), '.claude', 'scheduled-t
     // Fix-forward #620: a prompt that cannot be read is reported as unchecked, never as compliant.
     try { text = readFileSync(join(dir, task, 'SKILL.md'), 'utf8'); } catch (error) { bad.push(`${task}: không đọc được prompt (${error?.code ?? 'lỗi'}), chưa kiểm`); continue; }
     for (const f of skillRuleFindings(text, limits)) bad.push(`${task}: ${f}`);
+    // One source (R1…): every prompt points to the rules sheet instead of restating rules.
+    if (!text.includes('luat-dang-hieu-luc.md')) bad.push(`${task}: thiếu dòng trỏ tới bảng luật (docs/operations/luat-dang-hieu-luc.md)`);
   }
   return bad;
 }
 export function skillRuleHealth(opts = {}) {
   try {
     const bad = verifySkillRules(opts.prompts ? { dir: opts.prompts } : {});
-    return bad.length ? [`- ⚠️ prompt tác vụ hẹn giờ khác luật trong code: ${bad.slice(0, 6).join('; ')}${bad.length > 6 ? `; và ${bad.length - 6} chỗ khác` : ''}`] : ['- ✅ prompt tác vụ hẹn giờ: khớp luật trong code (trần Codex, giờ chạy, không chỉ tiêu PR)'];
+    return bad.length ? [`- ⚠️ prompt tác vụ hẹn giờ khác luật trong code: ${bad.slice(0, 6).join('; ')}${bad.length > 6 ? `; và ${bad.length - 6} chỗ khác` : ''}`] : ['- ✅ prompt tác vụ hẹn giờ: khớp luật trong code (trần Codex, giờ chạy, giờ báo cáo, không chỉ tiêu PR) và trỏ tới bảng luật'];
   } catch (error) { return [`- ⚠️ prompt tác vụ hẹn giờ: chưa kiểm được (${error.message})`]; }
 }
 
