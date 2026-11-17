@@ -2098,3 +2098,18 @@ test('7-week: a serious incident opened after the plan is worked before ops and 
   tick({ gh, now: { date, hour: 8, minute: 10 }, prPreflight: () => ({ status: 'PASS' }), heavyFree: () => true, check: n => { checked.push(n); return { status: 'FAIL' }; }, merge: () => ({}), review: () => ({}) });
   assert.equal(checked[0], 81, `checked ${checked.join(',')}`);
 });
+
+test('17.11 (#614): a PR behind integration that another session holds says who holds it, not "when it is the front"', () => {
+  const run = (cmd, args) => { if (args[0] === 'merge-base') throw new Error('behind'); return args[0] === 'rev-parse' ? A : ''; };
+  const never = () => { throw new Error('nothing of the PR may run on the Mac in CI mode'); };
+  const unheld = { record: () => { throw new Error('a waiting PR is not recorded as a preflight failure'); } };
+  const waitOn = n => runCheckInClone(n, { gh: { ...fakeGh({ pr: pr({ number: n, headRefName: 'agent/claude/x' }) }), comment: () => {} }, run, group: never, spawn: never, busy: never, terms: () => [], preflight: () => null, source: 'ci', ci: () => ({ state: 'success' }), sync: false, held: unheld });
+  assert.deepEqual(claims.claimPr(904, { session: 'lane-idle' }), { ok: true, created: true });
+  const held = waitOn(904);
+  assert.equal(held.status, 'ci-pending');
+  assert.match(held.reason, /phiên lane-idle đang giữ PR từ .*--release 904/);
+  assert.equal(held.claimedBy, 'lane-idle');
+  const free = waitOn(905);
+  assert.match(free.reason, /đồng bộ khi tới lượt đầu hàng/);
+  assert.equal(free.claimedBy, undefined);
+});
