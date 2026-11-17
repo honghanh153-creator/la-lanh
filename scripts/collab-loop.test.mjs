@@ -1137,6 +1137,12 @@ test('12.11 trial: ciCheck passes only a completed success of the pr-check check
   assert.equal(ciCheck(at([w({ id: 1, conclusion: 'failure' }), w({ id: 2, created_at: '2026-11-12T02:00:00Z' })], { 1: [j({ conclusion: 'failure' })], 2: [j({ run_id: 2 })] }), A).state, 'PASS', 'the newest run decides');
   assert.equal(ciCheck(at([w({ id: 2, created_at: '2026-11-12T02:00:00Z' }), w()], { 1: [j()], 2: [j({ run_id: 2, conclusion: 'failure' })] }), A).state, 'FAIL');
   assert.throws(() => ciCheck(at([]), 'nope'));
+  // #630: a body edit starts a second run for the same head and one is cancelled (#628, 16.11).
+  const cancelled = w({ id: 3, created_at: '2026-11-12T03:00:00Z', conclusion: 'cancelled' });
+  assert.equal(ciCheck(at([cancelled, w()], { 1: [j()], 3: [j({ run_id: 3, conclusion: 'cancelled' })] }), A).state, 'PASS', '#630: a newer cancelled run does not hide a green one');
+  assert.equal(ciCheck(at([w({ id: 1, created_at: '2026-11-12T00:00:00Z', conclusion: 'cancelled' }), w({ id: 2, status: 'in_progress' })], { 2: [j({ run_id: 2, status: 'in_progress', conclusion: null })] }), A).state, 'pending', '#630: the other run still running is pending');
+  assert.equal(ciCheck(at([cancelled], { 3: [j({ run_id: 3, conclusion: 'cancelled' })] }), A).state, 'pending', '#630: only cancelled runs is pending, never a FAIL');
+  assert.equal(ciCheck(at([w({ id: 2, created_at: '2026-11-12T02:00:00Z', conclusion: 'failure' }), cancelled, w()], { 1: [j()], 2: [j({ run_id: 2, conclusion: 'failure' })] }), A).state, 'FAIL', '#630: a newer real failure still decides');
   assert.equal(checkSource({ LA_LANH_CHECK_SOURCE: 'ci' }), 'ci');
   assert.equal(checkSource({}), 'local');
 });
