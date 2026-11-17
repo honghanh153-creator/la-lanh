@@ -107,7 +107,7 @@ flowchart TD
 | Thành phần | Loại | Nội dung/hành vi |
 |---|---|---|
 | Headline | H1 | “Ngày sinh của bạn vẫn là của bạn.” |
-| Purpose | Info card | “Dùng để xác định vị trí Mặt Trời và tạo Lá Khai Sinh lớp đầu tiên.” Nhãn compact `Vibe · <3–5 chữ>` chỉ xuất hiện sau US-02; placement thật nằm trong provenance. |
+| Purpose | Info card | “Dùng để xác định vị trí Mặt Trời và tạo Lá Khai Sinh lớp đầu tiên.” Nhãn compact `<3–5 chữ>` (chỉ tên tính cách, không tiền tố `Vibe ·` từ 15.11.2026, xem [README](README.md)) chỉ xuất hiện sau US-02; placement thật nằm trong provenance. |
 | Guest explanation | Info card | “Chưa cần phone/email. Dữ liệu khách tự xóa sau 30 ngày không hoạt động.” |
 | Control | Info card | “Bạn có thể xem, sửa, xóa hoặc đăng nhập để giữ lại.” |
 | Detail | Text link | “Đọc cách Lá Lành dùng dữ liệu”; mở S04. |

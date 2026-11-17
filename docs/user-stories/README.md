@@ -10,6 +10,13 @@ Direction UI hiện hành từ 06/10/2026 là **Ultraviolet Paper** theo ảnh H
 
 Từ vựng compact thống nhất: profile chỉ có ngày sinh hiển thị `Vibe · <3–5 chữ>`; NatalChart sâu hợp lệ hiển thị `Aura · <3–5 chữ>`. Prompt cảm xúc luôn là **“Hôm nay bạn thấy sao?”** để “Vibe” chỉ có một nghĩa. `Aura v2` là nhãn biên tập deterministic từ nhiều factor ổn định của toàn chart, không còn đồng nghĩa với dominant element. Sun/Moon/Rising/House, hành tinh, aspect/drishti, transit, chart depth và precision là dữ kiện và phải còn trong provenance/detail.
 
+**Thay đổi 15.11.2026 — nhãn chỉ còn tên tính cách (thay phần hiển thị ở đoạn trên, ở bảng mapping bên dưới và trong mọi story).** Owner chốt trong [kế hoạch 7 tuần](../plans/2026-11-15-ke-hoach-7-tuan-moc-do.md): giữ tên tính cách, bỏ chữ "Vibe". Từ PR #503, app và thẻ chia sẻ hiện đúng tên server trả, ví dụ `Rực`, không có tiền tố `Vibe ·` hay `Aura ·` (`personaTag` trong `apps/web/src/features/card/shareArt.ts`).
+
+- Chỗ nào trong bộ story còn ghi `Vibe · <3–5 chữ>`, `Aura · <3–5 chữ>`, `Vibe · label` hay `Aura · label` thì đọc là `<3–5 chữ>`: QA kiểm tên đúng và **không có** tiền tố.
+- Không đổi: `persona_mode` (`vibe`/`aura`) trong contract server, luật hồ sơ chỉ có ngày sinh không được trả `aura`, mapping tên theo version, và dữ kiện trong provenance/detail.
+- Không đổi: prompt cảm xúc vẫn là “Hôm nay bạn thấy sao?”; không gọi mood là “Vibe”.
+- Chưa đổi theo, ghi lại để làm tiếp: dòng mô tả độ sâu bản đọc (ví dụ "Aura · Tổng hòa lá số" ở Insight, "Vibe · một lớp" trên trang chia sẻ công khai) và tiêu đề màn chuyển lớp vẫn dùng hai chữ này; chúng không phải nhãn tính cách.
+
 Chuẩn tính toán cho US-07 trở đi: [`la-lanh-astro-engine-spec.md`](../foundation/la-lanh-astro-engine-spec.md). Hai switch độc lập gồm **Hệ đọc** (`Western Tropical`/`Jyotish Sidereal`) và **Cách tính** (`Khuyên dùng`/`Tùy chỉnh`). Mỗi combination tạo snapshot riêng; client không được đổi nhãn trên cùng dữ liệu.
 
 ## Quy tắc phân ranh giới
