@@ -77,6 +77,45 @@ export function problems(text, code = codeFacts()) {
   for (const k of ['reportSlots', 'retiredReportSlots']) {
     if (!Array.isArray(facts[k]) || facts[k].some(s => !/^\d{2}:\d{2}$/.test(s))) out.push(`rules-facts.${k} phải là danh sách HH:MM`);
   }
+  out.push(...valueProblems(row, facts));
+  return out;
+}
+
+// Fix-forward #643: a mention is not enough. Every value the rule text states must equal the facts,
+// so "Trần 60 lượt" beside an unchanged "base: 80" is red, as are a dropped owner kind, an empty slot
+// list or a retired slot that is still scheduled. Only the rule column is read: the "Thay thế" column
+// is history and keeps the old values on purpose.
+const kindWords = { cost_access: /chi phí/i, release: /phát hành/i, sensitive_copy: /privacy/i, data_collection: /thu dữ liệu/i };
+const times = text => [...String(text).matchAll(/(?<!\d)(\d{1,2}:\d{2})(?!\d)/g)].map(m => m[1].padStart(5, '0'));
+const clauses = text => String(text).split(/[.;](?:\s+|$)/);
+const dropped = /không có|(?<!\p{L})bỏ(?!\p{L})/iu;
+export function valueProblems(row, facts) {
+  const out = [];
+  const r8 = row('R8');
+  for (const m of r8.matchAll(/(\d+)\s*lượt|base:\s*(\d+)/g)) {
+    const n = Number(m[1] ?? m[2]);
+    if (n !== facts.codexDailyCap) out.push(`R8: bảng ghi ${m[0]}, khối rules-facts là ${facts.codexDailyCap}`);
+  }
+  const r9 = new Set([facts.lastStartAt, facts.cutoffAt]);
+  for (const t of times(row('R9'))) if (!r9.has(t)) out.push(`R9: bảng ghi giờ ${t}, khối rules-facts chỉ có ${[...r9].join(', ')}`);
+  const slots = Array.isArray(facts.reportSlots) ? facts.reportSlots : [];
+  const retiredSlots = Array.isArray(facts.retiredReportSlots) ? facts.retiredReportSlots : [];
+  if (!slots.length) out.push('rules-facts.reportSlots không được rỗng');
+  for (const s of retiredSlots) if (slots.includes(s)) out.push(`rules-facts: ${s} vừa là giờ báo cáo vừa là giờ đã bỏ`);
+  for (const clause of clauses(row('R5'))) {
+    const gone = dropped.test(clause);
+    for (const t of times(clause)) {
+      if (gone && !retiredSlots.includes(t)) out.push(`R5: bảng ghi đã bỏ bản ${t}, khối rules-facts không có trong retiredReportSlots`);
+      if (!gone && !slots.includes(t)) out.push(`R5: bảng ghi báo cáo ${t}, khối rules-facts không có trong reportSlots`);
+    }
+  }
+  const kinds = Array.isArray(facts.ownerKinds) ? facts.ownerKinds : [];
+  const r2 = row('R2');
+  const count = r2.match(/Chỉ\s+(\d+)\s+loại/i);
+  if (!count || Number(count[1]) !== kinds.length) out.push(`R2: bảng phải ghi "Chỉ ${kinds.length} loại" như ownerKinds`);
+  const items = [...r2.matchAll(/\((\d+)\)/g)].map(m => Number(m[1]));
+  if (Math.max(0, ...items) !== kinds.length) out.push(`R2: bảng liệt kê ${Math.max(0, ...items)} loại, ownerKinds có ${kinds.length}`);
+  for (const k of kinds) if (!kindWords[k]?.test(r2)) out.push(`R2: bảng không nêu loại ${k}`);
   return out;
 }
 

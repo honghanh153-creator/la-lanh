@@ -145,7 +145,9 @@ export function agentGateWatch({ verify = () => verifyAgentGate(), alert, resolv
   let bad;
   try { bad = verify(); } catch (error) { bad = [`chưa kiểm được (${String(error?.message ?? error).slice(0, 120)})`]; }
   if (bad.length) {
-    if (state.alertedOn === today) return { status: 'already-alerted' };
+    // Fix-forward #648: repeats are throttled only while the incident is still open. A failure after a
+    // recovery on the same day opens a new one.
+    if (state.open && state.alertedOn === today) return { status: 'already-alerted' };
     alert(`${what} không ở trạng thái chuẩn: ${bad.join('; ')}. Cài lại bằng: ${fix}`);
     save({ alertedOn: today, open: true });
     return { status: 'alerted' };
