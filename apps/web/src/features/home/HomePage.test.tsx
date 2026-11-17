@@ -561,6 +561,63 @@ describe("HomePage rich reading", () => {
     expect(screen.queryByText(vibe.sections.micro_action) !== null).toBe(!lighterAfter);
   });
 
+  it("keeps the card's own action while a Đuối pick is unsaved, even when a slow mood read lands meanwhile (review auto-4)", async () => {
+    const user = userEvent.setup();
+    const withLighter = { ...vibe, lighter_action: { action: "Uống một ly nước rồi ngồi yên hai phút.", weight: "light" as const, experiment: null } };
+    const row = (mood: "Đuối" | "Chill") => ({ id: "00000000-0000-4000-8000-000000000091", daily_note_id: baseNoteId, mood, checked_in_at: "2026-09-07T10:00:00Z" });
+    let landRead!: (value: ReturnType<typeof row>) => void;
+    let landSave!: (value: ReturnType<typeof row>) => void;
+    vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(withLighter)));
+    vi.mocked(getCurrentMood).mockReturnValue(new Promise((resolve) => { landRead = resolve; }));
+    vi.mocked(checkInMood).mockReturnValue(new Promise((resolve) => { landSave = resolve; }));
+    renderPage();
+
+    // The first mood read is still on its way when the reader picks Đuối.
+    await user.click(await screen.findByRole("button", { name: "Chọn mood hôm nay" }));
+    await user.click(screen.getByRole("button", { name: /Đuối/ }));
+    await screen.findByRole("button", { name: "Mood hôm nay: Đuối" });
+    const ordinary = () => {
+      expect(screen.getByText(vibe.sections.micro_action)).toBeInTheDocument();
+      expect(screen.queryByText(withLighter.lighter_action.action)).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /Xem việc/ })).not.toBeInTheDocument();
+    };
+    ordinary();
+
+    // The slow read lands with the older saved mood while the save is still pending.
+    await act(async () => { landRead(row("Chill")); await Promise.resolve(); });
+    ordinary();
+    expect(screen.getByRole("button", { name: "Mood hôm nay: Đuối" })).toBeInTheDocument();
+
+    // Only the confirmed save brings the lighter action.
+    await act(async () => { landSave(row("Đuối")); await Promise.resolve(); });
+    expect(await screen.findByText(withLighter.lighter_action.action)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Xem việc ban đầu" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Mood hôm nay: Đuối" })).toBeInTheDocument();
+  });
+
+  it.each([
+    { saved: "Chill", pick: "Đuối" },
+    { saved: null, pick: "Đuối" },
+    { saved: "Đuối", pick: "Chill" },
+  ] as const)("never shows the lighter action for a pick that failed to save: saved $saved, picked $pick (review auto-4)", async ({ saved, pick }) => {
+    const user = userEvent.setup();
+    const withLighter = { ...vibe, lighter_action: { action: "Uống một ly nước rồi ngồi yên hai phút.", weight: "light" as const, experiment: null } };
+    vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(withLighter)));
+    vi.mocked(getCurrentMood).mockResolvedValue(saved ? { id: "00000000-0000-4000-8000-000000000090", daily_note_id: baseNoteId, mood: saved, checked_in_at: "2026-09-07T10:00:00Z" } : null);
+    vi.mocked(checkInMood).mockRejectedValue(new Error("offline"));
+    renderPage();
+
+    await user.click(await screen.findByRole("button", { name: saved ? `Mood hôm nay: ${saved}` : "Chọn mood hôm nay" }));
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: new RegExp(pick) }));
+    expect((await screen.findAllByText("Đã giữ cảm xúc trên máy. Lá Lành sẽ đồng bộ khi có mạng.")).length).toBeGreaterThan(0);
+
+    // The control keeps the pick (it will be sent again); the action waits for a saved mood.
+    expect(screen.getByRole("button", { name: `Mood hôm nay: ${pick}` })).toBeInTheDocument();
+    expect(screen.getByText(vibe.sections.micro_action)).toBeInTheDocument();
+    expect(screen.queryByText(withLighter.lighter_action.action)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Xem việc/ })).not.toBeInTheDocument();
+  });
+
   it("keeps the card's own action on a Đuối day when no lighter action is approved (#627)", async () => {
     const user = userEvent.setup();
     vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(vibe)));

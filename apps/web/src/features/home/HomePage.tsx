@@ -28,7 +28,7 @@ import {
   type ResonanceChoice,
   type SignalContext,
 } from "../../shared/api/client";
-import { dailyMoodKey, noteDailyMood, retireDailyMoodIntent, useDailyActionView, type DailyActionChoice } from "../../shared/hooks/useDailyActionView";
+import { dailyMoodKey, resetDailyActionChoice, useDailyActionView, type DailyActionChoice } from "../../shared/hooks/useDailyActionView";
 import { currentSessionEpoch, sessionGeneration } from "../../shared/session/sessionIdentity";
 import { useReadingUpdateActivation } from "../../shared/hooks/useReadingUpdateActivation";
 import { chartDataRevision } from "../../shared/storage/clearChartDerivedData";
@@ -143,9 +143,10 @@ export function HomePage() {
   // yesterday's mood must not follow it (US-04 AC12).
   const [moodChoice, setMoodChoice] = useState<{ noteId: string; value: MoodValue } | null>(null);
   const mood = moodChoice && moodChoice.noteId === note?.id ? moodChoice.value : null;
-  // The action view works from the saved mood plus this tab's unconfirmed pick, so a mood changed
-  // elsewhere (another tab) replaces an older pick as soon as it is fetched.
-  const actionView = useDailyActionView(note?.id, activeReading, moodQuery.data?.mood);
+  // The lighter action follows the saved mood only (#627). While a pick is still being saved, or
+  // failed to save, the control and the saved mood disagree and the card keeps its own action.
+  const savedMood = moodQuery.data?.mood ?? null;
+  const actionView = useDailyActionView(note?.id, activeReading, mood === savedMood ? savedMood : null);
   const moonLabel = useMemo(() => moonPhase().label, []);
   const ritual = useDailyRitual(note?.note_date);
   const [moodSheetOpen, setMoodSheetOpen] = useState(false);
@@ -237,27 +238,28 @@ export function HomePage() {
       const previous = mood;
       if (note) {
         setMoodChoice({ noteId: note.id, value });
-        // In memory only: lets the note page show the same action before the server answers.
-        noteDailyMood(queryClient, note.id, value);
+        // A slow mood read from before this pick must not put the older mood back on the control.
+        void queryClient.cancelQueries({ queryKey: dailyMoodKey(note.id) });
       }
       setMoodSheetOpen(false);
       setLineDismissed(false);
       setMessage("Đang lưu cảm xúc này cho bạn…");
       return { previous, revision: chartDataRevision(queryClient), generation: sessionGeneration(), ownerEpoch: currentSessionEpoch() };
     },
-    onSuccess: (payload, { intent }, context) => {
+    onSuccess: async (payload, { intent }, context) => {
       if (note) acknowledgePendingMood(note.id, intent);
-      // The confirmed mood becomes the saved one, which retires this tab's unconfirmed pick. A
-      // callback arriving after a session change or a data wipe must not write it back.
+      // The confirmed check-in becomes the saved mood, for Home and for the note page. A callback
+      // arriving after a session change or a data wipe must not write it back.
       if (
         context.revision === chartDataRevision(queryClient)
         && context.generation === sessionGeneration()
         && context.ownerEpoch === currentSessionEpoch()
       ) {
+        // A mood read that started before this check-in must not land after it with an older value.
+        await queryClient.cancelQueries({ queryKey: dailyMoodKey(payload.daily_note_id) });
         queryClient.setQueryData(dailyMoodKey(payload.daily_note_id), payload);
+        resetDailyActionChoice(queryClient, payload.daily_note_id);
       }
-      // Confirmed: the pick is no longer pending and must never come back, whatever is saved later.
-      retireDailyMoodIntent(queryClient, payload.daily_note_id);
       setMoodChoice({ noteId: payload.daily_note_id, value: payload.mood });
       setMessage(laMoodReaction(payload.mood, vibe));
     },
