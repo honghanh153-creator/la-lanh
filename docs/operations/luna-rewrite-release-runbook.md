@@ -119,8 +119,13 @@ under v4 is reused.
   - The rollback floor moves at the first v3 revision actually stored, not at the approval and not
     at the release that switches selection on. Record that first stored v3 revision in the release
     log; from then on the rollback target must keep a reader with `companion_roast`.
-  - Withdrawing or editing the approval, or switching selection off again, stops new v3 cards;
-    cards already stored keep both voices and still need the v3 reader.
+  - Withdrawing or editing the approval of one pair stops new v3 cards with that pair only. Every
+    other pair that is still approved and valid keeps producing v3 cards
+    (`extra_lines_by_issue` in `readings/companion_pool.py` drops only the pair that is no longer
+    approved).
+  - To stop all new v3 writes, switch selection off again in a release, or withdraw every
+    eligible pair. A partial withdrawal is not a stop.
+  - Either way, cards already stored keep both voices and still need the v3 reader.
   - Evidence: `tests/readings/test_candidate_compat.py`, plus a probe that opened both
     serializations with the real `3d3107a` reader (v1 OK, v2 rejected on `companion`).
 
