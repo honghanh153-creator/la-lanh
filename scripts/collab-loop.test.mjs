@@ -327,6 +327,124 @@ test('5-fix A2: only the owner\'s four kinds wait on her; a merge hold adds need
   assert.match(copy.body, /phát hành/);
 });
 
+test('#611: a recorded owner answer covers its kinds on later reviews; a new kind still holds', async () => {
+  const answers = await import('./collab-owner-answer.mjs');
+  const act = (kind, blocks = 'merge') => ({ kind, evidence: 'docs/plans/x.md:3 synthetic', blocks });
+  const reviewWith = (state, owner_actions, run = fakeRun({ head: state.pr.headRefOid }).run) => {
+    const gh = fakeGh(state);
+    const result = review.runReview(state.pr.number, { gh, run, readOut: () => JSON.stringify(output({ sha: state.pr.headRefOid, owner_actions })), now: { date: '2027-03-01', hour: 12, minute: 0 } });
+    return { result, gh, labels: gh.calls.filter(c => c[0] === 'raw' && c[1].includes('--add-label')).map(c => c[1].at(-1)), body: gh.calls.find(c => c[0] === 'comment')?.[3] };
+  };
+  // Red before #611: no answer recorded, the cost hold adds needs-owner.
+  const state = { pr: pr({ number: 611, comments: [check(A)] }) };
+  const first = reviewWith(state, [act('cost_access')]);
+  assert.deepEqual([first.result.needsOwner, first.labels], [true, ['needs-owner']]);
+  state.pr.labels = [{ name: 'needs-owner' }];
+
+  // Recording refuses without the owner's words, a known kind or a short answer code.
+  assert.equal(answers.recordAnswer(611, { kinds: 'cost_access', answer: 'Q1', quote: '', gh: fakeGh(state) }).status, 'refused');
+  assert.equal(answers.recordAnswer(611, { kinds: 'roadmap', answer: 'Q1', quote: 'Q1', gh: fakeGh(state) }).status, 'refused');
+  assert.equal(answers.recordAnswer(611, { kinds: 'cost_access', answer: 'Q1"x', quote: 'Q1', gh: fakeGh(state) }).status, 'refused');
+
+  // The answer lifts the review's own hold only: one "labeled" event since the verdict.
+  const labelledAt = new Date(Date.parse(state.pr.comments.at(-1).createdAt)).toISOString();
+  const ghRec = fakeGh(state);
+  const raw = ghRec.raw;
+  ghRec.raw = (args, input) => (args[0] === 'api' && String(args[1]).endsWith('/events') ? `${JSON.stringify({ event: 'labeled', at: labelledAt })}\n` : raw(args, input));
+  const rec = answers.recordAnswer(611, { kinds: 'cost_access', answer: 'Q1', quote: 'Q1', gh: ghRec });
+  assert.deepEqual(rec, { status: 'recorded', lifted: true });
+  assert.ok(ghRec.calls.some(c => c[0] === 'raw' && c[1].includes('--remove-label') && c[1].includes('needs-owner')));
+  assert.equal(answers.sealedAnswers(state.pr).length, 1);
+  state.pr.labels = [];
+
+  // Green: an integration sync gives a new head whose own files are unchanged; the next review adds no label.
+  state.pr.headRefOid = B;
+  state.pr.comments.push(resign(611, check(B)));
+  const synced = reviewWith(state, [act('cost_access')]);
+  assert.deepEqual([synced.result.verdict, synced.result.needsOwner, synced.labels, synced.result.answered], ['APPROVE', false, [], ['cost_access']]);
+  assert.match(synced.body, /đã có câu trả lời của owner: Q1 @ `aaaaaaaaaaaa`/);
+
+  // A kind she has not answered still holds.
+  state.pr.headRefOid = C;
+  state.pr.comments.push(resign(611, check(C)));
+  const more = reviewWith(state, [act('cost_access'), act('data_collection')]);
+  assert.deepEqual([more.result.needsOwner, more.labels, more.result.answered], [true, ['needs-owner'], ['cost_access']]);
+});
+
+test('#611, Codex r2 on #637: an answer withdrawn while Codex reads no longer counts', async () => {
+  const answers = await import('./collab-owner-answer.mjs');
+  const state = { pr: pr({ number: 615, comments: [check(A)] }) };
+  assert.equal(answers.recordAnswer(615, { kinds: 'cost_access', answer: 'Q1', quote: 'Q1', gh: fakeGh(state) }).status, 'recorded');
+  const gh = fakeGh(state);
+  let reads = 0;
+  // First read: the answer is there. Every read after Codex ran: it was deleted meanwhile.
+  gh.pr = () => { reads += 1; const p = structuredClone(state.pr); if (reads > 1) p.comments = p.comments.filter(c => !/owner-answer/.test(c.body ?? '')); return p; };
+  const result = review.runReview(615, { gh, run: fakeRun().run, readOut: () => JSON.stringify(output({ owner_actions: [{ kind: 'cost_access', evidence: 'x:1 synthetic', blocks: 'merge' }] })), now: { date: '2027-03-04', hour: 12, minute: 0 } });
+  assert.deepEqual([result.status, result.needsOwner, result.answered], ['posted', true, []], 'the hold stays when the answer is gone');
+  assert.ok(gh.calls.some(c => c[0] === 'raw' && c[1].includes('--add-label') && c[1].includes('needs-owner')));
+});
+
+test('#611: an answer voids when the PR\'s own files change; copies, edits and hand-typed markers never count', async () => {
+  const answers = await import('./collab-owner-answer.mjs');
+  const D = 'd'.repeat(40);
+  const state = { pr: pr({ number: 612, headRefOid: A, comments: [check(A)] }) };
+  assert.equal(answers.recordAnswer(612, { kinds: 'sensitive_copy', answer: 'M1 N1', quote: 'M1 N1', gh: fakeGh(state) }).status, 'recorded');
+  const posted = state.pr.comments.at(-1);
+  // Content changed after the answer: git diff --quiet answer..head exits 1.
+  const changed = fakeRun({ head: D });
+  const run = (cmd, args, opts) => {
+    if (cmd === '/usr/bin/git' && args[0] === 'diff' && args[1] === '-z') return 'docs/plans/x.md\0';
+    if (cmd === '/usr/bin/git' && args[0] === 'diff' && args[1] === '--quiet') throw Object.assign(new Error('exit 1'), { status: 1 });
+    return changed.run(cmd, args, opts);
+  };
+  state.pr.headRefOid = D;
+  state.pr.comments.push(resign(612, check(D)));
+  const gh = fakeGh(state);
+  const result = review.runReview(612, { gh, run, readOut: () => JSON.stringify(output({ sha: D, owner_actions: [{ kind: 'sensitive_copy', evidence: 'docs/plans/x.md:3 synthetic', blocks: 'merge' }] })), now: { date: '2027-03-02', hour: 12, minute: 0 } });
+  assert.deepEqual([result.needsOwner, result.answered], [true, []], 'an edit after the answer asks the owner again');
+
+  // A copy of the answer comment, an edited kind list and a hand-typed marker never count.
+  const fake = { pr: { number: 612, comments: [] } };
+  fake.pr.comments.push(owner(posted.body));
+  fake.pr.comments.push(owner(posted.body.replace('kinds=sensitive_copy', 'kinds=cost_access,sensitive_copy')));
+  fake.pr.comments.push({ ...posted, body: posted.body.replace('"M1 N1"', '"M1 N1 và cả bản mới"') });
+  fake.pr.comments.push({ ...posted, body: posted.body.replace('answer="M1 N1"', 'answer="M2 N1"') });
+  fake.pr.comments.push(owner(`x\n${answers.answerSeal({ pr: 612, sha: A, kinds: ['cost_access'], answer: 'Q1', receipt: '0'.repeat(32) })}`));
+  assert.equal(answers.sealedAnswers(fake.pr).length, 0, 'a copy, edited kinds, edited words or an edited code never count');
+  assert.equal(answers.sealedAnswers({ ...fake.pr, comments: [posted] }).length, 1, 'the original still counts');
+  assert.equal(answers.sealedAnswers({ ...fake.pr, number: 613, comments: [posted] }).length, 0, 'an answer names its own PR');
+  assert.equal(answers.parseAnswer(posted.body.replace('kinds=sensitive_copy', 'kinds=sensitive_copy,cost_access')), null, 'kinds must be sorted');
+});
+
+test('#611: the label stays when the hold is not only the answered review hold', async () => {
+  const answers = await import('./collab-owner-answer.mjs');
+  const state = { pr: pr({ number: 614, comments: [check(A)] }) };
+  const gh = fakeGh(state);
+  review.runReview(614, { gh, run: fakeRun().run, readOut: () => JSON.stringify(output({ owner_actions: [{ kind: 'cost_access', evidence: 'x:1 synthetic', blocks: 'merge' }, { kind: 'data_collection', evidence: 'y:1 synthetic', blocks: 'merge' }] })), now: { date: '2027-03-03', hour: 12, minute: 0 } });
+  state.pr.labels = [{ name: 'needs-owner' }];
+  const at = state.pr.comments.at(-1).createdAt;
+  const ev = list => list.map(e => JSON.stringify(e)).join('\n');
+  const withEvents = text => { const g = fakeGh(state); const raw = g.raw; g.raw = (args, input) => (args[0] === 'api' ? text : raw(args, input)); return g; };
+  const partial = answers.recordAnswer(614, { kinds: 'cost_access', answer: 'Q1', quote: 'Q1', gh: withEvents(ev([{ event: 'labeled', at }])) });
+  assert.deepEqual([partial.lifted, /data_collection/.test(partial.reason)], [false, true], 'an unanswered kind keeps the label');
+  const touched = answers.recordAnswer(614, { kinds: 'data_collection', answer: 'Q2', quote: 'Q2', gh: withEvents(ev([{ event: 'labeled', at }, { event: 'unlabeled', at }, { event: 'labeled', at }])) });
+  assert.equal(touched.lifted, false, 'a label changed by someone else since the review stays');
+  assert.equal(answers.liftCheck({ ...state.pr, labels: [] }, { events: [] }).lift, false);
+  const once = [{ event: 'labeled', at }];
+  // Codex r1 on #637: two answers recorded separately combine, from the answers that verify now.
+  assert.equal(answers.recordAnswer(614, { kinds: 'data_collection', answer: 'Q2', quote: 'Q2', gh: withEvents(ev(once)) }).lifted, true, 'separate answers combine');
+  assert.equal(answers.liftCheck(state.pr, { events: once }).lift, true, 'both kinds answered, label untouched: lift');
+  assert.equal(answers.liftCheck({ ...state.pr, headRefOid: B }, { events: once }).lift, false, 'a review at an older head never lifts');
+  const wrote = { ...state.pr, comments: [...state.pr.comments, owner('Khoan merge PR này.')] };
+  assert.equal(answers.liftCheck(wrote, { events: once }).lift, false, 'the owner wrote on the PR after the review');
+  // An answer edited (or deleted) after it was recorded covers nothing, so the other answer alone never lifts.
+  const costAt = state.pr.comments.findIndex(c => /answer="Q1"/.test(c.body ?? ''));
+  const edited = { ...state.pr, comments: state.pr.comments.map((c, i) => (i === costAt ? { ...c, body: c.body.replace('"Q1"\n', '"Q1 nữa"\n') } : c)) };
+  assert.equal(answers.liftCheck(edited, { events: once }).lift, false, 'an edited cost answer no longer covers cost_access');
+  const deleted = { ...state.pr, comments: state.pr.comments.filter((_, i) => i !== costAt) };
+  assert.match(answers.liftCheck(deleted, { events: once }).reason, /cost_access/, 'a deleted cost answer no longer covers cost_access');
+});
+
 test('5-fix A2, P1 on #591: a failed owner label posts no verdict, so an APPROVE never lacks its hold', () => {
   for (const [kind, blocks, label] of [['cost_access', 'merge', 'needs-owner'], ['sensitive_copy', 'release', review.releaseLabel]]) {
     const state = { pr: pr({ comments: [check(A)] }) };
@@ -523,7 +641,7 @@ test('r1: review errors count as tick failures and alert on the second', () => {
   assert.equal(alerts.length, 1);
 });
 
-test('r1: privacy and features wait while content has machine work; a content PR waiting for Claude does not block', () => {
+test('r1: privacy and features wait for checks while content has machine work; a ready merge in any area goes at once (#633)', () => {
   const date = '2026-11-05';
   const open = [
     pr({ number: 1, title: 'feat(tarot): copy', comments: [check(A), owner(`Review verdict: REQUEST_CHANGES @ ${A}`)] }),
@@ -533,15 +651,16 @@ test('r1: privacy and features wait while content has machine work; a content PR
   const merged = [];
   const content = pr({ number: 4, title: 'feat(tarot): needs a check' });
   open.push(content);
-  const result = tick({ gh: plannedGh(open, date), now: { date, hour: 11, minute: 5 }, merge: n => { merged.push(n); return { status: 'merged' }; }, check: () => ({ status: 'FAIL' }), review: () => ({ status: 'posted' }) });
+  const checked = [];
+  const result = tick({ gh: plannedGh(open, date), now: { date, hour: 11, minute: 5 }, merge: n => { merged.push(n); return { status: 'merged' }; }, check: n => { checked.push(n); return { status: 'FAIL' }; }, review: () => ({ status: 'posted' }) });
   assert.equal(result.area, 'content', 'content machine work (#4 check) goes first');
-  assert.deepEqual(merged, []);
+  assert.deepEqual(checked, [4], 'the check runs on the content PR');
+  assert.deepEqual(merged, [2], 'a privacy PR ready to merge does not wait for content checks');
   const queue = JSON.parse(readFileSync(join(trust.stateDir, 'claude-queue.json'), 'utf8'));
   assert.deepEqual(queue.items.map(i => i.number), [1], 'Claude still fixes content first');
   open.pop();
   const next = tick({ gh: plannedGh(open, date), now: { date, hour: 12, minute: 5 }, merge: n => { merged.push(n); return { status: 'merged' }; }, review: () => ({ status: 'posted' }) });
   assert.equal(next.area, 'privacy', 'a content PR waiting for Claude does not stall the machine');
-  assert.deepEqual(merged, [2]);
 });
 
 test('r2: every CLI entry loads and exits without hanging on an import cycle', () => {
