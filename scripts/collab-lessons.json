@@ -818,6 +818,26 @@
     "pr": 658
    },
    "note": "bộ kiểm sổ nhận test pytest từ #661"
+  },
+  {
+   "id": "L47",
+   "title": "Câu trả lời của owner ghi ở head hiện tại gỡ được nhãn needs-owner gắn từ head cũ hoặc từ luật cũ; không còn vòng khóa \"nhãn chặn review, review mới gỡ được nhãn\" (sự cố 17.11: #477, #354, #652 kẹt sau V1)",
+   "from": "owner V1 17.11; Codex điểm 6 trên #637",
+   "who": "claude",
+   "due": "2026-11-18",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-loop.test.mjs",
+    "name": "deadlock (Codex point 6 on #637): an answer recorded at the current head lifts a label from an older head or from before owner_actions"
+   },
+   "caller": {
+    "file": "scripts/collab-owner-answer.mjs",
+    "contains": "return staleLift(pr, sealedAuto, events)"
+   },
+   "closedBy": {
+    "pr": 675
+   },
+   "note": ""
   }
  ]
 }

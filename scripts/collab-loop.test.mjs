@@ -445,6 +445,44 @@ test('#611: the label stays when the hold is not only the answered review hold',
   assert.match(answers.liftCheck(deleted, { events: once }).reason, /cost_access/, 'a deleted cost answer no longer covers cost_access');
 });
 
+test('deadlock (Codex point 6 on #637): an answer recorded at the current head lifts a label from an older head or from before owner_actions', async () => {
+  const answers = await import('./collab-owner-answer.mjs');
+  const withEvents = (state, list) => {
+    const g = fakeGh(state);
+    const raw = g.raw;
+    g.raw = (args, input) => (args[0] === 'api' ? list.map(e => JSON.stringify(e)).join('\n') : raw(args, input));
+    return g;
+  };
+  // Old rules: labelled on 13.11, before #591; no review since (the label blocks it).
+  const legacy = { pr: pr({ number: 616, comments: [check(A)], labels: [{ name: 'needs-owner' }] }) };
+  const old = [{ event: 'labeled', at: '2026-11-09T05:13:16Z' }, { event: 'unlabeled', at: '2026-11-13T05:40:44Z' }, { event: 'labeled', at: '2026-11-13T07:19:27Z' }];
+  const lifted = answers.recordAnswer(616, { kinds: 'cost_access', answer: 'V1 13.11', quote: 'chạy đi', gh: withEvents(legacy, old) });
+  assert.deepEqual(lifted, { status: 'recorded', lifted: true });
+  // A label added after owner_actions existed, with no review log behind it, stays for the owner.
+  const late = { pr: pr({ number: 617, comments: [check(A)], labels: [{ name: 'needs-owner' }] }) };
+  const kept = answers.recordAnswer(617, { kinds: 'cost_access', answer: 'Q1', quote: 'Q1', gh: withEvents(late, [{ event: 'labeled', at: '2026-11-17T07:10:04Z' }]) });
+  assert.equal(kept.lifted, false);
+  // Anything the owner wrote herself after the answer may be another hold.
+  const wrote = { ...legacy.pr, comments: [...legacy.pr.comments, owner('Khoan, để chị xem lại.')] };
+  assert.equal(answers.liftCheck(wrote, { events: old }).lift, false);
+
+  // Older head: the review at A held cost_access and data_collection; the branch then synced to B.
+  const moved = { pr: pr({ number: 618, comments: [check(A)] }) };
+  const g = fakeGh(moved);
+  review.runReview(618, { gh: g, run: fakeRun().run, readOut: () => JSON.stringify(output({ owner_actions: [
+    { kind: 'cost_access', evidence: 'x:1 synthetic', blocks: 'merge' }, { kind: 'data_collection', evidence: 'y:1 synthetic', blocks: 'merge' }] })), now: { date: '2027-03-05', hour: 12, minute: 0 } });
+  moved.pr.labels = [{ name: 'needs-owner' }];
+  moved.pr.headRefOid = B;
+  const at = moved.pr.comments.at(-1).createdAt;
+  const partial = answers.recordAnswer(618, { kinds: 'cost_access', answer: 'Q1', quote: 'Q1', gh: withEvents(moved, [{ event: 'labeled', at }]) });
+  assert.deepEqual([partial.lifted, /data_collection/.test(partial.reason)], [false, true], 'a held kind without an answer keeps the label');
+  const all = answers.recordAnswer(618, { kinds: 'data_collection', answer: 'Q2', quote: 'Q2', gh: withEvents(moved, [{ event: 'labeled', at }]) });
+  assert.deepEqual(all, { status: 'recorded', lifted: true }, 'every held kind answered at the current head');
+  // An answer recorded at an older head never lifts: it does not cover the content as it is now.
+  const stale = { ...moved.pr, headRefOid: C };
+  assert.equal(answers.liftCheck(stale, { events: [{ event: 'labeled', at }] }).lift, false);
+});
+
 test('5-fix A2, P1 on #591: a failed owner label posts no verdict, so an APPROVE never lacks its hold', () => {
   for (const [kind, blocks, label] of [['cost_access', 'merge', 'needs-owner'], ['sensitive_copy', 'release', review.releaseLabel]]) {
     const state = { pr: pr({ comments: [check(A)] }) };
