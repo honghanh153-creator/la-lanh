@@ -195,18 +195,25 @@ test('L06 gate: install keeps other hooks, verify catches removal, changes and d
   assert.equal(data.model, 'x');
   assert.deepEqual(data.hooks.PreToolUse, [other, gateHooks(home).PreToolUse], 'installed once, other hook kept');
   assert.equal(data.hooks.PreToolUse[1].hooks[0].onFailure, 'block');
-  assert.deepEqual(verifyAgentGate({ home, settings }), []);
+  assert.deepEqual(verifyAgentGate({ home, settings, projects: [] }), []);
   writeFileSync(settings, JSON.stringify({ ...data, hooks: { ...data.hooks, PreToolUse: [other] } }));
-  assert.match(verifyAgentGate({ home, settings }).join(), /PreToolUse/);
+  assert.match(verifyAgentGate({ home, settings, projects: [] }).join(), /PreToolUse/);
   const failOpen = structuredClone(data);
   delete failOpen.hooks.PreToolUse[1].hooks[0].onFailure;
   writeFileSync(settings, JSON.stringify(failOpen));
-  assert.match(verifyAgentGate({ home, settings }).join(), /PreToolUse/);
+  assert.match(verifyAgentGate({ home, settings, projects: [] }).join(), /PreToolUse/);
   writeFileSync(settings, JSON.stringify({ ...data, disableAllHooks: true }));
-  assert.match(verifyAgentGate({ home, settings }).join(), /disableAllHooks/);
+  assert.match(verifyAgentGate({ home, settings, projects: [] }).join(), /disableAllHooks/);
   writeFileSync(settings, JSON.stringify(data));
   writeFileSync(join(dir, 'settings.local.json'), JSON.stringify({ disableAllHooks: true }));
-  assert.match(verifyAgentGate({ home, settings }).join(), /settings\.local\.json/);
+  assert.match(verifyAgentGate({ home, settings, projects: [] }).join(), /settings\.local\.json/);
+  // Codex P2 on #616: a checkout's own project settings switch hooks off as well.
+  writeFileSync(join(dir, 'settings.local.json'), '{}');
+  assert.deepEqual(verifyAgentGate({ home, settings, projects: [] }), []);
+  const project = realpathSync(mkdtempSync(join(tmpdir(), 'gate-proj-')));
+  mkdirSync(join(project, '.claude'));
+  writeFileSync(join(project, '.claude', 'settings.json'), JSON.stringify({ disableAllHooks: true }));
+  assert.match(verifyAgentGate({ home, settings, projects: [project] }).join(), /gate-proj-.*\.claude\/settings\.json/);
 });
 
 test('L06 gate: a broken gate opens one alert a day from the real tick, and closes it once fixed', () => {

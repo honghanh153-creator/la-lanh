@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 import { codexDailyCap, hhmmOf, integration, lastStartAt, planOpensAt, stateDir } from './collab-trust.mjs';
 import { isMain } from './is-main.mjs';
 import { parseRules, sheetPath } from './collab-rules.mjs';
-import { verifyRulesHook } from './collab-rules-hook.mjs';
+import { hookSettingsFiles, projectRoots, verifyRulesHook } from './collab-rules-hook.mjs';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 export const sourcePath = (root = repoRoot) => join(root, 'scripts', 'ops-run.sh');
@@ -88,7 +88,8 @@ export function installAgentGate({ home = stateDir, settings = settingsPath(), n
 
 // Problems with the installed gate: entries missing or changed, fail-open, hooks turned off in a
 // settings file this machine reads. It detects removal; it cannot prevent it (same rights as L24).
-export function verifyAgentGate({ home = stateDir, settings = settingsPath(), extra = [] } = {}) {
+// Codex P2 on #616: project settings of the la-lanh checkouts can switch hooks off too.
+export function verifyAgentGate({ home = stateDir, settings = settingsPath(), extra = [], projects = projectRoots() } = {}) {
   let data;
   try { data = JSON.parse(readFileSync(settings, 'utf8')); } catch { return [`không đọc được ${settings}`]; }
   const bad = [];
@@ -97,7 +98,7 @@ export function verifyAgentGate({ home = stateDir, settings = settingsPath(), ex
     if (got.length !== 1 || JSON.stringify(got[0]) !== JSON.stringify(want)) bad.push(`hook ${event} của cổng dev con thiếu hoặc khác bản chuẩn`);
   }
   if (!existsSync(gateScript(home))) bad.push('không thấy collab-agent-gate.mjs trong clone ops');
-  for (const file of [settings, settings.replace(/settings\.json$/, 'settings.local.json'), ...extra]) {
+  for (const file of [...hookSettingsFiles({ settings, projects }), ...extra]) {
     try { if (JSON.parse(readFileSync(file, 'utf8')).disableAllHooks === true) bad.push(`disableAllHooks đang bật trong ${file}`); } catch {}
   }
   return bad;
