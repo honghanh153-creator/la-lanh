@@ -827,11 +827,15 @@ describe("HomePage rich reading", () => {
 
     // One test per reordering of answers (coordinator, 17.11). All of them go through
     // `newerMoodRow`: an answer is applied only if it is not older than the row already applied.
-    it("read vs save: a read started before the save's answer and landing after it does not put the older mood back", async () => {
-      const { client, settle } = await pickWithPendingSave("Chill", "Đuối");
-      // A refetch starts while the save is pending; the server answers it with the row from
+    it.each([
+      { saved: "Chill" },
+      // "No mood" has no time to compare, so here only replacing the slow read protects the save.
+      { saved: null },
+    ] as const)("read vs save: a read started before the save's answer and landing after it does not put the older state back (saved before: $saved)", async ({ saved }) => {
+      const { client, settle } = await pickWithPendingSave(saved, "Đuối");
+      // A refetch starts while the save is pending; the server answers it with what it had
       // before the save, and that answer is slow.
-      const before = moodServer.read(baseNoteId)!;
+      const before = moodServer.read(baseNoteId);
       let landRead: (() => void) | undefined;
       vi.mocked(getCurrentMood).mockImplementationOnce(() => new Promise((resolve) => { landRead = () => resolve(before); }));
       void client.invalidateQueries({ queryKey: ["daily-note-mood"] });
