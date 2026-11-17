@@ -244,10 +244,12 @@ export function HomePage() {
       setMoodSheetOpen(false);
       setLineDismissed(false);
       setMessage("Đang lưu cảm xúc này cho bạn…");
-      return { previous, revision: chartDataRevision(queryClient), generation: sessionGeneration(), ownerEpoch: currentSessionEpoch() };
+      // The pick belongs to the note on screen now; a later callback must not file it under the
+      // next day's note if the day changes while the request is on its way (US-04 AC12).
+      return { previous, noteId: note?.id, revision: chartDataRevision(queryClient), generation: sessionGeneration(), ownerEpoch: currentSessionEpoch() };
     },
     onSuccess: async (payload, { intent }, context) => {
-      if (note) acknowledgePendingMood(note.id, intent);
+      acknowledgePendingMood(payload.daily_note_id, intent);
       // The confirmed check-in becomes the saved mood, for Home and for the note page. A callback
       // arriving after a session change or a data wipe must not write it back.
       if (
@@ -263,8 +265,8 @@ export function HomePage() {
       setMoodChoice({ noteId: payload.daily_note_id, value: payload.mood });
       setMessage(laMoodReaction(payload.mood, vibe));
     },
-    onError: (_error, { mood: value, intent }) => {
-      if (note) keepPendingMood(note.id, value, intent);
+    onError: (_error, { mood: value, intent }, context) => {
+      if (context?.noteId) keepPendingMood(context.noteId, value, intent);
       setMessage("Đã giữ cảm xúc trên máy. Lá Lành sẽ đồng bộ khi có mạng.");
     },
   });
