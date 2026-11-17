@@ -2032,10 +2032,7 @@
    "id": "daily.action.quick-reply.14",
    "category": "reading",
    "text": "Đọc hết phần chữ bên dưới ảnh trước khi khen ảnh.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-16",
-   "digest": "f700005472c3f054cb6834a8dd1422787490bd74927011ab582c86773ce12e34"
+   "status": "pending"
   },
   {
    "id": "daily.action.quick-reply.15",
@@ -2443,10 +2440,7 @@
    "id": "daily.action.specific-feedback.21",
    "category": "reading",
    "text": "Xin góp ý riêng cho phần kết thay vì cả bài.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-16",
-   "digest": "5e9159a7a6fc37bb9203b3bf371253ba9f92928be1a80c5049ba824897b245d9"
+   "status": "pending"
   },
   {
    "id": "daily.action.specific-feedback.22",
