@@ -661,6 +661,41 @@ describe("HomePage rich reading", () => {
       expectOrdinary();
     });
 
+    // Review auto-5: another tab saves again while this tab's save is pending, so the refetch
+    // returns a different row (new id and time), not the identical one the tests above return.
+    const savedElsewhere = (mood: "Đuối" | "Chill") => ({ ...row(mood), id: "00000000-0000-4000-8000-000000000088", checked_in_at: "2026-09-07T11:30:00Z" });
+
+    it.each([
+      { saved: "Đuối", pick: "Chill", elsewhere: "Đuối", outcome: "fails" },
+      { saved: "Đuối", pick: "Chill", elsewhere: "Đuối", outcome: "succeeds" },
+      { saved: "Chill", pick: "Đuối", elsewhere: "Chill", outcome: "fails" },
+      { saved: "Chill", pick: "Đuối", elsewhere: "Chill", outcome: "succeeds" },
+      { saved: null, pick: "Chill", elsewhere: "Đuối", outcome: "fails" },
+    ] as const)("a newer saved row fetched while a save is pending never replaces the unsaved pick: saved $saved, picked $pick, $elsewhere saved elsewhere, save $outcome", async ({ saved, pick, elsewhere, outcome }) => {
+      const { client, settle } = await pickWithPendingSave(saved, pick);
+      vi.mocked(getCurrentMood).mockResolvedValue(savedElsewhere(elsewhere));
+      await act(async () => { await client.invalidateQueries({ queryKey: ["daily-note-mood"] }); });
+      await waitFor(() => expect(client.getQueryData<{ id: string }>(["daily-note-mood", baseNoteId])?.id).toBe(savedElsewhere(elsewhere).id));
+
+      // The new row is the saved mood now, but the pick here is still unsaved: the control keeps
+      // the pick and the card keeps its own action, even though the saved mood may be Đuối.
+      expect(screen.getByRole("button", { name: `Mood hôm nay: ${pick}` })).toBeInTheDocument();
+      expectOrdinary();
+
+      if (outcome === "fails") {
+        await act(async () => { settle.reject(new Error("offline")); await Promise.resolve(); });
+        expect((await screen.findAllByText("Đã giữ cảm xúc trên máy. Lá Lành sẽ đồng bộ khi có mạng.")).length).toBeGreaterThan(0);
+        expect(screen.getByRole("button", { name: `Mood hôm nay: ${pick}` })).toBeInTheDocument();
+        expectOrdinary();
+        return;
+      }
+      await act(async () => { settle.resolve(row(pick)); await Promise.resolve(); });
+      await waitFor(() => expect(client.getQueryData<{ mood: string }>(["daily-note-mood", baseNoteId])?.mood).toBe(pick));
+      expect(screen.getByRole("button", { name: `Mood hôm nay: ${pick}` })).toBeInTheDocument();
+      if (pick === "Đuối") expect(await screen.findByText(withLighter.lighter_action.action)).toBeInTheDocument();
+      else expectOrdinary();
+    });
+
     it("day change while a save is pending, then it succeeds: yesterday's Đuối stays with yesterday's note", async () => {
       const { client, settle } = await pickWithPendingSave(null, "Đuối");
       vi.mocked(getDailyNote).mockResolvedValue(nextDay);

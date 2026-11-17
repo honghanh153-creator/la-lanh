@@ -139,14 +139,20 @@ export function HomePage() {
     enabled: Boolean(note?.id),
     retry: false,
   });
-  // The mood belongs to one note. A Home left open past midnight gets the next day's note, and
-  // yesterday's mood must not follow it (US-04 AC12).
-  const [moodChoice, setMoodChoice] = useState<{ noteId: string; value: MoodValue } | null>(null);
-  const mood = moodChoice && moodChoice.noteId === note?.id ? moodChoice.value : null;
-  // The lighter action follows the saved mood only (#627). While a pick is still being saved, or
-  // failed to save, the control and the saved mood disagree and the card keeps its own action.
+  // Two separate things, never copied into each other:
+  // - the saved mood: what the server has for this note (the mood query, keyed by note id);
+  // - the unsaved pick: a mood picked here whose save is pending or failed, with its note id.
+  // The control shows the unsaved pick while there is one, otherwise the saved mood. A mood read
+  // again from the server (a refetch, another tab) only ever changes the saved mood, so it cannot
+  // replace a pick that is still unsaved. A Home left open past midnight gets the next day's note;
+  // both are keyed by note, so yesterday's mood does not follow it (US-04 AC12).
+  const [unsavedPick, setUnsavedPick] = useState<{ noteId: string; value: MoodValue } | null>(null);
   const savedMood = moodQuery.data?.mood ?? null;
-  const actionView = useDailyActionView(note?.id, activeReading, mood === savedMood ? savedMood : null);
+  const unsavedMood = unsavedPick && unsavedPick.noteId === note?.id ? unsavedPick.value : null;
+  const mood = unsavedMood ?? savedMood;
+  // The lighter action follows the saved mood only (#627): never while a pick for this note is
+  // unsaved, whatever the saved mood is at that moment.
+  const actionView = useDailyActionView(note?.id, activeReading, unsavedMood ? null : savedMood);
   const moonLabel = useMemo(() => moonPhase().label, []);
   const ritual = useDailyRitual(note?.note_date);
   const [moodSheetOpen, setMoodSheetOpen] = useState(false);
@@ -237,8 +243,8 @@ export function HomePage() {
     onMutate: ({ mood: value }) => {
       const previous = mood;
       if (note) {
-        setMoodChoice({ noteId: note.id, value });
-        // A slow mood read from before this pick must not put the older mood back on the control.
+        setUnsavedPick({ noteId: note.id, value });
+        // A mood read already on its way is older than this pick; drop it.
         void queryClient.cancelQueries({ queryKey: dailyMoodKey(note.id) });
       }
       setMoodSheetOpen(false);
@@ -262,7 +268,8 @@ export function HomePage() {
         queryClient.setQueryData(dailyMoodKey(payload.daily_note_id), payload);
         resetDailyActionChoice(queryClient, payload.daily_note_id);
       }
-      setMoodChoice({ noteId: payload.daily_note_id, value: payload.mood });
+      // Saved: the pick for that note is no longer unsaved, and the control reads the saved mood.
+      setUnsavedPick((current) => (current?.noteId === payload.daily_note_id ? null : current));
       setMessage(laMoodReaction(payload.mood, vibe));
     },
     onError: (_error, { mood: value, intent }, context) => {
@@ -275,11 +282,6 @@ export function HomePage() {
     onSuccess: () => setMessage("Bản đọc mới đã mở. Note giờ nối nhiều lớp trong lá số cùng nhau."),
     onError: () => setMessage("Món quà chưa mở được. Giữ nguyên bản hiện tại và thử lại nhé."),
   });
-
-  useEffect(() => {
-    const saved = moodQuery.data;
-    if (saved?.mood) setMoodChoice({ noteId: saved.daily_note_id, value: saved.mood });
-  }, [moodQuery.data]);
 
   useEffect(() => {
     prunePendingMood();
