@@ -724,11 +724,19 @@
    "from": "owner 15.11, nhắc lại 16.11 (\"bạn quên nhiều\"); Claude + Codex 16.11",
    "who": "claude",
    "due": "2026-11-17",
-   "status": "open",
+   "status": "done",
    "test": {
     "file": "scripts/collab-rules-hook.test.mjs",
     "name": "L37 (R3): a question to the owner in chat is refused and points to the decisions file"
-   }
+   },
+   "caller": {
+    "file": "scripts/collab-tick.mjs",
+    "contains": "rulesWatch({ alert:"
+   },
+   "closedBy": {
+    "pr": 621
+   },
+   "note": "hook #616 (re-load + R3 deny, selftest); tick watch and prompt pointer check #621. Not covered: a question written as plain text in a message; whether the item really reached the decisions file."
   },
   {
    "id": "L42",
