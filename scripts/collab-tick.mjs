@@ -15,7 +15,7 @@ import { healthLines, readBeats, watch } from './collab-watchdog.mjs';
 import { alertMissed, ghIssues } from './collab-missed-run.mjs';
 import { pendingCount, readSaved, runCopyBatch, savedPath } from './codex-copy-review.mjs';
 import { hookHealth } from './collab-hooks.mjs';
-import { agentGateWatch, gateAlertSubject, rulesHookAlertSubject, rulesHookHealth, rulesHookWatch, skillRuleHealth, wrapperHealth } from './collab-ops-wrapper.mjs';
+import { agentGateWatch, gateAlertSubject, rulesHookAlertSubject, rulesHookHealth, rulesHookWatch, rulesSheetHealth, skillRuleHealth, wrapperHealth } from './collab-ops-wrapper.mjs';
 import { runMergeAudit } from './collab-merge-audit.mjs';
 import { isMain } from './is-main.mjs';
 import { loadAuditDeps } from './collab-audit.mjs';
@@ -55,7 +55,7 @@ export function runTick(gh = makeGh(), preflight = () => missingTools(), { run =
       // L37: the owner-rules hook (re-load of the rules sheet, R3 deny) is installed and passes its selftest.
       try { rulesWatch({ alert: text => opsAlert(gh, text, rulesHookAlertSubject), resolve: text => resolveOpsAlert(gh, text, rulesHookAlertSubject), today: vnNow().date }); } catch {}
       return watch({ alert: text => opsAlert(gh, text, watchdogSubject), resolve: text => resolveOpsAlert(gh, text, watchdogSubject) });
-    }, health: () => [...healthLines(readBeats()), ...hookHealth(), ...wrapperHealth(), ...skillRuleHealth(), ...rulesHookHealth()], copyPending: () => pendingCount(), copyBatch: () => runCopyBatch(), copySaved: () => Boolean(readSaved(savedPath, vnNow().date)),
+    }, health: () => [...healthLines(readBeats()), ...hookHealth(), ...wrapperHealth(), ...skillRuleHealth(), ...rulesSheetHealth(), ...rulesHookHealth()], copyPending: () => pendingCount(), copyBatch: () => runCopyBatch(), copySaved: () => Boolean(readSaved(savedPath, vnNow().date)),
     notify: (notes, comments) => postOwnerNotes(gh, planIssue(gh), notes, comments),
     metrics: ({ prs, turns }) => renderMetrics(collectMetrics({ gh, prs, turns })),
     audit: () => nightAudit(gh),

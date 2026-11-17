@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { installWrapper, installedPath, reportConsumers, rulesHookHealth, rulesHookWatch, skillRuleFindings, skillRuleHealth, verifyReportPrompts, verifySkillRules, verifyWrapper, wrapperHealth } from './collab-ops-wrapper.mjs';
+import { installWrapper, installedPath, reportConsumers, rulesHookHealth, rulesHookWatch, rulesSheetHealth, skillRuleFindings, skillRuleHealth, verifyReportPrompts, verifySkillRules, verifyWrapper, wrapperHealth } from './collab-ops-wrapper.mjs';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 // Scheduled-task prompts as the owner's machine has them since 15.11 (both call their snapshot step).
@@ -339,4 +339,16 @@ test('#620: a retired clause hides only itself; a Vietnamese quota is caught; an
   assert.equal(bad.length, 1);
   assert.match(bad[0], /^la-lanh-autopilot: không đọc được prompt \(EISDIR\), chưa kiểm$/);
   assert.match(skillRuleHealth({ prompts: dir })[0], /^- ⚠️ /);
+});
+
+// L44 (#643): the tick reads the owner-rules sheet against the code, not only CI.
+test('L44: the tick health line flags an owner-rules sheet that drifts from the code, and says when it cannot read it', () => {
+  const sheetRel = 'docs/operations/luat-dang-hieu-luc.md';
+  const real = readFileSync(join(repoRoot, sheetRel), 'utf8');
+  const at = text => { const root = realpathSync(mkdtempSync(join(tmpdir(), 'rules-sheet-'))); mkdirSync(join(root, 'docs', 'operations'), { recursive: true }); if (text !== null) writeFileSync(join(root, sheetRel), text); return root; };
+  assert.match(rulesSheetHealth({ root: at(real) })[0], /^- ✅ bảng luật owner: khớp code/);
+  const drifted = real.replace(/^(\| R8 \|[^|]*\|[^|]*)Trần 80 lượt/m, '$1Trần 60 lượt');
+  assert.notEqual(drifted, real);
+  assert.match(rulesSheetHealth({ root: at(drifted) })[0], /^- ⚠️ bảng luật owner khác code: .*R8: bảng ghi 60 lượt/);
+  assert.match(rulesSheetHealth({ root: at(null) })[0], /^- ⚠️ bảng luật owner: chưa kiểm được \(ENOENT\)/);
 });
