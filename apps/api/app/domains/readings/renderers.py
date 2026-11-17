@@ -44,7 +44,9 @@ JYOTISH_MEANINGS_VERSION = "jyotish-meanings-v2"
 # #665 (US-03 AC22): an approximate-time Daily lists every placement of its plan as evidence, so
 # that a lens never changes it. Stored approximate revisions from before keep their own identity
 # (Codex r1 on #666): a new key, not an ImmutableReadingConflictError when an old note reopens.
-APPROXIMATE_DAILY_EVIDENCE_VERSION = "approx-evidence-v1"
+# Kept short (Codex r2 on #666): renderer_version is at most 64 characters, and with a published
+# runtime catalog the version already carries "+daily-<8>" and "+content-<12>".
+APPROXIMATE_DAILY_EVIDENCE_VERSION = "ax1"
 
 _SIGN_LABELS = {
     "aries": "Bạch Dương",

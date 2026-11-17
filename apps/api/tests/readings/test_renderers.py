@@ -596,3 +596,21 @@ def test_a_lens_never_changes_the_evidence_of_an_approximate_daily() -> None:
             plain = evidence(None)
             for lens in lenses:
                 assert evidence(lens) == plain, (person, offset, lens)
+
+
+def test_an_approximate_daily_renders_with_a_published_runtime_catalog() -> None:
+    """Codex r2 on #666: the version marker must fit the 64-character renderer_version even when a
+    runtime catalog adds its 12-character hash."""
+    from app.domains.readings.renderers import APPROXIMATE_DAILY_EVIDENCE_VERSION
+
+    source = _chart().model_copy(
+        update={"time_precision": TimePrecision.APPROXIMATE, "houses": None, "angles": None}
+    )
+    plan = ReadingPlanner().plan(
+        source, purpose=ReadingPurpose.DAILY_NOTE, editorial_seed="2026-11-17"
+    )
+    candidate = DeterministicVietnameseRenderer()._render_snapshot(plan, "0123456789ab")
+    assert (
+        f"+{APPROXIMATE_DAILY_EVIDENCE_VERSION}+content-0123456789ab" in candidate.renderer_version
+    )
+    assert len(candidate.renderer_version) <= 64
