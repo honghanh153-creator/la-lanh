@@ -798,6 +798,26 @@
     "name": "dream: proposes stale marks, duplicates, reference checks and index fixes in a NEW store only"
    },
    "note": "caller is the local scheduled task la-lanh-memory-dream (00:20) and step 6b of la-lanh-bao-cao-7h; close once the tick checks those prompts call the script (like reportConsumers)"
+  },
+  {
+   "id": "L46",
+   "title": "Lượt người giả đo đúng cấu hình máy chủ thật: bật xoay Daily theo người như production (sự cố 17.11: lượt đêm đo khi xoay tắt, báo 13,5% thay vì 28,2%)",
+   "from": "owner hỏi về Daily trùng 17.11; fix-forward #661",
+   "who": "claude",
+   "due": "2026-11-17",
+   "status": "done",
+   "test": {
+    "file": "apps/api/tests/scripts/test_persona_runs.py",
+    "name": "test_the_simulation_runs_the_daily_rotation_production_runs"
+   },
+   "caller": {
+    "file": "apps/api/scripts/persona_sim.py",
+    "contains": "daily_variety_from=PRODUCTION_DAILY_VARIETY_FROM"
+   },
+   "closedBy": {
+    "pr": 658
+   },
+   "note": "bộ kiểm sổ nhận test pytest từ #661"
   }
  ]
 }
