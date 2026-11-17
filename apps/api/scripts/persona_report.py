@@ -524,6 +524,12 @@ def render(m: Mapping[str, Any], title: str) -> str:
         f"Ngưỡng: `{m['thresholds_version']}` (qa/personas/thresholds.md). "
         f"Code: `{run['git_head'][:12]}`. {run['personas']} người giả x {run['days']} ngày "
         f"từ {run['start']}, API chạy trên máy với dữ liệu giả.",
+        # Runs from 17.11.2026 record the rotation they ran with; older baselines rebuild as before.
+        *(
+            [f"Xoay Daily theo người: bật từ {run['daily_variety_from']}, như máy chủ thật."]
+            if run.get("daily_variety_from")
+            else []
+        ),
         "",
         table_row("Nhóm", "Ngưỡng", "Kết quả", ""),
         table_row("---", "---", "---", "---"),
