@@ -704,8 +704,15 @@ def apply_content_voice(
     roasted = roast_daily_sections(
         DailySections(current.hook, current.thesis, current.manifestation, current.micro_action)
     )
-    # Lá's line voices with the card: only an authored direct line has a roast pair.
-    companion = roast_companion_line(current.companion) if current.companion is not None else None
+    # Lá's line voices with the card. A stored pair (#657) keeps the roast it was opened with;
+    # otherwise only an authored or approved direct line has a roast pair.
+    companion = (
+        current.companion_roast
+        if current.companion_roast is not None and current.companion is not None
+        else roast_companion_line(current.companion)
+        if current.companion is not None
+        else None
+    )
     if (
         roasted
         == DailySections(current.hook, current.thesis, current.manifestation, current.micro_action)

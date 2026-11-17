@@ -28,10 +28,7 @@ from app.domains.readings.companion_pool import (
     extra_lines_by_issue,
     roast_companion_line,
 )
-from app.domains.readings.daily_psychology import (
-    DAILY_PSYCHOLOGY_MATRIX_VERSION,
-    daily_situation_period,
-)
+from app.domains.readings.daily_psychology import DAILY_PSYCHOLOGY_MATRIX_VERSION
 from app.domains.readings.daily_rotation import (
     DAILY_TOP_K,
     VARIETY_KEY_VERSION,
@@ -158,43 +155,39 @@ def test_two_lines_per_issue_already_alternate_day_by_day(
 ) -> None:
     monkeypatch.setattr(companion, "extra_lines_by_issue", lambda: _synthetic_pool(1))
     lines = _month_of_lines()
-    periods = {
-        daily_situation_period(
-            ReadingPlanner().plan(
-                _date_only_snapshot(GUEST, OWNER).result,
-                purpose=ReadingPurpose.DAILY_NOTE,
-                editorial_seed=START.isoformat(),
-                daily_variety=_variety(START),
-            )
-        )
-    }
 
-    assert periods == {1}  # this person's pool has one issue
+    # This person meets one issue every day: two lines alternate day by day.
     assert all(a != b for a, b in pairwise(lines))
 
 
 # ------------------------------------------------------------------ the pick
 
 
-@pytest.mark.parametrize("period", range(1, DAILY_TOP_K + 1))
 @pytest.mark.parametrize("size", [2, 3, 5, 8])
-def test_a_line_returns_only_after_every_other_line_was_shown(period: int, size: int) -> None:
+def test_two_days_fewer_than_n_apart_never_show_the_same_line(size: int) -> None:
+    # Codex r1 on #657: the pick follows the calendar day, not a count of appearances, so the
+    # guarantee holds for any pattern of appearances (transits, the anti-repeat guard), not only
+    # for an issue served every ``period`` days.
     issue = "missing-context"
     pool = _synthetic_pool(size - 1)
 
     def shown(day: int) -> str | None:
-        variety = _variety(START + timedelta(days=day))
-        return daily_companion_line(f"psychology:{issue}", variety, period=period)
+        line = daily_companion_line(f"psychology:{issue}", _variety(START + timedelta(days=day)))
+        return None if line is None else line.direct
 
     with pytest.MonkeyPatch.context() as patch:
         patch.setattr(companion, "extra_lines_by_issue", lambda: pool)
-        # The issue comes up every ``period`` days, as the top-K rotation serves it.
-        served = [shown(day) for day in range(0, period * size * 3, period)]
+        served = [shown(day) for day in range(size * 4)]
 
-    for start in range(len(served) - size + 1):
-        assert len(set(served[start : start + size])) == size, (period, size, start)
+    for a in range(len(served)):
+        for b in range(a + 1, min(a + size, len(served))):
+            assert served[a] != served[b], (size, a, b)
+    # Irregular appearances (Codex's example: days 300 and 302 with day 301 on another issue)
+    # get different lines once the pool has more than two lines.
+    if size > 2:
+        assert served[0] != served[2]
     # The authored line (stored as "no extra line") is one of the pool, not skipped.
-    assert served.count(None) == 3
+    assert served.count(None) == 4
 
 
 def test_the_order_differs_between_people_and_issues_and_is_stable() -> None:
@@ -359,7 +352,9 @@ async def test_an_extra_line_is_stored_with_the_card_and_voiced_as_a_pair(
     opened = await open_day(extra_day)
     line = opened.active.sections.companion
     assert stored(opened).companion == line
+    assert stored(opened).companion_roast == roasts[line]
     assert stored(opened).schema_version == COMPANION_CANDIDATE_SCHEMA_VERSION
+    assert "companion_roast" not in opened.active.sections.model_dump()  # never sent over the API
     roast = await open_day(extra_day, ReadingVoice.ROAST)
     assert roast.active.sections.companion == roasts[line]
 
@@ -367,9 +362,14 @@ async def test_an_extra_line_is_stored_with_the_card_and_voiced_as_a_pair(
     plain = stored(await open_day(plain_day))
     assert plain.companion is None and "companion" not in plain.model_dump()
 
-    # A card already opened keeps its line when the pair is withdrawn later.
+    # A card already opened keeps both voices when the pair is edited or withdrawn later
+    # (Codex r1 on #657: the roast used to be looked up again on every read).
+    issue = next(key for key, pair in extras.items() if pair.direct == line)
+    _use(monkeypatch, _pair(issue, 1, line, "Một câu khịa đã sửa sau đó, nha."))
+    assert (await open_day(extra_day, ReadingVoice.ROAST)).active.sections.companion == roasts[line]
     _use(monkeypatch, [])
     assert (await open_day(extra_day)).active.sections.companion == line
+    assert (await open_day(extra_day, ReadingVoice.ROAST)).active.sections.companion == roasts[line]
 
 
 def test_the_gates_read_the_extra_line_like_any_other_line(

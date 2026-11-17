@@ -5,14 +5,19 @@
 A pair is served only when both sentences are approved and pass the same rules as the authored
 lines; anything else is left out and Lá keeps the authored line (fail closed).
 
-Each person walks the lines of an issue in a fixed order of their own, one step each time the
-issue comes up, so a line returns only after every other line of that issue was shown. Nothing
-here reads history or stores anything: the step is the day counter divided by how many days
-apart the rotation serves the issue.
+Each person has a fixed order of their own over an issue's lines, and the line follows the
+calendar day: day ``d`` shows slot ``d mod n`` of that order (``n`` lines). Nothing here reads
+history or stores anything, the same as the rest of Daily selection (owner decision 2026-10-21).
+
+What that guarantees, and no more (Codex r1 on #657): two days fewer than ``n`` days apart never
+show the same line of an issue, so an issue served on consecutive or near days changes line as
+long as the pool is deep enough. It does not count how often the issue came up, so it does not
+promise every other line before a repeat; the persona metric (repeat share over 29 days) is the
+measure, and it needs a deep pool (24 lines for a person who meets one issue a day).
 
 The authored first line stays out of storage, as before. An extra line is stored with the card
-(``ReadingCandidate.companion``), so a card that was opened keeps its line when pairs are
-approved or withdrawn later.
+together with its roast wording (``ReadingCandidate.companion`` and ``companion_roast``), so a
+card that was opened keeps both voices when pairs are approved, edited or withdrawn later.
 """
 
 from __future__ import annotations
@@ -101,10 +106,10 @@ def extra_lines_by_issue() -> dict[str, tuple[CompanionLine, ...]]:
 
 
 def companion_pool_slot(seed: str, issue_key: str, size: int, occurrence: int) -> int:
-    """Which line of a ``size``-line pool a person sees the ``occurrence``-th time.
+    """Which line of a ``size``-line pool a person sees at step ``occurrence`` (the day index).
 
-    A fixed order per person and issue, walked round-robin: any ``size`` occurrences in a row
-    are all different, so a line comes back only after every other line of the pool was shown.
+    A fixed order per person and issue, walked round-robin: any ``size`` steps in a row are all
+    different.
     """
 
     if occurrence < 0:
@@ -113,13 +118,13 @@ def companion_pool_slot(seed: str, issue_key: str, size: int, occurrence: int) -
 
 
 def daily_companion_line(
-    mechanism_key: str | None, variety: DailyVariety | None, *, period: int = 1
-) -> str | None:
-    """The extra line Lá says for this Daily card, or ``None`` for the authored first line.
+    mechanism_key: str | None, variety: DailyVariety | None
+) -> CompanionLine | None:
+    """The extra pair Lá says for this Daily card, or ``None`` for the authored first line.
 
-    ``period`` is how many days apart the rotation serves one issue to this person (one to
-    ``DAILY_TOP_K``), so ``day_index // period`` counts how often the issue has come up. Without
-    the per-person rotation, or while an issue has no approved extra pair, nothing changes.
+    The slot follows the calendar day (see the module docstring for what that guarantees).
+    Without the per-person rotation, or while an issue has no approved extra pair, nothing
+    changes.
     """
 
     if variety is None or not mechanism_key or not mechanism_key.startswith("psychology:"):
@@ -128,9 +133,8 @@ def daily_companion_line(
     extras = extra_lines_by_issue().get(issue_key, ())
     if not extras:
         return None
-    occurrence = variety.day_index // max(1, period)
-    slot = companion_pool_slot(variety.seed, issue_key, len(extras) + 1, occurrence)
-    return None if slot == 0 else extras[slot - 1].direct
+    slot = companion_pool_slot(variety.seed, issue_key, len(extras) + 1, variety.day_index)
+    return None if slot == 0 else extras[slot - 1]
 
 
 def roast_companion_line(direct: str) -> str:
