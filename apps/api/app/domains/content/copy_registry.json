@@ -1990,13 +1990,19 @@
    "id": "daily.action.quick-reply.09",
    "category": "reading",
    "text": "Đọc hết các tin mới trong nhóm rồi mới trả lời câu cũ.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "7ce02903f4081547fa3689ceeffb4dd5fdb0c2ab0b91f2410d5ed19937d4079a"
   },
   {
    "id": "daily.action.quick-reply.10",
    "category": "reading",
    "text": "Gửi trước một câu ngắn báo bạn đang bận, câu trả lời đầy đủ gửi sau.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "bd5b2e315f9e55c159331dd7267349c3a90f1cfb3e58b657f31874badd31ddc8"
   },
   {
    "id": "daily.action.quick-reply.11",
@@ -2008,13 +2014,19 @@
    "id": "daily.action.quick-reply.12",
    "category": "reading",
    "text": "Đọc hết tin nhắn góp ý một lượt rồi mới viết câu trả lời.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "18b29179c17d537bff7952bf5b8b9708529467dbc78cd53d12eac29a16e989fb"
   },
   {
    "id": "daily.action.quick-reply.13",
    "category": "reading",
    "text": "Viết câu trả lời theo đúng thứ tự câu hỏi của người kia.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "59e43482dcd32121c474c5154fdc03424220ecaf0cb510ed00329615811ef481"
   },
   {
    "id": "daily.action.quick-reply.14",
@@ -2044,25 +2056,37 @@
    "id": "daily.action.quick-reply.18",
    "category": "reading",
    "text": "Nhắn hỏi lại người kia nếu đọc hết vẫn chưa rõ họ cần gì.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "93e07e3c7f7539fb6f5b01c7763bbd6cb186266272228790a5dc891923c7e22a"
   },
   {
    "id": "daily.action.quick-reply.19",
    "category": "reading",
    "text": "Dừng gõ khi thấy người kia còn đang nhắn, đọc hết rồi mới trả lời.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "e5b5fc011b91aca053fc8bb2e3010fcb0d5a0b23c89dd123b77edeef004938ee"
   },
   {
    "id": "daily.action.quick-reply.20",
    "category": "reading",
    "text": "Chọn trả lời từng người một, đọc hết tin người này rồi mới sang người khác.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "dfa58d4345c1e212b0c375cbc1fed3103532c7e51874071beb468d2af474509c"
   },
   {
    "id": "daily.action.quick-reply.21",
    "category": "reading",
    "text": "Đọc hết tin nhắn chuyển tiếp để biết ai nói gì rồi mới trả lời.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "311108debfc99a73e85ec00ed39a2a2a365829cfd52b607cf2ba0cc070ef717c"
   },
   {
    "id": "daily.action.quick-reply.22",
@@ -2074,13 +2098,19 @@
    "id": "daily.action.repair-reply.01",
    "category": "reading",
    "text": "Nhắn thêm một câu nói lại ý bạn cho rõ và nhẹ hơn.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "13d066c611e5ef4596616f4c455e9ff7408dc0a74f7bd15ae2fd6ef369d2df2d"
   },
   {
    "id": "daily.action.repair-reply.02",
    "category": "reading",
    "text": "Viết lại điều bạn muốn nói theo cách bạn muốn được nghe.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "144dd776fbe5c562c87ba64f987ab0bebdea4bcbc7ad28d66d2db24dae2b3843"
   },
   {
    "id": "daily.action.repair-reply.03",
@@ -2092,61 +2122,91 @@
    "id": "daily.action.repair-reply.04",
    "category": "reading",
    "text": "Hỏi người kia đọc câu bạn gửi thấy thế nào rồi nói lại ý mình.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "11c24e56f6e33618318af611879634a5453c142f5709ae8b9aeaa8bf70fb320c"
   },
   {
    "id": "daily.action.repair-reply.05",
    "category": "reading",
    "text": "Nhắn lại một câu nói rõ ý mình bằng giọng mềm hơn.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "8152de7eabe6a256f52a42dd58030ede5c709a84b9c31c5c7605910650beec93"
   },
   {
    "id": "daily.action.repair-reply.06",
    "category": "reading",
    "text": "Nói lại điều bạn muốn nói bằng giọng nhẹ hơn.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "ba682d514f5816b4fa8acabc0c831780910ccfc0ac67e5a1ee7562e7bed264a2"
   },
   {
    "id": "daily.action.repair-reply.07",
    "category": "reading",
    "text": "Nhắn lại lời cảm ơn mà tin trước còn thiếu.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "71d6a109e1355e4f0c976efa793fe85ac61a7c2e74dfdce6a43de82b2759a3c5"
   },
   {
    "id": "daily.action.repair-reply.08",
    "category": "reading",
    "text": "Viết ý bạn muốn nói thành một câu rồi gửi thêm.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "a0974506f1ce4460e1fb57ceb4b6c749362358e105c2b5c36c25c2b141008429"
   },
   {
    "id": "daily.action.repair-reply.09",
    "category": "reading",
    "text": "Hỏi người kia đọc câu trước có thấy khó chịu không, rồi nói lại ý mình.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "ec7ab7e0ef2e6c4437564232e74f12b09500ec2a740b5bba17eb2298d6c883db"
   },
   {
    "id": "daily.action.repair-reply.10",
    "category": "reading",
    "text": "Nhắn lại câu trả lời cho đúng điều người kia hỏi.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "9c4653cba9f4ad572276d2336cd28a88872861c39e5aedcf61897ab9f2f440f3"
   },
   {
    "id": "daily.action.repair-reply.11",
    "category": "reading",
    "text": "Nhắn lại: Mình nói hơi vội, điều mình muốn nói là thế này.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "d97ec56e41f7939f8e4980a5601bf30d6c5c50cd9882c9bd15e2f54423769c5c"
   },
   {
    "id": "daily.action.repair-reply.12",
    "category": "reading",
    "text": "Nói lại ý mình khi gặp trực tiếp nếu tin nhắn dễ bị hiểu khác.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "99c7c3ba37bb48c33c9c1c9e28902b10f4b99dfc7bf555cb8570f4343f8cb149"
   },
   {
    "id": "daily.action.repair-reply.13",
    "category": "reading",
    "text": "Đọc to câu trả lời của mình, rồi nhắn lại phần nghe chưa đúng ý muốn nói.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "e38890712414c76f6ec3229d2592ea520dc94af62eed8cc7955b02bec93e7c0f"
   },
   {
    "id": "daily.action.repair-reply.14",
@@ -2170,49 +2230,73 @@
    "id": "daily.action.repair-reply.17",
    "category": "reading",
    "text": "Nhắn lại một câu ngắn nói rõ điều bạn muốn nói.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "2de904f9b19e74d3c15597ce9a188976bb0dbc655572a4b6da40b009fb4817dd"
   },
   {
    "id": "daily.action.repair-reply.18",
    "category": "reading",
    "text": "Nói lại ý chính bằng một câu ngắn và giọng mềm hơn.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "6276c78bf2b9d85a32123f2f1635c5bc544d2d77e66a1ebccac44c3a8e02f2ff"
   },
   {
    "id": "daily.action.repair-reply.19",
    "category": "reading",
    "text": "Viết ra điều bạn muốn nói rồi nói lại bằng giọng ấm hơn.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "9e068da40ea22438d7a3fa89e20ad7fb5e9075ee5fb78e5efbd275d7699e587a"
   },
   {
    "id": "daily.action.repair-reply.20",
    "category": "reading",
    "text": "Nhắn lại lời hỏi thăm mà tin trước còn thiếu.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "f3f1e91a7a88b94e55c82e63be2e892d051d58925bbe17dd1c3a9de56c1e0df7"
   },
   {
    "id": "daily.action.repair-reply.21",
    "category": "reading",
    "text": "Gửi thêm một câu nói lại phần dễ bị hiểu khác.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "8fbaed83906f8d7a68c3eada45c657b58e717dd17497674ec032d576d8def5bd"
   },
   {
    "id": "daily.action.repair-reply.22",
    "category": "reading",
    "text": "Hỏi người kia phần nào chưa rõ rồi nói lại ý mình.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "ff66e712d59502ba7f321a8304cc6c00df1d120296bcf0c44c0f51169271681d"
   },
   {
    "id": "daily.action.specific-feedback.01",
    "category": "reading",
    "text": "Chọn một phần và hỏi: Đoạn này đọc có dễ hiểu không?",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "d7ef1ca3c529d773b2cc4eb3603dbb4f6536f0f9c98f0aafeeb9e1a08f9d8907"
   },
   {
    "id": "daily.action.specific-feedback.02",
    "category": "reading",
    "text": "Ghi ở đầu bản nháp đúng phần bạn cần góp ý nhất.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "4486c46b6ec4ee3933a40700839e1357090eccc51a8fa23f8b22a87610ea66b8"
   },
   {
    "id": "daily.action.specific-feedback.03",
@@ -2224,7 +2308,10 @@
    "id": "daily.action.specific-feedback.04",
    "category": "reading",
    "text": "Gửi riêng một phần cần góp ý thay vì gửi cả bản nháp.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "052c8dc9297c46139bc2910263629b1909e77c225b4fcd983868535045181327"
   },
   {
    "id": "daily.action.specific-feedback.05",
@@ -2236,31 +2323,46 @@
    "id": "daily.action.specific-feedback.06",
    "category": "reading",
    "text": "Chọn một phần bạn lo nhất và gửi kèm câu hỏi về phần đó.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "3b505ff6b9220e5c69ffb1ef1ce82b02770ee10c455cdb6b26245898a8038e29"
   },
   {
    "id": "daily.action.specific-feedback.07",
    "category": "reading",
    "text": "Ghi rõ phần còn đang sửa để người đọc bỏ qua.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "ba5c6cc714c49d0446750ba630dfd1ca51f200a78b7e84c770bb66719ffb7354"
   },
   {
    "id": "daily.action.specific-feedback.08",
    "category": "reading",
    "text": "Nói rõ bạn cần góp ý riêng về ý hay về câu chữ.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "8cca830367a6112da0c20ef9221dc206805ffedf42f5db77fe2845444a3fec1e"
   },
   {
    "id": "daily.action.specific-feedback.09",
    "category": "reading",
    "text": "Gửi một phần ngắn của bản nháp kèm một câu hỏi cụ thể.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "956df4a99d55ecd739f28d3824ae07f7bb7dd3c490c8326a4a544ead32bc15dd"
   },
   {
    "id": "daily.action.specific-feedback.10",
    "category": "reading",
    "text": "Ghi rõ phần mới sửa để người đọc xem đúng phần đó.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "4dfa954ae332e014b77deb4db92c638d05adcf256fa93a419b3df591b124016b"
   },
   {
    "id": "daily.action.specific-feedback.11",
@@ -2278,7 +2380,10 @@
    "id": "daily.action.specific-feedback.13",
    "category": "reading",
    "text": "Đặt câu hỏi ngay cạnh đúng phần bạn cần người đọc xem.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "7ee75f4c375d012da87a9a56711f91017d32896ddf81051fe346060666f24e47"
   },
   {
    "id": "daily.action.specific-feedback.14",
@@ -2290,19 +2395,28 @@
    "id": "daily.action.specific-feedback.15",
    "category": "reading",
    "text": "Chọn hai câu hỏi cụ thể cho một phần thay vì hỏi cả bài.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "95d27174bfe01962baa985e2753ac6306b34d72c52dbab2adc662a8decb03312"
   },
   {
    "id": "daily.action.specific-feedback.16",
    "category": "reading",
    "text": "Xin góp ý riêng từ một người hiểu rõ phần bạn đang làm.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "5c3bbb7d0414468726d0572f267f627d6dec3b4d1b6e6e1d6669a2c0fa31c349"
   },
   {
    "id": "daily.action.specific-feedback.17",
    "category": "reading",
    "text": "Chọn một phần và hỏi người đọc phần đó đã rõ chưa.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "b363465d6a1d3656350b3553aed62fa39a58688c71fdd115217e6aac34f113bf"
   },
   {
    "id": "daily.action.specific-feedback.18",
@@ -2332,19 +2446,28 @@
    "id": "daily.action.specific-feedback.22",
    "category": "reading",
    "text": "Nói rõ bạn cần góp ý riêng về số liệu hay câu chữ.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "a11349ef9a4ca0113a1d0747de3bab6c2aede48f8aae81de35cfa413c144e699"
   },
   {
    "id": "daily.action.too-many-open-loops.01",
    "category": "reading",
    "text": "Đặt hẹn giờ 20 phút, tắt thông báo và làm tiếp một việc đang dở.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "b9c7acc31a3c8b7d36c5241a37ba53efa8c387ccd22b78282e9e179721c72913"
   },
   {
    "id": "daily.action.too-many-open-loops.02",
    "category": "reading",
    "text": "Viết bước tiếp theo của một việc đang làm rồi mới chuyển sang việc khác.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "9261181fe02fab4c28c524b0911012806cf5cda161ee4d956c80c019617129f2"
   },
   {
    "id": "daily.action.too-many-open-loops.03",
@@ -2356,31 +2479,46 @@
    "id": "daily.action.too-many-open-loops.04",
    "category": "reading",
    "text": "Chọn việc gần xong nhất và làm nốt phần còn lại.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "d424a1dd3790476e7aceb7118bfca774a66c168b790363361a828c26650a4d1d"
   },
   {
    "id": "daily.action.too-many-open-loops.05",
    "category": "reading",
    "text": "Chọn một việc gần xong nhất và làm cho xong trước.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "72f00ca55a3b96c49a737b477876d60bcd4d7f4949fcfae60b52b6b5c28fe7b1"
   },
   {
    "id": "daily.action.too-many-open-loops.06",
    "category": "reading",
    "text": "Đặt điện thoại xa ra và làm một việc trong 20 phút.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "12e87f27f4e7b251530fded8c0784d17f2dddf9bb5cde51e5c7e73bd9a04cbac"
   },
   {
    "id": "daily.action.too-many-open-loops.07",
    "category": "reading",
    "text": "Viết ba việc đang dở rồi chọn một việc cho buổi này.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "2d935323769125e40b0111eaa168d0eb925d42e7bcc94b7674df45e34c3f6f44"
   },
   {
    "id": "daily.action.too-many-open-loops.08",
    "category": "reading",
    "text": "Ghi chỗ đang dở của một việc trước khi đứng dậy.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "2c235b7091ddec2b94d831888ee6ef179973420b4d8713a49904db2933f2102d"
   },
   {
    "id": "daily.action.too-many-open-loops.09",
@@ -2392,25 +2530,37 @@
    "id": "daily.action.too-many-open-loops.10",
    "category": "reading",
    "text": "Bỏ một việc không gấp ra khỏi danh sách để chọn một việc chính.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "db3bff7f2cecc27fcf198ca0cc0f62c87b61592a22d9043503f79ccce19e2b96"
   },
   {
    "id": "daily.action.too-many-open-loops.11",
    "category": "reading",
    "text": "Chọn một việc nhỏ nhất đang dở và làm xong trong buổi này.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "e5a5c1be3afbfc1b4c9854bbe785dcec274b45a7ad5155ffff4b318fb4085937"
   },
   {
    "id": "daily.action.too-many-open-loops.12",
    "category": "reading",
    "text": "Nói với người nhờ việc mới rằng bạn sẽ làm sau khi xong một việc đang dở.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "34624658773afddbf425e051d96759d48dd89e2da6e3939ec8b3a74d35982a84"
   },
   {
    "id": "daily.action.too-many-open-loops.13",
    "category": "reading",
    "text": "Đặt một việc lên đầu danh sách và để các việc khác chờ.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "8dcd45f90916bd53f0af63f99f0e10c341a235e3e59d583c2b068fb8dc318239"
   },
   {
    "id": "daily.action.too-many-open-loops.14",
@@ -2422,19 +2572,28 @@
    "id": "daily.action.too-many-open-loops.15",
    "category": "reading",
    "text": "Giảm danh sách hôm nay còn ba việc rồi chọn một việc làm trước.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "d296a2bef83b43837e52b8c8619f3638a304a79e114335688ee0cde31aeb9636"
   },
   {
    "id": "daily.action.too-many-open-loops.16",
    "category": "reading",
    "text": "Dừng sau 20 phút, ghi chỗ đang dở rồi nghỉ một chút.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "4522fb538cca4d735ab8ca7fa8cc2fa03eae734d252bd3aa7e36b930ff079159"
   },
   {
    "id": "daily.action.too-many-open-loops.17",
    "category": "reading",
    "text": "Chọn một việc gần xong nhất và làm trong 20 phút.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "f6fee18343933d1d1fb9e804d07406314dec30168bc7df1fecd1eb9d479ee18c"
   },
   {
    "id": "daily.action.too-many-open-loops.18",
@@ -2464,19 +2623,28 @@
    "id": "daily.action.too-many-open-loops.22",
    "category": "reading",
    "text": "Dừng nhận việc mới cho đến khi một việc đang dở xong.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "2abb38d0007daaa6f00acb0deec2bdd744565a735e00e462eeec0f1c81de338b"
   },
   {
    "id": "daily.bundle.comparison-loop.01.action",
    "category": "reading",
    "text": "Ghi số tiền mình để dành được tháng này trước khi lướt tiếp.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "8a3825c7a6372ec0ea136794e1b990c6367452cd952d6f3b6bf8b4a4f8b8734b"
   },
   {
    "id": "daily.bundle.comparison-loop.01.headline",
    "category": "reading",
    "text": "Bạn bè khoe xe mới, bạn thấy mình kém.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "cf2078df3c287005dee08f48c5c7a55995da72d71a7fd1cccc795828b76b908d"
   },
   {
    "id": "daily.bundle.comparison-loop.01.scene",
@@ -2488,43 +2656,64 @@
    "id": "daily.bundle.comparison-loop.02.action",
    "category": "reading",
    "text": "Viết ra một điểm tốt trong báo cáo của mình.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "e020f29a6a6d040961eaebe9a04d7510e41aa0faa596dfea4763627b75543767"
   },
   {
    "id": "daily.bundle.comparison-loop.02.headline",
    "category": "reading",
    "text": "Đồng nghiệp được khen, bạn thấy báo cáo mình kém.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "e7a631c2a91be43e924c429534fb6170cd5e3f5f15ccefc6694ed7f76d06156e"
   },
   {
    "id": "daily.bundle.comparison-loop.02.scene",
    "category": "reading",
    "text": "Lúc sếp khen kết quả trong báo cáo của đồng nghiệp, bạn thấy báo cáo mình sơ sài.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "f6ff75ecadc2a632e42eec61d499b7be90a7128780cbb5edb08c2a443a374e84"
   },
   {
    "id": "daily.bundle.comparison-loop.03.action",
    "category": "reading",
    "text": "Đọc lại một đoạn trong bản nháp của mình và sửa đúng một câu.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "e5554e377a8560747650dc3dfe27e94a556c92211de58b87ca64598c0f9a63b5"
   },
   {
    "id": "daily.bundle.comparison-loop.03.headline",
    "category": "reading",
    "text": "Bạn so bản nháp của mình với bài đã đăng.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "104ff738d72f307f6a75fd46ada38bed5f36e5d1432565ac348c7f68a44c471e"
   },
   {
    "id": "daily.bundle.comparison-loop.03.scene",
    "category": "reading",
    "text": "Khi đọc bài người khác vừa đăng, bạn mở bản nháp của mình ra và thấy nó còn vụng quá.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "7e8ac2937a5f9bdf1f710a4e1dc0724be10b917ccea70c00ba6fa191b6193b06"
   },
   {
    "id": "daily.bundle.comparison-loop.04.action",
    "category": "reading",
    "text": "Viết ra một việc mình đang làm giỏi ở chỗ làm hiện tại.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "bfecaa57d2f6132bc04b19452f3b2b0bb0ac6515a28f4486152e5876c753d522"
   },
   {
    "id": "daily.bundle.comparison-loop.04.headline",
@@ -2542,133 +2731,199 @@
    "id": "daily.bundle.comparison-loop.05.action",
    "category": "reading",
    "text": "Ghi số cây số mình chạy mỗi buổi vào một cuốn sổ.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "7ae4588c972ffa16d08c7fcc264183aed7a537a00645265720118d05cf4bc518"
   },
   {
    "id": "daily.bundle.comparison-loop.05.headline",
    "category": "reading",
    "text": "Người khác chạy mười cây, bạn chê mình chạy ít.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "cbfd88265c0f9d272c2777b5e12032b339cf54f32b3cb2b5cdf51526323a20a1"
   },
   {
    "id": "daily.bundle.comparison-loop.05.scene",
    "category": "reading",
    "text": "Khi thấy người khác khoe chạy mười cây số sáng nay, bạn thấy hai cây số của mình chẳng đáng kể.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "99034d34c61b3db5e2f6485f6079c7228b07b7ad1c6b0f797a1ca60738c86f9e"
   },
   {
    "id": "daily.bundle.comparison-loop.06.action",
    "category": "reading",
    "text": "Viết một câu mình làm sai trong bài thi này và cách sửa.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "496270b6cc6dd354b7428057b2522e18d0ad25f860bb6f97af0f3d44c204c43e"
   },
   {
    "id": "daily.bundle.comparison-loop.06.headline",
    "category": "reading",
    "text": "Cả nhóm khoe điểm thi, bạn giấu điểm mình.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "03f81098e015ecaffc0b7dcdfcd6bed65b8232ef52b0d8e5635c9952f99aff9e"
   },
   {
    "id": "daily.bundle.comparison-loop.06.scene",
    "category": "reading",
    "text": "Trong nhóm chat lớp, mọi người khoe kết quả thi, còn bạn đọc hết rồi tắt máy mà không nói điểm mình.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "71000805a31e29397fc7bb0f7034adf09fb9a3553a29b0a5d2699eb008a69d1c"
   },
   {
    "id": "daily.bundle.comparison-loop.07.action",
    "category": "reading",
    "text": "Ghi mức lương mình muốn có và một việc mình cần làm để tới đó.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "1e7b3d7412f4d86b8e4598c41267d7df2a37f08b5ecfc8d8f56b5f0694706dd1"
   },
   {
    "id": "daily.bundle.comparison-loop.07.headline",
    "category": "reading",
    "text": "Bạn bè kể lương mới, bạn thấy lương mình thấp.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "58ca5dcf735cdd2dcfd1908b2c2702e0aa99d4bfcb7c5c95c1250a7e27049bf6"
   },
   {
    "id": "daily.bundle.comparison-loop.07.scene",
    "category": "reading",
    "text": "Lúc ngồi cà phê, nghe người khác kể mức lương mới, bạn nhẩm lại lương mình và thấy thấp hẳn.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "32d1dc9aed2ee67da80821e0e7ba6c7b1e2d50db779502c7da7dcc29cd866744"
   },
   {
    "id": "daily.bundle.comparison-loop.08.action",
    "category": "reading",
    "text": "Đặt hẹn giờ hai mươi phút và viết tiếp bài của mình.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "bc87218fea64e4364de1e3cf5a2240fd6ec10726e30b7979e53e3d87dd707596"
   },
   {
    "id": "daily.bundle.comparison-loop.08.headline",
    "category": "reading",
    "text": "Đang viết dở, bạn mở xem bài người khác.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "ccf5107e3d5cef673776fdb03361a3b77e7a4a0b8af679edb6b80a6c15f066d9"
   },
   {
    "id": "daily.bundle.comparison-loop.08.scene",
    "category": "reading",
    "text": "Lúc đang viết dở bài của mình, bạn mở bài của người khác ra đọc, rồi đọc liền cả tiếng.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "b9b4e68d83d504e44a40b6c0fb823e5b81b0aa88fbcf8a3a3dbe0fbbb7ed3e84"
   },
   {
    "id": "daily.bundle.comparison-loop.09.action",
    "category": "reading",
    "text": "Ghi một môn con mình đang khá lên trước khi nói chuyện điểm với con.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "0e90ede42345d54dec12df0602d1a7f25920a0437ee2eaf6ec4dc94ba180f2b3"
   },
   {
    "id": "daily.bundle.comparison-loop.09.headline",
    "category": "reading",
    "text": "Nghe đồng nghiệp khoe điểm con, bạn lo cho con.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "0e8174e2cf36c2dc6b0b9a11994e069468e3f71afcad6b807fb7a9438b6393a1"
   },
   {
    "id": "daily.bundle.comparison-loop.09.scene",
    "category": "reading",
    "text": "Khi đồng nghiệp khoe kết quả thi của con, bạn mở xem điểm của con mình và thấy sốt ruột.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "3a666f1a51ac650e789d752e8e20cbed7001fde0576b58c9a20e2b09f108157d"
   },
   {
    "id": "daily.bundle.comparison-loop.10.action",
    "category": "reading",
    "text": "Đặt điện thoại xuống và không mở lại bài đăng của mình trong một giờ.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "cf9fd843ad75c3f6a91fe0a4c4f90ac5321e0b4d7c74b2cc2ec2c41aa1f6be9a"
   },
   {
    "id": "daily.bundle.comparison-loop.10.headline",
    "category": "reading",
    "text": "Bạn so lượt thích của mình với người khác.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "3d00cfee99611684219d9775d6d43acc997e6924dbaf28841aa5c46e35d5dac1"
   },
   {
    "id": "daily.bundle.comparison-loop.10.scene",
    "category": "reading",
    "text": "Sau khi đăng ảnh, bạn mở ra xem lượt thích mấy lần, rồi so với bài người khác đăng cùng lúc.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "a4bfb2f34b111b902db242fed83c8edf62d22997b12b0a83fb18591824524335"
   },
   {
    "id": "daily.bundle.comparison-loop.11.action",
    "category": "reading",
    "text": "Chọn một bài học của mình để làm xong trong hôm nay.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "0fc03a696b3358d0670556cc2085e40de4536c5f25a573f9f1d583dd693a64e2"
   },
   {
    "id": "daily.bundle.comparison-loop.11.headline",
    "category": "reading",
    "text": "Bạn bè sắp học hết khóa, bạn mới bắt đầu.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "a29b53a262736ae69671b0e7f6566951d316ba27fb12e1f24eb9a54bf5670bd6"
   },
   {
    "id": "daily.bundle.comparison-loop.11.scene",
    "category": "reading",
    "text": "Khi biết người khác sắp học hết khóa mà bạn vừa đăng ký, bạn thấy mình bắt đầu quá trễ.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "5e0751b684597cdf122c2f4a9547c183a92755943b9ac3663b149b8cedc8b44e"
   },
   {
    "id": "daily.bundle.comparison-loop.12.action",
    "category": "reading",
    "text": "Đổi thứ tự: làm việc của mình mười lăm phút rồi mới mở mạng xã hội.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "841e7ff162e6ca1186a16b5c37bae1b92e092f7a2f8944c3142c924bd62efc14"
   },
   {
    "id": "daily.bundle.comparison-loop.12.headline",
@@ -2680,7 +2935,10 @@
    "id": "daily.bundle.comparison-loop.12.scene",
    "category": "reading",
    "text": "Vừa ngồi vào bàn, bạn xem người khác khoe dự án mới, và lúc bắt tay làm việc thì đã nản.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-16",
+   "digest": "530e8dd9b49c1102ec54c60198f565e751048e9dd565dd91a084bbe01b8af0e0"
   },
   {
    "id": "daily.headline.automatic-caretaking.01",
