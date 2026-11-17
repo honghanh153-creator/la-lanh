@@ -5,7 +5,8 @@ fresh local SQLite file per worker: synthetic data only, never production, no pr
 (generation stays off). The date is injected with ``time_machine.travel``, the same way the
 Daily API tests pin their clock (tests/daily/conftest.py). The web layer's mood reaction is
 read from the web catalog file the Home screen imports, so "what the persona sees" is the API
-note plus that line.
+note plus that line. The small action is the one the web would show after the mood is saved
+(``shown_action``): on a "Đuối" day that is the lighter action when the API offers one.
 
     uv run --directory apps/api python -m scripts.persona_sim --out ../../qa/personas/runs/<name>
 
@@ -100,6 +101,39 @@ def _section(note: dict[str, Any], name: str) -> str | None:
     sections = (projection.get("active") or {}).get("sections") or {}
     value = sections.get(name)
     return value if isinstance(value, str) else None
+
+
+def shown_action(active: dict[str, Any], saved_mood: str | None) -> dict[str, Any]:
+    """The small action on the persona's screen, chosen the way the web chooses it (#627).
+
+    Same rule as ``useDailyActionView.ts`` / ``HomePage.tsx``: the lighter action is shown only
+    when the reading carries one and the mood the server confirmed for this note is "Đuối". A
+    mood that was not saved never changes the action. The persona does not press the switch.
+    The kept action is the one on screen (``NoteDetailPage.tsx``), so its experiment comes back
+    with it; a lighter action without one cannot be kept.
+    """
+
+    from scripts.persona_metrics import LOW_MOOD
+
+    experiment = active.get("experiment") or None
+    lighter = active.get("lighter_action") or None
+    sections = active.get("sections") or {}
+    own = sections.get("micro_action")
+    if lighter is not None and saved_mood == LOW_MOOD:
+        return {
+            "action": lighter.get("action"),
+            "weight": lighter.get("weight"),
+            "experiment": lighter.get("experiment") or None,
+            "lighter_offered": True,
+            "lighter_shown": True,
+        }
+    return {
+        "action": (own if isinstance(own, str) else None) or (experiment or {}).get("action"),
+        "weight": (experiment or {}).get("weight") or active.get("action_weight"),
+        "experiment": experiment,
+        "lighter_offered": lighter is not None,
+        "lighter_shown": False,
+    }
 
 
 def _tarot(
@@ -232,6 +266,9 @@ def run_persona(
                     f"/v1/daily-note/{note['id']}/mood", json={"mood": mood}, headers=headers
                 )
                 row["mood_status"] = put.status_code
+                # The web follows the mood the server confirmed, never the one just tapped.
+                saved = put.json() if put.status_code == 200 and put.content else None
+                saved_mood = saved.get("mood") if isinstance(saved, dict) else None
             with time_machine.travel(_instant(day, 3), tick=False):
                 again = client.get("/v1/daily-note")
                 if again.status_code == 200:
@@ -239,12 +276,13 @@ def run_persona(
                 if row["situation"] is None:
                     row["situation"] = _LAST_ISSUE[0]
             active = ((note.get("reading_projection") or {}).get("active")) or {}
-            experiment = active.get("experiment") or None
+            view = shown_action(active, saved_mood)
+            experiment = view["experiment"]
             row.update(
                 headline=_section(note, "hook"),
                 thesis=_section(note, "thesis"),
                 scene=_section(note, "manifestation"),
-                action=_section(note, "micro_action") or (experiment or {}).get("action"),
+                action=view["action"],
                 la_line=_section(note, "companion"),
                 why_today=_section(note, "transit"),
                 mood_reaction=reactions.get(mood),
@@ -252,9 +290,14 @@ def run_persona(
                 persona_mode=note.get("persona_mode"),
                 source_level=note.get("source_level"),
                 mode=active.get("mode"),
-                action_weight=(experiment or {}).get("weight") or active.get("action_weight"),
+                action_weight=view["weight"],
                 experiment_offered=experiment is not None,
             )
+            if view["lighter_offered"]:
+                # Only on days the API offers one, so runs without approved lighter copy keep
+                # the row shape of the committed baselines.
+                row["lighter_shown"] = view["lighter_shown"]
+                row["card_action"] = _section(note, "micro_action")
             shown = " ".join(
                 str(row.get(k) or "")
                 for k in ("headline", "thesis", "scene", "action", "la_line", "why_today")

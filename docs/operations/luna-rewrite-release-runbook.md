@@ -108,11 +108,19 @@ under v4 is reused.
   - Since #626 a deterministic Daily card also carries a line when Lá's line for the day is an
     approved extra pair (`la.issue.*` in the copy registry) rather than the authored first line.
     Such a card stores both voices (`companion` and `companion_roast`, #657) and is
-    `reading-candidate/v3`; a v2 reader cannot open it. No such pair is approved at the time of
-    writing. The first approved pair that reaches an environment starts v3 writes there with
-    generation still off: record it in the release log, and from then on the rollback target must
-    keep a reader with `companion_roast`. Withdrawing or editing the approval stops new v3 cards
-    with that pair; cards already stored keep both voices.
+    `reading-candidate/v3`; a v2 reader cannot open it.
+  - Approving a pair does not start v3 writes on its own. Line selection is switched off in code
+    (`EXTRA_LINE_SELECTION_ENABLED = False` in `readings/companion_pool.py`, decision D of
+    17.11.2026), so `daily_companion_line` returns nothing and every deterministic card stays v1,
+    whatever is approved. No pair is approved at the time of writing either.
+  - v3 writes start in an environment only when both hold there: a release with selection
+    switched on, and at least one pair whose two sentences are approved and pass the line rules.
+    Generation can still be off at that point.
+  - The rollback floor moves at the first v3 revision actually stored, not at the approval and not
+    at the release that switches selection on. Record that first stored v3 revision in the release
+    log; from then on the rollback target must keep a reader with `companion_roast`.
+  - Withdrawing or editing the approval, or switching selection off again, stops new v3 cards;
+    cards already stored keep both voices and still need the v3 reader.
   - Evidence: `tests/readings/test_candidate_compat.py`, plus a probe that opened both
     serializations with the real `3d3107a` reader (v1 OK, v2 rejected on `companion`).
 
