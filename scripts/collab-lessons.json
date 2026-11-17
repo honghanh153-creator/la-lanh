@@ -724,11 +724,47 @@
    "from": "owner 15.11, nhắc lại 16.11 (\"bạn quên nhiều\"); Claude + Codex 16.11",
    "who": "claude",
    "due": "2026-11-17",
-   "status": "open",
+   "status": "done",
    "test": {
     "file": "scripts/collab-rules-hook.test.mjs",
     "name": "L37 (R3): a question to the owner in chat is refused and points to the decisions file"
-   }
+   },
+   "caller": {
+    "file": "scripts/collab-tick.mjs",
+    "contains": "rulesWatch({ alert:"
+   },
+   "closedBy": {
+    "pr": 621
+   },
+   "note": "hook #616 (re-load + R3 deny, selftest); tick watch and prompt pointer check #621. Not covered: a question written as plain text in a message; whether the item really reached the decisions file."
+  },
+  {
+   "id": "L42",
+   "title": "Test E (cây chạy sống lâu hơn wrapper) không được đỏ vô cớ trên CI Linux: 20 lần chạy liền không đỏ (sự cố #641: đỏ ở #628 và #637; #645 cho test chờ đúng phép kiểm của script và in pgrep/ps khi đỏ)",
+   "from": "fix-forward #641, #650",
+   "who": "claude",
+   "status": "open",
+   "due": "2026-11-20"
+  },
+  {
+   "id": "L43",
+   "title": "Lượt CI bị hủy (do sửa mô tả PR) không phải kết quả: author check lấy lượt mới nhất không bị hủy, chỉ có lượt bị hủy thì chờ (sự cố #630: #628 bị ghi FAIL dù cùng head đã xanh)",
+   "from": "fix-forward #630",
+   "who": "claude",
+   "due": "2026-11-18",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-loop.test.mjs",
+    "name": "12.11 trial: ciCheck passes only a completed success of the pr-check check job at the exact head"
+   },
+   "caller": {
+    "file": "scripts/collab-check.mjs",
+    "contains": "r.conclusion === 'cancelled'"
+   },
+   "closedBy": {
+    "pr": 651
+   },
+   "note": ""
   }
  ]
 }
