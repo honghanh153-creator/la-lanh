@@ -671,7 +671,7 @@
    },
    "caller": {
     "file": "scripts/codex-review.mjs",
-    "contains": "coveredKinds(sealedAnswers(pr)"
+    "contains": "coveredKinds(sealedAnswers("
    },
    "closedBy": {
     "pr": 637
