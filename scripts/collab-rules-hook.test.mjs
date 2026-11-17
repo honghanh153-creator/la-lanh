@@ -1,13 +1,13 @@
 import './collab-test-home.mjs';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { appendFileSync, mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
+import { appendFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { changedIds, fitContext, handle, inScope, installRulesHook, metrics, projectRoots, r3Reason, recordRepeat, rulesHooks, verifyRulesHook } from './collab-rules-hook.mjs';
-import { sheetPath } from './collab-rules.mjs';
+import { rulesVersion, sheetPath } from './collab-rules.mjs';
 
 const script = join(dirname(fileURLToPath(import.meta.url)), 'collab-rules-hook.mjs');
 const sheet = readFileSync(sheetPath(), 'utf8');
@@ -193,6 +193,21 @@ test('rules hook: metrics give the delay from commit to each session, blocked at
   // No hook, no log: "not measurable", never zero.
   assert.deepEqual(metrics({ home, hookOk: false }), { measurable: false, reason: 'hook luật chưa cài hoặc hỏng' });
   assert.deepEqual(changedIds(sheet, sheet.replace(R9, `${R9} `)), ['R9']);
+});
+
+// Fix-forward #647: a failed sheet read is never a delivery, and with no sheet nothing is measurable.
+test('#647: rules metrics never count a failed sheet read as a delivery', () => {
+  const { home, repo, publish } = fixture();
+  rmSync(join(home, 'ops', 'docs', 'operations', 'luat-dang-hieu-luc.md'));
+  assert.match(ctx(run(home, { hook_event_name: 'SessionStart', source: 'startup', session_id: 's1', cwd: repo })), /không đọc được/);
+  assert.match(readFileSync(join(home, 'rules', 'deliveries.jsonl'), 'utf8'), /"error":"sheet unreadable"/);
+  assert.deepEqual(metrics({ home }), { measurable: false, reason: 'không đọc được bảng luật' });
+  publish(sheet);
+  // An error record carrying the current version (hand-edited or from an older writer) still does not count.
+  appendFileSync(join(home, 'rules', 'deliveries.jsonl'), `${JSON.stringify({ at: '2026-11-17T01:00:00Z', session: 's9', version: rulesVersion(sheet), error: 'sheet unreadable' })}\n`);
+  const m = metrics({ home });
+  assert.equal(m.measurable, true);
+  assert.equal(m.sessionsReached, 0);
 });
 
 test('rules hook: the context stays under the 10,000-character hook limit as the sheet grows', () => {

@@ -13,7 +13,7 @@ import { gateValue, preflightFailure, readPreflight, recordPreflight, userSees }
 import { syncStatusLabels } from './collab-labels.mjs';
 import { deletionProblem, sizeProblem, withRepeatNote } from './collab-size.mjs';
 import { withFileLock } from './collab-lock.mjs';
-import { bufferStatus, queueTopUp, wipCount } from './collab-buffer.mjs';
+import { bufferStatus, dailyLaneLabel, queueTopUp, wipCount } from './collab-buffer.mjs';
 import { afterDecision, disputeView, settleDisputes } from './collab-disagree.mjs';
 import { isMain } from './is-main.mjs';
 
@@ -46,7 +46,8 @@ const waitsOnClaude = (o, opts) => ['claude-fix', 'hold'].includes(prTurn(o, { .
 // the rest.
 export const personaFixLabel = 'persona-fix';
 const has = (p, name) => (p.labels ?? []).some(l => (l.name ?? l) === name);
-export const fileRank = p => (has(p, 'incident') ? 2 : has(p, label7w) || has(p, personaFixLabel) ? 1 : 0);
+// Trial 18–19.11: Daily-lane PRs rank after the 7-week plan and before the rest (owner 17.11).
+export const fileRank = p => (has(p, 'incident') ? 3 : has(p, label7w) || has(p, personaFixLabel) ? 2 : has(p, dailyLaneLabel) ? 1 : 0);
 const fileOrder = prs => sortByPriority(prs).sort((a, b) => areaOrder.indexOf(classifyArea(a)) - areaOrder.indexOf(classifyArea(b)) || fileRank(b) - fileRank(a));
 
 export function fileBlocker(pr, prs = [], { dropped = [], ...opts } = {}) {
@@ -394,7 +395,10 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       const live = turns.filter(t => !gone.has(unitKey(t)));
       const first = live.filter(t => incidentKeys.has(unitKey(t)));
       const second = live.filter(t => !incidentKeys.has(unitKey(t)) && kept.has(unitKey(t)));
-      const work = [...first, ...second, ...live.filter(t => t.area === area && !first.includes(t) && !second.includes(t))];
+      // Trial 18–19.11 (owner 17.11): the Daily lane goes after the kept 7-week items, before the area.
+      const dailyPrs = new Set(prs.filter(p => (p.labels ?? []).some(l => (l.name ?? l) === dailyLaneLabel)).map(p => p.number));
+      const third = live.filter(t => !first.includes(t) && !second.includes(t) && dailyPrs.has(t.number));
+      const work = [...first, ...second, ...third, ...live.filter(t => t.area === area && !first.includes(t) && !second.includes(t) && !third.includes(t))];
       const done = [];
       const late = () => { const t = time(); return t.hour * 60 + t.minute >= lastStartAt; };
       // 17.11.2026 (#633): a PR ready to merge is merged whatever its area. Merging costs no Codex run

@@ -1,6 +1,6 @@
 import './collab-test-home.mjs';
 import assert from 'node:assert/strict';
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
@@ -160,6 +160,16 @@ test('dream apply: a missing index is created, but not over one written meanwhil
   writeFileSync(join(dir2, 'MEMORY.md'), '- [mine](mine.md) — written by the owner\n');
   assert.deepEqual(apply({ out: out2, memory: dir2, accept: ['MEMORY.md'], sheet }).refused.map(r => r.why), ['file gốc đã đổi sau đề xuất']);
   assert.match(readFileSync(join(dir2, 'MEMORY.md'), 'utf8'), /written by the owner/);
+  // Fix-forward #653: an index created meanwhile that cannot be read is refused, not overwritten.
+  const dir3 = mkdtempSync(join(tmpdir(), 'dream-noindex-'));
+  writeFileSync(join(dir3, 'note.md'), entry('note', 'a note', 'Plain text.'));
+  const out3 = join(mkdtempSync(join(tmpdir(), 'dream-out-')), '2026-11-17');
+  dream({ memory: dir3, out: out3, sheet, date: '2026-11-17' });
+  writeFileSync(join(dir3, 'MEMORY.md'), 'owner index\n', { mode: 0o000 });
+  try {
+    assert.deepEqual(apply({ out: out3, memory: dir3, accept: ['MEMORY.md'], sheet }).refused.map(r => r.why), ['file gốc đã đổi sau đề xuất']);
+  } finally { chmodSync(join(dir3, 'MEMORY.md'), 0o600); }
+  assert.equal(readFileSync(join(dir3, 'MEMORY.md'), 'utf8'), 'owner index\n');
 });
 
 // Codex r1 on #618 (P1): the source memory can never be deleted, whatever path is given.

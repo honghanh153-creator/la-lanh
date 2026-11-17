@@ -451,6 +451,44 @@ test('#611: the label stays when the hold is not only the answered review hold',
   assert.match(answers.liftCheck(deleted, { events: once }).reason, /cost_access/, 'a deleted cost answer no longer covers cost_access');
 });
 
+test('deadlock (Codex point 6 on #637): an answer recorded at the current head lifts a label from an older head or from before owner_actions', async () => {
+  const answers = await import('./collab-owner-answer.mjs');
+  const withEvents = (state, list) => {
+    const g = fakeGh(state);
+    const raw = g.raw;
+    g.raw = (args, input) => (args[0] === 'api' ? list.map(e => JSON.stringify(e)).join('\n') : raw(args, input));
+    return g;
+  };
+  // Old rules: labelled on 13.11, before #591; no review since (the label blocks it).
+  const legacy = { pr: pr({ number: 616, comments: [check(A)], labels: [{ name: 'needs-owner' }] }) };
+  const old = [{ event: 'labeled', at: '2026-11-09T05:13:16Z' }, { event: 'unlabeled', at: '2026-11-13T05:40:44Z' }, { event: 'labeled', at: '2026-11-13T07:19:27Z' }];
+  const lifted = answers.recordAnswer(616, { kinds: 'cost_access', answer: 'V1 13.11', quote: 'chạy đi', gh: withEvents(legacy, old) });
+  assert.deepEqual(lifted, { status: 'recorded', lifted: true });
+  // A label added after owner_actions existed, with no review log behind it, stays for the owner.
+  const late = { pr: pr({ number: 617, comments: [check(A)], labels: [{ name: 'needs-owner' }] }) };
+  const kept = answers.recordAnswer(617, { kinds: 'cost_access', answer: 'Q1', quote: 'Q1', gh: withEvents(late, [{ event: 'labeled', at: '2026-11-17T07:10:04Z' }]) });
+  assert.equal(kept.lifted, false);
+  // Anything the owner wrote herself after the answer may be another hold.
+  const wrote = { ...legacy.pr, comments: [...legacy.pr.comments, owner('Khoan, để chị xem lại.')] };
+  assert.equal(answers.liftCheck(wrote, { events: old }).lift, false);
+
+  // Older head: the review at A held cost_access and data_collection; the branch then synced to B.
+  const moved = { pr: pr({ number: 618, comments: [check(A)] }) };
+  const g = fakeGh(moved);
+  review.runReview(618, { gh: g, run: fakeRun().run, readOut: () => JSON.stringify(output({ owner_actions: [
+    { kind: 'cost_access', evidence: 'x:1 synthetic', blocks: 'merge' }, { kind: 'data_collection', evidence: 'y:1 synthetic', blocks: 'merge' }] })), now: { date: '2027-03-05', hour: 12, minute: 0 } });
+  moved.pr.labels = [{ name: 'needs-owner' }];
+  moved.pr.headRefOid = B;
+  const at = moved.pr.comments.at(-1).createdAt;
+  const partial = answers.recordAnswer(618, { kinds: 'cost_access', answer: 'Q1', quote: 'Q1', gh: withEvents(moved, [{ event: 'labeled', at }]) });
+  assert.deepEqual([partial.lifted, /data_collection/.test(partial.reason)], [false, true], 'a held kind without an answer keeps the label');
+  const all = answers.recordAnswer(618, { kinds: 'data_collection', answer: 'Q2', quote: 'Q2', gh: withEvents(moved, [{ event: 'labeled', at }]) });
+  assert.deepEqual(all, { status: 'recorded', lifted: true }, 'every held kind answered at the current head');
+  // An answer recorded at an older head never lifts: it does not cover the content as it is now.
+  const stale = { ...moved.pr, headRefOid: C };
+  assert.equal(answers.liftCheck(stale, { events: [{ event: 'labeled', at }] }).lift, false);
+});
+
 test('5-fix A2, P1 on #591: a failed owner label posts no verdict, so an APPROVE never lacks its hold', () => {
   for (const [kind, blocks, label] of [['cost_access', 'merge', 'needs-owner'], ['sensitive_copy', 'release', review.releaseLabel]]) {
     const state = { pr: pr({ comments: [check(A)] }) };
@@ -985,7 +1023,7 @@ test('WIP 1 + 1 (owner 12.11): the tick asks for a new task only when nothing is
   assert.deepEqual([queue().inProgress, queue().inReview], [1, 1]);
   run([agent(3, { comments: [check(A)] })], 15);
   assert.equal(queue().lanes.process.topUp, true, 'one in review and nothing in progress: Claude starts one task');
-  assert.deepEqual(queue().topUpLanes, ['plan7w', 'process'], 'each lane with room may start one task (owner 16.11: two lanes)');
+  assert.deepEqual(queue().topUpLanes, ['plan7w', 'daily', 'process'], 'each lane with room may start one task (owner 16.11: lanes; 17.11 trial: three)');
   run([agent(4, { comments: [check(A)] }), agent(5, { comments: [check(A)] })], 25);
   assert.equal(queue().lanes.process.topUp, false, 'two in review: finish before starting');
   run([agent(6, { comments: inFix })], 35);
@@ -1514,7 +1552,7 @@ test('#158/#159: top-up is computed from the queue left after this tick merges',
   const queue = JSON.parse(readFileSync(join(trust.stateDir, 'claude-queue.json'), 'utf8'));
   assert.equal(queue.buffer, 0, 'WIP counts the PRs still open after the merges');
   assert.equal(queue.topUp, true, 'the emptied WIP asks Claude for the next task in the same tick');
-  assert.deepEqual(queue.topUpLanes, ['plan7w', 'process'], 'both lanes have room (owner 16.11: two lanes)');
+  assert.deepEqual(queue.topUpLanes, ['plan7w', 'daily', 'process'], 'every lane has room (owner 16.11; 17.11 trial: three lanes)');
 });
 
 // ---- #253: buffer rule and flow samples on the scheduled path ----
@@ -1524,7 +1562,7 @@ test('#253: the persisted queue uses the WIP rule and the tick samples the flow 
   tick({ gh: plannedGh(one, date), now: { date, hour: 15, minute: 5 }, merge: () => ({}), check: () => ({ status: 'FAIL' }), review: () => ({}) });
   const queue = JSON.parse(readFileSync(join(trust.stateDir, 'claude-queue.json'), 'utf8'));
   assert.equal(queue.topUp, true, 'one PR in review and nothing in progress');
-  assert.deepEqual(queue.topUpLanes, ['plan7w', 'process'], 'both lanes have room (owner 16.11: two lanes)');
+  assert.deepEqual(queue.topUpLanes, ['plan7w', 'daily', 'process'], 'every lane has room (owner 16.11; 17.11 trial: three lanes)');
   assert.equal(queue.buffer, 1);
   const flow = trust.readJson(join(trust.stateDir, 'beats', `flow-${trust.vnNow().date}.json`), null);
   assert.ok(flow?.samples >= 1, 'the scheduled tick records a flow sample without any CLI read');

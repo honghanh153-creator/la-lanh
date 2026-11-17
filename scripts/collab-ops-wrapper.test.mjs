@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { installWrapper, installedPath, reportConsumers, rulesHookHealth, rulesHookWatch, skillRuleFindings, skillRuleHealth, verifyReportPrompts, verifySkillRules, verifyWrapper, wrapperHealth } from './collab-ops-wrapper.mjs';
+import { installWrapper, installedPath, reportConsumers, rulesHookHealth, rulesHookWatch, rulesSheetHealth, skillRuleFindings, skillRuleHealth, verifyReportPrompts, verifySkillRules, verifyWrapper, wrapperHealth } from './collab-ops-wrapper.mjs';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 // Scheduled-task prompts as the owner's machine has them since 15.11 (both call their snapshot step).
@@ -308,6 +308,12 @@ test('L37: the tick opens one alert a day while the rules hook is broken and clo
   assert.equal(watch([], 'd2').status, 'resolved');
   assert.deepEqual(closed, ['hook luật owner đã khớp bản chuẩn']);
   assert.equal(watch([], 'd3').status, 'ok');
+  // Fix-forward #648: broken, fixed and broken again on one day opens a second incident.
+  assert.equal(watch(['x'], 'd4').status, 'alerted');
+  assert.equal(watch([], 'd4').status, 'resolved');
+  assert.equal(watch(['x'], 'd4').status, 'alerted', 'a failure after recovery is a new incident');
+  assert.equal(watch(['x'], 'd4').status, 'already-alerted');
+  assert.equal(sent.length, 4);
   assert.match(rulesHookHealth({ verify: () => ['selftest trượt'] })[0], /^- ⚠️ hook luật owner \(L37\): selftest trượt/);
   assert.match(rulesHookHealth({ verify: () => [] })[0], /^- ✅ hook luật owner/);
 });
@@ -333,4 +339,16 @@ test('#620: a retired clause hides only itself; a Vietnamese quota is caught; an
   assert.equal(bad.length, 1);
   assert.match(bad[0], /^la-lanh-autopilot: không đọc được prompt \(EISDIR\), chưa kiểm$/);
   assert.match(skillRuleHealth({ prompts: dir })[0], /^- ⚠️ /);
+});
+
+// L44 (#643): the tick reads the owner-rules sheet against the code, not only CI.
+test('L44: the tick health line flags an owner-rules sheet that drifts from the code, and says when it cannot read it', () => {
+  const sheetRel = 'docs/operations/luat-dang-hieu-luc.md';
+  const real = readFileSync(join(repoRoot, sheetRel), 'utf8');
+  const at = text => { const root = realpathSync(mkdtempSync(join(tmpdir(), 'rules-sheet-'))); mkdirSync(join(root, 'docs', 'operations'), { recursive: true }); if (text !== null) writeFileSync(join(root, sheetRel), text); return root; };
+  assert.match(rulesSheetHealth({ root: at(real) })[0], /^- ✅ bảng luật owner: khớp code/);
+  const drifted = real.replace(/^(\| R8 \|[^|]*\|[^|]*)Trần 80 lượt/m, '$1Trần 60 lượt');
+  assert.notEqual(drifted, real);
+  assert.match(rulesSheetHealth({ root: at(drifted) })[0], /^- ⚠️ bảng luật owner khác code: .*R8: bảng ghi 60 lượt/);
+  assert.match(rulesSheetHealth({ root: at(null) })[0], /^- ⚠️ bảng luật owner: chưa kiểm được \(ENOENT\)/);
 });

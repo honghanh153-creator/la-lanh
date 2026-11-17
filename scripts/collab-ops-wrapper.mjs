@@ -14,7 +14,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { codexDailyCap, hhmmOf, integration, lastStartAt, planOpensAt, stateDir } from './collab-trust.mjs';
 import { isMain } from './is-main.mjs';
-import { parseRules, sheetPath } from './collab-rules.mjs';
+import { parseRules, problems as rulesProblems, sheetPath } from './collab-rules.mjs';
 import { hookSettingsFiles, projectRoots, verifyRulesHook } from './collab-rules-hook.mjs';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -145,7 +145,9 @@ export function agentGateWatch({ verify = () => verifyAgentGate(), alert, resolv
   let bad;
   try { bad = verify(); } catch (error) { bad = [`chưa kiểm được (${String(error?.message ?? error).slice(0, 120)})`]; }
   if (bad.length) {
-    if (state.alertedOn === today) return { status: 'already-alerted' };
+    // Fix-forward #648: repeats are throttled only while the incident is still open. A failure after a
+    // recovery on the same day opens a new one.
+    if (state.open && state.alertedOn === today) return { status: 'already-alerted' };
     alert(`${what} không ở trạng thái chuẩn: ${bad.join('; ')}. Cài lại bằng: ${fix}`);
     save({ alertedOn: today, open: true });
     return { status: 'alerted' };
@@ -205,6 +207,19 @@ export function skillRuleHealth(opts = {}) {
     const bad = verifySkillRules(opts.prompts ? { dir: opts.prompts } : {});
     return bad.length ? [`- ⚠️ prompt tác vụ hẹn giờ khác luật trong code: ${bad.slice(0, 6).join('; ')}${bad.length > 6 ? `; và ${bad.length - 6} chỗ khác` : ''}`] : ['- ✅ prompt tác vụ hẹn giờ: khớp luật trong code (trần Codex, giờ chạy, giờ báo cáo, không chỉ tiêu PR) và trỏ tới bảng luật'];
   } catch (error) { return [`- ⚠️ prompt tác vụ hẹn giờ: chưa kiểm được (${error.message})`]; }
+}
+
+// L44 (#643, 17.11.2026): the owner-rules sheet is checked against the code on every tick, not only
+// in CI. A sheet that drifts (an old cap, stop time or owner kind) shows as a warning in the health
+// lines the tick posts; an unreadable sheet is reported as unchecked, never as fine.
+export function rulesSheetHealth({ root } = {}) {
+  let text;
+  try { text = readFileSync(sheetPath(root), 'utf8'); }
+  catch (error) { return [`- ⚠️ bảng luật owner: chưa kiểm được (${error.code ?? error.message})`]; }
+  try {
+    const bad = rulesProblems(text);
+    return bad.length ? [`- ⚠️ bảng luật owner khác code: ${bad.slice(0, 6).join('; ')}${bad.length > 6 ? `; và ${bad.length - 6} chỗ khác` : ''}`] : ['- ✅ bảng luật owner: khớp code (trần Codex, giờ chạy, giờ dừng, 4 loại việc của owner)'];
+  } catch (error) { return [`- ⚠️ bảng luật owner: chưa kiểm được (${error.message})`]; }
 }
 
 export function wrapperHealth(opts = {}) {
