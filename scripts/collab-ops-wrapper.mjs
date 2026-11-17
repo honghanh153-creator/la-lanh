@@ -158,7 +158,7 @@ export function agentGateWatch({ verify = () => verifyAgentGate(), alert, resolv
 // so the tick reads each SKILL.md and names every active instruction that disagrees with the code:
 // a PR quota, a Codex cap other than codexDailyCap, a stop time other than lastStartAt, an auto-start
 // other than planOpensAt. A line that marks a rule as retired or superseded is history and is skipped.
-const retired = /retired|superseded|old rule|luật cũ|đã bỏ|thay bằng/i;
+const retired = /retired|superseded|old rule|old text|history only|do not apply|luật cũ|đã bỏ|thay bằng|không áp dụng/i;
 // Report slots the owner dropped (R5), from the rules sheet of this same checkout.
 export function retiredReportSlots(root = repoRoot) {
   try { return parseRules(readFileSync(sheetPath(root), 'utf8')).facts?.retiredReportSlots ?? []; } catch { return []; }
@@ -166,19 +166,24 @@ export function retiredReportSlots(root = repoRoot) {
 export function skillRuleFindings(text, { cap = codexDailyCap, stop = hhmmOf(lastStartAt), start = hhmmOf(planOpensAt), retiredSlots = retiredReportSlots() } = {}) {
   const out = [];
   String(text).split('\n').forEach((line, i) => {
-    if (retired.test(line)) return;
     const at = `dòng ${i + 1}`;
-    if (/\b(at least|ít nhất|tối thiểu)\s+\d+\s+(planned\s+)?PRs?\b|\b\d+\s+or more\s+(planned\s+)?PRs?\b|\bplan\s+\d+\s+PRs?\b|\b\d+\s*PR\s*\/\s*ngày/i.test(line)) out.push(`còn chỉ tiêu số PR (${at})`);
-    for (const m of line.matchAll(/\b(?:within|cap(?: of)?|trần(?: Codex)?|tối đa)\s+(\d+)\s+(?:Codex\s+)?(?:runs|lượt)/gi)) if (Number(m[1]) !== cap) out.push(`trần Codex ${m[1]}, code là ${cap} (${at})`);
-    for (const m of line.matchAll(/(?:no new work|not start new work|nhận việc mới)[^.\n]*?\b(?:after|from|sau|từ)\s+(\d{1,2}:\d{2})/gi)) if (m[1] !== stop) out.push(`dừng nhận việc lúc ${m[1]}, code là ${stop} (${at})`);
-    for (const m of line.matchAll(/(?:auto-?starts?|tự chạy|auto-start)[^.\n]*?\b(\d{1,2}:\d{2})|\b(\d{1,2}:\d{2})\s*\(?\s*(?:tự chạy|auto-?start)/gi)) { const t = m[1] ?? m[2]; if (t !== start) out.push(`giờ tự chạy ${t}, code là ${start} (${at})`); }
-    // A report slot the owner dropped, still scheduled ("08:00: **Báo cáo…**", "report at 08:00"). A line
-    // that says it was dropped (bỏ) is history.
-    if (!/\bbỏ\b|\bdrop/i.test(line)) for (const slot of retiredSlots) {
-      if (new RegExp(`\\b${slot}\\b\\s*:?\\s*"?\\**\\s*Báo cáo|(?:report|báo cáo)[^.\\n]{0,25}\\b${slot}\\b`, 'i').test(line)) out.push(`còn giờ báo cáo ${slot} đã bỏ (R5) (${at})`);
+    // Fix-forward #620: only the clause that names a rule as retired is history; a current instruction
+    // beside it on the same line is still checked.
+    for (const clause of line.split(/[.;](?:\s+|$)/)) {
+      if (retired.test(clause)) continue;
+      // #620: a Unicode-aware start, so "ít nhất 20 PR" after a space is caught too.
+      if (/(?<![\p{L}\p{N}_])(?:at least|ít nhất|tối thiểu)\s+\d+\s+(?:planned\s+)?PRs?(?![\p{L}\p{N}_])|(?<![\p{L}\p{N}_])\d+\s+or more\s+(?:planned\s+)?PRs?(?![\p{L}\p{N}_])|(?<![\p{L}\p{N}_])plan\s+\d+\s+PRs?(?![\p{L}\p{N}_])|(?<![\p{L}\p{N}_])\d+\s*PR\s*\/\s*ngày/iu.test(clause)) out.push(`còn chỉ tiêu số PR (${at})`);
+      for (const m of clause.matchAll(/(?<![\p{L}\p{N}_])(?:within|cap(?: of)?|trần(?: Codex)?|tối đa)\s+(\d+)\s+(?:Codex\s+)?(?:runs|lượt)/giu)) if (Number(m[1]) !== cap) out.push(`trần Codex ${m[1]}, code là ${cap} (${at})`);
+      for (const m of clause.matchAll(/(?:no new work|not start new work|nhận việc mới)[^\n]*?(?<![\p{L}\p{N}_])(?:after|from|sau|từ)\s+(\d{1,2}:\d{2})/giu)) if (m[1] !== stop) out.push(`dừng nhận việc lúc ${m[1]}, code là ${stop} (${at})`);
+      for (const m of clause.matchAll(/(?:auto-?starts?|tự chạy)[^\n]*?(?<![\p{N}])(\d{1,2}:\d{2})|(?<![\p{N}])(\d{1,2}:\d{2})\s*\(?\s*(?:tự chạy|auto-?start)/giu)) { const t = m[1] ?? m[2]; if (t !== start) out.push(`giờ tự chạy ${t}, code là ${start} (${at})`); }
+      // A report slot the owner dropped, still scheduled ("08:00: **Báo cáo…**", "report at 08:00"). A
+      // clause that says it was dropped (bỏ) is history.
+      if (!/(?<![\p{L}])bỏ(?![\p{L}])|\bdrop/iu.test(clause)) for (const slot of retiredSlots) {
+        if (new RegExp(`\\b${slot}\\b\\s*:?\\s*"?\\**\\s*Báo cáo|(?:report|báo cáo)[^.\\n]{0,25}\\b${slot}\\b`, 'i').test(clause)) out.push(`còn giờ báo cáo ${slot} đã bỏ (R5) (${at})`);
+      }
     }
   });
-  return out;
+  return [...new Set(out)];
 }
 export function verifySkillRules({ dir = join(homedir(), '.claude', 'scheduled-tasks'), ...limits } = {}) {
   let tasks = [];
@@ -186,7 +191,8 @@ export function verifySkillRules({ dir = join(homedir(), '.claude', 'scheduled-t
   const bad = [];
   for (const task of tasks.sort()) {
     let text = '';
-    try { text = readFileSync(join(dir, task, 'SKILL.md'), 'utf8'); } catch { continue; }
+    // Fix-forward #620: a prompt that cannot be read is reported as unchecked, never as compliant.
+    try { text = readFileSync(join(dir, task, 'SKILL.md'), 'utf8'); } catch (error) { bad.push(`${task}: không đọc được prompt (${error?.code ?? 'lỗi'}), chưa kiểm`); continue; }
     for (const f of skillRuleFindings(text, limits)) bad.push(`${task}: ${f}`);
     // One source (R1…): every prompt points to the rules sheet instead of restating rules.
     if (!text.includes('luat-dang-hieu-luc.md')) bad.push(`${task}: thiếu dòng trỏ tới bảng luật (docs/operations/luat-dang-hieu-luc.md)`);

@@ -81,3 +81,8 @@ test('two lanes: each lane has its own WIP 1 + 1 and tops up on its own; 7-week 
   const busy = queueTopUp(wipCount([pr(12), pr(13)], turns));
   assert.deepEqual(busy.topUpLanes, ['plan7w']);
 });
+
+test('review 16.11: a persona-fix PR is plan-lane work', () => {
+  const count = wipCount([pr(31, { labels: [{ name: 'persona-fix' }] })], [{ number: 31, turn: 'claude-fix' }]);
+  assert.deepEqual(count.lanes, { plan7w: { inProgress: 1, inReview: 0 }, process: { inProgress: 0, inReview: 0 } });
+});

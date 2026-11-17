@@ -190,7 +190,7 @@ Chọn **composite numeric field DD/MM/YYYY** thay cho native date picker làm U
 | Guest ownership | Lưu theo `guest_id` khi chưa đăng nhập; US-19 chuyển ownership atomically sang `user_id`. |
 | Guest retention | Tuân TTL 30 ngày không hoạt động của US-01; card lưu local có thể mất khi gỡ app. |
 | Sun sign | Western Tropical; tính từ engine/source versioned, không tin mapping chỉ ở client; luôn giữ trong provenance. |
-| Persona compact | Level 1 bắt buộc `persona_mode=vibe` và render đúng `Vibe · <persona_label>`; label 3–5 chữ theo mapping versioned do server trả. Không được trả `Aura` khi chỉ có ngày sinh. |
+| Persona compact | Level 1 bắt buộc `persona_mode=vibe` và render đúng `<persona_label>`, không tiền tố `Vibe ·` (từ 15.11.2026, xem [README](README.md); áp dụng cho mọi chỗ ghi `Vibe · …` trong story này); label 3–5 chữ theo mapping versioned do server trả. Không được trả `Aura` khi chỉ có ngày sinh. |
 | Time/place | Luôn null trong US-02; không tính Moon/Rising/Houses. |
 | Profile level | Sau compute thành công là Level 1. |
 | Content | 80–120 từ cho reveal; template `sun` đã review; lưu content snapshot/version. |
