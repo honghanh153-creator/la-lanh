@@ -335,18 +335,7 @@ def test_every_reading_mode_keeps_evidence_while_rendering_one_contextual_scene(
     assert contextual.semantic_blueprint is not None
     assert contextual.semantic_blueprint.arena.value == lens.value
     assert contextual.transit == plain.transit
-    if mode == "limited":
-        # 17.11.2026 (#626): an approximate time now gets a Daily from its time-stable placements.
-        # The evidence follows the situation the lens picks, and may name another stable placement;
-        # every claim stays a sign-only placement from the plan, never an aspect, house or transit.
-        allowed = {factor.id for factor in plain_plan.factors}
-        for card in (plain, contextual):
-            assert {claim.factor_ref for claim in card.evidence.claims} <= allowed
-            assert all(
-                claim.template_id.value == "planet_in_sign" for claim in card.evidence.claims
-            )
-    else:
-        assert contextual.evidence == plain.evidence
+    assert contextual.evidence == plain.evidence
     assert contextual_plan.factors == plain_plan.factors
     assert contextual_plan.hero_factor_refs == plain_plan.hero_factor_refs
     assert contextual_plan.precision == plain_plan.precision
@@ -552,3 +541,58 @@ def test_jyotish_chart_without_graha_drishti_cites_every_hero(purpose: ReadingPu
     assert set(plan.hero_factor_refs) <= {claim.factor_ref for claim in candidate.evidence.claims}
     assert GateFailureCode.EVIDENCE_MISSING_HERO not in evaluation.failure_codes
     assert evaluation.accepted is True
+
+
+def test_a_lens_never_changes_the_evidence_of_an_approximate_daily() -> None:
+    """#665 (US-03 AC22): over people, days and lenses, an approximate Daily keeps its evidence."""
+    from datetime import date, timedelta
+    from uuid import UUID
+
+    from app.domains.readings.daily_psychology import DAILY_PSYCHOLOGY_MATRIX_VERSION
+    from app.domains.readings.daily_rotation import (
+        VARIETY_KEY_VERSION,
+        daily_variety_seed,
+        day_index,
+        derive_variety_key,
+    )
+    from app.domains.readings.models import DailyVariety
+
+    source = _chart().model_copy(
+        update={"time_precision": TimePrecision.APPROXIMATE, "houses": None, "angles": None}
+    )
+    key = derive_variety_key(b"test-only-server-secret")
+    planner = ReadingPlanner()
+    renderer = DeterministicVietnameseRenderer()
+    lenses = [
+        BackgroundLens.RELATIONSHIPS,
+        BackgroundLens.COMMUNICATION,
+        BackgroundLens.WORK,
+        BackgroundLens.ENERGY,
+        BackgroundLens.SELF_CARE,
+    ]
+    for person in range(3):
+        seed = daily_variety_seed(key, UUID(int=person + 1), DAILY_PSYCHOLOGY_MATRIX_VERSION)
+        for offset in range(14):
+            day = date(2026, 11, 1) + timedelta(days=offset)
+            variety = DailyVariety(
+                key_version=VARIETY_KEY_VERSION,
+                catalog_version=DAILY_PSYCHOLOGY_MATRIX_VERSION,
+                seed=seed,
+                day_index=day_index(day),
+            )
+
+            def evidence(
+                lens: BackgroundLens | None, day: date = day, variety: DailyVariety = variety
+            ) -> object:
+                plan = planner.plan(
+                    source,
+                    purpose=ReadingPurpose.DAILY_NOTE,
+                    editorial_seed=day.isoformat(),
+                    daily_variety=variety,
+                    background_lens=lens,
+                )
+                return renderer.render(plan).evidence
+
+            plain = evidence(None)
+            for lens in lenses:
+                assert evidence(lens) == plain, (person, offset, lens)
