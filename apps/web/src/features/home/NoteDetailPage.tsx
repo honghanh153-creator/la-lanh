@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import {
-  getCurrentMood,
   isReadingContentRejected,
   listSavedNotes,
   saveDailyNote,
@@ -20,7 +19,7 @@ import {
   writeCachedDailyNote,
 } from "../../shared/storage/noteCache";
 import { useReadingUpdateActivation } from "../../shared/hooks/useReadingUpdateActivation";
-import { dailyMoodKey, useDailyActionView } from "../../shared/hooks/useDailyActionView";
+import { dailyMoodKey, readDailyMood, useDailyActionView } from "../../shared/hooks/useDailyActionView";
 import { useDailyExperiment } from "../../shared/hooks/useDailyExperiment";
 import { saveNoteLocally } from "../../shared/storage/savedNoteCache";
 import "../../shared/styles/signal-note.css";
@@ -91,7 +90,7 @@ export function NoteDetailPage() {
   // The mood is read here only when this reading has a lighter action to offer (#627).
   const moodQuery = useQuery({
     queryKey: dailyMoodKey(note?.id),
-    queryFn: ({ signal }) => getCurrentMood(note!.id, signal),
+    queryFn: ({ signal }) => readDailyMood(queryClient, note!.id, signal),
     enabled: Boolean(note?.id && activeReading?.lighter_action),
     retry: false,
   });

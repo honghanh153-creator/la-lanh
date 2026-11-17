@@ -746,11 +746,11 @@ describe("HomePage rich reading", () => {
 
       await act(async () => { settle.succeed(); await Promise.resolve(); });
       await settled();
-      // The save belongs to yesterday's note: stored there, and that note's mood is marked to be
-      // read again. The new day has no mood and keeps its own action.
+      // The save belongs to yesterday's note: stored there and applied to that note's mood only.
+      // The new day has no mood and keeps its own action.
       expect(moodServer.read(baseNoteId)?.mood).toBe("Đuối");
       expect(moodServer.read(nextDay.id)).toBeNull();
-      expect(client.getQueryState(["daily-note-mood", baseNoteId])?.isInvalidated).toBe(true);
+      expect(client.getQueryData<{ mood: string }>(["daily-note-mood", baseNoteId])?.mood).toBe("Đuối");
       expect(client.getQueryData(["daily-note-mood", nextDay.id])).toBeNull();
       expect(screen.getByRole("button", { name: "Chọn mood hôm nay" })).toBeInTheDocument();
       expectOrdinary();
@@ -788,14 +788,14 @@ describe("HomePage rich reading", () => {
 
     const reopenHome = (client: QueryClient) => render(<QueryClientProvider client={client}><MemoryRouter><HomePage /></MemoryRouter></QueryClientProvider>);
 
-    it("unmount while a save is pending: the saved mood is read from the server on return and shows", async () => {
+    it("unmount while a save is pending: the answer still becomes the saved mood and shows on return", async () => {
       const { client, settle, unmount } = await pickWithPendingSave(null, "Đuối");
       unmount();
       await act(async () => { settle.succeed(); await Promise.resolve(); });
-      // The answer is not written into the cache; the mood is marked to be read again.
-      expect(client.getQueryData<{ mood: string } | null>(["daily-note-mood", baseNoteId])?.mood).toBeUndefined();
+      // The answer is applied to the shared saved mood although its screen is gone.
+      expect(client.getQueryData<{ mood: string } | null>(["daily-note-mood", baseNoteId])?.mood).toBe("Đuối");
 
-      // Coming back to Home (same cache): the server has Đuối, so the lighter action shows.
+      // Coming back to Home (same cache): the saved mood is Đuối, so the lighter action shows.
       reopenHome(client);
       expect(await screen.findByText(withLighter.lighter_action.action)).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Mood hôm nay: Đuối" })).toBeInTheDocument();
@@ -815,21 +815,71 @@ describe("HomePage rich reading", () => {
       expectOrdinary();
     });
 
-    it("save succeeds but the read after it fails: the pick stays on the control and the lighter action waits for a completed read", async () => {
+    it("save succeeds but the read after it fails: the save's own answer is the saved mood", async () => {
       const { client, settle } = await pickWithPendingSave("Chill", "Đuối");
       vi.mocked(getCurrentMood).mockImplementationOnce(() => Promise.reject(new Error("offline")));
       await act(async () => { settle.succeed(); await Promise.resolve(); });
       await settled();
-      // The save is stored, but this device has not read it back yet: it still shows Chill as saved.
-      expect(moodServer.read(baseNoteId)?.mood).toBe("Đuối");
-      expect(client.getQueryData<{ mood: string }>(["daily-note-mood", baseNoteId])?.mood).toBe("Chill");
+      expect(client.getQueryData<{ mood: string }>(["daily-note-mood", baseNoteId])?.mood).toBe("Đuối");
       expect(screen.getByRole("button", { name: "Mood hôm nay: Đuối" })).toBeInTheDocument();
+      expect(screen.getByText(withLighter.lighter_action.action)).toBeInTheDocument();
+    });
+
+    // One test per reordering of answers (coordinator, 17.11). All of them go through
+    // `newerMoodRow`: an answer is applied only if it is not older than the row already applied.
+    it("read vs save: a read started before the save's answer and landing after it does not put the older mood back", async () => {
+      const { client, settle } = await pickWithPendingSave("Chill", "Đuối");
+      // A refetch starts while the save is pending; the server answers it with the row from
+      // before the save, and that answer is slow.
+      const before = moodServer.read(baseNoteId)!;
+      let landRead: (() => void) | undefined;
+      vi.mocked(getCurrentMood).mockImplementationOnce(() => new Promise((resolve) => { landRead = () => resolve(before); }));
+      void client.invalidateQueries({ queryKey: ["daily-note-mood"] });
+      await waitFor(() => expect(landRead).toBeDefined());
+
+      await act(async () => { settle.succeed(); await Promise.resolve(); });
+      expect(await screen.findByText(withLighter.lighter_action.action)).toBeInTheDocument();
+      await act(async () => { landRead!(); await Promise.resolve(); });
+      await settled();
+
+      expect(client.getQueryData<{ mood: string }>(["daily-note-mood", baseNoteId])?.mood).toBe("Đuối");
+      expect(screen.getByRole("button", { name: "Mood hôm nay: Đuối" })).toBeInTheDocument();
+      expect(screen.getByText(withLighter.lighter_action.action)).toBeInTheDocument();
+    });
+
+    it("failure then success: a failed pick leaves nothing behind, and the next saved pick is the saved mood", async () => {
+      vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(withLighter)));
+      vi.mocked(checkInMood).mockImplementationOnce(() => Promise.reject(new Error("offline")));
+      const { client } = renderPage();
+      await pickMood(null, "Chill");
+      expect((await screen.findAllByText("Đã giữ cảm xúc trên máy. Lá Lành sẽ đồng bộ khi có mạng.")).length).toBeGreaterThan(0);
+      expect(client.getQueryData(["daily-note-mood", baseNoteId])).toBeFalsy();
       expectOrdinary();
 
-      // The next read that completes brings the saved mood and with it the lighter action.
-      await act(async () => { await client.invalidateQueries({ queryKey: ["daily-note-mood"] }); });
+      // The next pick is saved (the default fake server stores and answers at once).
+      await pickMood("Chill", "Đuối");
       expect(await screen.findByText(withLighter.lighter_action.action)).toBeInTheDocument();
+      await settled();
+      expect(moodServer.read(baseNoteId)?.mood).toBe("Đuối");
+      expect(client.getQueryData<{ mood: string }>(["daily-note-mood", baseNoteId])?.mood).toBe("Đuối");
       expect(screen.getByRole("button", { name: "Mood hôm nay: Đuối" })).toBeInTheDocument();
+    });
+
+    it("failure then success in the other order of answers: an older save failing late does not undo the newer saved mood", async () => {
+      // Save A (Chill) is held. Home is closed and reopened; save B (Đuối) is stored and answered.
+      const { client, settle: saveA, unmount } = await pickWithPendingSave(null, "Chill");
+      unmount();
+      reopenHome(client);
+      await pickMood(null, "Đuối");
+      expect(await screen.findByText(withLighter.lighter_action.action)).toBeInTheDocument();
+
+      // Now A fails, in the callback of the Home that is no longer on screen.
+      await act(async () => { saveA.fail(); await Promise.resolve(); });
+      await settled();
+      expect(client.getQueryData<{ mood: string }>(["daily-note-mood", baseNoteId])?.mood).toBe("Đuối");
+      expect(screen.getByRole("button", { name: "Mood hôm nay: Đuối" })).toBeInTheDocument();
+      expect(screen.getByText(withLighter.lighter_action.action)).toBeInTheDocument();
+      expect(checkInMood).toHaveBeenCalledTimes(2);
     });
 
     // Review auto-6: the answer to an older save arrives after a newer save, across a remount.

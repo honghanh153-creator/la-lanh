@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 
-import type { MoodValue, ReadingContent } from "../api/client";
+import { getCurrentMood, type MoodCheckIn, type MoodValue, type ReadingContent } from "../api/client";
 
 /**
  * Which of the day's two actions the reader sees (#627).
@@ -9,10 +9,10 @@ import type { MoodValue, ReadingContent } from "../api/client";
  * and the reading carries a lighter action, this device shows the lighter one first and the reader
  * can switch back.
  *
- * The lighter action follows the saved mood only: what the server returned, or a check-in the
- * server has confirmed. A mood that is still being saved, or that failed to save, never changes the
- * action, so there is no order of requests to keep track of. The only thing kept here is the
- * reader's press on the switch, in memory (the query cache): never in storage, never sent anywhere.
+ * The lighter action follows the saved mood only: the newest row the server has given this device
+ * (see `newerMoodRow`). A mood that is still being saved, or that failed to save, never changes
+ * the action. The only other thing kept here is the reader's press on the switch, in memory (the
+ * query cache): never in storage, never sent anywhere.
  */
 export const LIGHTER_MOOD: MoodValue = "Đuối";
 
@@ -23,6 +23,36 @@ export const dailyActionViewKey = (noteId: string | undefined) => [DAILY_ACTION_
 
 /** The saved mood of a note, as the server last confirmed it. Home and the note page share it. */
 export const dailyMoodKey = (noteId: string | undefined) => ["daily-note-mood", noteId] as const;
+
+/**
+ * The one ordering rule for every answer about a note's mood: the first read, a refetch, and the
+ * answer to a save. An answer is applied only if it is not older than the row already applied for
+ * that note. "Older" is decided by the server's own `checked_in_at`, which the server sets anew on
+ * every save, never by the order answers happen to arrive in or by this device's clock.
+ *
+ * The marker is the applied row itself, in the shared mood query: it outlives any screen, so an
+ * answer that arrives after its screen was closed is held to the same rule, and it is erased with
+ * the mood on every erase path.
+ *
+ * "No mood" (null) carries no time and is always applied: the server saying there is nothing must
+ * win, or an erased mood could stay on screen. A read that could carry a stale null (started
+ * before a save) is cancelled when a mood is picked and again before a save's answer is applied.
+ */
+export function newerMoodRow(applied: MoodCheckIn | null | undefined, incoming: MoodCheckIn | null): MoodCheckIn | null {
+  if (!incoming || !applied || applied.daily_note_id !== incoming.daily_note_id) return incoming;
+  return Date.parse(applied.checked_in_at) > Date.parse(incoming.checked_in_at) ? applied : incoming;
+}
+
+/** Reads the saved mood from the server; the result goes through the ordering rule. */
+export async function readDailyMood(client: QueryClient, noteId: string, signal?: AbortSignal): Promise<MoodCheckIn | null> {
+  const incoming = await getCurrentMood(noteId, signal);
+  return newerMoodRow(client.getQueryData<MoodCheckIn | null>(dailyMoodKey(noteId)), incoming);
+}
+
+/** Applies the answer to a save; it goes through the same ordering rule as a read. */
+export function applySavedMood(client: QueryClient, row: MoodCheckIn): void {
+  client.setQueryData<MoodCheckIn | null>(dailyMoodKey(row.daily_note_id), (applied) => newerMoodRow(applied, row));
+}
 
 type DailyActionView = {
   /** Set only when the reader pressed the switch. */

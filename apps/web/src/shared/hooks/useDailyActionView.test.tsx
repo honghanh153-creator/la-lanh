@@ -1,11 +1,16 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import type { MoodValue, ReadingContent } from "../api/client";
+import { getCurrentMood, type MoodCheckIn, type MoodValue, type ReadingContent } from "../api/client";
 import { clearChartDerivedData } from "../storage/clearChartDerivedData";
-import { dailyActionViewKey, resetDailyActionChoice, useDailyActionView } from "./useDailyActionView";
+import { applySavedMood, dailyActionViewKey, dailyMoodKey, newerMoodRow, readDailyMood, resetDailyActionChoice, useDailyActionView } from "./useDailyActionView";
+
+vi.mock("../api/client", async (original) => ({
+  ...(await original<typeof import("../api/client")>()),
+  getCurrentMood: vi.fn(),
+}));
 
 const NOTE_ID = "00000000-0000-4000-8000-000000000001";
 const reading = {
@@ -18,6 +23,53 @@ function setup(confirmedMood: MoodValue | null, content: ReadingContent | null =
   const hook = renderHook(({ mood }: { mood: MoodValue | null }) => useDailyActionView(NOTE_ID, content, mood), { wrapper, initialProps: { mood: confirmedMood } });
   return { client, ...hook };
 }
+
+describe("the ordering rule for mood answers (#627)", () => {
+  const at = (mood: MoodValue, time: string, noteId = NOTE_ID): MoodCheckIn => ({ id: `row-${time}`, daily_note_id: noteId, mood, checked_in_at: time });
+  const older = at("Đuối", "2026-09-07T10:00:00Z");
+  const newer = at("Chill", "2026-09-07T10:00:05Z");
+
+  it("applies an answer only if it is not older than the row already applied", () => {
+    expect(newerMoodRow(undefined, older)).toBe(older);
+    expect(newerMoodRow(null, older)).toBe(older);
+    expect(newerMoodRow(older, newer)).toBe(newer);
+    expect(newerMoodRow(newer, older)).toBe(newer);
+    // The same time is not older: the incoming row is taken (the same save read back).
+    const sameTime = { ...older, id: "row-again" };
+    expect(newerMoodRow(older, sameTime)).toBe(sameTime);
+    // Times are compared as instants, not as text.
+    expect(newerMoodRow(at("Đuối", "2026-09-07T17:00:05+07:00"), at("Chill", "2026-09-07T10:00:04Z"))?.mood).toBe("Đuối");
+  });
+
+  it("always applies 'no mood', and never compares rows of different notes", () => {
+    expect(newerMoodRow(newer, null)).toBeNull();
+    const otherNote = at("Đuối", "2026-09-06T10:00:00Z", "00000000-0000-4000-8000-000000000002");
+    expect(newerMoodRow(newer, otherNote)).toBe(otherNote);
+  });
+
+  it("holds the answer to a save to the rule, whichever order answers arrive in", () => {
+    const client = new QueryClient();
+    applySavedMood(client, newer);
+    applySavedMood(client, older);
+    expect(client.getQueryData(dailyMoodKey(NOTE_ID))).toEqual(newer);
+    const client2 = new QueryClient();
+    applySavedMood(client2, older);
+    applySavedMood(client2, newer);
+    expect(client2.getQueryData(dailyMoodKey(NOTE_ID))).toEqual(newer);
+  });
+
+  it("holds a read to the same rule: an older row read from the server does not replace a newer applied one", async () => {
+    const client = new QueryClient();
+    applySavedMood(client, newer);
+    vi.mocked(getCurrentMood).mockResolvedValueOnce(older);
+    expect(await readDailyMood(client, NOTE_ID)).toEqual(newer);
+    const newest = at("Đuối", "2026-09-07T10:00:09Z");
+    vi.mocked(getCurrentMood).mockResolvedValueOnce(newest);
+    expect(await readDailyMood(client, NOTE_ID)).toBe(newest);
+    vi.mocked(getCurrentMood).mockResolvedValueOnce(null);
+    expect(await readDailyMood(client, NOTE_ID)).toBeNull();
+  });
+});
 
 describe("useDailyActionView (#627)", () => {
   it("shows the lighter action first only for a saved Đuối mood with a lighter action", () => {
