@@ -261,7 +261,8 @@ export function apply({ out, memory, accept, sheet = readFileSync(sheetPath(), '
     // undefined: no file; null: something that is not a regular file. A source recorded as absent may
     // only be created while it is still absent.
     let current;
-    try { current = lstatSync(target).isFile() ? readFileSync(target, 'utf8') : null; } catch { current = undefined; }
+    // Fix-forward #653: only a missing file is absent; an unreadable one is refused, never overwritten.
+    try { current = lstatSync(target).isFile() ? readFileSync(target, 'utf8') : null; } catch (error) { current = error?.code === 'ENOENT' ? undefined : null; }
     const unchanged = manifest.sources[file] === null ? current === undefined : typeof current === 'string' && hash(current) === manifest.sources[file];
     if (!unchanged) { result.refused.push({ file, why: 'file gốc đã đổi sau đề xuất' }); continue; }
     const next = readFileSync(join(out, 'memory', file), 'utf8');

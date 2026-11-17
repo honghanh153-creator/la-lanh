@@ -777,6 +777,19 @@
     "file": "scripts/collab-rules.test.mjs",
     "name": "#643: a value the rule text states must equal the facts, not merely sit beside them"
    }
+  },
+  {
+   "id": "L45",
+   "title": "Trí nhớ của Claude được dọn mỗi đêm bằng đề xuất có kiểm (mục cũ trái bảng luật, trùng, chỉ mục), không tự sửa; áp chỉ file đã nhận và chỉ khi nguồn chưa đổi (retro 31.10 D8, nhắc lại 03.11; owner 16.11)",
+   "from": "retro 31.10 D8, 03.11; fix-forward #653",
+   "who": "claude",
+   "due": "2026-11-19",
+   "status": "open",
+   "test": {
+    "file": "scripts/collab-memory-dream.test.mjs",
+    "name": "dream: proposes stale marks, duplicates, reference checks and index fixes in a NEW store only"
+   },
+   "note": "caller is the local scheduled task la-lanh-memory-dream (00:20) and step 6b of la-lanh-bao-cao-7h; close once the tick checks those prompts call the script (like reportConsumers)"
   }
  ]
 }
