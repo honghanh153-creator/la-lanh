@@ -528,6 +528,34 @@ describe("HomePage rich reading", () => {
     expect(screen.queryByRole("button", { name: "Xem việc ban đầu" })).not.toBeInTheDocument();
   });
 
+  it.each([
+    { here: "Đuối", elsewhere: "Chill", lighterAfter: false },
+    { here: "Chill", elsewhere: "Đuối", lighterAfter: true },
+  ] as const)("follows a mood changed in another tab after picking $here here (#627 review auto-2)", async ({ here, elsewhere, lighterAfter }) => {
+    const user = userEvent.setup();
+    const withLighter = { ...vibe, lighter_action: { action: "Uống một ly nước rồi ngồi yên hai phút.", weight: "light" as const, experiment: null } };
+    const row = (mood: "Đuối" | "Chill") => ({ id: "00000000-0000-4000-8000-000000000092", daily_note_id: baseNoteId, mood, checked_in_at: "2026-09-07T10:00:00Z" });
+    vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(withLighter)));
+    vi.mocked(checkInMood).mockResolvedValue(row(here));
+    const { client } = renderPage();
+    await user.click(await screen.findByRole("button", { name: "Chọn mood hôm nay" }));
+    await user.click(screen.getByRole("button", { name: new RegExp(here) }));
+    await screen.findByRole("button", { name: `Mood hôm nay: ${here}` });
+    // The confirmed check-in is the saved mood now, for Home and for the note page.
+    await waitFor(() => expect(client.getQueryData<{ mood: string }>(["daily-note-mood", baseNoteId])?.mood).toBe(here));
+
+    // The mood is changed in another tab; this tab fetches it again.
+    vi.mocked(getCurrentMood).mockResolvedValue(row(elsewhere));
+    await act(async () => { await client.invalidateQueries({ queryKey: ["daily-note-mood"] }); });
+
+    expect(await screen.findByRole("button", { name: `Mood hôm nay: ${elsewhere}` })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByText(withLighter.lighter_action.action) !== null).toBe(lighterAfter);
+      expect(screen.queryByRole("button", { name: "Xem việc ban đầu" }) !== null).toBe(lighterAfter);
+    });
+    expect(screen.queryByText(vibe.sections.micro_action) !== null).toBe(!lighterAfter);
+  });
+
   it("keeps the card's own action on a Đuối day when no lighter action is approved (#627)", async () => {
     const user = userEvent.setup();
     vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(vibe)));

@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 
-import type { MoodValue, ReadingContent } from "../api/client";
+import type { MoodCheckIn, MoodValue, ReadingContent } from "../api/client";
 
 /**
  * Which of the day's two actions the reader sees (#627).
@@ -17,9 +17,16 @@ export const DAILY_ACTION_VIEW_KEY = "daily-action-view";
 
 export const dailyActionViewKey = (noteId: string | undefined) => [DAILY_ACTION_VIEW_KEY, noteId] as const;
 
+/** The saved mood of a note, as the server last confirmed it. Home and the note page share it. */
+export const dailyMoodKey = (noteId: string | undefined) => ["daily-note-mood", noteId] as const;
+
 type DailyActionView = {
-  /** The mood picked in this tab, known before (or without) the server answering. */
-  mood?: MoodValue;
+  /**
+   * A mood picked in this tab that the server has not confirmed yet. `over` is the saved mood it
+   * was picked over. The intent counts only while the saved mood is still that value: any newer
+   * saved mood (this check-in succeeding, or a change made in another tab) replaces it.
+   */
+  pending?: { mood: MoodValue; over: MoodValue | null };
   /** Set only when the reader pressed the switch. */
   choice?: "original" | "lighter";
 };
@@ -28,7 +35,17 @@ const EMPTY: DailyActionView = {};
 
 /** Home calls this the moment a mood is picked; a new mood drops the earlier manual choice. */
 export function noteDailyMood(client: QueryClient, noteId: string, mood: MoodValue): void {
-  client.setQueryData<DailyActionView>(dailyActionViewKey(noteId), { mood });
+  const over = client.getQueryData<MoodCheckIn | null>(dailyMoodKey(noteId))?.mood ?? null;
+  client.setQueryData<DailyActionView>(dailyActionViewKey(noteId), { pending: { mood, over } });
+}
+
+/** The mood the screen should act on: a still-unconfirmed pick, otherwise the saved mood. */
+export function effectiveDailyMood(
+  pending: DailyActionView["pending"],
+  savedMood: MoodValue | null | undefined,
+): MoodValue | null {
+  const saved = savedMood ?? null;
+  return pending && pending.over === saved ? pending.mood : saved;
 }
 
 export type DailyActionChoice = {
@@ -39,6 +56,7 @@ export type DailyActionChoice = {
   switchAction: () => void;
 };
 
+/** `savedMood` must be the value of the `dailyMoodKey(noteId)` query, the same one `noteDailyMood` reads. */
 export function useDailyActionView(
   noteId: string | undefined,
   reading: ReadingContent | null | undefined,
@@ -55,7 +73,8 @@ export function useDailyActionView(
     enabled: Boolean(noteId),
   });
   const view = data ?? EMPTY;
-  const canSwitch = Boolean(noteId && reading?.lighter_action) && (view.mood ?? savedMood) === LIGHTER_MOOD;
+  const canSwitch = Boolean(noteId && reading?.lighter_action)
+    && effectiveDailyMood(view.pending, savedMood) === LIGHTER_MOOD;
   const lighterShown = canSwitch && view.choice !== "original";
   return {
     lighterShown,

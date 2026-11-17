@@ -28,7 +28,8 @@ import {
   type ResonanceChoice,
   type SignalContext,
 } from "../../shared/api/client";
-import { noteDailyMood, useDailyActionView, type DailyActionChoice } from "../../shared/hooks/useDailyActionView";
+import { dailyMoodKey, noteDailyMood, useDailyActionView, type DailyActionChoice } from "../../shared/hooks/useDailyActionView";
+import { currentSessionEpoch, sessionGeneration } from "../../shared/session/sessionIdentity";
 import { useReadingUpdateActivation } from "../../shared/hooks/useReadingUpdateActivation";
 import { chartDataRevision } from "../../shared/storage/clearChartDerivedData";
 import {
@@ -123,7 +124,7 @@ export function HomePage() {
   const activeReading = note?.reading_projection?.active;
   const availableUpdate = note?.reading_projection?.available_update;
   const moodQuery = useQuery({
-    queryKey: ["daily-note-mood", note?.id],
+    queryKey: dailyMoodKey(note?.id),
     queryFn: ({ signal }) => getCurrentMood(note!.id, signal),
     enabled: Boolean(note?.id),
   });
@@ -142,7 +143,9 @@ export function HomePage() {
   // yesterday's mood must not follow it (US-04 AC12).
   const [moodChoice, setMoodChoice] = useState<{ noteId: string; value: MoodValue } | null>(null);
   const mood = moodChoice && moodChoice.noteId === note?.id ? moodChoice.value : null;
-  const actionView = useDailyActionView(note?.id, activeReading, mood);
+  // The action view works from the saved mood plus this tab's unconfirmed pick, so a mood changed
+  // elsewhere (another tab) replaces an older pick as soon as it is fetched.
+  const actionView = useDailyActionView(note?.id, activeReading, moodQuery.data?.mood);
   const moonLabel = useMemo(() => moonPhase().label, []);
   const ritual = useDailyRitual(note?.note_date);
   const [moodSheetOpen, setMoodSheetOpen] = useState(false);
@@ -240,10 +243,19 @@ export function HomePage() {
       setMoodSheetOpen(false);
       setLineDismissed(false);
       setMessage("Đang lưu cảm xúc này cho bạn…");
-      return { previous };
+      return { previous, revision: chartDataRevision(queryClient), generation: sessionGeneration(), ownerEpoch: currentSessionEpoch() };
     },
-    onSuccess: (payload, { intent }) => {
+    onSuccess: (payload, { intent }, context) => {
       if (note) acknowledgePendingMood(note.id, intent);
+      // The confirmed mood becomes the saved one, which retires this tab's unconfirmed pick. A
+      // callback arriving after a session change or a data wipe must not write it back.
+      if (
+        context.revision === chartDataRevision(queryClient)
+        && context.generation === sessionGeneration()
+        && context.ownerEpoch === currentSessionEpoch()
+      ) {
+        queryClient.setQueryData(dailyMoodKey(payload.daily_note_id), payload);
+      }
       setMoodChoice({ noteId: payload.daily_note_id, value: payload.mood });
       setMessage(laMoodReaction(payload.mood, vibe));
     },

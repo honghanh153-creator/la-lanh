@@ -20,7 +20,7 @@ import {
   writeCachedDailyNote,
 } from "../../shared/storage/noteCache";
 import { useReadingUpdateActivation } from "../../shared/hooks/useReadingUpdateActivation";
-import { useDailyActionView } from "../../shared/hooks/useDailyActionView";
+import { dailyMoodKey, useDailyActionView } from "../../shared/hooks/useDailyActionView";
 import { useDailyExperiment } from "../../shared/hooks/useDailyExperiment";
 import { saveNoteLocally } from "../../shared/storage/savedNoteCache";
 import "../../shared/styles/signal-note.css";
@@ -90,7 +90,7 @@ export function NoteDetailPage() {
 
   // The mood is read here only when this reading has a lighter action to offer (#627).
   const moodQuery = useQuery({
-    queryKey: ["daily-note-mood", note?.id],
+    queryKey: dailyMoodKey(note?.id),
     queryFn: ({ signal }) => getCurrentMood(note!.id, signal),
     enabled: Boolean(note?.id && activeReading?.lighter_action),
     retry: false,
