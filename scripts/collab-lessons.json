@@ -677,6 +677,26 @@
     "pr": 637
    },
    "note": "ghi câu trả lời: scripts/collab-owner-answer.mjs --record; gỡ nhãn chỉ khi mọi loại giữ merge có câu trả lời còn hiệu lực"
+  },
+  {
+   "id": "L40",
+   "title": "PR đã tới lượt merge được merge ngay, bất kể nhóm; không để merge của nhóm khác làm hết hiệu lực check và review (sự cố 17.11: #633 chờ 45 phút sau việc content rồi phải check và review lại)",
+   "from": "sự cố #633; fix-forward #639",
+   "who": "claude",
+   "due": "2026-11-17",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-loop.test.mjs",
+    "name": "r1: privacy and features wait for checks while content has machine work; a ready merge in any area goes at once (#633)"
+   },
+   "caller": {
+    "file": "scripts/collab-turn.mjs",
+    "contains": "const merges = [...work, ...live.filter(t => !work.includes(t))]"
+   },
+   "closedBy": {
+    "pr": 638
+   },
+   "note": ""
   }
  ]
 }
