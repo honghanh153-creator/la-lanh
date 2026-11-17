@@ -628,7 +628,7 @@ test('r1: review errors count as tick failures and alert on the second', () => {
   assert.equal(alerts.length, 1);
 });
 
-test('r1: privacy and features wait while content has machine work; a content PR waiting for Claude does not block', () => {
+test('r1: privacy and features wait for checks while content has machine work; a ready merge in any area goes at once (#633)', () => {
   const date = '2026-11-05';
   const open = [
     pr({ number: 1, title: 'feat(tarot): copy', comments: [check(A), owner(`Review verdict: REQUEST_CHANGES @ ${A}`)] }),
@@ -638,15 +638,16 @@ test('r1: privacy and features wait while content has machine work; a content PR
   const merged = [];
   const content = pr({ number: 4, title: 'feat(tarot): needs a check' });
   open.push(content);
-  const result = tick({ gh: plannedGh(open, date), now: { date, hour: 11, minute: 5 }, merge: n => { merged.push(n); return { status: 'merged' }; }, check: () => ({ status: 'FAIL' }), review: () => ({ status: 'posted' }) });
+  const checked = [];
+  const result = tick({ gh: plannedGh(open, date), now: { date, hour: 11, minute: 5 }, merge: n => { merged.push(n); return { status: 'merged' }; }, check: n => { checked.push(n); return { status: 'FAIL' }; }, review: () => ({ status: 'posted' }) });
   assert.equal(result.area, 'content', 'content machine work (#4 check) goes first');
-  assert.deepEqual(merged, []);
+  assert.deepEqual(checked, [4], 'the check runs on the content PR');
+  assert.deepEqual(merged, [2], 'a privacy PR ready to merge does not wait for content checks');
   const queue = JSON.parse(readFileSync(join(trust.stateDir, 'claude-queue.json'), 'utf8'));
   assert.deepEqual(queue.items.map(i => i.number), [1], 'Claude still fixes content first');
   open.pop();
   const next = tick({ gh: plannedGh(open, date), now: { date, hour: 12, minute: 5 }, merge: n => { merged.push(n); return { status: 'merged' }; }, review: () => ({ status: 'posted' }) });
   assert.equal(next.area, 'privacy', 'a content PR waiting for Claude does not stall the machine');
-  assert.deepEqual(merged, [2]);
 });
 
 test('r2: every CLI entry loads and exits without hanging on an import cycle', () => {
