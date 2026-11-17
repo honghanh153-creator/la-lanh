@@ -392,7 +392,12 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       const work = [...first, ...second, ...live.filter(t => t.area === area && !first.includes(t) && !second.includes(t))];
       const done = [];
       const late = () => { const t = time(); return t.hour * 60 + t.minute >= lastStartAt; };
-      for (const t of work.filter(t => t.turn === 'merge').slice(0, 2)) {
+      // 17.11.2026 (#633): a PR ready to merge is merged whatever its area. Merging costs no Codex run
+      // or heavy job, while waiting lets another area's merge move integration and void its check and
+      // review (#633 waited 45 minutes behind content work, then needed a new check and review).
+      // Checks and reviews keep the area order; the merge gate still checks every PR.
+      const merges = [...work, ...live.filter(t => !work.includes(t))].filter(t => t.turn === 'merge').slice(0, 2);
+      for (const t of merges) {
         if (late()) break;
         show({ status: 'running', doing: `merge #${t.number}`, expectMinutes: 5, area, turns, done });
         const result = merge(t.number);

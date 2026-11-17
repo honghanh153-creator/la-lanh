@@ -11,6 +11,7 @@ import { prTurn } from './collab-turn.mjs';
 import { dayCap } from './collab-trust.mjs';
 import { groupExec } from './collab-heal.mjs';
 import { applyPolicy, isBlocking, ownerHolds, validateOutput } from './collab-review-policy.mjs';
+import { answerStillHolds, coveredKinds, sealedAnswers } from './collab-owner-answer.mjs';
 import { isMain } from './is-main.mjs';
 import { auditReserve } from './collab-audit.mjs';
 
@@ -45,7 +46,7 @@ const cell = (text, limit = 900) => clean(text, limit).replace(/\\/g, '\\\\').re
 const detailCell = text => cell(text, 6000);
 
 // `base`: the collab/integration tip when the review started (P1-A); `receipt`: the local receipt id (P1-B).
-export function renderVerdict({ pr, out, policy, round, range, digest, fixIssue, base = null, receipt = null }) {
+export function renderVerdict({ pr, out, policy, round, range, digest, fixIssue, base = null, receipt = null, answeredBy = new Map() }) {
   const rows = out.findings.map(f => `| ${f.severity} | ${f.category} | \`${cell(f.file)}${f.line ? `:${f.line}` : ''}\` | ${cell(f.title)}: ${detailCell(f.detail)} | ${isBlocking(f) ? 'có' : 'không'} |`);
   return [
     `Review verdict: ${policy.verdict} @ ${pr.headRefOid}`,
@@ -55,7 +56,7 @@ export function renderVerdict({ pr, out, policy, round, range, digest, fixIssue,
     clean(out.summary, 3000),
     '',
     ...(rows.length ? ['| Mức | Loại | Vị trí | Vấn đề | Chặn merge |', '|---|---|---|---|---|', ...rows, ''] : ['Không có phát hiện.', '']),
-    ...ownerRows(out),
+    ...ownerRows(out, answeredBy),
     ...(fixIssue ? [`Fix-forward: #${fixIssue}`, ''] : []),
     `Output SHA-256: \`${digest}\``,
     `Base lúc review: \`${integration}\` @ ${isSha(base) ? `\`${base.slice(0, 12)}\`` : 'không rõ'}`,
@@ -64,11 +65,15 @@ export function renderVerdict({ pr, out, policy, round, range, digest, fixIssue,
 }
 
 const kindText = { cost_access: 'chi phí, dịch vụ hoặc quyền truy cập mới', release: 'phát hành', sensitive_copy: 'chữ privacy/consent/crisis/safety', data_collection: 'bật thu dữ liệu cá nhân mới' };
-function ownerRows(out) {
+function ownerRows(out, answeredBy = new Map()) {
   const { actions } = ownerHolds(out);
   if (!actions.length) return [];
+  const when = a => {
+    const by = answeredBy.get(a.kind);
+    return by ? `đã có câu trả lời của owner: ${cell(by.answer)} @ \`${by.sha.slice(0, 12)}\`` : a.hold === 'merge' ? 'merge' : 'phát hành';
+  };
   return ['**Cần owner** (4 loại việc của owner):', '', '| Loại | Bằng chứng | Chờ owner trước |', '|---|---|---|',
-    ...actions.map(a => `| ${kindText[a.kind]} | ${cell(a.evidence)} | ${a.hold === 'merge' ? 'merge' : 'phát hành'} |`), ''];
+    ...actions.map(a => `| ${kindText[a.kind]} | ${cell(a.evidence)} | ${when(a)} |`), ''];
 }
 
 function git(args, cwd, run, left = () => Infinity) {
@@ -239,7 +244,10 @@ function reviewOnce(number, { auto = false, overCap = null, gh: ghIn = makeGh(),
   const digest = createHash('sha256').update(rawOut).digest('hex');
 
   // Head must not have moved while Codex was reading.
-  if (gh.pr(number).headRefOid !== head) return { status: 'stale', reason: 'head đổi trong lúc review; lượt sau review lại' };
+  // Codex r2 on #637: the owner answers are read from this fresh copy too, so an answer edited or
+  // deleted while Codex was reading no longer counts.
+  const after = gh.pr(number);
+  if (after.headRefOid !== head) return { status: 'stale', reason: 'head đổi trong lúc review; lượt sau review lại' };
 
   let fixIssue = null;
   if (policy.fixForward.length) {
@@ -260,7 +268,15 @@ function reviewOnce(number, { auto = false, overCap = null, gh: ghIn = makeGh(),
   // P1 on #591: the labels go on before the verdict is posted, so a failed label call never leaves a
   // usable APPROVE without its hold; it throws and nothing is posted. A label without a verdict only
   // holds more.
-  const holdsNow = ownerHolds(out);
+  // #611 (17.11.2026): a kind the owner has answered on this PR (a sealed owner-answer comment whose
+  // content is unchanged since) adds no label; a kind she has not answered still holds.
+  const holdsAll = ownerHolds(out);
+  const answeredBy = holdsAll.actions.length
+    ? coveredKinds(sealedAnswers({ ...after, number: pr.number }), sha => answerStillHolds({ sha, head, dir, git: (args, cwd) => git(args, cwd, run, left) }))
+    : new Map();
+  const isOpen = a => !answeredBy.has(a.kind);
+  const holdsNow = { actions: holdsAll.actions, merge: holdsAll.merge.filter(isOpen), release: holdsAll.release.filter(isOpen) };
+  const answered = holdsAll.actions.filter(a => !isOpen(a)).map(a => ({ kind: a.kind, answer: answeredBy.get(a.kind).answer, sha: answeredBy.get(a.kind).sha, url: answeredBy.get(a.kind).url }));
   const needsOwner = holdsNow.merge.length > 0;
   if (needsOwner) {
     ensureLabel(gh, 'needs-owner', 'D93F0B', 'Chờ owner: 4 loại việc của owner');
@@ -274,12 +290,12 @@ function reviewOnce(number, { auto = false, overCap = null, gh: ghIn = makeGh(),
   const round = trusted.filter(c => c.auto && c.verdict).length + 1;
   // P1-B: the receipt is written before the comment, so every posted verdict has one.
   const receipt = signReceipt({ kind: 'verdict', pr: pr.number, head, base: reviewedBase, result: policy.verdict, p2: policy.fixForward.length });
-  const body = renderVerdict({ pr, out, policy, round, range: deltaFrom ? `${deltaFrom.slice(0, 7)}..${head.slice(0, 7)}` : `${mergeBase.slice(0, 7)}..${head.slice(0, 7)}`, digest, fixIssue, base: reviewedBase, receipt });
+  const body = renderVerdict({ pr, out, policy, round, answeredBy, range: deltaFrom ? `${deltaFrom.slice(0, 7)}..${head.slice(0, 7)}` : `${mergeBase.slice(0, 7)}..${head.slice(0, 7)}`, digest, fixIssue, base: reviewedBase, receipt });
   const posted = gh.comment('pr', pr.number, body);
   // Bound to the new comment's id: a later copy of this verdict never counts (replay, #456 auto-1).
   if (!bindReceipt({ kind: 'verdict', pr: pr.number, id: receipt, url: posted })) process.stderr.write(`codex-review: receipt ${receipt} not bound to a comment id; the verdict will not count\n`);
-  writeJson(join(stateDir, 'logs', `review-${stamp}.json`), { pr: pr.number, head, base: reviewedBase, verdict: policy.verdict, complete: out.complete, ownerActions: holdsNow.actions, receipt, digest, fixIssue, needsOwner, at: new Date().toISOString() });
-  return { status: 'posted', verdict: policy.verdict, blocking: policy.blocking.length, fixIssue, needsOwner, ownerRelease: holdsNow.release.length > 0 };
+  writeJson(join(stateDir, 'logs', `review-${stamp}.json`), { pr: pr.number, head, base: reviewedBase, verdict: policy.verdict, complete: out.complete, ownerActions: holdsNow.actions, answered, receipt, digest, fixIssue, needsOwner, at: new Date().toISOString() });
+  return { status: 'posted', verdict: policy.verdict, blocking: policy.blocking.length, fixIssue, needsOwner, ownerRelease: holdsNow.release.length > 0, answered: answered.map(a => a.kind) };
 }
 
 if (isMain(import.meta.url)) {
