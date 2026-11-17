@@ -44,6 +44,41 @@ test('rules sheet: the table and the facts block cannot disagree', () => {
   assert.match(problems(setFact(real, 'reportSlots', ['07:00', '14:00', '21:00'])).join('\n'), /R5: bảng không nhắc 21:00/);
 });
 
+// Fix-forward #643: each case below passed the mention-only check of #614 and must now be red.
+test('#643: a value the rule text states must equal the facts, not merely sit beside them', () => {
+  const r8 = real.replace(/^(\| R8 \|[^|]*\|[^|]*)Trần 80 lượt/m, '$1Trần 60 lượt');
+  assert.notEqual(r8, real);
+  assert.match(problems(r8).join('\n'), /R8: bảng ghi 60 lượt, khối rules-facts là 80/);
+  const base = real.replace(/^(\| R8 \|.*)base: 80/m, '$1base: 60');
+  assert.match(problems(base).join('\n'), /R8: bảng ghi base: 60/);
+  const r9 = real.replace(/^(\| R9 \|[^|]*\|[^|]*)23:35/m, '$123:35, có khi 23:00');
+  assert.match(problems(r9).join('\n'), /R9: bảng ghi giờ 23:00/);
+  // A dropped owner kind: the count, the list and the kind itself.
+  const r2 = real.replace(/^(\| R2 \|[^|]*\|[^|]*)Chỉ 4 loại[^;]*; /m, '$1Chỉ 3 loại việc chờ owner: ');
+  assert.notEqual(r2, real);
+  assert.match(problems(r2).join('\n'), /R2: bảng phải ghi "Chỉ 4 loại"|R2: bảng không nêu loại cost_access/);
+  // Empty slots, and a retired slot that is the active 07:00 report.
+  assert.match(problems(setFact(real, 'reportSlots', [])).join('\n'), /reportSlots không được rỗng/);
+  const retired07 = problems(setFact(real, 'retiredReportSlots', ['07:00'])).join('\n');
+  assert.match(retired07, /07:00 vừa là giờ báo cáo vừa là giờ đã bỏ/);
+  assert.match(retired07, /R5: bảng ghi đã bỏ bản 08:00, khối rules-facts không có trong retiredReportSlots/);
+  // A slot scheduled in the table but missing from the facts.
+  const r5 = real.replace(/^(\| R5 \|[^|]*\| )07:00 bản chính/m, '$107:00 và 08:00 bản chính');
+  assert.match(problems(r5).join('\n'), /R5: bảng ghi báo cáo 08:00, khối rules-facts không có trong reportSlots/);
+});
+
+// Fix-forward #654: removing item (2) left "phát hành" in item (3) and the highest number at 4.
+test('#654: every owner kind is checked inside its own numbered item', () => {
+  const no2 = real.replace(/\(2\) phát hành cho người dùng thật \(`main`, deploy\); /, '');
+  assert.notEqual(no2, real);
+  const bad = problems(no2).join('\n');
+  assert.match(bad, /R2: bảng liệt kê các mục \(1, 3, 4\), ownerKinds cần \(1, 2, 3, 4\)/);
+  assert.match(bad, /R2: mục \(2\) không nêu loại release/);
+  // Swapping two items puts each kind under the wrong number.
+  const swapped = real.replace('(1) chi phí', '(9) chi phí').replace('(2) phát hành', '(1) phát hành').replace('(9) chi phí', '(2) chi phí');
+  assert.match(problems(swapped).join('\n'), /R2: mục \(1\) không nêu loại cost_access/);
+});
+
 test('rules sheet: the version changes with any edit and only then', () => {
   assert.equal(rulesVersion(real), rulesVersion(String(real)));
   assert.notEqual(rulesVersion(real), rulesVersion(real.replace('R9', 'R9 ')));

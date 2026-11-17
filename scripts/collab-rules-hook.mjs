@@ -251,9 +251,12 @@ export function metrics({ home = stateDir, committedAt = null, since = null, hoo
   const deliveries = readLines(join(rulesDir(home), 'deliveries.jsonl'));
   const recent = file => readLines(join(rulesDir(home), file)).filter(v => !since || v.at >= since);
   const text = readSheetText(home);
-  const version = text ? rulesVersion(text) : null;
+  // Fix-forward #647: without a readable sheet there is no current version to count deliveries of,
+  // and a failed read (version null, error) is never a delivery.
+  if (text === null) return { measurable: false, reason: 'không đọc được bảng luật' };
+  const version = rulesVersion(text);
   const firstBySession = new Map();
-  for (const d of deliveries) if (d.version === version && d.session && !firstBySession.has(d.session)) firstBySession.set(d.session, d.at);
+  for (const d of deliveries) if (!d.error && d.version === version && d.session && !firstBySession.has(d.session)) firstBySession.set(d.session, d.at);
   const firstSeenAt = [...firstBySession.values()].sort()[0] ?? null;
   const lags = committedAt ? [...firstBySession.values()].map(at => (Date.parse(at) - Date.parse(committedAt)) / 60000).filter(m => m >= 0).sort((a, b) => a - b) : [];
   const count = rows => rows.reduce((acc, v) => ({ ...acc, [v.rule]: (acc[v.rule] ?? 0) + 1 }), {});
