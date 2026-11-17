@@ -70,3 +70,36 @@ def test_worker_removes_its_temporary_database(monkeypatch: pytest.MonkeyPatch) 
     monkeypatch.setattr(persona_sim, "run_persona", fake_run)
     assert persona_sim._worker([{"id": "P001"}]) == [{"persona": "P001"}]
     assert seen and not Path(seen[0]).exists()
+
+
+def test_the_simulation_runs_the_daily_rotation_production_runs(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # 17.11.2026: production has run the per-person rotation since 19.10, but the simulation
+    # left it unset and the nightly report measured the old one-situation rotation.
+    root = Path(__file__).resolve().parents[4]
+    example = (root / "infra" / "hetzner" / "app.env.example").read_text(encoding="utf-8")
+    assert (
+        f"\nLA_LANH_DAILY_VARIETY_FROM={persona_sim.PRODUCTION_DAILY_VARIETY_FROM.isoformat()}\n"
+        in example
+    )
+    receipt = (
+        root / "docs" / "reviews" / "production-release-2026-10-18" / "receipt.md"
+    ).read_text(encoding="utf-8")
+    assert (
+        f"LA_LANH_DAILY_VARIETY_FROM={persona_sim.PRODUCTION_DAILY_VARIETY_FROM.isoformat()}"
+        in receipt
+    )
+
+    seen: dict[str, Any] = {}
+
+    def fake_create_app(settings: Any) -> Any:
+        seen["daily_variety_from"] = settings.daily_variety_from
+        raise RuntimeError("stop before serving")
+
+    import app.main
+
+    monkeypatch.setattr(app.main, "create_app", fake_create_app)
+    with pytest.raises(RuntimeError, match="stop before serving"):
+        persona_sim._client("sqlite+aiosqlite:///:memory:")
+    assert seen["daily_variety_from"] == persona_sim.PRODUCTION_DAILY_VARIETY_FROM

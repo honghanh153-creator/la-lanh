@@ -34,6 +34,11 @@ PERSONAS = ROOT / "qa" / "personas" / "personas-100.json"
 WEB_CATALOG = ROOT / "apps" / "web" / "src" / "shared" / "ui" / "la" / "laCatalog.generated.ts"
 START = date(2026, 11, 14)
 DAYS = 29
+# Measure what production runs (17.11.2026): the per-person Daily rotation (B3-1a) is on in
+# production and staging since 19.10 (docs/reviews/production-release-2026-10-18/receipt.md,
+# hetzner-supabase-release-runbook.md "on since 2026-10-19"; infra/hetzner/app.env.example). Before
+# this the simulation left it unset and reported the old one-situation rotation as the baseline.
+PRODUCTION_DAILY_VARIETY_FROM = date(2026, 10, 19)
 ORIGIN = "http://127.0.0.1:5173"
 _LAST_ISSUE: list[str | None] = [None]
 
@@ -82,6 +87,7 @@ def _client(db_url: str) -> Any:
             cors_origins=[ORIGIN],
             guest_cookie_name="la_lanh_guest",
             guest_cookie_secure=False,
+            daily_variety_from=PRODUCTION_DAILY_VARIETY_FROM,
         )
     )
     client = TestClient(app, base_url=ORIGIN)
@@ -387,6 +393,7 @@ def main() -> None:
         "database": "local SQLite per worker (synthetic, deleted with the temp dir)",
         "clock": "time_machine.travel per call, 12:01-12:05 Asia/Ho_Chi_Minh",
         "generation": "off (Settings default); no provider call",
+        "daily_variety_from": PRODUCTION_DAILY_VARIETY_FROM.isoformat(),
     }
     (out / "meta.json").write_text(
         json.dumps(meta, ensure_ascii=False, indent=1) + "\n", encoding="utf-8"

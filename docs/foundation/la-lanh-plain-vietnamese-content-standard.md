@@ -73,6 +73,12 @@ tương lai, không nói mình biết hết về người đọc và không nói
 - **Câu cạnh note hôm nay:** mỗi vấn đề Daily có một câu Thẳng (tối đa 14 chữ) và một câu Cà khịa
   (tối đa 16 chữ), kèm một dòng ý nghĩa. Câu nhắc người đọc thử việc nhỏ trong thẻ, không lặp lại
   tiêu đề hay hành động.
+- **Nhiều câu cho một vấn đề (2026-11-17, #626):** mỗi vấn đề có thể có thêm cặp câu Thẳng + Cà khịa
+  trong `copy_registry.json`, id `la.issue.<vấn đề>.<nn>.direct` và `.roast`. Một cặp chỉ hiện khi cả
+  hai câu đã được duyệt và qua đúng luật của câu viết sẵn (số chữ, từ cấm, câu Thẳng có ý nhắc của
+  vấn đề). Mỗi người đi hết các câu của một vấn đề rồi mới gặp lại câu cũ. Câu được phép lặp: câu của
+  cùng vấn đề, sau khi đã hiện hết các câu khác của vấn đề đó. Câu không được lặp: hai lần liền nhau
+  của cùng một vấn đề khi vấn đề có từ hai câu trở lên. Thẻ đã mở giữ nguyên câu của nó.
 - **Cà khịa:** tối đa một câu chọc vào hành vi trong bài đọc, không chọc vào con người, luôn có lối ra.
 - **Luna:** chỉ nhận dòng ý nghĩa, không nhận câu viết sẵn. Gate dùng chung luật với câu viết sẵn.
   Người đọc chọn Cà khịa luôn thấy bản viết sẵn của cả thẻ, không bao giờ thấy nửa thẻ Luna, nửa thẻ

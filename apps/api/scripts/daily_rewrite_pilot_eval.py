@@ -609,6 +609,8 @@ async def gate_output(
 def authored_companion(baseline: ReadingCandidate) -> str:
     """Lá's authored line for this card (content matrix), the reviewer's baseline."""
 
+    if baseline.companion:  # an approved extra line picked for the day (#626)
+        return baseline.companion
     blueprint = baseline.semantic_blueprint
     return companion_issue_entry(blueprint.mechanism_key if blueprint else None).line.direct
 
