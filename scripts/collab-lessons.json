@@ -697,6 +697,46 @@
     "pr": 638
    },
    "note": ""
+  },
+  {
+   "id": "L41",
+   "title": "PR chờ đồng bộ mà đang bị phiên khác giữ thì lý do ghi rõ phiên nào giữ và cách thả, không ghi 'đồng bộ khi tới lượt đầu hàng' (sự cố 17.11: #614 hiện câu đó hơn 12 tick vì một phiên rảnh còn giữ claim)",
+   "from": "kiểm tra workflow 09:41 17.11",
+   "who": "claude",
+   "due": "2026-11-17",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-loop.test.mjs",
+    "name": "17.11 (#614): a PR behind integration that another session holds says who holds it, not \"when it is the front\""
+   },
+   "caller": {
+    "file": "scripts/collab-check.mjs",
+    "contains": "đang giữ PR từ"
+   },
+   "closedBy": {
+    "pr": 642
+   },
+   "note": "hai PR #616, #621 cùng phiên giữ"
+  },
+  {
+   "id": "L37",
+   "title": "Cần owner thì ghi vào file việc chờ duyệt, không hỏi trong chat (luật R3): hook chặn hộp câu hỏi và câu hỏi cuối lượt, phiên dài nhận luật mới trước lượt kế tiếp; tick báo khi hook bị gỡ",
+   "from": "owner 15.11, nhắc lại 16.11 (\"bạn quên nhiều\"); Claude + Codex 16.11",
+   "who": "claude",
+   "due": "2026-11-17",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-rules-hook.test.mjs",
+    "name": "L37 (R3): a question to the owner in chat is refused and points to the decisions file"
+   },
+   "caller": {
+    "file": "scripts/collab-tick.mjs",
+    "contains": "rulesWatch({ alert:"
+   },
+   "closedBy": {
+    "pr": 621
+   },
+   "note": "hook #616 (re-load + R3 deny, selftest); tick watch and prompt pointer check #621. Not covered: a question written as plain text in a message; whether the item really reached the decisions file."
   }
  ]
 }
