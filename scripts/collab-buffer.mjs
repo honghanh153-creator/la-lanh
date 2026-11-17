@@ -10,7 +10,11 @@ import { integration, isOwnPr, readJson, stateDir, vnNow, writeJson } from './co
 // the 7-week plan and the process work, each with its own WIP 1 + 1. Where they share the Codex review
 // and merge queue the tick already orders incidents, then 7-week items, then the rest (#544).
 export const wipLimit = { inProgress: 1, inReview: 1 };
-export const lanes = ['plan7w', 'process'];
+// Owner 17.11.2026, trial 18–19.11 ("tôi đã update lên ultra, tôi nghĩ bạn nên thêm agent/phiên vào ngày
+// mai thử để giải quyết công việc nhanh hơn"): a third lane for Daily repetition work (issue rotation,
+// W1 line memory, its follow-ups), labelled `daily-lane`. Reviewed on 20.11.
+export const dailyLaneLabel = 'daily-lane';
+export const lanes = ['plan7w', 'daily', 'process'];
 // Ticks run every 10 minutes; a longer gap (Mac asleep) counts at most this many minutes.
 export const maxSampleMinutes = 15;
 
@@ -28,7 +32,7 @@ const machine = new Set(['claude-check', 'codex-review', 'merge']);
 // (its PRs, given by the caller); everything else is process work.
 // Review of 16.11 (item 5): a fix for a failing persona threshold (`persona-fix`) is plan work for users,
 // so it runs in the plan lane too.
-export const laneOf = (pr, plan7wPrs = []) => (labelled(pr, label7w) || labelled(pr, 'persona-fix') || plan7wPrs.includes(pr.number) ? 'plan7w' : 'process');
+export const laneOf = (pr, plan7wPrs = []) => (labelled(pr, label7w) || labelled(pr, 'persona-fix') || plan7wPrs.includes(pr.number) ? 'plan7w' : labelled(pr, dailyLaneLabel) ? 'daily' : 'process');
 
 // In review: the machine has the next move (check, review, merge). In progress: everything else
 // Claude still owns (a fix, a draft, a PR waiting on another PR's file). The totals stay as before
@@ -71,7 +75,7 @@ export const renderFlow = day => `Hàng chờ trống hôm nay: ${day?.emptyMinu
 
 // The one call collab-turn makes for the tick (#253), --status and --report: WIP, top-up and today's flow metric.
 // `actionable` counts PRs the machine can work on now (check, review, merge).
-const laneName = { plan7w: 'Làn kế hoạch 7 tuần', process: 'Làn quy trình' };
+const laneName = { plan7w: 'Làn kế hoạch 7 tuần', daily: 'Làn Daily (thử 18–19.11)', process: 'Làn quy trình' };
 export function bufferStatus(prs, turns = [], options = {}) {
   const queue = queueTopUp(wipCount(prs, turns, { plan7wPrs: options.plan7wPrs ?? [] }));
   const day = recordFlow(turns.filter(t => machine.has(t.turn)).length, options);
