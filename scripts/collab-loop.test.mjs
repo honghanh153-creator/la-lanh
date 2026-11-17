@@ -489,6 +489,23 @@ test('deadlock (Codex point 6 on #637): an answer recorded at the current head l
   assert.equal(answers.liftCheck(stale, { events: [{ event: 'labeled', at }] }).lift, false);
 });
 
+test('#678: a pre-#591 review at the current head (no owner kinds logged) goes through the old-rules checks', async () => {
+  const answers = await import('./collab-owner-answer.mjs');
+  // A sealed verdict at head A from before owner_actions: its log has no ownerActions field.
+  const verdict = approve(A);
+  const state = { pr: pr({ number: 678, comments: [check(A), verdict], labels: [{ name: 'needs-owner' }] }) };
+  const sealed = state.pr.comments.at(-1);
+  const receipt = /receipt=([0-9a-f]{32})/.exec(sealed.body)[1];
+  trust.writeJson(join(trust.stateDir, 'logs', `review-legacy-678-${receipt}.json`), { receipt, complete: true });
+  const g = fakeGh(state);
+  const raw = g.raw;
+  const before = [{ event: 'labeled', at: '2026-11-14T03:04:41Z' }];
+  g.raw = (args, input) => (args[0] === 'api' ? before.map(e => JSON.stringify(e)).join('\n') : raw(args, input));
+  assert.deepEqual(answers.recordAnswer(678, { kinds: 'cost_access', answer: 'V1', quote: 'Làm luôn', gh: g }), { status: 'recorded', lifted: true });
+  const after = [{ event: 'labeled', at: '2026-11-17T07:10:04Z' }];
+  assert.equal(answers.liftCheck(state.pr, { events: after }).lift, false, 'a label added after #591 without logged owner kinds stays');
+});
+
 test('5-fix A2, P1 on #591: a failed owner label posts no verdict, so an APPROVE never lacks its hold', () => {
   for (const [kind, blocks, label] of [['cost_access', 'merge', 'needs-owner'], ['sensitive_copy', 'release', review.releaseLabel]]) {
     const state = { pr: pr({ comments: [check(A)] }) };

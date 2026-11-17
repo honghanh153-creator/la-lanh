@@ -116,7 +116,9 @@ export function liftCheck(pr, { events = null, disputes = readDisputes(disputePa
   // from an older head or from before owner_actions could never be lifted by an answer.
   if (!last || last.verdict.sha !== pr.headRefOid) return staleLift(pr, sealedAuto, events);
   const log = reviewLogFor(parseVerdictSeal(last.body, last.verdict.sha)?.receipt);
-  if (!Array.isArray(log?.ownerActions)) return { lift: false, reason: 'không đọc được log review của head này' };
+  // #678: a review at this head from before #591 has no ownerActions in its log; its label came from
+  // the old rules, so the old-rules checks decide (an answer at this head, every label before #591).
+  if (!Array.isArray(log?.ownerActions)) return staleLift(pr, [], events);
   const valid = sealedAnswers(pr);
   const reviewed = Array.isArray(log.answered) ? log.answered : [];
   const covers = kind => valid.some(x => x.kinds.includes(kind) && (x.sha === pr.headRefOid || reviewed.some(y => y.kind === kind && y.sha === x.sha)));
