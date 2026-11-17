@@ -67,6 +67,18 @@ test('#643: a value the rule text states must equal the facts, not merely sit be
   assert.match(problems(r5).join('\n'), /R5: bảng ghi báo cáo 08:00, khối rules-facts không có trong reportSlots/);
 });
 
+// Fix-forward #654: removing item (2) left "phát hành" in item (3) and the highest number at 4.
+test('#654: every owner kind is checked inside its own numbered item', () => {
+  const no2 = real.replace(/\(2\) phát hành cho người dùng thật \(`main`, deploy\); /, '');
+  assert.notEqual(no2, real);
+  const bad = problems(no2).join('\n');
+  assert.match(bad, /R2: bảng liệt kê các mục \(1, 3, 4\), ownerKinds cần \(1, 2, 3, 4\)/);
+  assert.match(bad, /R2: mục \(2\) không nêu loại release/);
+  // Swapping two items puts each kind under the wrong number.
+  const swapped = real.replace('(1) chi phí', '(9) chi phí').replace('(2) phát hành', '(1) phát hành').replace('(9) chi phí', '(2) chi phí');
+  assert.match(problems(swapped).join('\n'), /R2: mục \(1\) không nêu loại cost_access/);
+});
+
 test('rules sheet: the version changes with any edit and only then', () => {
   assert.equal(rulesVersion(real), rulesVersion(String(real)));
   assert.notEqual(rulesVersion(real), rulesVersion(real.replace('R9', 'R9 ')));
