@@ -521,8 +521,11 @@ def test_approximate_birth_time_never_unlocks_sky_chapter() -> None:
         assert note.json()["awakening"] is None
         assert note.json()["sky_chapter"] is None
         projection = note.json()["reading_projection"]
-        assert projection["active"]["mode"] == "limited"
+        # 17.11.2026 (#626): the Daily is now built from the time-stable placements, like the
+        # other approximate readings, but still unlocks nothing that needs an exact time.
+        assert projection["active"]["mode"] == "full_synthesis"
         assert projection["active"]["precision"] == "approximate"
+        assert projection["active"]["experiment"] is None
         assert projection["active"]["sections"]["transit"] is None
 
 

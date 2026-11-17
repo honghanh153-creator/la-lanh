@@ -21,8 +21,11 @@ export function ReadingUpdateGift({
   onDismiss,
   detail = false,
 }: ReadingUpdateGiftProps) {
+  // Only an exact time brings houses and angles; an approximate-time synthesis (#143 E1, Daily
+  // since 17.11.2026) uses sign-level placements only, so it gets the plain re-read copy.
   const unlocksFullChart = activeMode !== "full_synthesis"
-    && update.content.mode === "full_synthesis";
+    && update.content.mode === "full_synthesis"
+    && update.content.precision === "exact";
   const copy = unlocksFullChart
     ? {
         eyebrow: "Bản đọc đủ lớp",
