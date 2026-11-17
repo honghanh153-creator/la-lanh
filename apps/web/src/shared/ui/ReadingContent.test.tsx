@@ -50,6 +50,31 @@ describe("ReadingContent", () => {
     expect(screen.queryByRole("button", { name: "Giữ để thử hôm nay" })).not.toBeInTheDocument();
   });
 
+  it("shows the lighter action in place of the card's own, with a way back (#627)", async () => {
+    const onSwitch = vi.fn();
+    const withLighter = {
+      ...content,
+      mode: "limited" as const,
+      precision: "unknown" as const,
+      lighter_action: { action: "Uống một ly nước rồi ngồi yên hai phút.", weight: "light" as const, experiment: null },
+    };
+    const { rerender } = render(<ReadingContent content={withLighter} lighter={{ shown: true, onSwitch }} />);
+
+    expect(screen.getByText(withLighter.lighter_action.action)).toBeInTheDocument();
+    expect(screen.queryByText(content.sections.micro_action)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Xem việc ban đầu" }));
+    expect(onSwitch).toHaveBeenCalledTimes(1);
+
+    rerender(<ReadingContent content={withLighter} lighter={{ shown: false, onSwitch }} />);
+    expect(screen.getByText(content.sections.micro_action)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Xem việc nhẹ hơn" })).toBeInTheDocument();
+
+    // Without the switch (another mood) the lighter action never shows.
+    rerender(<ReadingContent content={withLighter} />);
+    expect(screen.getByText(content.sections.micro_action)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Xem việc/ })).not.toBeInTheDocument();
+  });
+
   it("does not add a Daily action to a natal reading", () => {
     render(<ReadingContent content={{ ...content, purpose: "reading_detail" }} />);
 
