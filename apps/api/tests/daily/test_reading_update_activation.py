@@ -36,7 +36,8 @@ SUPPLEMENTS: dict[str, dict[str, object] | None] = {
 }
 EXPECTED_ACTIVE = {
     "date_only": ("vibe_fallback", "unknown"),
-    "approximate": ("limited", "approximate"),
+    # 17.11.2026 (#626): a Daily from time-stable placements, not an empty LIMITED plan.
+    "approximate": ("full_synthesis", "approximate"),
     "exact": ("full_synthesis", "exact"),
 }
 
