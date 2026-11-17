@@ -3781,6 +3781,39 @@
         "title": "InviteResponse",
         "type": "object"
       },
+      "LighterActionProjection": {
+        "additionalProperties": false,
+        "description": "A lighter thing to do, offered next to the card's own action (#627).\n\nThe card and its action never change; the reader's device decides which one to show.",
+        "properties": {
+          "action": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Action",
+            "type": "string"
+          },
+          "experiment": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExperimentProjection"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "weight": {
+            "const": "light",
+            "default": "light",
+            "title": "Weight",
+            "type": "string"
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "title": "LighterActionProjection",
+        "type": "object"
+      },
       "LoginResponse": {
         "properties": {
           "masked_email": {
@@ -5287,6 +5320,16 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/ExperimentProjection"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lighter_action": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LighterActionProjection"
               },
               {
                 "type": "null"
