@@ -815,6 +815,23 @@ describe("HomePage rich reading", () => {
       expectOrdinary();
     });
 
+    it("save succeeds but the read after it fails: the pick stays on the control and the lighter action waits for a completed read", async () => {
+      const { client, settle } = await pickWithPendingSave("Chill", "Đuối");
+      vi.mocked(getCurrentMood).mockImplementationOnce(() => Promise.reject(new Error("offline")));
+      await act(async () => { settle.succeed(); await Promise.resolve(); });
+      await settled();
+      // The save is stored, but this device has not read it back yet: it still shows Chill as saved.
+      expect(moodServer.read(baseNoteId)?.mood).toBe("Đuối");
+      expect(client.getQueryData<{ mood: string }>(["daily-note-mood", baseNoteId])?.mood).toBe("Chill");
+      expect(screen.getByRole("button", { name: "Mood hôm nay: Đuối" })).toBeInTheDocument();
+      expectOrdinary();
+
+      // The next read that completes brings the saved mood and with it the lighter action.
+      await act(async () => { await client.invalidateQueries({ queryKey: ["daily-note-mood"] }); });
+      expect(await screen.findByText(withLighter.lighter_action.action)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Mood hôm nay: Đuối" })).toBeInTheDocument();
+    });
+
     // Review auto-6: the answer to an older save arrives after a newer save, across a remount.
     it.each([
       { first: "Đuối", second: "Chill" },
