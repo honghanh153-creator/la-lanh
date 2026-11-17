@@ -762,7 +762,7 @@
     "contains": "r.conclusion === 'cancelled'"
    },
    "closedBy": {
-    "pr": 0
+    "pr": 651
    },
    "note": ""
   }
