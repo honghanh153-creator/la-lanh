@@ -31,10 +31,7 @@
    "id": "daily.action.automatic-caretaking.04",
    "category": "reading",
    "text": "Hỏi người kia việc này có ai khác giúp được không, rồi mới nhận.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-16",
-   "digest": "58f7f639e7b2c59236738ae65c775293592dcecec3fecec0925076de012c5629"
+   "status": "pending"
   },
   {
    "id": "daily.action.automatic-caretaking.05",
@@ -106,10 +103,7 @@
    "id": "daily.action.automatic-caretaking.13",
    "category": "reading",
    "text": "Hỏi người nhờ việc này cần xong trước mấy giờ rồi mới nhận.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-16",
-   "digest": "bf37acb817de5ac39d80d5c64b6104a437e83e1cd4ae174b54524530fc7ea297"
+   "status": "pending"
   },
   {
    "id": "daily.action.automatic-caretaking.14",
@@ -130,10 +124,7 @@
    "id": "daily.action.automatic-caretaking.16",
    "category": "reading",
    "text": "Đặt lịch giúp vào buổi bạn rảnh, thay vì nhận ngay tối nay.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-16",
-   "digest": "56bc810cb7c488dd50684aaff65a60af6b79ec3badb45ec790e25d2ab0425234"
+   "status": "pending"
   },
   {
    "id": "daily.action.automatic-caretaking.17",
@@ -181,19 +172,13 @@
    "id": "daily.action.avoid-small-conflict.01",
    "category": "reading",
    "text": "Hỏi lại việc cần xong lúc nào trước khi nhận.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-16",
-   "digest": "97c1d5bcbbbc62ec0ee6c3149f5f7cd19283941f617d7fddc8029fbb1ab0c173"
+   "status": "pending"
   },
   {
    "id": "daily.action.avoid-small-conflict.02",
    "category": "reading",
    "text": "Nhắn: Để mình xem lại rồi báo, thay vì nhận ngay.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-16",
-   "digest": "ddcbd27e5d4e981a49787a89bed3c21690ab9790abbac23baba59b9cdd25e212"
+   "status": "pending"
   },
   {
    "id": "daily.action.avoid-small-conflict.03",
@@ -208,10 +193,7 @@
    "id": "daily.action.avoid-small-conflict.04",
    "category": "reading",
    "text": "Kiểm tra lịch tuần này trước khi nhận lời đi chơi.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-16",
-   "digest": "5ccf335c20974d990e4f1b1484f5bbce31f189f0ee5fb388ee3666549fe5127f"
+   "status": "pending"
   },
   {
    "id": "daily.action.avoid-small-conflict.05",
@@ -250,10 +232,7 @@
    "id": "daily.action.avoid-small-conflict.09",
    "category": "reading",
    "text": "Hỏi mình có muốn đi thật không trước khi nhận lời rủ.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-16",
-   "digest": "010f603df55b991f049d56e110b865ddd63cd9451a7618dbcecc0f62025479aa"
+   "status": "pending"
   },
   {
    "id": "daily.action.avoid-small-conflict.10",
@@ -277,10 +256,7 @@
    "id": "daily.action.avoid-small-conflict.12",
    "category": "reading",
    "text": "Xin một ngày để nghĩ rồi mới trả lời nhận hay không.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-16",
-   "digest": "7dedbd59ffc1ecf1222ed7f08fe3239955b3f9c30f4d21b3bd51951624da85e1"
+   "status": "pending"
   },
   {
    "id": "daily.action.avoid-small-conflict.13",
@@ -397,10 +373,7 @@
    "id": "daily.action.capacity-before-agreement.04",
    "category": "reading",
    "text": "Nói rõ việc nào trong lịch của bạn sẽ lùi lại nếu nhận thêm.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-16",
-   "digest": "3316c4482c3e9d63f06ae136859fa7c28c2328adcafd1f2d34d4bb345472b67b"
+   "status": "pending"
   },
   {
    "id": "daily.action.capacity-before-agreement.05",
@@ -535,10 +508,7 @@
    "id": "daily.action.capacity-before-agreement.22",
    "category": "reading",
    "text": "Kiểm tra lịch ngày mai trước khi nhận thêm một việc.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-16",
-   "digest": "138fc8a560f55e518bf7109d4e9ab52d9096eabb5d919fbc457cc0fe7cccec18"
+   "status": "pending"
   },
   {
    "id": "daily.action.changed-plan.01",
@@ -832,10 +802,7 @@
    "id": "daily.action.comparison-loop.15",
    "category": "reading",
    "text": "Đổi câu so sánh thành câu hỏi: Mình học được gì từ người đó?",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-16",
-   "digest": "5069b93cfc316237a0d917724135ea0fb51de748d7f4790ec5a6ad04ddfb2b6b"
+   "status": "pending"
   },
   {
    "id": "daily.action.comparison-loop.16",
@@ -1144,10 +1111,7 @@
    "id": "daily.action.defend-old-choice.11",
    "category": "reading",
    "text": "Viết lý do ban đầu bạn chọn cách này rồi xem lý do đó còn đúng không.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-16",
-   "digest": "4d2729dbb5b2788d92549af9f7f6e99ec45b2e783ca72556a1467508477b8c50"
+   "status": "pending"
   },
   {
    "id": "daily.action.defend-old-choice.12",
@@ -1282,10 +1246,7 @@
    "id": "daily.action.group-pressure.07",
    "category": "reading",
    "text": "Nói: Mình cần nghe giải thích thêm trước khi đồng ý.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-16",
-   "digest": "142fe2ee1f8e4cdb4aa7ad5c55e3eb10187edd22cdfe2c0767e4daecb4ef738f"
+   "status": "pending"
   },
   {
    "id": "daily.action.group-pressure.08",
@@ -1327,10 +1288,7 @@
    "id": "daily.action.group-pressure.12",
    "category": "reading",
    "text": "Viết phần chưa hiểu ra giấy trong lúc họp để hỏi trước khi nhóm chốt.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-16",
-   "digest": "0fbe91b1ad215bafa5ec621b5bb961099834ae492acba37093380f0a1e099b0c"
+   "status": "pending"
   },
   {
    "id": "daily.action.group-pressure.13",
@@ -1729,10 +1687,7 @@
    "id": "daily.action.name-the-need.16",
    "category": "reading",
    "text": "Xác nhận lại việc cụ thể người kia nhận giúp để hai bên cùng rõ.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-16",
-   "digest": "1fdef215e56f3672089ab2d27c47a5def321730a3d2c7016a7e6cf905016bc1d"
+   "status": "pending"
   },
   {
    "id": "daily.action.name-the-need.17",
@@ -2092,10 +2047,7 @@
    "id": "daily.action.quick-reply.16",
    "category": "reading",
    "text": "Đọc hết tệp đính kèm trước khi gửi câu trả lời.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-16",
-   "digest": "e94b6cac7558f9d45d5b305d89da4c4821c5979aab68aabc269822b16c2deb39"
+   "status": "pending"
   },
   {
    "id": "daily.action.quick-reply.17",
