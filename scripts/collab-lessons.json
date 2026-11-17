@@ -657,6 +657,26 @@
     "pr": 628
    },
    "note": "persona-fix in the plan lane: scripts/collab-buffer.mjs laneOf, test 'review 16.11: a persona-fix PR is plan-lane work'; first persona-fix items #626, #627"
+  },
+  {
+   "id": "L39",
+   "title": "Câu trả lời của owner đã ghi trên PR đủ cho loại việc đó; review sau không gắn lại needs-owner khi file của PR không đổi (sự cố 16–17.11: #601, #609 bị gắn lại nhãn sau khi owner đã trả lời)",
+   "from": "fix-forward #611",
+   "who": "claude",
+   "due": "2026-11-17",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-loop.test.mjs",
+    "name": "#611: a recorded owner answer covers its kinds on later reviews; a new kind still holds"
+   },
+   "caller": {
+    "file": "scripts/codex-review.mjs",
+    "contains": "coveredKinds(sealedAnswers(pr)"
+   },
+   "closedBy": {
+    "pr": 637
+   },
+   "note": "ghi câu trả lời: scripts/collab-owner-answer.mjs --record; gỡ nhãn chỉ khi mọi loại giữ merge có câu trả lời còn hiệu lực"
   }
  ]
 }

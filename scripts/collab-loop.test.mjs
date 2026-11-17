@@ -416,13 +416,20 @@ test('#611: the label stays when the hold is not only the answered review hold',
   assert.deepEqual([partial.lifted, /data_collection/.test(partial.reason)], [false, true], 'an unanswered kind keeps the label');
   const touched = answers.recordAnswer(614, { kinds: 'data_collection', answer: 'Q2', quote: 'Q2', gh: withEvents(ev([{ event: 'labeled', at }, { event: 'unlabeled', at }, { event: 'labeled', at }])) });
   assert.equal(touched.lifted, false, 'a label changed by someone else since the review stays');
-  assert.equal(answers.liftCheck({ ...state.pr, labels: [] }, ['cost_access'], { events: [] }).lift, false);
-  const both = ['cost_access', 'data_collection'];
+  assert.equal(answers.liftCheck({ ...state.pr, labels: [] }, { events: [] }).lift, false);
   const once = [{ event: 'labeled', at }];
-  assert.equal(answers.liftCheck(state.pr, both, { events: once }).lift, true, 'both kinds answered, label untouched: lift');
-  assert.equal(answers.liftCheck({ ...state.pr, headRefOid: B }, both, { events: once }).lift, false, 'a review at an older head never lifts');
+  // Codex r1 on #637: two answers recorded separately combine, from the answers that verify now.
+  assert.equal(answers.recordAnswer(614, { kinds: 'data_collection', answer: 'Q2', quote: 'Q2', gh: withEvents(ev(once)) }).lifted, true, 'separate answers combine');
+  assert.equal(answers.liftCheck(state.pr, { events: once }).lift, true, 'both kinds answered, label untouched: lift');
+  assert.equal(answers.liftCheck({ ...state.pr, headRefOid: B }, { events: once }).lift, false, 'a review at an older head never lifts');
   const wrote = { ...state.pr, comments: [...state.pr.comments, owner('Khoan merge PR này.')] };
-  assert.equal(answers.liftCheck(wrote, both, { events: once }).lift, false, 'the owner wrote on the PR after the review');
+  assert.equal(answers.liftCheck(wrote, { events: once }).lift, false, 'the owner wrote on the PR after the review');
+  // An answer edited (or deleted) after it was recorded covers nothing, so the other answer alone never lifts.
+  const costAt = state.pr.comments.findIndex(c => /answer="Q1"/.test(c.body ?? ''));
+  const edited = { ...state.pr, comments: state.pr.comments.map((c, i) => (i === costAt ? { ...c, body: c.body.replace('"Q1"\n', '"Q1 nữa"\n') } : c)) };
+  assert.equal(answers.liftCheck(edited, { events: once }).lift, false, 'an edited cost answer no longer covers cost_access');
+  const deleted = { ...state.pr, comments: state.pr.comments.filter((_, i) => i !== costAt) };
+  assert.match(answers.liftCheck(deleted, { events: once }).reason, /cost_access/, 'a deleted cost answer no longer covers cost_access');
 });
 
 test('5-fix A2, P1 on #591: a failed owner label posts no verdict, so an APPROVE never lacks its hold', () => {

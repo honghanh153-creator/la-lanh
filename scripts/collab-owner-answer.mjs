@@ -99,7 +99,12 @@ const timeOf = value => Date.parse(value ?? '');
 
 // Whether needs-owner on this PR is only the review's hold for kinds the owner has now answered.
 // Fail closed: any doubt keeps the label and says why.
-export function liftCheck(pr, kinds, { events = null, disputes = readDisputes(disputePath) } = {}) {
+// Codex r1 on #637 (P1): coverage is rebuilt from the answers that verify now, never from the kinds
+// just passed in or from the log alone. An answer counts when it was recorded at this head, or when
+// the last review itself counted that very answer (same kind and answered head) as still holding for
+// this head. An edited or deleted answer no longer verifies, so it covers nothing; separately recorded
+// answers combine.
+export function liftCheck(pr, { events = null, disputes = readDisputes(disputePath) } = {}) {
   const labels = (pr.labels ?? []).map(l => l.name ?? l);
   if (!labels.includes('needs-owner')) return { lift: false, reason: 'không có nhãn needs-owner' };
   const view = disputeView(disputes)[pr.number];
@@ -109,7 +114,10 @@ export function liftCheck(pr, kinds, { events = null, disputes = readDisputes(di
   if (!last || last.verdict.sha !== pr.headRefOid) return { lift: false, reason: 'chưa có review tự động có dấu ở head hiện tại' };
   const log = reviewLogFor(parseVerdictSeal(last.body, last.verdict.sha)?.receipt);
   if (!Array.isArray(log?.ownerActions)) return { lift: false, reason: 'không đọc được log review của head này' };
-  const open = log.ownerActions.filter(a => a.hold === 'merge' && !kinds.includes(a.kind) && !(log.answered ?? []).some(x => x.kind === a.kind));
+  const valid = sealedAnswers(pr);
+  const reviewed = Array.isArray(log.answered) ? log.answered : [];
+  const covers = kind => valid.some(x => x.kinds.includes(kind) && (x.sha === pr.headRefOid || reviewed.some(y => y.kind === kind && y.sha === x.sha)));
+  const open = log.ownerActions.filter(a => a.hold === 'merge' && !covers(a.kind));
   if (open.length) return { lift: false, reason: `còn loại chưa được owner trả lời: ${[...new Set(open.map(a => a.kind))].join(', ')}` };
   if (log.needsOwner !== true || !log.ownerActions.some(a => a.hold === 'merge')) return { lift: false, reason: 'review cuối không gắn needs-owner; nhãn có lý do khác' };
   // Like collab-disagree's holdTouched: anything the owner wrote herself since that review may be
@@ -153,10 +161,10 @@ export function recordAnswer(number, { kinds: kindList, answer, quote, gh = make
   mkdirSync(stateDir, { recursive: true });
   const release = acquireLock(join(stateDir, 'review.lock'), { staleMs: 45 * 60000 });
   if (!release) return { status: 'recorded', lifted: false, reason: 'một review đang chạy; chạy lại để gỡ nhãn' };
-  try { return lift(gh, number, head, kinds); } finally { release(); }
+  try { return lift(gh, number, head); } finally { release(); }
 }
 
-function lift(gh, number, head, kinds) {
+function lift(gh, number, head) {
   let events = null;
   try {
     events = String(gh.raw(['api', `repos/${repo}/issues/${Number(number)}/events`, '--paginate', '--jq',
@@ -164,7 +172,7 @@ function lift(gh, number, head, kinds) {
   } catch { events = null; }
   const fresh = gh.pr(number);
   if (fresh.headRefOid !== head) return { status: 'recorded', lifted: false, reason: 'head đổi trong lúc ghi; review sau sẽ xét' };
-  const check = liftCheck(fresh, kinds, { events });
+  const check = liftCheck(fresh, { events });
   if (!check.lift) return { status: 'recorded', lifted: false, reason: check.reason };
   gh.raw(['pr', 'edit', String(Number(number)), '--repo', repo, '--remove-label', 'needs-owner']);
   return { status: 'recorded', lifted: true };
