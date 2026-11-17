@@ -113,9 +113,18 @@ export function valueProblems(row, facts) {
   const r2 = row('R2');
   const count = r2.match(/Chỉ\s+(\d+)\s+loại/i);
   if (!count || Number(count[1]) !== kinds.length) out.push(`R2: bảng phải ghi "Chỉ ${kinds.length} loại" như ownerKinds`);
-  const items = [...r2.matchAll(/\((\d+)\)/g)].map(m => Number(m[1]));
-  if (Math.max(0, ...items) !== kinds.length) out.push(`R2: bảng liệt kê ${Math.max(0, ...items)} loại, ownerKinds có ${kinds.length}`);
-  for (const k of kinds) if (!kindWords[k]?.test(r2)) out.push(`R2: bảng không nêu loại ${k}`);
+  // Fix-forward #654: the items must be exactly (1)…(N), and each kind is read inside its own item, in
+  // the order of ownerKinds, so a word that also appears in another item does not hide a missing one.
+  const marks = [...r2.matchAll(/\((\d+)\)/g)];
+  const numbers = marks.map(m => Number(m[1]));
+  if (numbers.join(',') !== kinds.map((_, i) => i + 1).join(',')) out.push(`R2: bảng liệt kê các mục (${numbers.join(', ')}), ownerKinds cần (${kinds.map((_, i) => i + 1).join(', ')})`);
+  const itemText = i => {
+    const at = marks.findIndex(m => Number(m[1]) === i + 1);
+    if (at < 0) return '';
+    const end = marks[at + 1]?.index ?? r2.slice(marks[at].index).search(/\.\s/) + marks[at].index;
+    return r2.slice(marks[at].index, end > marks[at].index ? end : undefined);
+  };
+  kinds.forEach((k, i) => { if (!kindWords[k]?.test(itemText(i))) out.push(`R2: mục (${i + 1}) không nêu loại ${k}`); });
   return out;
 }
 
