@@ -105,6 +105,12 @@ under v4 is reused.
     past the error.
   - Staging and production have generation off, so no v2 revision exists there today. Record the
     first v2 write in the release log before enabling the pilot.
+  - Since #626 a deterministic Daily card also carries a line, and is v2, when Lá's line for the
+    day is an approved extra pair (`la.issue.*` in the copy registry) rather than the authored
+    first line. No such pair is approved at the time of writing. The first approved pair that
+    reaches an environment starts v2 writes there with generation still off: record it in the
+    release log, and from then on the rollback target must keep a reader with `companion`.
+    Withdrawing the approval stops new v2 cards; cards already stored keep their line.
   - Evidence: `tests/readings/test_candidate_compat.py`, plus a probe that opened both
     serializations with the real `3d3107a` reader (v1 OK, v2 rejected on `companion`).
 

@@ -553,6 +553,10 @@ class SemanticBlueprint(BaseModel):
     daily_meaning: DailyMeaningBrief | None = None
 
 
+# A candidate that carries Lá's line (rollback floor: luna-rewrite-release-runbook.md).
+COMPANION_CANDIDATE_SCHEMA_VERSION = "reading-candidate/v2"
+
+
 class ReadingCandidate(BaseModel):
     """Typed renderer output evaluated locally before it may be published."""
 
@@ -569,8 +573,9 @@ class ReadingCandidate(BaseModel):
     evidence: EvidenceDisclosure
     disclaimer: str = SHORT_DISCLAIMER
     semantic_blueprint: "SemanticBlueprint | None" = None
-    # Lá's line after a Luna-written Daily card. Deterministic cards leave it empty and
-    # take the authored line from the companion catalog at read time.
+    # Lá's line when it is not the authored first line of the issue: Luna's line, or an
+    # approved extra line picked for the day (#626). Otherwise empty, and the authored line
+    # comes from the companion catalog at read time.
     companion: str | None = Field(default=None, max_length=200)
 
     @model_serializer(mode="wrap")

@@ -27,7 +27,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 
 from app.domains.content.copy_approval import approved_texts
-from app.domains.readings.companion import roast_companion_line
+from app.domains.readings.companion_pool import roast_companion_line
 from app.domains.readings.daily_personalization import PLACEMENT_MEANINGS
 from app.domains.readings.daily_psychology import (
     DAILY_ISSUES,

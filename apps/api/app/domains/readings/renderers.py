@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from app.domains.astro.models import Tradition
+from app.domains.readings.companion_pool import daily_companion_line
 from app.domains.readings.daily_psychology import (
     DAILY_PSYCHOLOGY_CONTENT_FINGERPRINT,
     apply_daily_psychology,
+    daily_situation_period,
     render_why_today,
 )
 from app.domains.readings.knowledge import (
@@ -19,6 +21,7 @@ from app.domains.readings.knowledge import (
     vibe_frame,
 )
 from app.domains.readings.models import (
+    COMPANION_CANDIDATE_SCHEMA_VERSION,
     BackgroundLens,
     ClaimSlot,
     ClaimSlotName,
@@ -407,7 +410,19 @@ class DeterministicVietnameseRenderer:
             if catalog_version is not None
             else base_version
         )
+        # Lá's line: the authored first line stays out of storage (read from the catalog). An
+        # approved extra line is stored with the card, so a card already opened keeps its line
+        # when more lines are approved later (#626).
+        companion = (
+            daily_companion_line(
+                frame.mechanism_key, plan.daily_variety, period=daily_situation_period(plan)
+            )
+            if frame.daily_meaning is not None
+            else None
+        )
         candidate = ReadingCandidate(
+            **({"schema_version": COMPANION_CANDIDATE_SCHEMA_VERSION} if companion else {}),
+            companion=companion,
             renderer_version=renderer_version,
             plan_hash=plan.plan_hash,
             hook=hook,

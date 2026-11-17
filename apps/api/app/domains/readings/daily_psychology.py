@@ -1241,6 +1241,20 @@ def _pick(plan: ReadingPlan, pool: list[SupportedSituation]) -> SupportedSituati
     return pool[slot]
 
 
+def daily_situation_period(plan: ReadingPlan) -> int:
+    """How many days apart the rotation serves one situation to this person (1 to K).
+
+    The top-K rule walks the day's pool one situation a day, so a pool of ``n`` brings a
+    situation back every ``n`` days. Read from the plan as rendered; a transit that adds or
+    removes a situation for one day shifts it for that day only.
+    """
+
+    if plan.daily_variety is None:
+        return 1
+    pool = _situation_pool(plan, eligible_daily_situations(plan))
+    return max(1, min(len(pool), DAILY_TOP_K))
+
+
 def select_daily_situation(
     natal_plan: ReadingPlan,
     transit_plans: tuple[tuple[DerivedFactor, ReadingPlan], ...],
