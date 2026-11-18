@@ -38,15 +38,14 @@ _LINT_RULES: tuple[tuple[str, re.Pattern[str]], ...] = (
         re.compile(
             r"(?i:[a-z][a-z0-9+.-]*://|\bwww\.)|"
             # Any bare domain: labels of letters, digits and hyphens, Unicode included
-            # ("ví-dụ.test", review r4 of #411), joined by dots and ending in an ASCII suffix
-            # of 2 to 24 letters in any case ("vi-du.TeSt", review r5), with no word character
-            # touching either end. The one exception is a capitalised word right after a full
-            # stop with no space ("việc.Rồi", "xong.Sau"), which is prose, unless a path
-            # follows ("vi-du.Com/trang") or a label has a hyphen or digit ("vi-du.Com").
-            # A number ("1.5") is not a domain.
+            # ("ví-dụ.test"), joined by dots and ending in an ASCII suffix of 2 to 24 letters,
+            # with no word character touching either end. The rules run on the NFKC, casefolded
+            # text too (text_lint_problems), so case and full-width variants ("vidu.Com",
+            # "VIDU.COM", full-width letters) are one class (review r6 of #411). A word glued
+            # to the next sentence ("xong.Sau") therefore counts as a link: add the space.
+            # A number ("1.5") or a non-ASCII word after the dot ("nhỏ.Rồi") is not a domain.
             r"(?<![\w-])[^\W_](?:[\w-]*[^\W_])?(?:\.[^\W_](?:[\w-]*[^\W_])?)*"
-            r"\.(?:(?![A-Z][a-z]+(?![\w-]))[A-Za-z]{2,24}|[A-Z][a-z]{1,23}(?=/))(?![\w-])|"
-            r"(?<![\w-])[\w-]*[-0-9][\w-]*(?:\.[\w-]+)*\.[A-Z][a-z]{1,23}(?![\w-])",
+            r"\.[a-z]{2,24}(?![\w-])",
         ),
     ),
     ("contains an email address or handle", re.compile(r"@\w")),
@@ -73,7 +72,13 @@ def text_lint_problems(text: str) -> tuple[str, ...]:
     found: list[str] = []
     if unicodedata.normalize("NFC", text) != text:
         found.append("text is not Unicode NFC")
-    found.extend(reason for reason, pattern in _LINT_RULES if pattern.search(text))
+    # Review r6 of #411: case and width are not ways around a rule. Each rule also reads the
+    # NFKC, casefolded text, so "VIDU.COM", full-width letters, "Ban@Vi-Du.Test" or full-width
+    # digits are caught by the same rule as their plain lower-case form.
+    folded = unicodedata.normalize("NFKC", text).casefold()
+    found.extend(
+        reason for reason, pattern in _LINT_RULES if pattern.search(text) or pattern.search(folded)
+    )
     return tuple(found)
 
 

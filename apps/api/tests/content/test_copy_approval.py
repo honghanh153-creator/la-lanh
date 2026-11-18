@@ -200,13 +200,47 @@ def test_linted_approved_copy_falls_back(monkeypatch: pytest.MonkeyPatch, text: 
         "Xong việc nhỏ.Rồi nghỉ.",  # missing space after a full stop is not a link
         "Ghi 1.5 giờ ngủ thêm vào sổ.",
         "Bạn ở TP. Hồ Chí Minh, v.v. vẫn ổn.",
-        "Ăn xong.Sau đó nghỉ một chút.",  # missing space before a mixed-case ASCII word
         "Giảm 50% dung lượng rồi tiếp.",  # a percent sign before a word is not a slot
         "Pin còn 20%, sạc thêm 5% nữa.",
     ],
 )
 def test_registry_lint_accepts_plain_sentences(text: str) -> None:
     assert copy_approval.text_lint_problems(text) == ()
+
+
+# Review r6 of #411: one table for the spelling-variant class. Each rule reads the NFKC, casefolded
+# text, so case and full-width forms of a link, an address or a phone number are the same finding.
+_VARIANTS = [
+    "Ghé vidu.Com để đọc thêm.",
+    "Ghé vidu.Vn để đọc thêm.",
+    "Ghé VIDU.COM để đọc thêm.",
+    "Ghé vidu.Com?muc=thu để đọc thêm.",
+    "Ghé ViDu.CoM/trang để đọc thêm.",
+    # Full-width letters and dot.
+    "Ghé \uff56\uff49\uff44\uff55\uff0e\uff43\uff4f\uff4d để đọc thêm.",
+    "Gửi thư cho Ban@Vi-Du.Test nếu cần.",
+    "Gửi thư cho ban\uff20vi-du.test nếu cần.",  # full-width @
+    # Full-width digits.
+    "Gọi \uff10\uff19\uff10\uff10 \uff10\uff10\uff10 \uff10\uff10\uff10 nếu cần.",
+    "Chào %S nhé.",
+]
+
+
+@pytest.mark.parametrize("text", _VARIANTS)
+def test_case_and_width_variants_are_one_class(monkeypatch: pytest.MonkeyPatch, text: str) -> None:
+    assert copy_approval.text_lint_problems(text)
+    entries = parse_registry(
+        {"version": copy_approval.REGISTRY_VERSION, "entries": [_approved(text)]}
+    )
+    assert copy_approval.registry_problems(entries)
+    _use(monkeypatch, _approved(text))
+    assert copy_approval.copy_text("tarot.closing_prompt", "cũ") == "cũ"
+
+
+def test_a_word_glued_to_the_next_sentence_is_flagged_by_design() -> None:
+    # Without the space, "xong.Sau" reads as a domain once case is folded; the copy adds the space.
+    assert copy_approval.text_lint_problems("Ăn xong.Sau đó nghỉ một chút.") == ("contains a link",)
+    assert copy_approval.text_lint_problems("Ăn xong. Sau đó nghỉ một chút.") == ()
 
 
 def test_checked_in_registry_is_valid() -> None:
