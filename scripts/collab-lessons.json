@@ -862,7 +862,7 @@
     "contains": "statusLabels[labelKey(turn)]"
    },
    "closedBy": {
-    "pr": 0
+    "pr": 727
    },
    "note": "syncStatusLabels chạy mỗi tick, nên nhãn cũ tự được thay ở lần tick kế tiếp"
   }
