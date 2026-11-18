@@ -107,17 +107,23 @@ export function verifyAgentGate({ home = stateDir, settings = settingsPath(), ex
 // L19 (Codex auto-1 on #552): the two scheduled reports must read the shared slot snapshot through
 // the wrapper. Their prompts live outside the repo, so the tick checks them every run and shows a
 // warning when either no longer calls its snapshot step.
+// L45 (fix-forward #653): the nightly memory pass is checked the same way. The 00:20 task must run the
+// proposal step and the 07:00 report must apply only accepted files with --apply … --accept; a prompt
+// that drops either step turns the health line into a warning instead of the pass silently stopping.
+const snapshotMissing = 'không gọi bước bản chụp chung';
 export const reportConsumers = [
   // Owner 16.11 dropped the 08:00 report (R5): the owner report runs at 14:00 and 22:00.
-  { task: 'la-lanh-owner-report', label: 'báo cáo owner 14/22', step: /ops-run\.sh snapshot (?:14|22)\b/ },
-  { task: 'la-lanh-retro-2026-11-02', label: 'retro 23:35', step: /ops-run\.sh snapshot retro\b/ },
+  { task: 'la-lanh-owner-report', label: 'báo cáo owner 14/22', steps: [/ops-run\.sh snapshot (?:14|22)\b/], missing: snapshotMissing },
+  { task: 'la-lanh-retro-2026-11-02', label: 'retro 23:35', steps: [/ops-run\.sh snapshot retro\b/], missing: snapshotMissing },
+  { task: 'la-lanh-memory-dream', label: 'dọn trí nhớ 00:20', steps: [/scripts\/collab-memory-dream\.mjs\b/, /--memory [^`\n]*--out\b/], missing: 'không chạy bước đề xuất (collab-memory-dream.mjs --memory … --out)' },
+  { task: 'la-lanh-bao-cao-7h', label: 'báo cáo 7h', steps: [/collab-memory-dream\.mjs --apply [^`\n]*--memory [^`\n]*--accept\b/], missing: 'không áp trí nhớ đã nhận (collab-memory-dream.mjs --apply … --accept)' },
 ];
 export function verifyReportPrompts({ dir = join(homedir(), '.claude', 'scheduled-tasks') } = {}) {
   const bad = [];
   for (const c of reportConsumers) {
     let text = '';
     try { text = readFileSync(join(dir, c.task, 'SKILL.md'), 'utf8'); } catch { bad.push(`không đọc được prompt ${c.label}`); continue; }
-    if (!c.step.test(text)) bad.push(`${c.label} không gọi bước bản chụp chung`);
+    if (!c.steps.every(step => step.test(text))) bad.push(`${c.label} ${c.missing}`);
   }
   return bad;
 }

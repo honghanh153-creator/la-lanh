@@ -10,9 +10,11 @@ import { installWrapper, installedPath, reportConsumers, rulesHookHealth, rulesH
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 // Scheduled-task prompts as the owner's machine has them since 15.11 (both call their snapshot step).
-function prompts({ owner = 'Run `/x/ops-run.sh snapshot 14` or `/x/ops-run.sh snapshot 22` for the run time.', retro = 'First run `/x/ops-run.sh snapshot retro`.' } = {}) {
+const dreamPrompt = 'script: `/x/ops/scripts/collab-memory-dream.mjs`\n3. Run: `<node> <script> --memory <memory> --out <proposal> --date <DATE>`.';
+const morningPrompt = 'Apply: `<node> <scripts>/collab-memory-dream.mjs --apply /x/dream/<report day> --memory /x/memory --accept <list>`.';
+function prompts({ owner = 'Run `/x/ops-run.sh snapshot 14` or `/x/ops-run.sh snapshot 22` for the run time.', retro = 'First run `/x/ops-run.sh snapshot retro`.', dream = dreamPrompt, morning = morningPrompt } = {}) {
   const dir = realpathSync(mkdtempSync(join(tmpdir(), 'prompts-')));
-  for (const [task, text] of [['la-lanh-owner-report', owner], ['la-lanh-retro-2026-11-02', retro]]) {
+  for (const [task, text] of [['la-lanh-owner-report', owner], ['la-lanh-retro-2026-11-02', retro], ['la-lanh-memory-dream', dream], ['la-lanh-bao-cao-7h', morning]]) {
     if (text === null) continue;
     mkdirSync(join(dir, task));
     writeFileSync(join(dir, task, 'SKILL.md'), `${text}\n`);
@@ -134,7 +136,7 @@ test('the wrapper installs only from the ops clone, atomically, and drift is rep
 // snapshot step (or is missing) turns the tick's health line into a warning.
 test('L19: both scheduled reports must call their snapshot step; a disconnected one is reported', () => {
   assert.deepEqual(verifyReportPrompts({ dir: prompts() }), []);
-  assert.deepEqual(reportConsumers.map(c => c.task), ['la-lanh-owner-report', 'la-lanh-retro-2026-11-02']);
+  assert.deepEqual(reportConsumers.map(c => c.task), ['la-lanh-owner-report', 'la-lanh-retro-2026-11-02', 'la-lanh-memory-dream', 'la-lanh-bao-cao-7h']);
   assert.match(verifyReportPrompts({ dir: prompts({ owner: 'Count merged PRs with gh pr list.' }) }).join(), /báo cáo owner 14\/22 không gọi bước bản chụp chung/);
   assert.match(verifyReportPrompts({ dir: prompts({ retro: 'Facts from tick logs.' }) }).join(), /retro 23:35 không gọi bước bản chụp chung/);
   assert.match(verifyReportPrompts({ dir: prompts({ retro: null }) }).join(), /không đọc được prompt retro/);
@@ -143,6 +145,23 @@ test('L19: both scheduled reports must call their snapshot step; a disconnected 
   const w = world();
   installWrapper({ root: join(w.home, 'ops'), home: w.home });
   assert.match(wrapperHealth({ root: join(w.home, 'ops'), home: w.home, prompts: prompts({ owner: 'no snapshot' }) })[0], /⚠️.*báo cáo owner/);
+});
+
+// L45 (fix-forward #653): the nightly memory pass has two callers outside the repo. The 00:20 task
+// must run the proposal step; the 07:00 report must apply only accepted files. Either one dropping its
+// step is a warning on the tick's health line, and a missing prompt is reported as unread.
+test('L45: the nightly memory pass and the 07:00 apply step must call the dream script; a disconnected one is reported', () => {
+  assert.deepEqual(verifyReportPrompts({ dir: prompts() }), []);
+  assert.match(verifyReportPrompts({ dir: prompts({ dream: 'Read the memory folder and tidy it by hand.' }) }).join(), /dọn trí nhớ 00:20 không chạy bước đề xuất/);
+  // the script named but the proposal step gone (e.g. only --apply left) is still a broken caller
+  assert.match(verifyReportPrompts({ dir: prompts({ dream: 'script: `/x/ops/scripts/collab-memory-dream.mjs` --apply only' }) }).join(), /dọn trí nhớ 00:20/);
+  assert.match(verifyReportPrompts({ dir: prompts({ morning: 'Read summary.json and report the counts.' }) }).join(), /báo cáo 7h không áp trí nhớ đã nhận/);
+  // applying without --accept would apply every proposed file; that is not the reviewed step
+  assert.match(verifyReportPrompts({ dir: prompts({ morning: '`node collab-memory-dream.mjs --apply /x/dream/d --memory /x/m`' }) }).join(), /báo cáo 7h/);
+  assert.match(verifyReportPrompts({ dir: prompts({ dream: null }) }).join(), /không đọc được prompt dọn trí nhớ 00:20/);
+  const w = world();
+  installWrapper({ root: join(w.home, 'ops'), home: w.home });
+  assert.match(wrapperHealth({ root: join(w.home, 'ops'), home: w.home, prompts: prompts({ morning: 'no apply' }) })[0], /⚠️.*báo cáo 7h/);
 });
 
 // Owner 16.11.2026 (5-fix package item 3c, Codex C2): a report, status or snapshot never re-checks-out
