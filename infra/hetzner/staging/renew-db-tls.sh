@@ -5,10 +5,11 @@
 # Daily, from la-lanh-staging-db-tls.timer:
 # - if the server certificate and the CA are both valid for more than RENEW_DAYS, print the
 #   expiry and exit 0;
-# - otherwise make a new pair, keep one copy of the previous pair, write the new files in place,
-#   update the app's CA copy, restart the staging database, app and (when running) the generation
-#   worker, and wait until each is healthy;
-# - if an earlier run stopped before every restart was healthy, finish those restarts first.
+# - otherwise make a new pair, keep one copy of the previous pair, stage the complete new pair as
+#   tls.staged, write the new files in place, update the app's CA copy, restart the staging
+#   database, app and (when running) the generation worker, and wait until each is healthy;
+# - if an earlier run stopped anywhere after staging (while writing the files or before every
+#   restart was healthy), write every file again from tls.staged and finish the restarts first.
 # Any failure exits non-zero, so OnFailure= records an alert marker that la-lanh-ops-watch reports.
 #
 # Reads certificate dates only. Never prints keys, passwords or certificate contents.
@@ -24,21 +25,29 @@ APP_CONTAINER="${LA_LANH_STAGING_APP_CONTAINER:-la-lanh-staging-staging-app-1}"
 WORKER_CONTAINER="${LA_LANH_STAGING_WORKER_CONTAINER:-la-lanh-staging-staging-rewrite-worker-1}"
 HEALTH_TIMEOUT="${LA_LANH_STAGING_HEALTH_TIMEOUT_SECONDS:-180}"
 TLS="$SECRETS/tls"
-PENDING="$SECRETS/tls.pending-restart"
+STAGED="$SECRETS/tls.staged"
+APPLIED="$SECRETS/tls.applied"
 
 [[ "$RENEW_DAYS" =~ ^[1-9][0-9]?$ && "$RENEW_DAYS" -lt 30 ]] \
   || { echo "LA_LANH_STAGING_TLS_RENEW_DAYS must be 1-29" >&2; exit 2; }
 [[ "$HEALTH_TIMEOUT" =~ ^[1-9][0-9]*$ ]] \
   || { echo "Invalid LA_LANH_STAGING_HEALTH_TIMEOUT_SECONDS" >&2; exit 2; }
-for f in server.crt server.key ca.pem; do
-  [[ -s "$TLS/$f" && ! -L "$TLS/$f" ]] || { echo "Staging TLS file missing: tls/$f" >&2; exit 1; }
-done
-[[ -s "$SECRETS/db_ca.pem" && ! -L "$SECRETS/db_ca.pem" ]] \
-  || { echo "Staging app CA copy missing: db_ca.pem" >&2; exit 1; }
+umask 077
 
 window=$((RENEW_DAYS * 86400))
 valid_beyond() { openssl x509 -checkend "$2" -noout -in "$1" >/dev/null 2>&1; }
 not_after() { openssl x509 -enddate -noout -in "$1" | cut -d= -f2; }
+# A complete pair: three regular non-empty files, the certificate signed by the CA and made for
+# the key next to it. Compares public keys only; nothing is printed.
+complete_pair() {
+  local f
+  for f in server.crt server.key ca.pem; do
+    [[ -s "$1/$f" && ! -L "$1/$f" ]] || return 1
+  done
+  openssl verify -CAfile "$1/ca.pem" "$1/server.crt" >/dev/null 2>&1 || return 1
+  [[ "$(openssl x509 -pubkey -noout -in "$1/server.crt" 2>/dev/null)" \
+    == "$(openssl pkey -pubout -in "$1/server.key" 2>/dev/null)" ]]
+}
 
 health() { docker inspect --format '{{.State.Health.Status}}' "$1" 2>/dev/null || echo missing; }
 wait_healthy() {
@@ -51,9 +60,24 @@ wait_healthy() {
   return 1
 }
 
-# Every process that loaded the old CA or pair must restart. The marker is written before the new
-# files go in and removed only after every restart is healthy, so a run that stopped half-way is
-# finished by the next run instead of reporting fresh files on disk as success.
+# tls.staged is the whole new pair, put there by one rename before any live file changes, and it
+# stays until every restart is healthy. A run that stopped half-way (between two file writes, or
+# before a restart was healthy) is finished by the next run from tls.staged: every file is written
+# again, so the database never starts on a certificate and key from two different pairs.
+install_staged() {
+  local f
+  complete_pair "$STAGED" \
+    || { echo "tls.staged is not a complete pair; restore tls/ from tls.prev-* by hand" >&2; exit 1; }
+  # Write in place so the directory and file inodes the containers mount stay the same;
+  # cp -p keeps the postgres owner (uid 70) and 0600 on the key when run as root.
+  for f in ca.pem server.crt server.key; do
+    cp -p "$STAGED/$f" "$TLS/$f"
+  done
+  # The app's CA copy keeps its own owner (65532) and 0600: overwrite the content only.
+  cat "$TLS/ca.pem" > "$SECRETS/db_ca.pem"
+}
+
+# Every process that loaded the old CA or pair must restart.
 activate() {
   docker restart "$DB_CONTAINER" >/dev/null
   wait_healthy "$DB_CONTAINER"
@@ -65,15 +89,31 @@ activate() {
     docker restart "$WORKER_CONTAINER" >/dev/null
     wait_healthy "$WORKER_CONTAINER"
   fi
-  rm -f "$PENDING"
+  # One rename ends the renewal; a half-deleted tls.staged is never mistaken for a pending one.
+  mv "$STAGED" "$APPLIED"
+  rm -rf "$APPLIED"
 }
 
-if [[ -e "$PENDING" ]]; then
-  echo "Staging DB TLS: an earlier renewal did not finish its restarts; restarting now"
+rm -rf "$APPLIED"
+for f in server.crt server.key ca.pem; do
+  [[ -e "$TLS/$f" && ! -L "$TLS/$f" ]] || { echo "Staging TLS file missing: tls/$f" >&2; exit 1; }
+done
+[[ -e "$SECRETS/db_ca.pem" && ! -L "$SECRETS/db_ca.pem" ]] \
+  || { echo "Staging app CA copy missing: db_ca.pem" >&2; exit 1; }
+
+if [[ -e "$STAGED" ]]; then
+  echo "Staging DB TLS: an earlier renewal did not finish; writing the staged pair again and restarting"
+  install_staged
   activate
-  echo "Staging DB TLS restarts finished: certificate valid until $(not_after "$TLS/server.crt")"
+  echo "Staging DB TLS renewal finished: certificate valid until $(not_after "$TLS/server.crt")"
   exit 0
 fi
+
+# No renewal is pending, so an empty file here is damage, not a write that was cut short.
+for f in server.crt server.key ca.pem; do
+  [[ -s "$TLS/$f" ]] || { echo "Staging TLS file missing: tls/$f" >&2; exit 1; }
+done
+[[ -s "$SECRETS/db_ca.pem" ]] || { echo "Staging app CA copy missing: db_ca.pem" >&2; exit 1; }
 
 if valid_beyond "$TLS/server.crt" "$window" && valid_beyond "$TLS/ca.pem" "$window" \
   && cmp -s "$TLS/ca.pem" "$SECRETS/db_ca.pem"; then
@@ -90,25 +130,18 @@ trap 'rm -rf "$new"' EXIT
 for f in server.crt server.key ca.pem; do
   [[ -s "$new/$f" ]] || { echo "New pair is missing $f; the current pair is unchanged" >&2; exit 1; }
 done
-openssl verify -CAfile "$new/ca.pem" "$new/server.crt" >/dev/null 2>&1 \
-  || { echo "New certificate does not verify against its CA; the current pair is unchanged" >&2; exit 1; }
+complete_pair "$new" \
+  || { echo "New certificate does not match its CA or key; the current pair is unchanged" >&2; exit 1; }
 valid_beyond "$new/server.crt" "$window" \
   || { echo "New certificate is not valid beyond ${RENEW_DAYS} days; the current pair is unchanged" >&2; exit 1; }
 
 # One previous pair only (it holds a private key): enough to diagnose, nothing more.
-umask 077
 find "$SECRETS" -maxdepth 1 -name 'tls.prev-*' -type d -exec rm -rf {} +
 cp -Rp "$TLS" "$SECRETS/tls.prev-$stamp"
 
-: > "$PENDING"
-# Write in place so the directory and file inodes the containers mount stay the same;
-# cp -p keeps the postgres owner (uid 70) and 0600 on the key when run as root.
-for f in ca.pem server.crt server.key; do
-  cp -p "$new/$f" "$TLS/$f"
-done
-# The app's CA copy keeps its own owner (65532) and 0600: overwrite the content only.
-cat "$TLS/ca.pem" > "$SECRETS/db_ca.pem"
-
+# From this rename on, the next run finishes the renewal even if this one stops at any line.
+mv "$new" "$STAGED"
+install_staged
 activate
 
 echo "Staging DB TLS renewed: certificate valid until $(not_after "$TLS/server.crt"); previous pair kept as tls.prev-$stamp"

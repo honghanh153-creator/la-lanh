@@ -147,7 +147,8 @@ def test_an_expiring_pair_is_renewed_and_staging_restarted(
     assert len(archives) == 1
     assert (archives[0] / "server.crt").read_bytes() == old_cert
     assert not (secrets / "tls.new").exists()
-    assert not (secrets / "tls.pending-restart").exists()
+    assert not (secrets / "tls.staged").exists()
+    assert not (secrets / "tls.applied").exists()
     calls = _docker_calls(tmp_path)
     assert calls[0] == "restart la-lanh-staging-db-1"
     assert "restart la-lanh-staging-staging-app-1" in calls
@@ -195,22 +196,85 @@ def test_an_unhealthy_database_after_restart_fails_loudly(
     assert result.returncode == 1
     assert "la-lanh-staging-db-1 is not healthy" in result.stderr
     assert "restart la-lanh-staging-staging-app-1" not in _docker_calls(tmp_path)
-    assert (secrets / "tls.pending-restart").exists()
+    assert (secrets / "tls.staged").exists()
 
     # The next run sees fresh files on disk but must still finish the restarts, not report success.
     (tmp_path / "docker.log").unlink()
     again = _renew(tmp_path, secrets, fake_docker)
     assert again.returncode == 0, again.stderr
-    assert "did not finish its restarts" in again.stdout
+    assert "did not finish" in again.stdout
     calls = _docker_calls(tmp_path)
     assert "restart la-lanh-staging-db-1" in calls
     assert "restart la-lanh-staging-staging-app-1" in calls
-    assert not (secrets / "tls.pending-restart").exists()
+    assert not (secrets / "tls.staged").exists()
 
     # Only then does a run report the pair as OK and leave the containers alone.
     (tmp_path / "docker.log").unlink()
     third = _renew(tmp_path, secrets, fake_docker)
     assert "Staging DB TLS OK" in third.stdout
+    assert _docker_calls(tmp_path) == []
+
+
+def _public_key(args: list[str]) -> bytes:
+    command = ["openssl", *args]
+    return subprocess.run(command, capture_output=True, check=True).stdout  # noqa: S603
+
+
+def _pair_matches(tls: Path) -> bool:
+    cert = _public_key(["x509", "-pubkey", "-noout", "-in", str(tls / "server.crt")])
+    key = _public_key(["pkey", "-pubout", "-in", str(tls / "server.key")])
+    return cert == key
+
+
+@pytest.mark.parametrize("stops_at", ["tls/server.crt", "tls/server.key"])
+def test_a_run_cut_short_between_file_writes_is_repaired_before_any_restart(
+    tmp_path: Path, fake_docker: Path, stops_at: str
+) -> None:
+    """Stopping after some live files are written must not leave a mixed pair to restart on."""
+    secrets = _secrets(tmp_path, 5)
+    cp = fake_docker / "cp"
+    cp.write_text(
+        "#!/bin/sh\n"
+        'case "$*" in *"/${FAKE_CP_STOPS_AT:-never}") exit 1 ;; esac\n'
+        'exec /bin/cp "$@"\n',
+        encoding="utf-8",
+    )
+    cp.chmod(0o755)
+    cut = _renew(tmp_path, secrets, fake_docker, FAKE_CP_STOPS_AT=stops_at)
+    assert cut.returncode != 0
+    assert _docker_calls(tmp_path) == []
+    assert (secrets / "tls.staged").exists()
+    if stops_at == "tls/server.key":
+        # The state Codex found: new certificate, old key.
+        assert not _pair_matches(secrets / "tls")
+
+    again = _renew(tmp_path, secrets, fake_docker)
+    assert again.returncode == 0, again.stderr
+    assert "did not finish" in again.stdout
+    assert _pair_matches(secrets / "tls")
+    verify = ["openssl", "verify", "-CAfile", str(secrets / "tls/ca.pem")]
+    verify.append(str(secrets / "tls/server.crt"))
+    assert subprocess.run(verify, capture_output=True, check=False).returncode == 0  # noqa: S603
+    assert _valid_beyond(secrets / "tls/server.crt", 25)
+    assert (secrets / "db_ca.pem").read_bytes() == (secrets / "tls/ca.pem").read_bytes()
+    calls = _docker_calls(tmp_path)
+    assert "restart la-lanh-staging-db-1" in calls
+    assert "restart la-lanh-staging-staging-app-1" in calls
+    assert not (secrets / "tls.staged").exists()
+    assert len(list(secrets.glob("tls.prev-*"))) == 1
+
+
+def test_a_broken_staged_pair_fails_without_touching_the_live_files(
+    tmp_path: Path, fake_docker: Path
+) -> None:
+    secrets = _secrets(tmp_path, 30)
+    before = {f: (secrets / "tls" / f).read_bytes() for f in ("server.crt", "server.key", "ca.pem")}
+    (secrets / "tls.staged").mkdir()
+    (secrets / "tls.staged/server.crt").write_text("half\n", encoding="utf-8")
+    result = _renew(tmp_path, secrets, fake_docker)
+    assert result.returncode == 1
+    assert "not a complete pair" in result.stderr
+    assert {f: (secrets / "tls" / f).read_bytes() for f in before} == before
     assert _docker_calls(tmp_path) == []
 
 
@@ -231,7 +295,7 @@ def test_the_generation_worker_reloads_the_ca_only_when_it_runs(
     else:
         assert not any(worker in c and not c.startswith("ps ") for c in calls)
         assert not any(c.startswith(("start", "up", "compose")) for c in calls)
-    assert not (secrets / "tls.pending-restart").exists()
+    assert not (secrets / "tls.staged").exists()
 
 
 def test_missing_pair_or_bad_setting_fails(tmp_path: Path, fake_docker: Path) -> None:

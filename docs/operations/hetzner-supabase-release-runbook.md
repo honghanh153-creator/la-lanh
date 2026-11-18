@@ -419,9 +419,11 @@ Staging's own PostgreSQL uses a private CA and server pair from `make-db-tls.sh`
   restarts `la-lanh-staging-db-1`, then `la-lanh-staging-staging-app-1`, then the generation worker
   `la-lanh-staging-staging-rewrite-worker-1` only if it is running (it is never started here), and waits
   for each to be healthy. A pair that fails to build or verify leaves the current one untouched.
-- `tls.pending-restart` is written before the new files go in and removed only after every restart is
-  healthy. If a restart fails, the next run finishes the restarts first instead of reporting the fresh
-  files as OK. Run the script by hand to retry sooner.
+- The verified new pair is first moved to `tls.staged` (one rename) and stays there until every restart
+  is healthy. If a run stops while writing the files or a restart fails, the next run writes every file
+  again from `tls.staged` and finishes the restarts, instead of restarting on a half-written pair or
+  reporting the fresh files as OK. Run the script by hand to retry sooner. If `tls.staged` itself is not
+  a complete pair the run fails and alerts; restore `tls/` from `tls.prev-<UTC stamp>` by hand.
 - Any failure triggers `la-lanh-alert@`, whose marker `la-lanh-ops-watch` reports as an `ops-alert` issue.
 - It reads certificate dates only and never prints keys, passwords or certificate contents. Production
   is not affected: it verifies Supabase's CA and has no pair of its own.
