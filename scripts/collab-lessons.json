@@ -917,6 +917,26 @@
     "pr": 736
    },
    "note": "Tick: scripts/collab-turn.mjs giữ chỗ cho PR đầu hàng trước khi đồng bộ (test 'reservation: the front reserves before its sync…'). Gỡ tay có ghi lý do: node scripts/collab-reservation.mjs --release --reason \"…\"."
+  },
+  {
+   "id": "L51",
+   "title": "PR giữ chỗ hết hạn được giữ chỗ lại khi integration đã đổi (cần đồng bộ), không được gia hạn ở cùng đỉnh; reservation ghi đỉnh integration thật sau các merge trong cùng tick (Codex P2 trên #736 và #738: #737, #739)",
+   "from": "fix-forward #737, #739",
+   "who": "claude",
+   "due": "2026-11-19",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-loop.test.mjs",
+    "name": "#739: a reservation made after a merge in the same tick records the live tip"
+   },
+   "caller": {
+    "file": "scripts/collab-turn.mjs",
+    "contains": "tip: mergedNow.size ? liveTip(t.number) : t.tip"
+   },
+   "closedBy": {
+    "pr": 738
+   },
+   "note": "Phục hồi sau hết hạn: test '#737: an expired holder may reserve again at the same head once integration has moved' (scripts/collab-merge-gate.test.mjs)."
   }
  ]
 }

@@ -450,6 +450,10 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       // this tick's merges (Codex 14.11), so a PR merged a moment ago never holds the place. A PR
       // that cannot merge cleanly goes to claude-fix: conflicts are Claude's to resolve.
       const mergedNow = new Set(done.filter(d => d.merge?.status === 'merged').map(d => d.pr));
+      // Fix-forward #739: the tip in the turns was read before this tick's merges; a reservation (and the
+      // head the holder gets from its sync) records the live tip, so its expiry is bound to the base it
+      // really had. Unknown when the read fails (then a spent window is refused, as before).
+      const liveTip = n => { try { const tip = gh.pr(n)?.baseTipOid; return isSha(tip) ? tip : null; } catch { return null; } };
       // #524 (Codex r1 on #495): the front is the first PR the machine can act on; a held or
       // claude-fix PR ahead of it (needs-owner, conflict) no longer keeps it from syncing.
       // One session per PR (owner 16.11): a PR a session holds is never synced by the machine; its
@@ -460,7 +464,7 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       // No new reservation from lastStartAt (23:35): nothing new starts, so nothing should wait.
       if (!held && now.hour * 60 + now.minute < lastStartAt) {
         for (const t of work.filter(x => ['claude-check', 'codex-review'].includes(x.turn) && !mergedNow.has(x.number) && mayTouch(x.number).ok)) {
-          const r = reservations.reserve(t.number, t.head, { nowMs: nowMs(), tip: t.tip });
+          const r = reservations.reserve(t.number, t.head, { nowMs: nowMs(), tip: mergedNow.size ? liveTip(t.number) : t.tip });
           if (r.refused) { log(`reservation #${t.number} refused: ${r.refused}`); continue; }
           if (r.reservation?.pr === t.number) { front = t.number; log(`reservation #${t.number} until ${new Date(r.reservation.expiresAtMs).toISOString()}`); }
           break;
@@ -486,7 +490,7 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
         if (checks > 0 && !heavyFree()) break;
         show({ status: 'running', doing: `author check #${t.number} (thường 10–35 phút)`, expectMinutes: 90, area, turns, done });
         const result = check(t.number, { auto: true, clock: time, sync: t.number === front });
-        if (t.number === front && result?.status === 'synced' && result.head) reservations.follow(t.number, result.head, { nowMs: nowMs() });
+        if (t.number === front && result?.status === 'synced' && result.head) reservations.follow(t.number, result.head, { nowMs: nowMs(), tip: liveTip(t.number) });
         checks += 1;
         done.push({ pr: t.number, check: result });
         markRechecked(t, result?.status);

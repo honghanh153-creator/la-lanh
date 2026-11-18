@@ -78,11 +78,12 @@ function reserveUnlocked(pr, head, { nowMs = Date.now(), minutes = reservationMi
 }
 
 /** Move the reservation of `pr` to its new head (the tick's own sync gave it a new head). */
-function followHeadUnlocked(pr, head, { nowMs = Date.now() } = {}) {
+function followHeadUnlocked(pr, head, { nowMs = Date.now(), tip = null } = {}) {
   const current = activeReservation(nowMs);
-  if (!current || current.pr !== pr || !isSha(head) || current.head === head) return current;
+  if (!current || current.pr !== pr || !isSha(head) || (current.head === head && (!isSha(tip) || current.tip === tip))) return current;
   const stored = readJson(reservationPath(), null) ?? {};
-  const moved = { ...current, head };
+  // #739: the sync merged the live tip into the head; the window is bound to that tip.
+  const moved = { ...current, head, ...(isSha(tip) ? { tip } : {}) };
   write({ ...stored, reservation: moved });
   return moved;
 }
