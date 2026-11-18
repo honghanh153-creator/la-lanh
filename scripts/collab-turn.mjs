@@ -1,7 +1,7 @@
 // Whose turn is it on each open PR? `--report` replaces the registry PRs; `--tick` is the launchd safety net.
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { agentMarker, areaOrder, copyBatchAt, classifyArea, clean, codexDailyCap, dayCap, dayStatePath, integration, isOwnPr, makeGh, readJson, repo, reviewState, sortByPriority, stateDir, trustedComments, vnNow, writeJson } from './collab-trust.mjs';
+import { agentMarker, areaOrder, copyBatchAt, classifyArea, clean, codexDailyCap, dayCap, dayStatePath, integration, isOwnPr, makeGh, readJson, repo, reviewState, sortByPriority, stateDir, trustedComments, vnNow, writeJson, isSha } from './collab-trust.mjs';
 import { autoStartAt, committedTurns, lastStartAt, makePlan, planIssue, readPlanStatus } from './collab-plan.mjs';
 import { dayList, label7w, min7w, pickPlan, planCap, plannedEntry, quotaIssues, unitKey, workUnits } from './collab-quota.mjs';
 import { auditReserve } from './collab-audit.mjs';
@@ -63,7 +63,7 @@ export function fileBlocker(pr, prs = [], { dropped = [], ...opts } = {}) {
 // same way as the tick and the merge gate (Codex 15.11: a caller without it refused after a decision).
 export function prTurn(pr, { dropped = [], open = [], preflight = {}, baseFiles, disputes = disputeView() } = {}) {
   const head = pr.headRefOid;
-  const out = (turn, reason, extra = {}) => ({ number: pr.number, title: pr.title, area: classifyArea(pr), head, base: pr.baseRefName, turn, reason, files: prFiles(pr), bodyHash: bodyHash(pr.body),
+  const out = (turn, reason, extra = {}) => ({ number: pr.number, title: pr.title, area: classifyArea(pr), head, base: pr.baseRefName, tip: isSha(pr.baseTipOid) ? pr.baseTipOid : null, turn, reason, files: prFiles(pr), bodyHash: bodyHash(pr.body),
     source: gateValue(pr.body, 'G1') || null, userSees: userSees(pr.body), item: workRef(pr.body), ...extra });
   const labels = (pr.labels ?? []).map(l => l.name ?? l);
   if (!isOwnPr(pr)) return out('hold', 'PR không phải của owner hoặc từ fork: không chạy, không review');
@@ -460,7 +460,7 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       // No new reservation from lastStartAt (23:35): nothing new starts, so nothing should wait.
       if (!held && now.hour * 60 + now.minute < lastStartAt) {
         for (const t of work.filter(x => ['claude-check', 'codex-review'].includes(x.turn) && !mergedNow.has(x.number) && mayTouch(x.number).ok)) {
-          const r = reservations.reserve(t.number, t.head, { nowMs: nowMs() });
+          const r = reservations.reserve(t.number, t.head, { nowMs: nowMs(), tip: t.tip });
           if (r.refused) { log(`reservation #${t.number} refused: ${r.refused}`); continue; }
           if (r.reservation?.pr === t.number) { front = t.number; log(`reservation #${t.number} until ${new Date(r.reservation.expiresAtMs).toISOString()}`); }
           break;
