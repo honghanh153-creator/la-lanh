@@ -1204,6 +1204,16 @@ test('12.11 trial: ciCheck passes only a completed success of the pr-check check
   assert.equal(ciCheck(at([w({ id: 1, created_at: '2026-11-12T00:00:00Z', conclusion: 'cancelled' }), w({ id: 2, status: 'in_progress' })], { 2: [j({ run_id: 2, status: 'in_progress', conclusion: null })] }), A).state, 'pending', '#630: the other run still running is pending');
   assert.equal(ciCheck(at([cancelled], { 3: [j({ run_id: 3, conclusion: 'cancelled' })] }), A).state, 'pending', '#630: only cancelled runs is pending, never a FAIL');
   assert.equal(ciCheck(at([w({ id: 2, created_at: '2026-11-12T02:00:00Z', conclusion: 'failure' }), cancelled, w()], { 1: [j()], 2: [j({ run_id: 2, conclusion: 'failure' })] }), A).state, 'FAIL', '#630: a newer real failure still decides');
+  // #719: a meta run (label or body change) on the same head is a full run; the newest decides.
+  const meta = o => w({ id: 5, created_at: '2026-11-12T04:00:00Z', ...o });
+  assert.equal(ciCheck(at([meta({ status: 'in_progress' }), w()], { 1: [j()], 5: [j({ run_id: 5, status: 'in_progress', conclusion: null })] }), A).state, 'pending', '#719: a newer meta run still running keeps the check pending');
+  assert.equal(ciCheck(at([meta(), w({ conclusion: 'failure' })], { 1: [j({ conclusion: 'failure' })], 5: [j({ run_id: 5 })] }), A).state, 'PASS', '#719: a newer green full run supersedes, as a green re-run does');
+  // Equal timestamps (labels in the same second): the higher run id is newer, in any listing order.
+  const same = '2026-11-12T05:00:00Z';
+  for (const order of [[6, 7], [7, 6]]) {
+    const runs = order.map(id => w({ id, created_at: same }));
+    assert.equal(ciCheck(at(runs, { 6: [j({ run_id: 6 })], 7: [j({ run_id: 7, conclusion: 'failure' })] }), A).state, 'FAIL', `#719: run 7 decides (listed ${order})`);
+  }
   assert.equal(checkSource({ LA_LANH_CHECK_SOURCE: 'ci' }), 'ci');
   assert.equal(checkSource({}), 'local');
 });
