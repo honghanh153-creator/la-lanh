@@ -74,7 +74,7 @@
     "contains": "chưa đạt: ${entry.part}"
    },
    "closedBy": {
-    "pr": 0
+    "pr": 729
    },
    "note": "Cơ chế từ #501; test chạy trong pnpm collab:test từ PR đóng. ac_checks có ở Khám phá (US-07) và Home (US-03 AC01, AC02, AC06; AC13 tay). Lượt 18.11 bắt được một kiểm viết sai (câu thân Note là câu biểu hiện, không phải thesis) trước khi ghi đạt. Còn: thêm ac_checks cho tính năng khác; trạng thái giờ ước lượng cho US-07 AC06"
   },
