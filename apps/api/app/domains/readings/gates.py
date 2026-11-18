@@ -26,7 +26,7 @@ from app.domains.readings.models import (
     SemanticArena,
     SemanticSection,
 )
-from app.domains.readings.renderers import canonical_evidence_claim
+from app.domains.readings.renderers import plan_evidence_claim
 
 EVIDENCE_GATE_VERSION = "evidence-gate-vi-v2"
 ANTI_INFLUENCE_GATE_VERSION = "anti-influence-gate-vi-v1"
@@ -126,7 +126,9 @@ def evidence_gate(plan: ReadingPlan, candidate: ReadingCandidate) -> GateReport:
         failures.append(GateFailureCode.EVIDENCE_DISCLOSURE)
 
     factor_by_id = {factor.id: factor for factor in plan.factors}
-    canonical_claim_by_id = {factor.id: canonical_evidence_claim(factor) for factor in plan.factors}
+    canonical_claim_by_id = {
+        factor.id: plan_evidence_claim(plan, factor) for factor in plan.factors
+    }
     seen: set[str] = set()
     for claim in candidate.evidence.claims:
         factor = factor_by_id.get(claim.factor_ref)

@@ -4,7 +4,11 @@ import json
 from datetime import date
 from hashlib import sha256
 
-from app.domains.astro.aspects import ASPECTS, transit_orb_limit
+from app.domains.astro.aspects import (
+    ASPECTS,
+    SUPPORTED_INTERVAL_TRANSIT_ORB_VERSIONS,
+    transit_orb_limit,
+)
 from app.domains.astro.models import (
     Aspect,
     BodyName,
@@ -212,22 +216,27 @@ class ReadingPlanner:
                 chart, purpose, background_lens, editorial_seed, daily_variety
             )
         self._validate_transits(chart, transits)
+        interval = (
+            transits is not None
+            and transits.orb_policy_version in SUPPORTED_INTERVAL_TRANSIT_ORB_VERSIONS
+        )
         if (
             chart.time_precision is TimePrecision.APPROXIMATE
             and purpose is ReadingPurpose.DAILY_NOTE
             and chart.config.tradition is Tradition.WESTERN
-            and transits is None
+            and (transits is None or interval)
         ):
             # 17.11.2026 (#626): an approximate birth time gets a Daily built from the same
             # time-stable placements as its other readings (#143 E1), instead of an empty LIMITED
-            # plan that served one situation for every day. No transit, aspect, house, angle or
-            # Moon fact is used; public precision stays approximate.
+            # plan that served one situation for every day. Daily step 2: a transit is added only
+            # from a snapshot proven over the birth-time window (``daily.interval_transits``),
+            # and only to a time-stable placement; no aspect, house, angle or Moon fact is used.
             stable = self._stable_placements(chart, purpose)
             selected, hero_refs = self._select_natal(stable, purpose, editorial_seed)
             if hero_refs:
                 return self._daily_plan(
                     chart,
-                    None,
+                    transits,
                     stable,
                     selected,
                     hero_refs,
@@ -235,6 +244,10 @@ class ReadingPlanner:
                     editorial_seed=editorial_seed,
                     daily_variety=daily_variety,
                 )
+            transits = None
+        if interval and chart.time_precision is TimePrecision.APPROXIMATE:
+            # A window-proven snapshot is used only by the approximate Daily above.
+            transits = None
         if chart.time_precision is not TimePrecision.EXACT:
             approximate = (
                 self._approximate_plan(chart, purpose, background_lens, editorial_seed)
@@ -305,6 +318,7 @@ class ReadingPlanner:
             *,
             has_transit: bool,
             selection: DailySelection | None = None,
+            transit_policy: str | None = None,
         ) -> ReadingPlan:
             return self._build_plan(
                 tradition=chart.config.tradition,
@@ -319,6 +333,7 @@ class ReadingPlanner:
                 editorial_seed=editorial_seed,
                 daily_selection=selection,
                 daily_variety=daily_variety,
+                transit_policy=transit_policy,
             )
 
         def with_transit(transit: DerivedFactor) -> list[DerivedFactor]:
@@ -335,7 +350,16 @@ class ReadingPlanner:
         )
         selection, transit = select_daily_situation(natal_plan, transit_plans)
         factors = with_transit(transit) if transit is not None else list(natal)
-        return build(factors, has_transit=transit is not None, selection=selection)
+        policy = (
+            transits.orb_policy_version
+            if transit is not None
+            and transits is not None
+            and transits.orb_policy_version in SUPPORTED_INTERVAL_TRANSIT_ORB_VERSIONS
+            else None
+        )
+        return build(
+            factors, has_transit=transit is not None, selection=selection, transit_policy=policy
+        )
 
     def _date_only_plan(
         self,
@@ -850,6 +874,11 @@ class ReadingPlanner:
     def _validate_transits(chart: NatalChart, transits: TransitToNatalSnapshot | None) -> None:
         if transits is None:
             return
+        interval = transits.orb_policy_version in SUPPORTED_INTERVAL_TRANSIT_ORB_VERSIONS
+        if interval and chart.time_precision is not TimePrecision.APPROXIMATE:
+            raise ValueError("a window-proven transit snapshot is only for an approximate time")
+        if not interval and chart.time_precision is TimePrecision.APPROXIMATE:
+            raise ValueError("an approximate time takes only a window-proven transit snapshot")
         if transits.config.tradition is not chart.config.tradition:
             raise ValueError("transit tradition must match natal tradition")
         if transits.config_hash != chart.config_hash:
@@ -972,6 +1001,7 @@ class ReadingPlanner:
         editorial_seed: str | None,
         daily_selection: DailySelection | None = None,
         daily_variety: DailyVariety | None = None,
+        transit_policy: str | None = None,
     ) -> ReadingPlan:
         rules_version = (
             DAILY_PLANNER_RULES_VERSION if daily_selection is not None else PLANNER_RULES_VERSION
@@ -1002,6 +1032,8 @@ class ReadingPlanner:
             payload["daily_selection"] = daily_selection.model_dump(mode="json")
         if daily_variety is not None:
             payload["daily_variety"] = daily_variety.model_dump(mode="json")
+        if transit_policy is not None:
+            payload["transit_policy"] = transit_policy
         canonical = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
         return ReadingPlan(
             rules_version=rules_version,
@@ -1021,6 +1053,7 @@ class ReadingPlanner:
             forbidden_language=_PLAN_FORBIDDEN_LANGUAGE,
             daily_selection=daily_selection,
             daily_variety=daily_variety,
+            transit_policy=transit_policy,
         )
 
     @staticmethod

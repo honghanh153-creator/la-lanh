@@ -16,6 +16,7 @@ from pydantic import (
     model_validator,
 )
 
+from app.domains.astro.aspects import SUPPORTED_INTERVAL_TRANSIT_ORB_VERSIONS
 from app.domains.astro.models import EngineProvenance, TimePrecision, Tradition, TransitPhase
 
 WESTERN_INTERPRETATION_KNOWLEDGE_VERSION = "western-interpretation-matrix-v7"
@@ -289,6 +290,9 @@ class ReadingPlan(BaseModel):
     daily_selection: DailySelection | None = None
     # Absent on plans stored before B3-1a; canonical keys omit it when None.
     daily_variety: DailyVariety | None = None
+    # Daily step 2: set when the plan's transit was proven over an approximate birth-time window
+    # (its orb is an upper bound). Absent on every earlier plan; canonical keys omit it when None.
+    transit_policy: str | None = Field(default=None, min_length=1, max_length=64)
 
     @model_validator(mode="after")
     def validate_plan(self) -> "ReadingPlan":
@@ -306,6 +310,15 @@ class ReadingPlan(BaseModel):
                 raise ValueError("daily selection support must come from plan factors")
             if transit_ids != ({selection.transit_ref} if selection.transit_ref else set()):
                 raise ValueError("a selected Daily plan holds exactly its chosen transit")
+        if self.transit_policy is not None:
+            if self.transit_policy not in SUPPORTED_INTERVAL_TRANSIT_ORB_VERSIONS:
+                raise ValueError("unsupported interval transit policy")
+            if (
+                self.purpose is not ReadingPurpose.DAILY_NOTE
+                or self.precision is not TimePrecision.APPROXIMATE
+                or not any(factor.source is FactorSource.TRANSIT for factor in self.factors)
+            ):
+                raise ValueError("only an approximate Daily with a transit carries the policy")
         if len(factor_by_id) != len(self.factors):
             raise ValueError("factor ids must be unique")
         if any(factor.tradition is not self.tradition for factor in self.factors):
@@ -883,10 +896,12 @@ def experiment_projection_for(
 def canonical_reading_plan_key(plan: ReadingPlan, *, chart_snapshot_id: UUID | None = None) -> str:
     """Immutable plan identity, optionally bound to its persisted chart source."""
 
-    # Plans stored before B1b (daily_selection) or B3-1a (daily_variety) lack the
-    # field; omitting it when None keeps their identity unchanged on re-keying.
+    # Plans stored before B1b (daily_selection), B3-1a (daily_variety) or Daily step 2
+    # (transit_policy) lack the field; omitting it when None keeps their identity unchanged.
     excluded = {
-        field for field in ("daily_selection", "daily_variety") if getattr(plan, field) is None
+        field
+        for field in ("daily_selection", "daily_variety", "transit_policy")
+        if getattr(plan, field) is None
     } or None
     factual_key = sha256(
         plan.model_dump_json(exclude_none=False, exclude=excluded).encode()

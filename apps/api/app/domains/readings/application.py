@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import re
 from asyncio import to_thread
+from collections.abc import Awaitable, Callable
 from datetime import UTC, date, datetime, time, timedelta
 from hashlib import sha256
 from uuid import UUID, uuid4
@@ -18,6 +19,7 @@ from app.domains.astro.models import (
 )
 from app.domains.birth.models import BirthSnapshotRecord
 from app.domains.content_rewrite.service import ContentRewriteService
+from app.domains.daily.interval_transits import interval_transit_to_natal
 from app.domains.readings.companion import companion_issue_entry
 from app.domains.readings.daily_psychology import (
     DAILY_PSYCHOLOGY_MATRIX_VERSION,
@@ -117,6 +119,7 @@ class ReadingApplicationService:
         content_rewrite_service: ContentRewriteService | None = None,
         daily_variety_key: bytes | None = None,
         daily_variety_from: date | None = None,
+        birth_timezone_lookup: Callable[[UUID, UUID], Awaitable[str | None]] | None = None,
     ) -> None:
         self._repository = repository
         self._engine = engine
@@ -131,6 +134,9 @@ class ReadingApplicationService:
         self._content_rewrite_service = content_rewrite_service
         self._daily_variety_key = daily_variety_key
         self._daily_variety_from = daily_variety_from
+        # Daily step 2: the birthplace zone fixes an approximate window (Codex point 1). It is
+        # read per projection, held in memory only, and never logged or stored.
+        self._birth_timezone_lookup = birth_timezone_lookup
 
     async def project(
         self,
@@ -149,6 +155,7 @@ class ReadingApplicationService:
         if snapshot.guest_id != guest_id:
             raise ReadingActivationConflict
         source_chart = chart or snapshot.result
+        birth_timezone = await self._birth_timezone(guest_id, snapshot.profile_id, source_chart)
         current = _aware_utc(requested_at or datetime.now(UTC))
         local_date, observed_at = _scope_time(purpose, snapshot.created_at, current)
         editorial_seed = local_date.isoformat() if purpose is ReadingPurpose.DAILY_NOTE else None
@@ -167,7 +174,12 @@ class ReadingApplicationService:
                 daily_variety = frozen.plan.daily_variety
             elif rotation:
                 daily_variety = await self._daily_variety(
-                    guest_id, snapshot.profile_id, source_chart, local_date, background_lens
+                    guest_id,
+                    snapshot.profile_id,
+                    source_chart,
+                    local_date,
+                    background_lens,
+                    birth_timezone=birth_timezone,
                 )
             else:
                 daily_variety = None
@@ -176,7 +188,9 @@ class ReadingApplicationService:
                 snapshot=snapshot,
                 source_chart=source_chart,
                 purpose=purpose,
-                transits=await self._optional_transits(source_chart, purpose, observed_at),
+                transits=await self._optional_transits(
+                    source_chart, purpose, observed_at, birth_timezone=birth_timezone
+                ),
                 editorial_seed=editorial_seed,
                 background_lens=background_lens,
                 daily_variety=daily_variety,
@@ -483,6 +497,8 @@ class ReadingApplicationService:
         chart: DateOnlySunResult | NatalChart,
         local_date: date,
         background_lens: BackgroundLens | None,
+        *,
+        birth_timezone: str | None = None,
     ) -> DailyVariety:
         """Fresh B3-1a rotation inputs for a day without a served reading (AC01, AC05)."""
 
@@ -496,7 +512,7 @@ class ReadingApplicationService:
             ),
             day_index=day_index(local_date),
             recent_issue_keys=await self._guard_issue_keys(
-                profile_id, chart, local_date, background_lens
+                profile_id, chart, local_date, background_lens, birth_timezone=birth_timezone
             ),
         )
 
@@ -506,6 +522,8 @@ class ReadingApplicationService:
         chart: DateOnlySunResult | NatalChart,
         local_date: date,
         background_lens: BackgroundLens | None,
+        *,
+        birth_timezone: str | None = None,
     ) -> tuple[str, ...]:
         """AC05 guard pair from the chart alone (owner decision 2026-10-21, PR #39 review).
 
@@ -525,14 +543,19 @@ class ReadingApplicationService:
         """
 
         if day_index(local_date) % 2 == 0:
-            return await self._even_guard(profile_id, chart, local_date, background_lens)
+            return await self._even_guard(
+                profile_id, chart, local_date, background_lens, birth_timezone=birth_timezone
+            )
         previous_day = local_date - timedelta(days=1)
         previous = await self._computed_daily_issue(
             profile_id,
             chart,
             previous_day,
             background_lens,
-            recent=await self._even_guard(profile_id, chart, previous_day, background_lens),
+            recent=await self._even_guard(
+                profile_id, chart, previous_day, background_lens, birth_timezone=birth_timezone
+            ),
+            birth_timezone=birth_timezone,
         )
         return () if previous is None else (previous, previous)
 
@@ -542,16 +565,25 @@ class ReadingApplicationService:
         chart: DateOnlySunResult | NatalChart,
         day: date,
         background_lens: BackgroundLens | None,
+        *,
+        birth_timezone: str | None = None,
     ) -> tuple[str, ...]:
         """Guard pair of an even ``day``: the previous odd day's situation when its pool had
         one entry (detected by asking the real selection to move off it), else none."""
 
         previous_day = day - timedelta(days=1)
-        nominal = await self._computed_daily_issue(profile_id, chart, previous_day, background_lens)
+        nominal = await self._computed_daily_issue(
+            profile_id, chart, previous_day, background_lens, birth_timezone=birth_timezone
+        )
         if nominal is None:
             return ()
         moved = await self._computed_daily_issue(
-            profile_id, chart, previous_day, background_lens, recent=(nominal, nominal)
+            profile_id,
+            chart,
+            previous_day,
+            background_lens,
+            recent=(nominal, nominal),
+            birth_timezone=birth_timezone,
         )
         return (nominal, nominal) if moved == nominal else ()
 
@@ -563,6 +595,7 @@ class ReadingApplicationService:
         background_lens: BackgroundLens | None,
         *,
         recent: tuple[str, ...] = (),
+        birth_timezone: str | None = None,
     ) -> str | None:
         """The situation the rotation selects for ``day`` with the guard pair ``recent``,
         recomputed from the chart, that day's transits and the owner's rotation seed, with the
@@ -583,7 +616,9 @@ class ReadingApplicationService:
             recent_issue_keys=recent,
         )
         observed_at = datetime.combine(day, time(hour=DAILY_OBSERVED_HOUR_UTC), tzinfo=UTC)
-        transits = await self._optional_transits(chart, ReadingPurpose.DAILY_NOTE, observed_at)
+        transits = await self._optional_transits(
+            chart, ReadingPurpose.DAILY_NOTE, observed_at, birth_timezone=birth_timezone
+        )
         plan = self._planner.plan(
             chart,
             purpose=ReadingPurpose.DAILY_NOTE,
@@ -750,19 +785,59 @@ class ReadingApplicationService:
             raise ReadingActivationConflict
         return await self._hydrate(guest_id, profile_id, acknowledged)
 
+    async def _birth_timezone(
+        self, guest_id: UUID, profile_id: UUID, chart: DateOnlySunResult | NatalChart
+    ) -> str | None:
+        """The birthplace zone for an approximate Western chart, else ``None`` (fail closed)."""
+
+        if (
+            self._birth_timezone_lookup is None
+            or not isinstance(chart, NatalChart)
+            or chart.time_precision is not TimePrecision.APPROXIMATE
+            or chart.config.tradition is not Tradition.WESTERN
+        ):
+            return None
+        try:
+            return await self._birth_timezone_lookup(guest_id, profile_id)
+        except Exception:
+            logger.exception("Birthplace zone lookup failed; using the wide birth window")
+            return None
+
     async def _optional_transits(
         self,
         chart: DateOnlySunResult | NatalChart,
         purpose: ReadingPurpose,
         observed_at: datetime,
+        *,
+        birth_timezone: str | None = None,
     ) -> TransitToNatalSnapshot | None:
         if (
             self._engine is None
             or not isinstance(chart, NatalChart)
-            or chart.time_precision is not TimePrecision.EXACT
             or chart.config.tradition is Tradition.JYOTISH
             or purpose not in _TRANSIT_PURPOSES
         ):
+            return None
+        if chart.time_precision is TimePrecision.APPROXIMATE:
+            if purpose is not ReadingPurpose.DAILY_NOTE:
+                return None
+            # Daily step 2: only contacts that hold for every birth time in the window. Without
+            # the birthplace zone the wide night window applies (fail closed, Codex point 1).
+            try:
+                return await to_thread(
+                    interval_transit_to_natal,
+                    self._engine,
+                    chart,
+                    observed_at,
+                    birth_timezone=birth_timezone,
+                )
+            except Exception:
+                logger.exception(
+                    "Optional interval transit calculation failed; continuing with natal reading",
+                    extra={"purpose": purpose.value},
+                )
+                return None
+        if chart.time_precision is not TimePrecision.EXACT:
             return None
         try:
             return await to_thread(self._engine.calculate_transit_to_natal, chart, observed_at)
