@@ -9,10 +9,10 @@ A small model predicts what the API must answer at each step (US-03 §22). A pat
 when every answer matches, so any 4xx/5xx outside the contract fails it, and the kept action
 read back after every step is the single one the model expects (AC33, one open action per guest).
 
-What the API offers today (measured here, not assumed): only an exact-time profile is offered an
-action it can keep. Date-only and approximate profiles get the note and the lighter action as
-text, with nothing to keep. ``KEEPABLE`` pins that; widening it is a product change that must
-edit this file on purpose.
+What the API offers (measured here, not assumed): every kind of profile is offered the card's
+action and the lighter action to keep (#716; until then only an exact-time profile was).
+``KEEPABLE`` pins that; narrowing it is a product change that must edit this file on purpose.
+A date-only path may end by adding a birth time, which must delete the kept action too.
 
 All birth data is synthetic and drawn from a fixed seed.
 """
@@ -46,9 +46,9 @@ ORIGIN = "http://127.0.0.1:5173"
 CONSENT = "action-experiment-v1"
 KINDS = ("date_only", "approximate", "exact")
 PATHS_PER_KIND = 100
-# Profile kinds the API lets keep an action. See the module docstring before changing it;
-# the other two kinds are the open gap in issue #716.
-KEEPABLE = frozenset({"exact"})
+# Profile kinds the API lets keep an action. See the module docstring before changing it.
+# A kind left out of this set must get no offer and a 404 for a hand-built keep.
+KEEPABLE = frozenset(KINDS)
 PRECISION = {
     "date_only": TimePrecision.UNKNOWN.value,
     "approximate": TimePrecision.APPROXIMATE.value,
@@ -119,6 +119,7 @@ class Path:
     held_target: Target | None = None
     closed_revisions: set[str] = field(default_factory=set)
     stale: list[dict[str, Any]] = field(default_factory=list)
+    birth_time: dict[str, Any] | None = None
     kept: int = 0
     steps: int = 0
 
@@ -169,6 +170,7 @@ class Path:
     def _supplement(self, body: dict[str, Any]) -> None:
         response = self.client.post("/v1/birth-profile/supplement", json=body, headers=self.headers)
         assert response.status_code == 200, response.text
+        self.birth_time = body
 
     def _open_note(self) -> None:
         """Open today's note, take the deeper reading when one is waiting, list what is offered."""
@@ -202,7 +204,7 @@ class Path:
         # The lighter action (#634) is offered as text to every kind of profile.
         assert lighter is not None
         if self.kind in KEEPABLE:
-            assert experiment is not None, "an exact-time profile must be offered an action"
+            assert experiment is not None, f"a {self.kind} profile must be offered an action"
             assert lighter["experiment"] is not None
             self.targets.append(Target(revision_id, lens, experiment["action_key"], False))
             self.targets.append(
@@ -385,12 +387,14 @@ class Path:
     def change_birth_time(self) -> None:
         """A new time or place makes the kept action stale: it is deleted, never carried over."""
 
-        if self.kind == "date_only":
-            self.reopen()
-            return
         dependent = self.held
-        body = self._exact_time() if self.kind == "exact" else self._approximate_time()
+        draw = self._exact_time if self.kind == "exact" else self._approximate_time
+        body = draw()
+        while body == self.birth_time:  # the same time again changes nothing; draw a new one
+            body = draw()
         self._supplement(body)
+        if self.kind == "date_only":  # the person added a birth time for the first time
+            self.kind = "approximate"
         if dependent is not None:
             self.stale.append(dependent)
         self.held = self.held_target = None
@@ -484,6 +488,76 @@ def test_100_click_paths_answer_only_what_the_contract_allows(
         )
     assert failures == []
     assert kept == (PATHS_PER_KIND if kind in KEEPABLE else 0)
+
+
+def _one_path(kind: str) -> Path:
+    app = create_app(
+        Settings(
+            environment="test",
+            database_url="sqlite+aiosqlite:///:memory:",
+            cors_origins=[ORIGIN],
+            guest_cookie_name="la_lanh_guest",
+            guest_cookie_secure=False,
+        )
+    )
+    client = TestClient(app, base_url=ORIGIN)
+    client.__enter__()
+    return Path(client=client, rng=random.Random(716), kind=kind)  # noqa: S311
+
+
+@pytest.mark.parametrize("kind", ["approximate", "exact"])
+def test_the_same_birth_time_again_keeps_the_action_and_a_new_one_deletes_it(
+    kind: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """AC2 (#716): only a real change of time or place removes the kept action."""
+
+    _approve_lighter_pool(monkeypatch)
+    path = _one_path(kind)
+    try:
+        path.start(0)
+        path.keep()
+        held = path.held
+        assert held is not None and path.birth_time is not None
+        path._supplement(dict(path.birth_time))
+        path.check_current()  # nothing changed, so the action is still kept
+        path.change_birth_time()  # a different time: deleted, then a new one can be kept
+        assert path.held is not None and path.held["id"] != held["id"]
+    finally:
+        path.client.__exit__(None, None, None)
+
+
+def test_adding_a_birth_time_deletes_the_action_a_date_only_profile_kept(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """AC2 (#716): the first birth time makes a date-only kept action stale."""
+
+    _approve_lighter_pool(monkeypatch)
+    path = _one_path("date_only")
+    try:
+        path.start(0)
+        path.keep()
+        held = path.held
+        assert held is not None
+        path.change_birth_time()
+        assert path.kind == "approximate"
+        assert path.held is not None and path.held["id"] != held["id"]
+    finally:
+        path.client.__exit__(None, None, None)
+
+
+def test_deleting_the_profile_removes_the_kept_action_for_every_kind(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _approve_lighter_pool(monkeypatch)
+    for kind in KINDS:
+        path = _one_path(kind)
+        try:
+            path.start(0)
+            path.keep()
+            assert path.held is not None
+            path.delete_profile()
+        finally:
+            path.client.__exit__(None, None, None)
 
 
 def _always_exact(*_args: object, **_kwargs: object) -> tuple[PlanMode, TimePrecision]:

@@ -922,7 +922,11 @@ def _content_projection(
         raise ReadingApplicationError("accepted reading content is unavailable")
     mode, precision = _public_mode_and_precision(candidate.evidence.claims, plan_precision)
     experiment = None
-    if mode is PlanMode.FULL_SYNTHESIS and precision is TimePrecision.EXACT:
+    # The day's action can be kept by every kind of profile (#716): date only, approximate
+    # time and exact time. Outside the Daily note the offer stays with the exact synthesis.
+    if projection.purpose is ReadingPurpose.DAILY_NOTE or (
+        mode is PlanMode.FULL_SYNTHESIS and precision is TimePrecision.EXACT
+    ):
         experiment = experiment_projection_for(
             revision.id,
             candidate.micro_action,
@@ -1017,7 +1021,7 @@ def _public_mode_and_precision(
     if not claims:
         return PlanMode.LIMITED, TimePrecision.APPROXIMATE
     # An approximate-time synthesis reads only time-stable factors (#143 E1); it is never
-    # labelled exact, so exact-only features (the experiment) stay closed for it.
+    # labelled exact. Keeping the day's action does not depend on this label (#716).
     if plan_precision is TimePrecision.APPROXIMATE:
         return PlanMode.FULL_SYNTHESIS, TimePrecision.APPROXIMATE
     return PlanMode.FULL_SYNTHESIS, TimePrecision.EXACT

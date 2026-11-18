@@ -298,7 +298,9 @@ async def test_date_only_daily_creates_stable_private_vibe_projection() -> None:
     assert first.aura_transition.transition_id is None
     assert first.aura_transition.acknowledged is False
     assert first.aura_transition.unlock_layers == ()
-    assert first.active.experiment is None
+    # #716: a date-only Daily note offers its own action to keep.
+    assert first.active.experiment is not None
+    assert first.active.experiment.action == first.active.sections.micro_action
     assert first.available_update is None
     assert (
         first.active.model_dump()
@@ -728,8 +730,15 @@ async def test_exact_supplement_waits_as_full_gift_until_explicit_activation() -
         AuraUnlockLayer.HOUSE_ARENA,
         *((AuraUnlockLayer.CURRENT_SKY,) if has_reason else ()),
     )
-    assert upgraded.active.experiment is None
+    # #716: the date-only note still active offers its own action; the waiting exact reading
+    # offers a different one, bound to its own revision.
+    assert upgraded.active.experiment is not None
+    assert upgraded.active.experiment.action == upgraded.active.sections.micro_action
     assert upgraded.available_update.content.experiment is not None
+    assert (
+        upgraded.available_update.content.experiment.action_key
+        != upgraded.active.experiment.action_key
+    )
     experiment = upgraded.available_update.content.experiment
     assert experiment.action == upgraded.available_update.content.sections.micro_action
     assert len(experiment.action_key) == 64

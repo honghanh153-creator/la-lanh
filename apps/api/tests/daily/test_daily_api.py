@@ -525,7 +525,11 @@ def test_approximate_birth_time_never_unlocks_sky_chapter() -> None:
         # other approximate readings, but still unlocks nothing that needs an exact time.
         assert projection["active"]["mode"] == "full_synthesis"
         assert projection["active"]["precision"] == "approximate"
-        assert projection["active"]["experiment"] is None
+        # #716: keeping the day's action is open to every kind of profile.
+        assert (
+            projection["active"]["experiment"]["action"]
+            == projection["active"]["sections"]["micro_action"]
+        )
         assert projection["active"]["sections"]["transit"] is None
 
 

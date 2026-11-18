@@ -446,12 +446,13 @@ Phần này thay CTA `Mình thử việc này` và cách hiển thị available 
 
 - Active/available depth tiếp tục lấy từ reading revision; API chỉ bổ sung profile readiness, transition identity/acknowledgement và receipt allowlist sinh từ accepted evidence.
 - Aura không tự thay Note hôm nay. Fullscreen cutover cho phép `Dùng Aura hôm nay` hoặc `Giữ Note hiện tại`; lựa chọn giữ được acknowledge bền vững, còn Home/Note Detail vẫn có lối mở Aura sau đó.
-- Aura active trả experiment có cấu trúc server-owned: hành vi reversible, dấu hiệu cần quan sát và quyền dừng. Client không parse hoặc gửi lại prose tùy ý.
+- Note hôm nay đang active trả experiment có cấu trúc server-owned: hành vi reversible, dấu hiệu cần quan sát và quyền dừng. Client không parse hoặc gửi lại prose tùy ý.
+  - **Cập nhật 18.11.2026 (#716, kế hoạch 7 tuần, tuần 1 "Giữ việc cho cả 3 loại hồ sơ"):** thay câu cũ "Aura active trả experiment". Cả ba loại hồ sơ (chỉ ngày sinh, giờ khoảng, giờ chính xác) đều được trả experiment cho Note hôm nay và giữ được việc của card lẫn việc nhẹ hơn. Ngoài Note hôm nay (Insights, bầu trời cá nhân), experiment vẫn chỉ có ở bản đọc đủ với giờ chính xác. Cùng consent `action-experiment-v1`, cùng loại dữ liệu và thời hạn lưu như trước; không thêm trường dữ liệu nào.
 - `Giữ để thử hôm nay` tạo một experiment `chosen` owner-scoped gắn note/revision/lens/action key. Home và Note Detail dùng cùng server state; `Bỏ giữ` xóa ngay và không tạo streak/guilt copy.
 - Mỗi guest chỉ có một experiment chưa đóng. Giữ action khác cần xác nhận và CAS theo experiment ID/version; conflict phải refetch trước khi hỏi lại.
 - Người dùng tự mở card đang giữ để nhìn lại; app không tự bật outcome prompt. Outcome `not_tried/helpful/no_difference/not_for_now` đóng experiment, tách hoàn toàn khỏi Resonance.
 - Payload không chứa user/client-authored text; mutation bắt buộc owner + trusted Origin + CSRF, private no-store, encrypted bounded payload và purge vật lý ≤30 ngày.
-- Thu hồi time/place, xóa revision hoặc guest phải xóa experiment phụ thuộc và clear client query/cache.
+- Thu hồi time/place, xóa revision hoặc guest phải xóa experiment phụ thuộc và clear client query/cache. Từ 18.11.2026 (#716) điều này áp cho cả ba loại hồ sơ: hồ sơ chỉ ngày sinh thêm giờ sinh lần đầu, hoặc hồ sơ giờ khoảng đổi sang khung giờ/nơi sinh khác, cũng xóa việc đang giữ. Gửi lại đúng giờ và nơi sinh cũ không đổi gì nên việc đang giữ còn nguyên.
 
 ### AC bổ sung
 

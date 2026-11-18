@@ -8,7 +8,6 @@ from sqlalchemy.engine import CursorResult
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.domains.astro.models import TimePrecision
 from app.domains.birth.tables import BirthProfileRow
 from app.domains.daily.tables import DailyNoteRow
 from app.domains.erasure_journal.journal import ErasureJournal, ErasureKind
@@ -30,7 +29,6 @@ from app.domains.readings.models import (
     LIGHTER_ACTION_MAX_CHARS,
     BackgroundLens,
     ExperimentProjection,
-    PlanMode,
     ReadingPurpose,
     canonical_lens_variant,
     experiment_projection_for,
@@ -240,10 +238,11 @@ class PostgresExperimentRepository:
             raise ExperimentTargetNotFound
         plan = _plan_record(plan_row, self._envelope).plan
         normalized_lens = plan.background_lens or BackgroundLens.AUTO
+        # Every kind of profile may keep the Daily note's action (#716); the plan's mode and
+        # birth-time precision no longer decide it. The checks below still bind the target to
+        # the owner's current chart snapshot and the active revision of that day and lens.
         if (
-            plan.mode is not PlanMode.FULL_SYNTHESIS
-            or plan.precision is not TimePrecision.EXACT
-            or plan.purpose is not ReadingPurpose.DAILY_NOTE
+            plan.purpose is not ReadingPurpose.DAILY_NOTE
             or normalized_lens is not draft.background_lens
         ):
             raise ExperimentTargetNotFound
