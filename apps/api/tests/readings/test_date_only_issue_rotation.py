@@ -26,7 +26,7 @@ from app.domains.readings.daily_rotation import (
     derive_variety_key,
 )
 from app.domains.readings.gates import evaluate_candidate
-from app.domains.readings.models import DailyVariety, ReadingPurpose
+from app.domains.readings.models import BackgroundLens, DailyVariety, ReadingPurpose
 from app.domains.readings.planner import ReadingPlanner
 from app.domains.readings.renderers import DeterministicVietnameseRenderer
 from tests.readings.test_application import _date_only_snapshot
@@ -106,6 +106,56 @@ def test_a_sign_whose_element_gives_the_same_situation_stays_on_it(sign: str) ->
 @pytest.mark.parametrize("sign", SIGNS)
 def test_plans_without_the_daily_rotation_keep_the_signs_own_situation(sign: str) -> None:
     assert set(_month_of_issues(sign, rotated=False)) == {SUN_ISSUES[sign]}
+
+
+@pytest.mark.parametrize("sign", SIGNS)
+def test_plans_without_the_daily_rotation_get_no_element_situation(sign: str) -> None:
+    plan = ReadingPlanner().plan(
+        _source(sign),
+        purpose=ReadingPurpose.DAILY_NOTE,
+        editorial_seed=START.isoformat(),
+    )
+
+    assert [s.rule_key for s in eligible_daily_situations(plan)] == [f"placement-sun-{sign}"]
+
+
+def _unrotated_issue(sign: str, lens: BackgroundLens) -> str:
+    plan = ReadingPlanner().plan(
+        _source(sign),
+        purpose=ReadingPurpose.DAILY_NOTE,
+        background_lens=lens,
+        editorial_seed=START.isoformat(),
+    )
+    card = DeterministicVietnameseRenderer().render(plan)
+    blueprint = card.semantic_blueprint
+    assert blueprint is not None
+    return blueprint.mechanism_key.removeprefix("psychology:")
+
+
+@pytest.mark.parametrize(
+    ("sign", "lens"),
+    [
+        ("gemini", BackgroundLens.RELATIONSHIPS),
+        ("gemini", BackgroundLens.COMMUNICATION),
+        ("virgo", BackgroundLens.RELATIONSHIPS),
+        ("pisces", BackgroundLens.ENERGY),
+        ("pisces", BackgroundLens.SELF_CARE),
+    ],
+)
+def test_a_lens_that_excludes_the_signs_situation_keeps_the_fallback_without_rotation(
+    sign: str, lens: BackgroundLens
+) -> None:
+    # The lens filter runs before ranking: the element situation must not step in
+    # for the fallback on plans that do not rotate.
+    assert _unrotated_issue(sign, lens) == FALLBACK_ISSUE_KEY
+
+
+@pytest.mark.parametrize("sign", SIGNS)
+@pytest.mark.parametrize("lens", [lens for lens in BackgroundLens if lens.value != "auto"])
+def test_no_lens_brings_the_element_situation_in_without_rotation(
+    sign: str, lens: BackgroundLens
+) -> None:
+    assert _unrotated_issue(sign, lens) in {SUN_ISSUES[sign], FALLBACK_ISSUE_KEY}
 
 
 def test_a_sun_on_a_sign_border_still_gets_no_sign_or_element_situation() -> None:

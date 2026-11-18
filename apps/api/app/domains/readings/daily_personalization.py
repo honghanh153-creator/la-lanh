@@ -290,11 +290,13 @@ def eligible_daily_situations(plan: ReadingPlan) -> tuple[SupportedSituation, ..
                 context,
             )
         )
-        if factor.kind is FactorKind.DATE_ONLY_VIBE:
+        if factor.kind is FactorKind.DATE_ONLY_VIBE and plan.daily_variety is not None:
             # US-21 AC07: a birth date alone still supports the Sun's element, so a
             # date-only Daily has a second situation to rotate with. It rests on the
             # same Sun factor (no Moon, angle or house) and ranks below the sign's own
-            # situation, so plans without the daily rotation keep the sign's situation.
+            # situation. Plans without the daily rotation never get it: the lens filter
+            # runs before ranking, so a lower rank alone would let it replace the
+            # fallback those plans had when the lens excludes the sign's situation.
             element_key = PLACEMENT_ISSUES["sun"][SIGN_ELEMENTS[sign]]
             if element_key != key:
                 situations.append(
