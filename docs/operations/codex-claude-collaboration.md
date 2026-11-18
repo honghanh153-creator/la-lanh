@@ -42,7 +42,7 @@ Hai workspace là clone độc lập, không phải managed worktree. Công cụ
 - `bash scripts/collaboration-sync.sh --check` fetch bản chung và liệt kê commit mới.
 - `--apply` chỉ merge vào branch agent sạch, dừng khi conflict, không push/deploy.
 
-**Cập nhật 30.10.2026 (owner duyệt):** vòng tự động Claude ⇄ Codex trong [collab-auto-loop-plan.md](collab-auto-loop-plan.md). Claude gọi Codex CLI read-only trên máy owner (`scripts/codex-review.mjs`), script tự đăng verdict và merge vào `collab/integration` (`scripts/collab-merge.mjs`). Một job launchd mỗi 10 phút là lưới an toàn, theo lịch ngày: plan 08:50, owner trả lời `Duyệt`/`Giữ`/`Bỏ #N` trên issue plan, 10:00 tự chạy, dừng lúc 23:30. Không có GitHub Actions, webhook hay dịch vụ cloud mới; không gửi dữ liệu người dùng sang dịch vụ AI. Mở rộng phạm vi (merge `main`, deploy, agent trả phí khác) vẫn cần owner duyệt riêng.
+**Cập nhật 30.10.2026 (owner duyệt):** vòng tự động Claude ⇄ Codex trong [collab-auto-loop-plan.md](collab-auto-loop-plan.md). Claude gọi Codex CLI read-only trên máy owner (`scripts/codex-review.mjs`), script tự đăng verdict và merge vào `collab/integration` (`scripts/collab-merge.mjs`). Một job launchd mỗi 10 phút là lưới an toàn, theo lịch ngày (đổi 14.11.2026): plan 06:50 và chạy ngay khi đăng (từ 16.11.2026); owner trả lời `Giữ` để dừng, `Bỏ #N` để bỏ việc, `Duyệt` để chạy lại, bất cứ lúc nào; không bắt đầu lượt mới từ 23:35, dừng lúc 23:59. Không có GitHub Actions, webhook hay dịch vụ cloud mới; không gửi dữ liệu người dùng sang dịch vụ AI. Mở rộng phạm vi (merge `main`, deploy, agent trả phí khác) vẫn cần owner duyệt riêng.
 
 ## Bắt đầu một task
 
@@ -69,7 +69,7 @@ Chỉ stage file của mình rồi commit/test/push branch agent. PR có base `c
 
 ## Review và quyền merge vào integration
 
-**Từ 30.10.2026** điều kiện merge là: comment tin cậy (`authorAssociation = OWNER`) `Review verdict: APPROVE @ <head>` mới nhất, `Author check: PASS @ <head>`, base `collab/integration`, mergeable, không nhãn `needs-owner`, và issue fix-forward khi verdict tự động có P2 không chặn. Chính sách mức lỗi: P0/P1 chặn; P2 về privacy, bảo mật, lời văn gửi người dùng chặn; P2 khác APPROVE kèm issue `fix-forward`; P3 không chặn. Hai vòng REQUEST_CHANGES tự động trên một PR thì gắn `needs-owner` và dừng. Quy tắc gốc ngày 11.10 dưới đây vẫn áp dụng cho review thủ công. PR registry ngừng; trạng thái đọc bằng `node scripts/collab-turn.mjs --report`.
+**Từ 30.10.2026** điều kiện merge là: comment tin cậy (`authorAssociation = OWNER`) `Review verdict: APPROVE @ <head>` mới nhất, `Author check: PASS @ <head>`, base `collab/integration`, mergeable, không nhãn `needs-owner`, và issue fix-forward khi verdict tự động có P2 không chặn. Chính sách mức lỗi: P0/P1 chặn; P2 về privacy, bảo mật, lời văn gửi người dùng chặn; P2 khác APPROVE kèm issue `fix-forward`; P3 không chặn. Từ 16.11.2026 review không tự gắn `needs-owner`: REQUEST_CHANGES vòng nào cũng về Claude sửa và Codex review lại; `needs-owner` chỉ cho 4 loại việc của owner (`decision-checklist.md`). Từ 17.11.2026 (#611), câu trả lời của owner cho một PR được ghi bằng `scripts/collab-owner-answer.mjs`, chỉ khi có lời owner nguyên văn; review sau không gắn lại nhãn cho loại đã trả lời khi file của PR không đổi. Quy tắc gốc ngày 11.10 dưới đây vẫn áp dụng cho review thủ công. PR registry ngừng; trạng thái đọc bằng `node scripts/collab-turn.mjs --report`.
 
 Owner quyết định ngày 11.10.2026: agent thực hiện được merge PR task của mình vào `collab/integration` khi đủ cả ba điều kiện sau. `main`, release và deploy vẫn chỉ owner quyết.
 
@@ -101,7 +101,7 @@ Issue, PR, comment và branch đều ai cũng đọc được. Chỉ đăng meta
 
 ## Báo cho bên kia
 
-Từ 30.10.2026 owner không cần nhắn chuyển lời: Claude gọi `codex-review.mjs` ngay khi có `Author check: PASS`, và lưới launchd bắt các lượt bị bỏ dở. Owner chỉ duyệt plan buổi sáng và gọi buổi review sâu lời văn/giọng Lá mỗi đợt. Review thủ công (owner nhắn "review PR #N") vẫn được, và trả lời trên GitHub chứ không chỉ trong chat.
+Từ 30.10.2026 owner không cần nhắn chuyển lời: Claude gọi `codex-review.mjs` ngay khi có `Author check: PASS`, và lưới launchd bắt các lượt bị bỏ dở. Plan buổi sáng chạy ngay khi đăng (owner chỉ `Giữ` khi muốn dừng, từ 16.11.2026); owner gọi buổi review sâu lời văn/giọng Lá mỗi đợt. Review thủ công (owner nhắn "review PR #N") vẫn được, và trả lời trên GitHub chứ không chỉ trong chat.
 
 ## Nhận cập nhật và xử lý conflict
 

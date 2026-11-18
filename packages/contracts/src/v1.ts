@@ -1525,6 +1525,8 @@ export interface components {
             google_login_enabled: boolean;
             /** Guest Inactivity Days */
             guest_inactivity_days: number;
+            /** Guest Storage Note */
+            guest_storage_note?: string | null;
             /**
              * History Days
              * @default 30
@@ -2996,6 +2998,23 @@ export interface components {
             share_url?: string | null;
             status: components["schemas"]["RequestStatus"];
         };
+        /**
+         * LighterActionProjection
+         * @description A lighter thing to do, offered next to the card's own action (#627).
+         *
+         *     The card and its action never change; the reader's device decides which one to show.
+         */
+        LighterActionProjection: {
+            /** Action */
+            action: string;
+            experiment?: components["schemas"]["ExperimentProjection"] | null;
+            /**
+             * Weight
+             * @default light
+             * @constant
+             */
+            weight: "light";
+        };
         /** LoginResponse */
         LoginResponse: {
             /** Masked Email */
@@ -3629,6 +3648,7 @@ export interface components {
             disclaimer: string;
             evidence: components["schemas"]["ReadingEvidenceProjection"];
             experiment?: components["schemas"]["ExperimentProjection"] | null;
+            lighter_action?: components["schemas"]["LighterActionProjection"] | null;
             mode: components["schemas"]["PlanMode"];
             precision: components["schemas"]["TimePrecision"];
             purpose: components["schemas"]["ReadingPurpose"];

@@ -38,6 +38,11 @@ test.beforeEach(async ({ page }) => {
     state: "active", onboarding_status: "completed", expires_at: "2026-09-30T00:00:00Z", resumed: true, session_epoch: "epoch-test",
   } }));
   await page.route("**/v1/session/birth-profile-consent", async (route) => route.fulfill({ status: 204 }));
+  // Reveal and Welcome read sign-in availability (sign-in is off in this build).
+  await page.route("**/v1/account", async (route) => route.fulfill({ status: 200, json: {
+    login_enabled: false, google_login_enabled: false, signed_in: false, masked_email: null, profile_expires_at: null,
+    guest_inactivity_days: 30, history_days: 30, daily_note_hours: 24, account_inactivity_days: 365, guest_storage_note: null,
+  } }));
 });
 test.afterEach(() => {
   expect(unmocked, "API calls without a mock").toEqual([]);
@@ -157,7 +162,7 @@ test("guest can reveal, save mood, and create a share card", async ({ page }) =>
   await page.getByRole("textbox", { name: "Năm" }).fill("1990");
   await page.getByRole("button", { name: "Khớp tín hiệu" }).click();
 
-  await expect(page.getByRole("heading", { name: "Vibe · Mềm" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Mềm", exact: true })).toBeVisible();
   await expect(page.getByText("Mặt Trời Ma Kết", { exact: false })).toBeVisible();
   expect(birthProfileCreates).toBe(1);
   expect(birthProfileReads).toBe(0);
@@ -456,7 +461,9 @@ test("guest can add exact birth time and place only after explicit deep-data con
 
   await page.getByRole("button", { name: "Bỏ giữ việc này" }).click();
   await expect(page.getByRole("button", { name: "Giữ để thử hôm nay" })).toBeVisible();
-  expect(undoExperimentBody).toMatchObject({
+  // Undo is optimistic: the button comes back before the DELETE reaches the route, so wait for
+  // the request instead of reading it once (desktop CI run of 14.11.2026 read null).
+  await expect.poll(() => undoExperimentBody).toMatchObject({
     experiment_id: "00000000-0000-4000-8000-000000000030",
     expected_version: 1,
   });

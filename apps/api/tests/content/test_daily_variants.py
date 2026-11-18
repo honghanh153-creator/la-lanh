@@ -281,6 +281,41 @@ def test_every_headline_fits_the_home_title_budget() -> None:
     assert not over, over
 
 
+# Codex review @ 94963fe (#404): a line naming one recipient (sếp, mẹ, khách …) must never be
+# paired with a line about someone else. The plain rewrite of capacity-before-agreement therefore
+# lives only in bundles, which are served whole; the independently rotated lines stay generic.
+_RECIPIENTS = re.compile(
+    r"\b(?:sếp|mẹ|bố|đồng nghiệp|hàng xóm|khách|bạn thân|chị họ|bạn cùng lớp)\b"
+)
+# The reader has already said yes in every bundle scene, so the action must be doable after
+# the reply, never "before you answer".
+_PRE_AGREEMENT = re.compile(
+    r"trước khi (?:trả lời|nhận|hứa|đồng ý)|rồi mới (?:trả lời|chốt)|nếu (?:muốn )?nhận"
+)
+
+
+def test_capacity_recipient_lines_live_only_in_whole_bundles() -> None:
+    prefix = "daily.bundle.capacity-before-agreement."
+    bundles: dict[str, dict[str, str]] = {}
+    for key, entry in DAILY.items():
+        if key.startswith(prefix):
+            number, part = key[len(prefix) :].split(".")
+            bundles.setdefault(number, {})[part] = entry.text
+    assert len(bundles) == 12 and all(set(found) == set(PARTS) for found in bundles.values())
+    for number, found in bundles.items():
+        assert not _PRE_AGREEMENT.search(found["action"].lower()), number
+        # An action that names a person names one the same bundle's scene names.
+        named = set(_RECIPIENTS.findall(found["action"].lower()))
+        assert named <= set(_RECIPIENTS.findall(found["scene"].lower())), number
+    loose = [
+        entry.text
+        for key, entry in DAILY.items()
+        if (m := ID.match(key)) is not None and m["issue"] == "capacity-before-agreement"
+    ]
+    assert len(loose) == 68
+    assert [text for text in loose if _RECIPIENTS.search(text.lower())] == []
+
+
 # Lesson from #404: headline, scene and action rotate independently, so every changed-plan
 # text must fit one situation — the other person asked to move the appointment and the new
 # time is not set yet (the frame of the served pool). Cancelled, shortened, late, moved-place

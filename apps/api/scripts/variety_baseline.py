@@ -247,7 +247,7 @@ class DailyLab:
         self.renderer_versions.add(candidate.renderer_version)
         blueprint = candidate.semantic_blueprint
         entry = companion_issue_entry(blueprint.mechanism_key) if blueprint else None
-        companion = (entry or COMPANION_FALLBACK).line.direct
+        companion = candidate.companion or (entry or COMPANION_FALLBACK).line.direct
         selection = plan.daily_selection
         factors = 0
         if selection is not None:

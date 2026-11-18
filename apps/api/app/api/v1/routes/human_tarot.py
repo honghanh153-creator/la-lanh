@@ -4,12 +4,13 @@ from collections.abc import Callable, Coroutine
 from typing import Annotated, Any, cast
 from uuid import UUID
 
-from fastapi import APIRouter, Header, Request, Response
+from fastapi import APIRouter, Depends, Header, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.routing import APIRoute
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.api.crisis_guard import crisis_guard
 from app.api.v1.routes.guest_sessions import ProblemResponse
 from app.domains.guest.errors import GuestDomainError
 from app.domains.guest.service import GuestSessionService
@@ -122,6 +123,7 @@ async def human_tarot_availability(request: Request) -> HumanTarotAvailability:
     response_model=HumanTarotRequestView,
     status_code=201,
     responses=_problems(401, 403, 404, 409, 422),
+    dependencies=[Depends(crisis_guard("question"))],
 )
 async def create_human_tarot_request(
     body: HumanTarotCreateRequest,

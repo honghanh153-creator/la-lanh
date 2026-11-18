@@ -16,11 +16,11 @@ describe("note card export", () => {
     for (const color of ["#4b278f", "#fff9e9", "#dfff4f"]) expect(story).toContain(color);
   });
 
-  it("labels the persona as Vibe · X (owner decision 2026-10-11)", () => {
+  it("labels the persona by its name alone, without the word Vibe (7-week plan, 15.11)", () => {
     const text = visibleText(cardSvg(note, "story_9_16"));
-    expect(text).toContain("Vibe · Mộng");
-    expect(text).not.toMatch(/Chất|Aura/);
-    expect(shareCopy(note).tag).toBe("Vibe · Mộng");
+    expect(text).toContain("Mộng");
+    expect(text).not.toMatch(/Chất|Aura|Vibe/);
+    expect(shareCopy(note).tag).toBe("Mộng");
   });
 
   it("keeps the end of a long title instead of cutting it", () => {

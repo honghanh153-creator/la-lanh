@@ -7,6 +7,7 @@ from app.config import Settings
 from app.domains.experiments.service import ExperimentService
 from app.domains.readings.application import ReadingApplicationService, ReadingContentRejected
 from app.main import create_app
+from tests.leak_checks import leaked
 
 
 def _date_only_client() -> tuple[TestClient, dict[str, str]]:
@@ -380,7 +381,7 @@ def test_daily_response_refreshes_from_vibe_to_aura_without_birth_pii() -> None:
         assert after_activation.json()["sky_chapter"] == payload["sky_chapter"]
 
         serialized = str(payload)
-        for forbidden in (
+        forbidden = (
             "birth_date",
             "birth_time",
             "birth_place",
@@ -394,8 +395,8 @@ def test_daily_response_refreshes_from_vibe_to_aura_without_birth_pii() -> None:
             "gate_policy_version",
             "renderer_version",
             "publishable_candidate",
-        ):
-            assert forbidden not in serialized
+        )
+        assert leaked(serialized, forbidden) == []
 
 
 def test_new_aura_transition_identity_is_not_acknowledged() -> None:
@@ -520,8 +521,11 @@ def test_approximate_birth_time_never_unlocks_sky_chapter() -> None:
         assert note.json()["awakening"] is None
         assert note.json()["sky_chapter"] is None
         projection = note.json()["reading_projection"]
-        assert projection["active"]["mode"] == "limited"
+        # 17.11.2026 (#626): the Daily is now built from the time-stable placements, like the
+        # other approximate readings, but still unlocks nothing that needs an exact time.
+        assert projection["active"]["mode"] == "full_synthesis"
         assert projection["active"]["precision"] == "approximate"
+        assert projection["active"]["experiment"] is None
         assert projection["active"]["sections"]["transit"] is None
 
 

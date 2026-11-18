@@ -5,6 +5,8 @@ the same meaning is presented to its owner at read time:
 
 * matching is by exact direct text, so stored notes need no migration;
 * anything not authored here (natal readings, legacy copy) stays direct;
+* a headline approved through the copy registry keeps its direct wording until a
+  roast pair is written for it; the rest of that card is still voiced;
 * a generated (Luna) revision is never voiced piecemeal: the roast voice is served
   from the deterministic baseline of the same plan, or the generated text stays
   fully direct when that baseline is unavailable (see ``voice_from_baseline``);
@@ -20,10 +22,12 @@ another person's private thoughts. Every jab is paired with the unchanged action
 
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from enum import StrEnum
 
-from app.domains.readings.companion import roast_companion_line
+from app.domains.content.copy_approval import approved_texts
+from app.domains.readings.companion_pool import roast_companion_line
 from app.domains.readings.daily_personalization import PLACEMENT_MEANINGS
 from app.domains.readings.daily_psychology import (
     DAILY_ISSUES,
@@ -590,12 +594,20 @@ _PLACEMENT_ROAST: dict[str, str] = {
 _GENTLE_ARENAS = frozenset({SemanticArena.ENERGY, SemanticArena.SELF_CARE})
 
 
-def _validate_catalog() -> None:
-    if set(ROAST_ISSUES) != set(_ISSUES):
+def _validate_catalog(
+    issues: Mapping[str, DailyIssuePattern] = _ISSUES,
+    approved: Callable[[str], tuple[str, ...]] = approved_texts,
+) -> None:
+    if set(ROAST_ISSUES) != set(issues):
         raise ValueError("Every Daily issue needs exactly one roast voice entry")
     for key, voice in ROAST_ISSUES.items():
         directs = tuple(direct for direct, _ in voice.headlines)
-        if set(directs) != set(_ISSUES[key].headlines) or len(directs) != len(set(directs)):
+        headlines = set(issues[key].headlines)
+        # A headline approved through the copy registry may arrive before its roast pair
+        # is written; Roast then shows the direct headline. Headlines written in code
+        # always need a pair, and a pair never points at a headline that is not served.
+        unpaired = headlines - set(directs) - set(approved(f"daily.headline.{key}."))
+        if not set(directs) <= headlines or unpaired or len(directs) != len(set(directs)):
             raise ValueError(f"Roast headlines for {key} must cover every direct headline")
     if len(set(_HEADLINE_ROAST.values())) != len(_HEADLINE_ROAST):
         raise ValueError("Roast headlines must be distinct")
@@ -692,8 +704,15 @@ def apply_content_voice(
     roasted = roast_daily_sections(
         DailySections(current.hook, current.thesis, current.manifestation, current.micro_action)
     )
-    # Lá's line voices with the card: only an authored direct line has a roast pair.
-    companion = roast_companion_line(current.companion) if current.companion is not None else None
+    # Lá's line voices with the card. A stored pair (#657) keeps the roast it was opened with;
+    # otherwise only an authored or approved direct line has a roast pair.
+    companion = (
+        current.companion_roast
+        if current.companion_roast is not None and current.companion is not None
+        else roast_companion_line(current.companion)
+        if current.companion is not None
+        else None
+    )
     if (
         roasted
         == DailySections(current.hook, current.thesis, current.manifestation, current.micro_action)

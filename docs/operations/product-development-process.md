@@ -69,6 +69,15 @@ Research note (<agent>, <ngày>)
 - Câu hỏi cho owner (chỉ khi Q1–Q5 có "có")
 ```
 
+**Báo cáo nghiên cứu trong `docs/research/` (L09, thỏa thuận 12.11 mục G, từ 14.11.2026).**
+- Mỗi kết luận nằm dưới `## Kết luận` và trỏ tới ít nhất một nguồn đã đọc bằng khóa `[S1]`. Kết luận dạng gạch đầu dòng, dòng bảng hay đoạn văn đều tính.
+- `## Nguồn đã đọc` liệt kê mỗi khóa theo dạng `- S1: <URL https hoặc đường dẫn trong repo> — đọc: <mục, trang, bảng hoặc trích ngắn đã đọc>`.
+- Điều không tìm được nguồn đưa vào `## Bị bác / chưa có nguồn`. Nhiều URL không thay được khóa nguồn.
+- CI (`pr-check`, bước "Research conclusions cite read sources") chạy `node scripts/research-sources.mjs`:
+  - file nghiên cứu mới bị kiểm toàn bộ, kể cả khi ghi ngày cũ;
+  - file cũ chỉ bị kiểm các dòng thêm hoặc sửa.
+- Script chỉ kiểm cấu trúc. Nguồn có thật sự đỡ kết luận hay không là việc của reviewer: Codex đối chiếu ít nhất 2 kết luận với nguồn đã nêu.
+
 ## 2. Quyết định
 
 Chạy Q1–Q5 của `decision-checklist.md`. Tất cả "không" → agent tự quyết, làm và báo lại. Có "có" → hỏi
@@ -99,9 +108,9 @@ Mỗi cổng có: việc phải làm, bằng chứng để trong PR, phần nào
 
 ### G3. Nội dung và câu chữ
 
-- Câu mới mà người dùng thấy cần owner duyệt (Q2); không ngôn ngữ định mệnh hay dự đoán chắc chắn.
+- Câu mới mà người dùng thấy: ghi với cờ chờ duyệt, Codex duyệt (Q2). Chỉ câu nhóm privacy, consent, crisis, safety cần owner duyệt, và chỉ chặn phát hành (owner 16.11.2026). Không ngôn ngữ định mệnh hay dự đoán chắc chắn.
 - Sau duyệt: cập nhật `fallback-approval.json` khi đụng bảng nội dung.
-- Bằng chứng: bảng trước/sau, câu owner duyệt. Máy: `content:audit`, `content:review`,
+- Bằng chứng: bảng trước/sau, verdict Codex (và câu owner duyệt cho nhóm privacy/consent/crisis/safety). Máy: `content:audit`, `content:review`,
   `grammar:check`, `fallback_approval --check`, `tarot:audit`.
 
 ### G4. BE và kiến trúc
@@ -193,5 +202,36 @@ của `AGENTS.md` như trước. PR mở từ 01.11.2026 theo đủ file này.
 
 ## 6. Khi nào cần owner
 
-Chỉ ở: câu chữ mới (G3), dữ liệu cá nhân mới hoặc đổi mục đích (G8), hướng sản phẩm, chi phí, và release (G9).
-Mọi thứ khác agent tự làm theo file này và checklist quyết định.
+Chỉ 4 loại việc (owner 15–16.11.2026): chi phí, dịch vụ mới hoặc quyền truy cập mới (G10); phát hành (G9);
+câu chữ privacy, consent, crisis, safety (G3, chặn phát hành, không chặn merge); bật thu thập dữ liệu cá nhân mới (G8).
+Mọi thứ khác Codex duyệt; agent tự làm theo file này và checklist quyết định.
+
+## 7. Vòng làm việc của agent (owner duyệt 08.11.2026)
+
+Rút từ nghiên cứu 08.11.2026 (Anthropic "Claude Code best practices", "Harness design for long-running
+apps", "Effective context engineering"; OpenHands SDK; METR 2025). Mục tiêu: ít vòng sửa, ít token, không mất code.
+
+1. **Đo bằng số.** `pnpm collab:metrics -- --days 7` in từng PR: giờ mở→merge, số lượt và phút Codex
+   (từ `review-runs.jsonl`, ghi từ 08.11), số REQUEST_CHANGES, có việc sửa tiếp hay không. Retro cuối ngày
+   dùng các số này, không dùng cảm giác "nhanh hơn".
+2. **Kế hoạch trước code (M, L).** Trước khi viết, Claude ghi comment "Plan" trên issue task: 2–3 cách làm,
+   ưu/nhược, cách chọn. Chạy Codex read-only chấm plan (self-review của gói A) trước khi code. PR body mức
+   M/L dẫn link tới comment này; thiếu là P2 `docs`.
+3. **Bên chấm nhìn app thật.** Codex review chạy trong sandbox không mạng nên không tự mở app được. Vì vậy
+   PR đổi giao diện hoặc luồng người dùng phải có: test Playwright cho luồng chính (đỏ trước, xanh sau) và
+   ảnh chụp 390 px trong PR. Codex chấm theo tiêu chí đạt/không đạt: luồng chính chạy hết, đủ trạng thái
+   G2 (đang tải, trống, lỗi), không chữ kỹ thuật lộ ra người dùng. Thiếu bằng chứng là phát hiện.
+4. **Context gọn.** Subagent trả về tóm tắt ≤ 300 từ (kết luận, file:dòng, việc còn lại), không dán log hay
+   cả file. Việc dài hơn một phiên ghi trạng thái vào issue task (đã xong / đang làm / tiếp theo), không chỉ
+   giữ trong hội thoại.
+5. **Duyệt theo rủi ro, bằng máy chứ không bằng trí nhớ.**
+   | Mức | Ví dụ | Cách chạy |
+   | --- | --- | --- |
+   | Thấp | đọc, test, docs, PR vào `collab/integration` | tự chạy |
+   | Vừa | xoá nhiều file/dòng | máy giữ PR ở "chờ owner" tới khi owner gắn `owner-ok-deletion` (`collab-size.mjs`, pr-check) |
+   | Cao | lệnh có thể mất code chưa lên GitHub | hook `scripts/guard-dangerous-commands.mjs` chặn trước khi chạy |
+   | Cao | dữ liệu cá nhân mới, deploy, tiền, main | chỉ owner (mục 6) |
+6. **Label trạng thái.** Mỗi tick, vòng tự động gắn một label `st:` cho PR mở: cần sửa → đang kiểm tra →
+   chờ review → đã duyệt, hoặc chờ owner. Review trượt thì quay về "cần sửa". Nhìn danh sách PR là biết kẹt ở đâu.
+7. **Không thêm agent.** Hệ nhiều agent tốn khoảng 15 lần token; chỉ giữ hai vai làm/chấm và chạy song song
+   những việc độc lập.

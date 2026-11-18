@@ -155,3 +155,45 @@ test('r3 P2: the author check ignores a dead lock older than 30 minutes for its 
   writeFileSync(path, String(process.pid));
   assert.equal(log.guardHolder(path, { now: () => Date.now() + 99 * 60000 }), process.pid, 'a live holder always counts');
 });
+
+// Owner 16.11.2026 (5-fix package item 3b, step D2): at most two heavy test runs at once.
+test('D2: two guarded runs go at once on their own slots; a third waits until one ends', () => {
+  writeFileSync(log.checkLockPath(), '999999999');
+  const one = log.takeGuardSlot();
+  const two = log.takeGuardSlot();
+  assert.deepEqual([one.status, one.slot, two.status, two.slot], ['ok', 0, 'ok', 1]);
+  const third = log.takeGuardSlot();
+  assert.deepEqual([third.status, third.pids], ['held', [process.pid, process.pid]]);
+  // The guard itself: the third run waits, then gives up without running anything.
+  let t = 0;
+  const said = [];
+  const waited = runGuarded('true', [], { busy: () => null, spawn: () => { throw new Error('a third run must not start'); }, sleep: ms => { t += ms; }, now: () => t, waitMs: 120000, log: s => said.push(s) });
+  assert.equal(waited, refusedCode);
+  assert.ok(said.some(s => /hai chỗ chạy test đều bận/.test(s)), said.join(' | '));
+  // One ends: the waiting run takes its slot, with that slot's ports and Compose project.
+  two.release();
+  let env = null;
+  assert.equal(runGuarded('true', [], { busy: () => null, spawn: (cmd, args, o) => { env = o.env; return { status: 0 }; }, log: () => {} }), 0);
+  assert.deepEqual([env.LA_LANH_HEAVY_SLOT, env.LA_LANH_E2E_PORT, env.COMPOSE_PROJECT_NAME], ['1', '4273', 'la-lanh-slot1']);
+  // The author check still runs alone: it waits while any slot is held, and a run steps back from it.
+  assert.equal(log.anyGuardHolder(), process.pid);
+  one.release();
+  assert.equal(log.anyGuardHolder(), null);
+  writeFileSync(log.checkLockPath(), String(process.pid));
+  assert.equal(log.takeGuardSlot().status, 'check');
+  writeFileSync(log.checkLockPath(), '999999999');
+  // A dead holder's slot is left alone; the other slot is still used.
+  writeFileSync(log.guardLockPath(), '999999998');
+  const spare = log.takeGuardSlot();
+  assert.deepEqual([spare.status, spare.slot], ['ok', 1]);
+  assert.equal(log.takeGuardSlot().status, 'stale');
+  spare.release();
+});
+
+test('D2: a guarded run does not count the other slot\'s test processes as a busy machine', async () => {
+  const { machineBusy } = await import('./collab-check.mjs');
+  const table = ['  100 1 node scripts/collab-test-guard.mjs -- pnpm web:test', '  101 100 node node_modules/vitest/vitest.mjs run', '  200 1 python -m pytest apps/api', ''].join('\n');
+  const ps = (cmd, args) => (args.includes('pid=,ppid=,args=') ? table : '');
+  assert.match(machineBusy(ps, { exceptUnder: [100] }), /^200 python -m pytest/, 'an unrelated heavy run still counts');
+  assert.equal(machineBusy(() => table.replace(/\n  200 [^\n]*/, ''), { exceptUnder: [100] }), null, 'the other slot\'s vitest is not "busy"');
+});

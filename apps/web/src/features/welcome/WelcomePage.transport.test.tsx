@@ -10,6 +10,9 @@ import { testLocks, testRequestUrl } from "../../shared/session/testLocks";
 import { RADAR_PENDING_REQUEST_KEY } from "../radar/radarOptions";
 import { WelcomePage } from "./WelcomePage";
 
+// Availability of Google sign-in is its own query; this file counts only creation transport.
+vi.mock("../../shared/account/useLoginAvailability", () => ({ useLoginAvailability: () => ({ googleLoginEnabled: false, storageNote: null }) }));
+
 beforeEach(() => {
   sessionStorage.clear(); localStorage.clear();
   vi.stubGlobal("navigator", Object.create(navigator, { locks: { value: testLocks(), configurable: true } }));

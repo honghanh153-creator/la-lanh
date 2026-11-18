@@ -5,7 +5,15 @@ operator or Codex session should be able to use it without relying on chat histo
 status checklist is
 `docs/plans/2026-09-26-hetzner-supabase-public-beta-deployment-plan.md`.
 
-## Current production — 2026-11-13
+## Current production — 2026-11-15 (hotfix)
+
+Release `56523ccb7de5` is live (`main` = `56523ccb7de5a18df7e5aa9510e27a48e77d2794`, #549: only the #546 fix on top
+of `f6246ed2fb7a`; image `sha256:f42a945ee43e…`; Alembic head unchanged at `20261111_0042`). "Đọc bản mới" opens
+the offered reading for every profile type. Staging runs the same image. Rollback anchor: `la-lanh:f6246ed2fb7a`
+(same schema; restores the bug). Receipt:
+[production-release-2026-11-15](../reviews/production-release-2026-11-15/receipt.md).
+
+## Previous production — 2026-11-13
 
 Release `f6246ed2fb7a` is live (`main` = `f6246ed2fb7a5033247ad6b41af33f35022cab12`, #472: full `collab/integration`
 merged with `main`; image `sha256:b9e860240f01…`; Alembic head `20261111_0042`). It went out in two steps the same
@@ -617,6 +625,45 @@ Then complete a synthetic data-writing test:
 
 Do not use real birth or relationship data for this operator test.
 
+### Product journey review (required since 2026-11-13)
+
+The scripts above prove the API contract. They do not show what a person sees. On 2026-11-13 a
+release passed every technical check, but nobody had used the product on a phone afterwards, and
+the owner had to ask for it. From that release on, a release is not finished until all four steps
+below are done and recorded in the receipt.
+
+1. From a trusted local checkout of the released commit, with web dependencies installed:
+
+   ```sh
+   LA_LANH_SMOKE_WRITE_CONSENT=synthetic-only pnpm qa:journey https://la-lanh.2-28-136-44.sslip.io <out-dir>
+   ```
+
+   Headless Chromium at 390 px goes through: welcome → consent → synthetic date, time and place →
+   reveal → home → full note → share link → revoke → mood → overview (Western, Jyotish) → current sky
+   → Aura → birth card → Tarot (one card drawn) → Radar → saved → profile → delete via
+   "Xóa Lá và dữ liệu". It writes `journey.json` (routes with IDs redacted, ready time, horizontal
+   overflow, controls under 44 px, console and 5xx errors), one screenshot and one text file per step.
+   Since 14.11.2026 (L03) it also records a content verdict for the Khám phá overview: the
+   Western synthesis (hook, thesis, manifestation, micro action) must be in the API answer and in
+   the synthesis block on screen, and no temporary text (lorem, TODO, template braces, `undefined`)
+   may show. The verdict is reported (`journey.json` → `content`); `LA_LANH_QA_CONTENT=enforce`
+   makes a content finding fail the run. `pnpm qa:test` runs the same check on the local API in CI.
+   It never writes cookies, tokens, share links or IDs. Exit 0 needs every required step to pass and
+   the guest to be deleted. Keep `<out-dir>` outside git; it holds screenshots of synthetic data only.
+2. **Claude review:** look at every screenshot. Score each flow on working, clarity, feel (calm,
+   joyful, "feel understood"), speed and phone layout, and list copy that is poetic, explains
+   mechanism or mixes English.
+3. **Codex review:** `codex exec -s read-only` in `<out-dir>`, with the same criteria and the
+   released source tree for reference. Codex works from the files; it needs no network.
+4. **Owner report:** one plain Vietnamese report in chat and a push: verdict, scores, top problems
+   with the fix order, and what works. A GitHub comment alone does not count.
+
+Record it in the receipt under `## Product journey` with the line
+`required failed: 0; guest deleted: true` and the bullets `- Claude review: …`,
+`- Codex review: …` and `- Owner report: …`. `scripts/qa-journey-lib.test.mjs` (part of
+`pnpm collab:test`, so of CI) fails for any receipt dated 2026-11-13 or later without them.
+Problems found become issues; P0/P1 block the next release.
+
 ## Phase 6 — operations gates
 
 Run both retention jobs once, record aggregate counts only, and then schedule them at least every six
@@ -711,6 +758,18 @@ Rollback changes the application image/source only. It does not downgrade the li
 
 If the previous image was pruned, rebuild it only from the matching public Git commit. If schema
 compatibility is uncertain, stop traffic and diagnose rather than guessing or downgrading.
+
+### Rollback limit: kept lighter Daily actions (#627, not released)
+
+Applies from the first release that both serves an approved `lighter.action.*` sentence and ships
+the web switch (#627 PR B). From then on a person can keep the lighter action, and that held
+experiment row stores the lighter sentence in its encrypted payload. An image older than the #627
+API change cannot read such a row (`docs/decisions/2026-11-17-viec-nhe-hon-daily.md`, "Lùi bản").
+Saved notes are not affected. Before rolling back past that release, prefer a forward fix; if a
+rollback is unavoidable, the held experiments created since that release must first expire or be
+removed (the payload is encrypted, so rows with a lighter action cannot be told apart by a query);
+that removal is the owner's decision. Until a lighter sentence is
+approved no such row can exist and this limit does not apply.
 
 ## Incident triage
 

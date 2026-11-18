@@ -3,6 +3,8 @@
 Owner yêu cầu ngày 31.10.2026. Áp dụng cho Claude và Codex trong vòng tự động (`collab-auto-loop-plan.md`).
 Mục tiêu: owner chỉ được hỏi những việc thật sự cần owner. Mọi việc khác agent tự quyết, làm, rồi báo lại.
 
+**Một luật duyệt (owner 15–16.11.2026):** chỉ 4 loại việc tới owner: (1) chi phí, dịch vụ mới hoặc quyền truy cập mới; (2) phát hành cho người dùng thật; (3) câu chữ về quyền riêng tư, sự đồng ý, khủng hoảng, an toàn (chặn phát hành, không chặn merge); (4) bật một tính năng thu thêm dữ liệu cá nhân. Mọi việc khác Codex duyệt. Bảng dưới đã chỉnh theo luật này; câu cũ trái luật này hết hiệu lực.
+
 ## 1. Năm câu hỏi trước mỗi quyết định
 
 Trả lời lần lượt. Gặp **"có"** ở câu nào thì dừng ở câu đó và làm theo cột "Kết quả".
@@ -10,9 +12,9 @@ Trả lời lần lượt. Gặp **"có"** ở câu nào thì dừng ở câu đ
 | # | Câu hỏi | Kết quả nếu "có" |
 |---|---|---|
 | Q1 | Việc này **có nằm trong danh sách cấm** ở mục 2 không? | Không làm. Hỏi owner, kèm đề xuất. |
-| Q2 | Có **câu chữ mới mà người dùng nhìn thấy** không (copy, nhãn, thông báo, bản đọc)? | Làm bản nháp + PR gắn `needs-owner`. Owner duyệt copy rồi mới merge. **Ngoại lệ cho bản đọc** (owner, 03.11.2026): xem dưới bảng. |
-| Q3 | Có **thu thập, lưu, chia sẻ hay suy ra thêm dữ liệu cá nhân** không, hoặc đổi mục đích/thời hạn lưu? | Hỏi owner, kèm phân tích privacy (AGENTS.md mục 3). |
-| Q4 | Có **đổi hướng sản phẩm** không (tính năng mới, bỏ tính năng, đổi thứ tự ưu tiên owner đã chốt)? | Hỏi owner, kèm 2 lựa chọn và khuyến nghị. |
+| Q2 | Có **câu chữ mới mà người dùng nhìn thấy** không (copy, nhãn, thông báo, bản đọc)? | Ghi câu mới với cờ chờ duyệt (`status: pending`, xem dưới bảng); Codex duyệt rồi câu mới tới người dùng. Chỉ câu nhóm `privacy`, `consent`, `crisis`, `safety` cần owner duyệt, và chỉ chặn phát hành, không chặn merge. |
+| Q3 | Có **thu thập, lưu, chia sẻ hay suy ra thêm dữ liệu cá nhân** không, hoặc đổi mục đích/thời hạn lưu? | Làm sau cờ tắt (không thu, không lưu), kèm phân tích privacy (AGENTS.md mục 3); Codex duyệt. **Bật** thu thập thật thì hỏi owner. |
+| Q4 | Có **đảo một quyết định owner đã chốt** không (bỏ tính năng owner đã giao, đổi thứ tự ưu tiên owner đã chốt)? | Ghi vào file việc chờ owner, kèm 2 lựa chọn và khuyến nghị. Tính năng mới hay đổi cách làm trong kế hoạch đã chốt thì tự quyết, Codex duyệt. |
 | Q5 | Có **tốn tiền, không hoàn tác được, hoặc ảnh hưởng người dùng thật ngay** không? | Hỏi owner. |
 | — | Cả năm câu đều "không" | **Tự quyết, làm, báo lại** trong tóm tắt cuối lượt. |
 
@@ -21,10 +23,11 @@ Trả lời lần lượt. Gặp **"có"** ở câu nào thì dừng ở câu đ
 - Owner chỉ xem câu bị cổng gắn cờ và báo cáo điểm của mỗi đợt.
 - Bộ chuẩn (C3a, `docs/plans/2026-11-02-daily-v2-content-quality-plan.md`) do Claude chốt và Codex review.
 - Đổi bộ chuẩn thì qua PR như mọi tài liệu khác.
-- **Cờ chờ duyệt (owner, 06.11.2026):** câu mới ghi vào `apps/api/app/domains/content/copy_registry.json` với `status: pending` và gọi qua `copy_text(id, câu đã duyệt hiện tại)`. Câu pending không bao giờ tới người dùng, nên PR được merge **không cần** `needs-owner`. Mỗi ngày tick của vòng tự động chạy `node scripts/codex-copy-review.mjs` một lần (từ 10:00, chỉ khi còn câu pending ngoài nhóm owner-only, tính một lượt vào trần Codex, chờ khi review.lock bận, bỏ qua khi PR lô trước còn mở; tối đa 200 câu một lô) để Codex (read-only) chấm lô pending và mở PR `agent/claude/copy-batch-YYYYMMDD`; câu Codex duyệt mới được phục vụ. Nhóm `privacy`, `consent`, `crisis`, `safety` vẫn chỉ owner duyệt (cổng `scripts.fallback_approval` từ chối duyệt của Codex cho nhóm này) và PR của chúng vẫn gắn `needs-owner`.
-- Vẫn cần owner duyệt: copy giao diện (nút, thông báo, nhãn mới hiện ra cho người dùng; bảng nghĩa 12 nhà và bảng hành tinh × nhà thuộc bản đọc, đi qua cổng), lời giải thích quyền riêng tư, nội dung pháp lý, và mọi ngoại lệ của luật an toàn S1–S7.
+- **Cờ chờ duyệt (owner, 06.11.2026):** câu mới ghi vào `apps/api/app/domains/content/copy_registry.json` với `status: pending` và gọi qua `copy_text(id, câu đã duyệt hiện tại)`. Câu pending không bao giờ tới người dùng, nên PR được merge **không cần** `needs-owner`. Mỗi ngày tick của vòng tự động chạy `node scripts/codex-copy-review.mjs` một lần (từ giờ tự chạy 08:00, chỉ khi còn câu pending ngoài nhóm owner-only, tính một lượt vào trần Codex, chờ khi review.lock bận, bỏ qua khi PR lô trước còn mở; tối đa 200 câu một lô) để Codex (read-only) chấm lô pending và mở PR `agent/claude/copy-batch-YYYYMMDD`; câu Codex duyệt mới được phục vụ. Nhóm `privacy`, `consent`, `crisis`, `safety` vẫn chỉ owner duyệt (cổng `scripts.fallback_approval` từ chối duyệt của Codex cho nhóm này). Từ 16.11.2026 câu nhóm này chặn **phát hành**, không chặn merge: PR được merge khi app vẫn dùng câu đã duyệt.
+- **Bài Học (owner 14.11.2026, đổi 15.11.2026):** bài đầu của mỗi khóa và danh sách lằn ranh đỏ do Codex duyệt; owner xem ngẫu nhiên. Các bài sau Codex duyệt theo đúng danh sách ấy, qua cờ chờ duyệt như trên. Câu về quyền riêng tư, đồng ý và hỗ trợ khi khủng hoảng trong bài Học vẫn cần owner duyệt. Nguồn: `docs/plans/2026-11-15-ke-hoach-7-tuan-moc-do.md`.
+- Vẫn cần owner duyệt (từ 16.11.2026 chỉ chặn phát hành): lời giải thích quyền riêng tư, nội dung pháp lý về quyền riêng tư và sự đồng ý, câu hỗ trợ khi khủng hoảng, và mọi ngoại lệ của luật an toàn S1–S7. Copy giao diện thường (nút, thông báo, nhãn) và bảng nghĩa đi qua cờ chờ duyệt, Codex duyệt.
 
-**Cải thiện trải nghiệm người dùng (owner, 31.10.2026):** việc giúp người dùng dùng app dễ, rõ, êm hơn mà không vướng Q1–Q5 thì agent **chủ động làm luôn**, không chờ được giao: sửa lỗi hiển thị, trạng thái lỗi/đang tải rõ ràng hơn, bỏ thông tin kỹ thuật lộ ra người dùng, tránh lặp, tăng khả năng tiếp cận, tăng tốc. Nếu việc đó cần câu chữ mới thì vẫn qua Q2 (bản nháp + owner duyệt copy).
+**Cải thiện trải nghiệm người dùng (owner, 31.10.2026):** việc giúp người dùng dùng app dễ, rõ, êm hơn mà không vướng Q1–Q5 thì agent **chủ động làm luôn**, không chờ được giao: sửa lỗi hiển thị, trạng thái lỗi/đang tải rõ ràng hơn, bỏ thông tin kỹ thuật lộ ra người dùng, tránh lặp, tăng khả năng tiếp cận, tăng tốc. Nếu việc đó cần câu chữ mới thì vẫn qua Q2 (cờ chờ duyệt, Codex duyệt; nhóm privacy/consent/crisis/safety thì owner).
 
 ## 2. Danh sách cấm (luôn cần lệnh riêng của owner)
 
