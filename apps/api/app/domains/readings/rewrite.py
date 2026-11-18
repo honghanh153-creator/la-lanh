@@ -143,7 +143,8 @@ def compile_daily_rewrite_request(
     # brief keeps only the situation's shared catalog meaning, not the chart-selected
     # personal sentence. Luna never writes astrology on this surface, so it needs neither.
     # The situation (scene/action keys and wording) is still chosen from the chart: coarse,
-    # and on a date-only reading equivalent to the Sun sign (one-to-one ``SUN_ISSUES``).
+    # and on a date-only reading never finer than the Sun sign (``SUN_ISSUES``, or the sign's
+    # element on rotated plans).
     brief = blueprint.daily_meaning
     meaning_brief: JsonValue = None
     if brief is not None:

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, date, datetime, time, timedelta
 from itertools import pairwise
 from typing import Any
@@ -10,6 +11,8 @@ from uuid import UUID
 import pytest
 
 from app.domains.astro.engine import NatalChartEngine
+from app.domains.astro.models import DateOnlySunResult, ZodiacSign
+from app.domains.birth.models import BirthSnapshotRecord
 from app.domains.content import copy_approval
 from app.domains.content.copy_approval import copy_digest, load_registry, parse_registry
 from app.domains.readings import companion_pool as companion
@@ -47,8 +50,26 @@ from app.domains.readings.planner import ReadingPlanner
 from app.domains.readings.renderers import DeterministicVietnameseRenderer
 from app.domains.readings.voice import ReadingVoice
 from scripts.persona_metrics import repeats_ever
-from tests.readings.test_application import MemoryReadingRepository, _date_only_snapshot
+from tests.readings.test_application import MemoryReadingRepository
+from tests.readings.test_application import _date_only_snapshot as _pisces_snapshot
 from tests.readings.test_voice import BANNED_WORDS, _contains_word
+
+
+def _date_only_snapshot(guest_id: UUID, profile_id: UUID) -> BirthSnapshotRecord:
+    """A made-up person with a birth date only who meets ONE issue every day.
+
+    Since the wider date-only rotation (#626) most signs take turns between two issues. Cancer's
+    own issue and its element's issue are the same one, so this person still meets one issue a
+    day, which is what the line-pool tests below measure.
+    """
+
+    snapshot = _pisces_snapshot(guest_id, profile_id)
+    assert isinstance(snapshot.result, DateOnlySunResult)
+    result = snapshot.result.model_copy(
+        update={"sign": ZodiacSign.CANCER, "candidates": (ZodiacSign.CANCER,)}
+    )
+    return replace(snapshot, result=result)
+
 
 KEY = derive_variety_key(b"test-only-server-secret")
 GUEST = UUID("20000000-0000-4000-8000-0000000000c6")
