@@ -1,0 +1,10 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [{ "type": "command", "command": "PATH=\"$HOME/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin:$PATH\" node \"$CLAUDE_PROJECT_DIR/scripts/guard-dangerous-commands.mjs\"" }]
+      }
+    ]
+  }
+}
