@@ -319,6 +319,7 @@ class ReadingPlanner:
             has_transit: bool,
             selection: DailySelection | None = None,
             transit_policy: str | None = None,
+            lens: BackgroundLens | None = background_lens,
         ) -> ReadingPlan:
             return self._build_plan(
                 tradition=chart.config.tradition,
@@ -329,7 +330,7 @@ class ReadingPlanner:
                 factors=tuple(self._assign_roles(factors, hero_refs)),
                 hero_factor_refs=hero_refs,
                 composition=self._composition(has_transit=has_transit),
-                background_lens=background_lens,
+                background_lens=lens,
                 editorial_seed=editorial_seed,
                 daily_selection=selection,
                 daily_variety=daily_variety,
@@ -340,25 +341,38 @@ class ReadingPlanner:
             factors = self._include_transit_dependency(list(natal), candidates, transit)
             return [*factors, transit]
 
-        natal_plan = build(list(natal), has_transit=False)
-        # Every salient contact is considered; nothing is cut before relevance.
-        transit_plans = tuple(
-            (transit, build(with_transit(transit), has_transit=True))
-            for transit in self._transit_pool(
-                chart, transits, ReadingPurpose.DAILY_NOTE, candidates
-            )
+        window = (
+            transits is not None
+            and transits.orb_policy_version in SUPPORTED_INTERVAL_TRANSIT_ORB_VERSIONS
         )
-        selection, transit = select_daily_situation(natal_plan, transit_plans)
-        factors = with_transit(transit) if transit is not None else list(natal)
+        # US-03 AC22 (Codex r1 on #726): a window Daily chooses its transit once, without the
+        # lens, so every lens holds the same factors and evidence. The lens then picks its
+        # situation; the kept transit gets a role only when it explains that situation.
+        # Exact-time plans keep their earlier lens-dependent choice (#725).
+        choice_lens = None if window else background_lens
+        pool = self._transit_pool(chart, transits, ReadingPurpose.DAILY_NOTE, candidates)
+        # Every salient contact is considered; nothing is cut before relevance.
+        selection, transit = select_daily_situation(
+            build(list(natal), has_transit=False, lens=choice_lens),
+            tuple(
+                (item, build(with_transit(item), has_transit=True, lens=choice_lens))
+                for item in pool
+            ),
+        )
+        kept = transit
+        if window and background_lens is not None:
+            selection, _ = select_daily_situation(
+                build(list(natal), has_transit=False),
+                ((kept, build(with_transit(kept), has_transit=True)),) if kept is not None else (),
+            )
+        factors = with_transit(kept) if kept is not None else list(natal)
         policy = (
             transits.orb_policy_version
-            if transit is not None
-            and transits is not None
-            and transits.orb_policy_version in SUPPORTED_INTERVAL_TRANSIT_ORB_VERSIONS
+            if kept is not None and transits is not None and window
             else None
         )
         return build(
-            factors, has_transit=transit is not None, selection=selection, transit_policy=policy
+            factors, has_transit=kept is not None, selection=selection, transit_policy=policy
         )
 
     def _date_only_plan(

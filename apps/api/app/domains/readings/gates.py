@@ -154,7 +154,13 @@ def evidence_gate(plan: ReadingPlan, candidate: ReadingCandidate) -> GateReport:
             candidate.natal_user_prose, candidate.transit
         ):
             failures.append(GateFailureCode.EVIDENCE_COMPOSITION)
-    elif claimed_transits:
+    elif claimed_transits and not (
+        # US-03 AC22: a window Daily lists the day's transit as evidence under every lens, with
+        # the reason sentence only when it explains the lens's situation (checked just below).
+        plan.transit_policy is not None
+        and plan.daily_selection is not None
+        and len(transit_factors) == 1
+    ):
         failures.append(GateFailureCode.EVIDENCE_UNEXPECTED_TRANSIT)
     if plan.daily_selection is not None and not _daily_transit_linked(plan, candidate):
         failures.append(GateFailureCode.EVIDENCE_DAILY_TRANSIT_LINK)

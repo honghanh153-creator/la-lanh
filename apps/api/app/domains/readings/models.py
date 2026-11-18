@@ -308,7 +308,18 @@ class ReadingPlan(BaseModel):
                 raise ValueError("only a Daily note carries a frozen daily selection")
             if any(ref not in factor_by_id for ref in selection.support_refs):
                 raise ValueError("daily selection support must come from plan factors")
-            if transit_ids != ({selection.transit_ref} if selection.transit_ref else set()):
+            # US-03 AC22: a window plan keeps the day's one transit under every lens, so its
+            # factors and evidence never change with the lens. When that transit does not explain
+            # the lens's situation it stays as evidence only (no reason sentence, no role).
+            kept_as_evidence = (
+                self.transit_policy is not None
+                and selection.transit_ref is None
+                and len(transit_ids) == 1
+            )
+            if (
+                transit_ids != ({selection.transit_ref} if selection.transit_ref else set())
+                and not kept_as_evidence
+            ):
                 raise ValueError("a selected Daily plan holds exactly its chosen transit")
         if self.transit_policy is not None:
             if self.transit_policy not in SUPPORTED_INTERVAL_TRANSIT_ORB_VERSIONS:

@@ -22,8 +22,10 @@ from app.domains.readings.daily_rotation import (
     day_index,
     derive_variety_key,
 )
+from app.domains.readings.gates import evaluate_candidate
 from app.domains.readings.models import (
     BackgroundLens,
+    DailyTransitRole,
     DailyVariety,
     FactorSource,
     ReadingPlan,
@@ -120,33 +122,53 @@ def test_the_evidence_of_a_window_plan_shows_no_orb_number() -> None:
         assert "orb" not in text
 
 
-def test_a_lens_keeps_the_natal_evidence_and_any_transit_it_brings_is_window_proven() -> None:
-    """US-03 AC22 with a transit. A lens picks among the situations of its arena, and a transit
-    is attached only when it explains the picked situation, so a lens can change whether a
-    transit appears (exact charts already do: the gap is tracked for both precisions). What a
-    lens never changes: precision, the time-stable placements, and the proof of a transit."""
+def test_a_lens_never_changes_the_factors_or_the_evidence_of_a_window_daily() -> None:
+    """US-03 AC22 with a transit (Codex r1 on #726). The day's transit is chosen once, without
+    the lens, and every lens keeps it: the factors, the rendered evidence, the precision and the
+    transit proof are equal for every lens. A lens changes only the scene and the action, and
+    the "why today" sentence is shown only when the kept transit explains the lens's scene."""
 
     chart = _approximate()
     renderer = DeterministicVietnameseRenderer()
+    lenses = tuple(lens for lens in BackgroundLens if lens is not BackgroundLens.AUTO)
+    kept_without_reason = 0
+    scenes_changed = 0
     for person in range(3):
         for day in _DAYS:
             plain = _plan(chart, day, person)
-            natal = {f.id for f in plain.factors if f.source is not FactorSource.TRANSIT}
-            for lens in (BackgroundLens.WORK, BackgroundLens.RELATIONSHIPS, BackgroundLens.ENERGY):
+            plain_card = renderer.render(plain)
+            assert evaluate_candidate(plain, plain_card).accepted
+            for lens in lenses:
                 framed = _plan(chart, day, person, lens)
                 assert framed.precision is plain.precision is TimePrecision.APPROXIMATE
-                assert {f.id for f in framed.factors if f.source is not FactorSource.TRANSIT} == (
-                    natal
-                )
-                transit = [f for f in framed.factors if f.source is FactorSource.TRANSIT]
-                assert (framed.transit_policy is not None) == bool(transit)
-                claims = renderer.render(framed).evidence.claims
-                assert natal <= {c.factor_ref for c in claims}
-                assert all(
-                    "orb" not in c.display_text
-                    for c in claims
-                    if c.factor_ref.startswith("transit:")
-                )
+                assert framed.factors == plain.factors
+                assert framed.hero_factor_refs == plain.hero_factor_refs
+                assert framed.transit_policy == plain.transit_policy
+                card = renderer.render(framed)
+                assert card.evidence == plain_card.evidence
+                assert evaluate_candidate(framed, card).accepted
+                selection = framed.daily_selection
+                assert selection is not None
+                # The reason sentence exists exactly when the kept transit explains this scene.
+                assert (card.transit is not None) == (selection.transit_ref is not None)
+                held = [f for f in framed.factors if f.source is FactorSource.TRANSIT]
+                kept_without_reason += bool(held) and selection.transit_ref is None
+                scenes_changed += card.manifestation != plain_card.manifestation
+    assert scenes_changed, "a lens still changes the scene"
+    assert kept_without_reason, "some lens keeps the day's transit as evidence only"
+
+
+def test_a_transit_kept_without_a_reason_is_allowed_only_on_a_window_plan() -> None:
+    plan = _transit_plans()[0]
+    selection = plan.daily_selection
+    assert selection is not None
+    unexplained = selection.model_copy(
+        update={"transit_ref": None, "transit_role": DailyTransitRole.NONE}
+    )
+    data = {**plan.model_dump(), "daily_selection": unexplained.model_dump()}
+    assert ReadingPlan.model_validate(data).transit_policy == INTERVAL_TRANSIT_ORB_VERSION
+    with pytest.raises(ValidationError, match="holds exactly its chosen transit"):
+        ReadingPlan.model_validate({**data, "transit_policy": None})
 
 
 def test_snapshots_must_match_the_precision() -> None:
