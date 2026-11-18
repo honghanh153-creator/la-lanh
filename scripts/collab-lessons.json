@@ -792,12 +792,19 @@
    "from": "retro 31.10 D8, 03.11; fix-forward #653",
    "who": "claude",
    "due": "2026-11-19",
-   "status": "open",
+   "status": "done",
    "test": {
-    "file": "scripts/collab-memory-dream.test.mjs",
-    "name": "dream: proposes stale marks, duplicates, reference checks and index fixes in a NEW store only"
+    "file": "scripts/collab-ops-wrapper.test.mjs",
+    "name": "L45: the nightly memory pass and the 07:00 apply step must call the dream script; a disconnected one is reported"
    },
-   "note": "caller is the local scheduled task la-lanh-memory-dream (00:20) and step 6b of la-lanh-bao-cao-7h; close once the tick checks those prompts call the script (like reportConsumers)"
+   "caller": {
+    "file": "scripts/collab-ops-wrapper.mjs",
+    "contains": "collab-memory-dream\\.mjs --apply"
+   },
+   "closedBy": {
+    "pr": 0
+   },
+   "note": "callers are the local scheduled tasks la-lanh-memory-dream (00:20) and step 6b of la-lanh-bao-cao-7h; the tick health line (wrapperHealth → verifyReportPrompts) warns when either stops calling the script. Script behaviour test: 'dream: proposes stale marks, duplicates, reference checks and index fixes in a NEW store only' (scripts/collab-memory-dream.test.mjs). Ran 16.11 and 18.11 00:20 with a review file (local, private)"
   },
   {
    "id": "L46",
