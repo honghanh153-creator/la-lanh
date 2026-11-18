@@ -37,6 +37,7 @@ import { useTheme } from "../../shared/theme/useTheme";
 import { AppNav } from "../../shared/ui/AppNav";
 import { AppSheet } from "../../shared/ui/AppSheet";
 import { NightSky } from "../../shared/ui/NightSky";
+import { clearLaLineMemory } from "../../shared/storage/laLineMemory";
 import { clearPendingMood } from "../../shared/storage/pendingMood";
 import { dropQueuedSaves } from "../../shared/storage/savedNoteMutationQueue";
 import { saveDataExport } from "./downloadMyData";
@@ -145,6 +146,8 @@ export function ProfilePage() {
         queryClient.removeQueries({ queryKey: [key] });
       }
       clearPendingMood();
+      // Which line Lá said last per issue is history too (W1): it goes with the clear.
+      clearLaLineMemory();
       dropQueuedSaves();
       setConfirmingHistory(false);
       setStatusMessage("Đã xoá lịch sử. Hồ sơ sinh, bản đọc hiện tại và note đã lưu vẫn được giữ.");

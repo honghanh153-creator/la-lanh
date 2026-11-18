@@ -17,12 +17,15 @@ import {
   getHistoryRetention,
   clearReadingHistory,
   logoutAccount,
+  deleteGuest,
   exportMyData,
   ApiProblem,
   type DailyNote,
   type DataExport,
 } from "../../shared/api/client";
 import { dailyActionViewKey, dailyMoodKey } from "../../shared/hooks/useDailyActionView";
+import { beginLaLineMemoryWrite, lastLaLine, rememberLaLine } from "../../shared/storage/laLineMemory";
+import { SESSION_EPOCH_KEY } from "../../shared/session/sessionIdentity";
 import { readCachedDailyNote, writeCachedDailyNote } from "../../shared/storage/noteCache";
 import { saveDataExport } from "./downloadMyData";
 import { ProfilePage } from "./ProfilePage";
@@ -44,6 +47,7 @@ vi.mock("../../shared/api/client", async (original) => {
     getHistoryRetention: vi.fn(),
     clearReadingHistory: vi.fn(),
     logoutAccount: vi.fn(),
+    deleteGuest: vi.fn(),
     exportMyData: vi.fn(),
   };
 });
@@ -129,6 +133,39 @@ describe("ProfilePage resonance privacy controls", () => {
     expect(client.getQueryData(dailyActionViewKey(noteId))).toBeUndefined();
     expect(client.getQueryData(["daily-note-mood", noteId])).toBeUndefined();
     expect(JSON.stringify(client.getQueryCache().getAll().map((query) => query.state.data))).not.toContain("Đuối");
+  });
+
+  it("forgets which line Lá said last after a history clear, and keeps it when the clear is cancelled (W1, #626)", async () => {
+    localStorage.clear();
+    sessionStorage.setItem(SESSION_EPOCH_KEY, "epoch-a");
+    await rememberLaLine(beginLaLineMemoryWrite(), "changed-plan", { pair: "la.issue.changed-plan.02", day: "2026-11-18", appearance: "00000000-0000-4000-8000-0000000000a1" });
+    const user = userEvent.setup(); renderPage();
+    await user.click(await screen.findByRole("button", { name: /Xoá lịch sử đã xem/ }));
+    await user.click(screen.getByRole("button", { name: "Giữ lịch sử" }));
+    expect(lastLaLine("changed-plan")?.pair).toBe("la.issue.changed-plan.02");
+    await user.click(screen.getByRole("button", { name: /Xoá lịch sử đã xem/ }));
+    await user.click(screen.getByRole("button", { name: "Xoá lịch sử" }));
+    expect(await screen.findByRole("status")).toHaveTextContent("Đã xoá lịch sử");
+    expect(lastLaLine("changed-plan")).toBeNull();
+  });
+
+  it("forgets which line Lá said last after the profile is deleted (W1, #626)", async () => {
+    localStorage.clear();
+    vi.mocked(deleteGuest).mockResolvedValue(undefined);
+    sessionStorage.setItem(SESSION_EPOCH_KEY, "epoch-a");
+    await rememberLaLine(beginLaLineMemoryWrite(), "changed-plan", { pair: "la.issue.changed-plan.02", day: "2026-11-18", appearance: "00000000-0000-4000-8000-0000000000a1" });
+    expect(lastLaLine("changed-plan")).not.toBeNull();
+    const user = userEvent.setup();
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <MemoryRouter initialEntries={[{ pathname: "/profile", state: { confirmDelete: true } }]}>
+          <ProfilePage />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    await user.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Xóa vĩnh viễn" }));
+    await waitFor(() => expect(deleteGuest).toHaveBeenCalledOnce());
+    await waitFor(() => expect(lastLaLine("changed-plan")).toBeNull());
   });
 
   it("offers no sign-in and no Supabase wording to a guest while Google sign-in is off (Wave 1)", async () => {

@@ -10141,6 +10141,12 @@
    "digest": "b81afeb36dea5c63f0c4570f576189a4a6b876a5fe8da4c05fe8d5e85b83e863"
   },
   {
+   "id": "privacy.la-line-device-memory",
+   "category": "privacy",
+   "text": "Lá ghi nhớ câu đã nói lần trước cho từng chuyện, để lần sau nói câu khác. Việc này chỉ lưu trên máy bạn.",
+   "status": "pending"
+  },
+  {
    "id": "lighter.action.01",
    "category": "reading",
    "text": "Uống một cốc nước rồi ngồi yên hai phút.",
