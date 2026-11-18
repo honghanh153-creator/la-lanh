@@ -914,7 +914,7 @@
     "contains": "mergeAllowed(number, nowMs())"
    },
    "closedBy": {
-    "pr": 0
+    "pr": 736
    },
    "note": "Tick: scripts/collab-turn.mjs giữ chỗ cho PR đầu hàng trước khi đồng bộ (test 'reservation: the front reserves before its sync…'). Gỡ tay có ghi lý do: node scripts/collab-reservation.mjs --release --reason \"…\"."
   }
