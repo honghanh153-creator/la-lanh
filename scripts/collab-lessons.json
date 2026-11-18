@@ -802,7 +802,7 @@
     "contains": "collab-memory-dream\\.mjs --apply"
    },
    "closedBy": {
-    "pr": 0
+    "pr": 718
    },
    "note": "callers are the local scheduled tasks la-lanh-memory-dream (00:20) and step 6b of la-lanh-bao-cao-7h; the tick health line (wrapperHealth → verifyReportPrompts) warns when either stops calling the script. Script behaviour test: 'dream: proposes stale marks, duplicates, reference checks and index fixes in a NEW store only' (scripts/collab-memory-dream.test.mjs). Ran 16.11 and 18.11 00:20 with a review file (local, private)"
   },
