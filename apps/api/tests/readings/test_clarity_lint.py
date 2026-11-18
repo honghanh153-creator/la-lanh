@@ -279,7 +279,11 @@ def test_a10_finds_english_words(text: str, expected: tuple[str, ...]) -> None:
         ("Bạn nhắn cho <tên người nhận> nhé.", 1),
         ("Lĩnh vực: [TÊN LĨNH VỰC] · 17h30.", 1),
         ("Bạn đã sẵn sàng nói chuyện với người kia.", 0),
+        ("Còn %02d ngày.", 1),  # review r4 of #411: flags, width and precision
+        ("Còn %.2f giờ.", 1),
+        ("Chào %-10s nhé.", 1),
         ("Khoảng 50% số việc là của bạn.", 0),
+        ("Giảm 50% dung lượng.", 0),
         ("Bạn mỉm cười [nhẹ thôi].", 0),
     ),
 )

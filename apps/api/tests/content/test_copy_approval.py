@@ -188,6 +188,9 @@ def test_linted_approved_copy_falls_back(monkeypatch: pytest.MonkeyPatch, text: 
         "Xong việc nhỏ.Rồi nghỉ.",  # missing space after a full stop is not a link
         "Ghi 1.5 giờ ngủ thêm vào sổ.",
         "Bạn ở TP. Hồ Chí Minh, v.v. vẫn ổn.",
+        "Ăn xong.Sau đó nghỉ một chút.",  # missing space before a mixed-case ASCII word
+        "Giảm 50% dung lượng rồi tiếp.",  # a percent sign before a word is not a slot
+        "Pin còn 20%, sạc thêm 5% nữa.",
     ],
 )
 def test_registry_lint_accepts_plain_sentences(text: str) -> None:

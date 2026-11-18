@@ -223,7 +223,7 @@ PLACEHOLDERS = re.compile(
     r"(?i:chưa sẵn sàng|đang cập nhật|lorem ipsum)"
     r"|\bTODO\b|\bFIXME\b|\bTBD\b|\bXXX\b"
     r"|\{\{[^{}]*\}\}|\{[A-Za-z_][A-Za-z0-9_.]*\}|\$\{[^{}]*\}"
-    r"|%(?:\([A-Za-z_]\w*\))?[sdif](?![^\W\d_])"
+    r"|%(?:\([A-Za-z_]\w*\))?[-#0+]*\d*(?:\.\d+)?[sdif](?![^\W\d_])"
     r"|<[^<>\s][^<>]*>"
     r"|\[[^\[\]]*[A-Z][^\[\]]*\]"
     r"|\b(?:None|undefined|null|NaN|nil)\b"

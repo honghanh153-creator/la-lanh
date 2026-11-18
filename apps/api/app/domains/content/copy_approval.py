@@ -36,11 +36,14 @@ _LINT_RULES: tuple[tuple[str, re.Pattern[str]], ...] = (
     (
         "contains a link",
         re.compile(
-            r"[a-z][a-z0-9+.-]*://|\bwww\.|"
-            # Any bare domain: ASCII labels joined by dots, ending in a 2+ letter suffix,
-            # with no word character touching either end (so "việc.Rồi" or "1.5" pass).
-            r"(?<![\w-])[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9-]+)*\.[a-z]{2,24}(?![\w-])",
-            re.IGNORECASE,
+            r"(?i:[a-z][a-z0-9+.-]*://|\bwww\.)|"
+            # Any bare domain: labels of letters, digits and hyphens, Unicode included
+            # ("ví-dụ.test", review r4 of #411), joined by dots and ending in an ASCII suffix
+            # of 2 to 24 letters written all lower or all upper case, with no word character
+            # touching either end. A missing space after a full stop ("việc.Rồi", "xong.Sau")
+            # or a number ("1.5") is not a domain.
+            r"(?<![\w-])[^\W_](?:[\w-]*[^\W_])?(?:\.[^\W_](?:[\w-]*[^\W_])?)*"
+            r"\.(?:[a-z]{2,24}|[A-Z]{2,24})(?![\w-])",
         ),
     ),
     ("contains an email address or handle", re.compile(r"@\w")),
@@ -49,7 +52,9 @@ _LINT_RULES: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("contains a placeholder bracket", re.compile(r"[{}<>\[\]]")),
     (
         "contains a template slot",
-        re.compile(r"%(?:\(\w+\))?[sdif]|\$\w|\$\{|_{3,}"),
+        # printf slots with flags, width and precision too ("%02d", "%.2f", "%-10s"; review r4
+        # of #411). No space flag: "50% dung lượng" is plain text.
+        re.compile(r"%(?:\(\w+\))?[-#0+]*\d*(?:\.\d+)?[sdif]|\$\w|\$\{|_{3,}"),
     ),
     (
         "contains a draft marker",
