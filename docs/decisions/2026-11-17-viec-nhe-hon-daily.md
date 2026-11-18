@@ -44,7 +44,33 @@ Mốc "Ngày Đuối được việc nhẹ" đang ở 10,5%, đích là từ 90%
 
 Đặt 12 câu về `pending` (hoặc gỡ PR): API trả `lighter_action: null`, web bỏ qua trường này, không có dữ liệu nào cần dọn khi chưa ai giữ việc nhẹ.
 
+## Research bên ngoài (bổ sung 17.11.2026, #636)
+
+Ghi ở `docs/research/2026-11-17-viec-nhe-hon-nguon-ben-ngoai.md`. Tóm tắt:
+
+- 1B và 3B khớp nguồn đã đọc: thêm trường tùy chọn là bước mở rộng an toàn với bên đọc dễ tính; Note đã lưu được đọc bằng hợp đồng chặt nên không ghi trường mới.
+- Việc nhẹ đang giữ là giới hạn lùi bản thật; đã có mục trong runbook phát hành.
+- Khóa giữ việc được máy chủ kiểm theo danh sách cho phép.
+- Chưa đọc được nguyên văn điều luật về mục đích xử lý dữ liệu; phần đó nằm ở mục "chưa có nguồn" của file research.
+
+## Kịch bản QC (chạy 17.11.2026 trên `collab/integration` d10fa314)
+
+Dữ liệu tổng hợp. API được giả trong trình duyệt; không dùng máy chủ hay cơ sở dữ liệu thật.
+
+| Bước | Mong đợi | Kết quả |
+|---|---|---|
+| Ngày có mood đã lưu là Đuối, mở Hôm nay ở 360 và 390 px | Thẻ hiện việc nhẹ (câu dài 120 ký tự), nút "Xem việc ban đầu", không tràn ngang, không bị cắt | Đạt (`lighter-action-width.spec.ts`, 4 test xanh trên hai cấu hình trình duyệt; ảnh Hôm nay 360 px đã xem bằng mắt) |
+| Mở Note hôm nay ở 360 và 390 px | Như trên | Đạt (cùng test; ảnh Note 390 px đã xem bằng mắt) |
+| Đưa tiêu điểm vào nút, bấm Enter hai lần | Lần một hiện việc ban đầu và nút "Xem việc nhẹ hơn", tiêu điểm ở lại nút; lần hai hiện lại việc nhẹ | Đạt (cùng test; ảnh Note thấy viền tiêu điểm quanh nút) |
+| Trạng thái hiện nay: 12 câu `lighter.action.*` còn chờ duyệt | API không trả việc nhẹ, không giữ được việc nhẹ, kết quả mô phỏng như trước | Đạt (`tests/readings/test_lighter_action.py`, `tests/scripts/test_persona_lighter_choice.py::test_no_lighter_offer_leaves_the_run_as_before`) |
+| Note đã lưu sau khi có việc nhẹ | Bản chụp không có trường mới, đọc được bằng hợp đồng của bản trước | Đạt (`tests/saved/test_snapshot_rollback.py`, `tests/saved/test_saved_service.py`) |
+
+Ghi chú lần chạy: hai test mô phỏng 29 ngày đỏ ở lần đầu vì worktree mới chưa có thư viện Swiss Ephemeris (lỗi 503 khi tạo hồ sơ); đặt đường dẫn thư viện rồi chạy lại thì 11 test của file đó xanh.
+
+Thấy thêm khi xem ảnh Hôm nay 360 px (không thuộc việc nhẹ): trong ảnh chụp cả trang, thanh điều hướng dưới che dòng "Thêm nơi sinh" của bong bóng Lá. Chưa kiểm trên màn hình thật.
+
 ## Chưa làm
 
-- Research bên ngoài (mục 1b của quy trình) chưa làm cho quyết định này.
-- Kịch bản QC thủ công của mức L làm cùng PR B, khi người dùng thấy được việc nhẹ.
+- Chưa có người thật thử trên điện thoại thật; chưa thử trình đọc màn hình.
+- Chưa chạy kịch bản trên trình duyệt với API và cơ sở dữ liệu thật ở máy (các bước trên dùng API giả hoặc test API).
+- Bốn điểm chưa có nguồn trong file research (điều luật về mục đích xử lý, mood có phải dữ liệu nhạy cảm, dự án tương tự, nghiên cứu hành vi).
