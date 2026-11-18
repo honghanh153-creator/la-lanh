@@ -743,8 +743,20 @@
    "title": "Test E (cây chạy sống lâu hơn wrapper) không được đỏ vô cớ trên CI Linux: 20 lần chạy liền không đỏ (sự cố #641: đỏ ở #628 và #637; #645 cho test chờ đúng phép kiểm của script và in pgrep/ps khi đỏ)",
    "from": "fix-forward #641, #650",
    "who": "claude",
-   "status": "open",
-   "due": "2026-11-20"
+   "status": "done",
+   "due": "2026-11-20",
+   "test": {
+    "file": "scripts/collab-ops-wrapper.test.mjs",
+    "name": "E: a run tree outlives its wrapper while a child still uses it, and is swept afterwards"
+   },
+   "caller": {
+    "file": "scripts/ops-run.sh",
+    "contains": "sweep() {"
+   },
+   "closedBy": {
+    "pr": 723
+   },
+   "note": "Bằng chứng 18.11: sau khi #645 merge (17.11 04:35 UTC), các lượt pr-check tạo từ 17.11 09:54 tới 18.11 03:07 UTC: 46 lượt trên ubuntu-24.04 chạy bộ collab (13 mức loop, 33 mức full); test E xanh ở cả 46, kể cả 3 lượt đỏ vì lỗi khác (44214511979 content ratchet; 44214518359, 44220244912 copy batch)"
   },
   {
    "id": "L43",
