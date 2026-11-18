@@ -6,6 +6,7 @@ Synthetic charts only (a fixed 1994 instant read as an approximate window); no r
 from __future__ import annotations
 
 from datetime import UTC, date, datetime, time, timedelta
+from typing import Any, cast
 from uuid import UUID
 
 import pytest
@@ -44,6 +45,7 @@ _ENGINE = NatalChartEngine()
 _ZONE = "Asia/Ho_Chi_Minh"
 _KEY = derive_variety_key(b"test-only-server-secret")
 _DAYS = [date(2026, 11, 1) + timedelta(days=offset) for offset in range(28)]
+_LENSES = tuple(lens for lens in BackgroundLens if lens is not BackgroundLens.AUTO)
 
 
 def _approximate() -> NatalChart:
@@ -150,25 +152,170 @@ def test_a_lens_never_changes_the_factors_or_the_evidence_of_a_window_daily() ->
                 selection = framed.daily_selection
                 assert selection is not None
                 # The reason sentence exists exactly when the kept transit explains this scene.
-                assert (card.transit is not None) == (selection.transit_ref is not None)
                 held = [f for f in framed.factors if f.source is FactorSource.TRANSIT]
-                kept_without_reason += bool(held) and selection.transit_ref is None
+                withheld = framed.transit_reason_withheld is True
+                assert (card.transit is not None) == (bool(held) and not withheld)
+                assert not withheld or held
+                kept_without_reason += withheld
                 scenes_changed += card.manifestation != plain_card.manifestation
     assert scenes_changed, "a lens still changes the scene"
     assert kept_without_reason, "some lens keeps the day's transit as evidence only"
 
 
-def test_a_transit_kept_without_a_reason_is_allowed_only_on_a_window_plan() -> None:
-    plan = _transit_plans()[0]
+def _served_plans(
+    person: int, days: list[date]
+) -> dict[tuple[date, BackgroundLens | None], ReadingPlan]:
+    """Every lens of every day, opened through the reading service with the rotation on."""
+
+    import asyncio
+
+    from app.domains.birth.models import BirthSnapshotRecord
+    from app.domains.readings.application import ReadingApplicationService
+    from tests.readings.test_application import MemoryReadingRepository
+
+    guest, profile = UUID(int=900 + person), UUID(int=person + 1)
+
+    async def zone(guest_id: UUID, profile_id: UUID) -> str | None:
+        return _ZONE
+
+    repository = MemoryReadingRepository()
+    service = ReadingApplicationService(
+        cast(Any, repository),
+        _ENGINE,
+        daily_variety_key=_KEY,
+        daily_variety_from=date(2026, 10, 20),
+        birth_timezone_lookup=zone,
+    )
+    snapshot = BirthSnapshotRecord(
+        id=UUID(int=700 + person),
+        guest_id=guest,
+        profile_id=profile,
+        input_hash=b"approximate",
+        birth_date_ciphertext="encrypted",
+        result=_approximate(),
+        created_at=datetime(2026, 9, 7, 4, 30, tzinfo=UTC),
+    )
+
+    async def run() -> dict[tuple[date, BackgroundLens | None], ReadingPlan]:
+        served: dict[tuple[date, BackgroundLens | None], ReadingPlan] = {}
+        for day in days:
+            for lens in (None, *_LENSES):
+                projection = await service.project(
+                    guest_id=guest,
+                    snapshot=snapshot,
+                    purpose=ReadingPurpose.DAILY_NOTE,
+                    requested_at=datetime.combine(day, time(12), tzinfo=UTC),
+                    background_lens=lens,
+                )
+                revision = repository.revisions[(guest, profile, projection.active.revision_id)]
+                served[(day, lens)] = next(
+                    r.plan for r in repository.plans.values() if r.id == revision.plan_id
+                )
+        return served
+
+    return asyncio.run(run())
+
+
+def test_serving_keeps_the_factors_and_evidence_of_a_window_daily_for_every_lens() -> None:
+    """US-03 AC22 on the serving path (Codex r2 on #726). The service gives every lens its own
+    rotation guard pair; that pair may move the lens's scene but never the day's transit. The
+    r2 counterexample (profile 1, 2026-11-02, Relationships) is inside this range."""
+
+    renderer = DeterministicVietnameseRenderer()
+    days = _DAYS
+    guards_differ = 0
+    with_transit = 0
+    for person in range(3):
+        served = _served_plans(person, days)
+        for day in days:
+            plain = served[(day, None)]
+            plain_card = renderer.render(plain)
+            with_transit += any(f.source is FactorSource.TRANSIT for f in plain.factors)
+            for lens in _LENSES:
+                framed = served[(day, lens)]
+                assert framed.daily_variety is not None and plain.daily_variety is not None
+                guards_differ += (
+                    framed.daily_variety.recent_issue_keys != plain.daily_variety.recent_issue_keys
+                )
+                assert framed.factors == plain.factors, (person, day, lens)
+                assert framed.transit_policy == plain.transit_policy
+                assert framed.precision is plain.precision
+                card = renderer.render(framed)
+                assert card.evidence == plain_card.evidence, (person, day, lens)
+                assert evaluate_candidate(framed, card).accepted
+    assert guards_differ, "the range holds days where a lens has its own guard pair"
+    assert with_transit, "the range holds days with a proven transit"
+
+
+def test_the_transit_choice_ignores_the_rotation_guard_pair() -> None:
+    chart = _approximate()
+    for person in range(3):
+        for day in _DAYS:
+            plain = _plan(chart, day, person)
+            assert plain.daily_selection is not None
+            issue = plain.daily_selection.issue_key
+            guarded = ReadingPlanner().plan(
+                chart,
+                purpose=ReadingPurpose.DAILY_NOTE,
+                transits=interval_transit_to_natal(
+                    _ENGINE, chart, datetime.combine(day, time(5), tzinfo=UTC), birth_timezone=_ZONE
+                ),
+                editorial_seed=day.isoformat(),
+                daily_variety=_variety(person, day).model_copy(
+                    update={"recent_issue_keys": (issue, issue)}
+                ),
+            )
+            assert guarded.factors == plain.factors, (person, day)
+
+
+def _reads_before_step_2(plan: ReadingPlan) -> bool:
+    """The plan rule of every reader before Daily step 2 (base 328073b, models.py): a selected
+    Daily plan holds exactly its chosen transit, and a transit has a role."""
+
     selection = plan.daily_selection
     assert selection is not None
-    unexplained = selection.model_copy(
-        update={"transit_ref": None, "transit_role": DailyTransitRole.NONE}
+    transit_ids = {f.id for f in plan.factors if f.source is FactorSource.TRANSIT}
+    return transit_ids == ({selection.transit_ref} if selection.transit_ref else set()) and (
+        (selection.transit_ref is None) == (selection.transit_role is DailyTransitRole.NONE)
     )
-    data = {**plan.model_dump(), "daily_selection": unexplained.model_dump()}
-    assert ReadingPlan.model_validate(data).transit_policy == INTERVAL_TRANSIT_ORB_VERSION
-    with pytest.raises(ValidationError, match="holds exactly its chosen transit"):
+
+
+def test_every_window_plan_stays_readable_by_the_reader_before_step_2() -> None:
+    """G4 rollback (Codex r2 on #726). A stored plan must load under the previous release, so a
+    transit kept as evidence only is stored in the old shape (reference and role) and marked
+    with a field old readers ignore. The old gate then rejects its reason and the old service
+    plans the day again from the natal chart."""
+
+    chart = _approximate()
+    evidence_only = 0
+    for person in range(3):
+        for day in _DAYS:
+            for lens in (None, *_LENSES):
+                plan = _plan(chart, day, person, lens)
+                assert _reads_before_step_2(plan), (person, day, lens)
+                evidence_only += plan.transit_reason_withheld is True
+    assert evidence_only, "the range holds plans that keep the transit as evidence only"
+
+
+def test_a_withheld_reason_is_allowed_only_on_a_window_plan_with_its_transit() -> None:
+    plan = next(
+        plan
+        for person in range(3)
+        for day in _DAYS
+        for lens in _LENSES
+        if (plan := _plan(_approximate(), day, person, lens)).transit_reason_withheld
+    )
+    assert DeterministicVietnameseRenderer().render(plan).transit is None
+    data = plan.model_dump()
+    with pytest.raises(ValidationError):
         ReadingPlan.model_validate({**data, "transit_policy": None})
+    natal = [f for f in data["factors"] if f["source"] != FactorSource.TRANSIT.value]
+    with pytest.raises(ValidationError):
+        ReadingPlan.model_validate({**data, "factors": natal})
+    # Marked and unmarked plans are different plans.
+    assert canonical_reading_plan_key(plan) != canonical_reading_plan_key(
+        plan.model_copy(update={"transit_reason_withheld": None})
+    )
 
 
 def test_snapshots_must_match_the_precision() -> None:

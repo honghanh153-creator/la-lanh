@@ -1064,7 +1064,8 @@ def render_why_today(plan: ReadingPlan) -> str | None:
     """One closed-template sentence linking today's transit to the frozen situation."""
 
     selection = plan.daily_selection
-    if selection is None or selection.transit_ref is None:
+    if selection is None or selection.transit_ref is None or plan.transit_reason_withheld:
+        # A withheld reason: the day's transit is evidence only under this lens (US-03 AC22).
         return None
     transit = next(factor for factor in plan.factors if factor.id == selection.transit_ref)
     transit_body, natal_body = transit.subjects

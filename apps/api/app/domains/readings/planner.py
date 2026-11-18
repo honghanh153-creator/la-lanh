@@ -28,6 +28,7 @@ from app.domains.readings.models import (
     BackgroundLens,
     CompositionTarget,
     DailySelection,
+    DailyTransitRole,
     DailyVariety,
     DerivedFactor,
     FactorConfidence,
@@ -320,6 +321,8 @@ class ReadingPlanner:
             selection: DailySelection | None = None,
             transit_policy: str | None = None,
             lens: BackgroundLens | None = background_lens,
+            variety: DailyVariety | None = daily_variety,
+            reason_withheld: bool = False,
         ) -> ReadingPlan:
             return self._build_plan(
                 tradition=chart.config.tradition,
@@ -333,8 +336,9 @@ class ReadingPlanner:
                 background_lens=lens,
                 editorial_seed=editorial_seed,
                 daily_selection=selection,
-                daily_variety=daily_variety,
+                daily_variety=variety,
                 transit_policy=transit_policy,
+                transit_reason_withheld=reason_withheld,
             )
 
         def with_transit(transit: DerivedFactor) -> list[DerivedFactor]:
@@ -345,26 +349,52 @@ class ReadingPlanner:
             transits is not None
             and transits.orb_policy_version in SUPPORTED_INTERVAL_TRANSIT_ORB_VERSIONS
         )
-        # US-03 AC22 (Codex r1 on #726): a window Daily chooses its transit once, without the
-        # lens, so every lens holds the same factors and evidence. The lens then picks its
-        # situation; the kept transit gets a role only when it explains that situation.
+        # US-03 AC22 (Codex r1 and r2 on #726): a window Daily chooses its transit once, from the
+        # chart, the day and the owner's rotation seed only. The lens and the rotation guard pair
+        # (which the service computes per lens) are left out of that choice, so every lens holds
+        # the same factors and evidence. The lens and its guard pair then pick the situation; the
+        # kept transit gives its reason only when it explains that situation.
         # Exact-time plans keep their earlier lens-dependent choice (#725).
         choice_lens = None if window else background_lens
+        choice_variety = (
+            daily_variety.model_copy(update={"recent_issue_keys": ()})
+            if window and daily_variety is not None
+            else daily_variety
+        )
         pool = self._transit_pool(chart, transits, ReadingPurpose.DAILY_NOTE, candidates)
         # Every salient contact is considered; nothing is cut before relevance.
         selection, transit = select_daily_situation(
-            build(list(natal), has_transit=False, lens=choice_lens),
+            build(list(natal), has_transit=False, lens=choice_lens, variety=choice_variety),
             tuple(
-                (item, build(with_transit(item), has_transit=True, lens=choice_lens))
+                (
+                    item,
+                    build(
+                        with_transit(item),
+                        has_transit=True,
+                        lens=choice_lens,
+                        variety=choice_variety,
+                    ),
+                )
                 for item in pool
             ),
         )
         kept = transit
-        if window and background_lens is not None:
-            selection, _ = select_daily_situation(
+        reason_withheld = False
+        if window:
+            selection, explains = select_daily_situation(
                 build(list(natal), has_transit=False),
                 ((kept, build(with_transit(kept), has_transit=True)),) if kept is not None else (),
             )
+            if kept is not None and explains is None:
+                # Stored in the shape every earlier reader accepts; see ``transit_reason_withheld``.
+                reason_withheld = True
+                selection = DailySelection(
+                    issue_key=selection.issue_key,
+                    rule_key=selection.rule_key,
+                    support_refs=selection.support_refs,
+                    transit_ref=kept.id,
+                    transit_role=DailyTransitRole.SUPPORTS,
+                )
         factors = with_transit(kept) if kept is not None else list(natal)
         policy = (
             transits.orb_policy_version
@@ -372,7 +402,11 @@ class ReadingPlanner:
             else None
         )
         return build(
-            factors, has_transit=kept is not None, selection=selection, transit_policy=policy
+            factors,
+            has_transit=kept is not None,
+            selection=selection,
+            transit_policy=policy,
+            reason_withheld=reason_withheld,
         )
 
     def _date_only_plan(
@@ -1016,6 +1050,7 @@ class ReadingPlanner:
         daily_selection: DailySelection | None = None,
         daily_variety: DailyVariety | None = None,
         transit_policy: str | None = None,
+        transit_reason_withheld: bool = False,
     ) -> ReadingPlan:
         rules_version = (
             DAILY_PLANNER_RULES_VERSION if daily_selection is not None else PLANNER_RULES_VERSION
@@ -1025,7 +1060,7 @@ class ReadingPlanner:
             if tradition is Tradition.WESTERN
             else JYOTISH_INTERPRETATION_KNOWLEDGE_VERSION
         )
-        payload = {
+        payload: dict[str, object] = {
             "schema_version": "reading-plan/v1",
             "rules_version": rules_version,
             "knowledge_version": knowledge_version,
@@ -1048,6 +1083,8 @@ class ReadingPlanner:
             payload["daily_variety"] = daily_variety.model_dump(mode="json")
         if transit_policy is not None:
             payload["transit_policy"] = transit_policy
+        if transit_reason_withheld:
+            payload["transit_reason_withheld"] = True
         canonical = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
         return ReadingPlan(
             rules_version=rules_version,
@@ -1068,6 +1105,7 @@ class ReadingPlanner:
             daily_selection=daily_selection,
             daily_variety=daily_variety,
             transit_policy=transit_policy,
+            transit_reason_withheld=True if transit_reason_withheld else None,
         )
 
     @staticmethod
