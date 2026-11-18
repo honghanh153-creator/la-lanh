@@ -5,6 +5,7 @@ import { deletionProblem } from './collab-size.mjs';
 import { agentMarker, clean, dayStatePath, fixForwardIssue, integration, isOwnPr, isSha, keyCreatedMs, makeGh, readJson, repo, reviewState, sealValid, stateDir, trustedComments, vnNow, writeJson } from './collab-trust.mjs';
 import { afterDecision, disputeView } from './collab-disagree.mjs';
 import { isMain } from './is-main.mjs';
+import { mergeAllowed, releaseReservation, withMergeLock } from './collab-reservation.mjs';
 
 // Merge-queue rules (P1-A/P1-B, 12.11.2026): the latest signed PASS must be for the live tip of
 // collab/integration, and the latest signed APPROVE must be for the head and still valid for that tip
@@ -44,23 +45,31 @@ export function recordMerged(pr, date = vnNow().date) {
   writeJson(path, { ...day, mergedToday: [...(day.mergedToday ?? []).filter(m => m.number !== pr.number), { number: pr.number, title: pr.title }] });
 }
 
-export function runMerge(number, { gh = makeGh(), dryRun = false, date } = {}) {
-  const pr = gh.pr(number);
-  const gate = mergeGate(pr, { baseFiles: gh.compareFiles });
-  if (!gate.ok) return { status: 'refused', reasons: gate.reasons };
-  if (dryRun) return { status: 'would-merge', head: gate.head };
-  // --match-head-commit fails the merge if the head moved after the check above.
-  gh.raw(['pr', 'merge', String(pr.number), '--repo', repo, '--merge', '--match-head-commit', gate.head]);
-  const retargeted = [];
-  for (const child of gh.openPrs().filter(p => p.baseRefName === pr.headRefName)) {
-    gh.raw(['pr', 'edit', String(child.number), '--repo', repo, '--base', integration]);
-    // Informational only: the base change itself voids the old evidence (P1-A).
-    gh.comment('pr', child.number, `PR cha #${pr.number} đã merge vào \`${integration}\`; base của PR này được đổi sang \`${integration}\`. Head không đổi; author check và verdict cũ không còn khớp base, PR cần check lại trên base mới.\n\n${agentMarker} retarget parent=${pr.number} -->`);
-    retargeted.push(child.number);
-  }
-  try { recordMerged(pr, date); } catch {}
-  writeJson(join(stateDir, 'logs', `merge-pr${pr.number}-${gate.head.slice(0, 12)}.json`), { pr: pr.number, head: gate.head, base: gate.base, retargeted, at: new Date().toISOString() });
-  return { status: 'merged', head: gate.head, retargeted };
+// Incident 18.11.2026: every merge, from the tick, a direct call or a driver, runs under one merge
+// lock and respects the merge reservation (collab-reservation.mjs), so the reserved PR's window
+// for CI, check, review and merge is not broken by another merge.
+export function runMerge(number, { gh = makeGh(), dryRun = false, date, nowMs = Date.now } = {}) {
+  return withMergeLock(() => {
+    const allowed = mergeAllowed(number, nowMs());
+    if (!allowed.ok) return { status: 'refused', reasons: [allowed.reason] };
+    const pr = gh.pr(number);
+    const gate = mergeGate(pr, { baseFiles: gh.compareFiles });
+    if (!gate.ok) return { status: 'refused', reasons: gate.reasons };
+    if (dryRun) return { status: 'would-merge', head: gate.head };
+    // --match-head-commit fails the merge if the head moved after the check above.
+    gh.raw(['pr', 'merge', String(pr.number), '--repo', repo, '--merge', '--match-head-commit', gate.head]);
+    const retargeted = [];
+    for (const child of gh.openPrs().filter(p => p.baseRefName === pr.headRefName)) {
+      gh.raw(['pr', 'edit', String(child.number), '--repo', repo, '--base', integration]);
+      // Informational only: the base change itself voids the old evidence (P1-A).
+      gh.comment('pr', child.number, `PR cha #${pr.number} đã merge vào \`${integration}\`; base của PR này được đổi sang \`${integration}\`. Head không đổi; author check và verdict cũ không còn khớp base, PR cần check lại trên base mới.\n\n${agentMarker} retarget parent=${pr.number} -->`);
+      retargeted.push(child.number);
+    }
+    try { recordMerged(pr, date); } catch {}
+    writeJson(join(stateDir, 'logs', `merge-pr${pr.number}-${gate.head.slice(0, 12)}.json`), { pr: pr.number, head: gate.head, base: gate.base, retargeted, at: new Date().toISOString() });
+    if (allowed.reservation?.pr === pr.number) releaseReservation(pr.number, 'đã merge');
+    return { status: 'merged', head: gate.head, retargeted };
+  });
 }
 
 // Daily audit (P1-B): every PR merged into collab/integration in the last 24 hours must have had a
