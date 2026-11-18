@@ -1129,10 +1129,7 @@
    "id": "daily.action.defend-old-choice.09",
    "category": "reading",
    "text": "Chọn một cách khác để thử và ghi kết quả sau ba lần.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "5a5350e59474c5ee26eaa7fb96720095bc40a01d02b83322bc4aa5e6e4dd61f2"
+   "status": "pending"
   },
   {
    "id": "daily.action.defend-old-choice.10",
