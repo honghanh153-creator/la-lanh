@@ -934,7 +934,7 @@
     "contains": "reason === 'draft' ? 'paused' : 'hold'"
    },
    "closedBy": {
-    "pr": 0
+    "pr": 743
    },
    "note": "Nối L49 (PR chờ PR khác)."
   }
