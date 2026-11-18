@@ -226,7 +226,23 @@
         "default": {
           "fixture": "signed-in",
           "walk": [{ "goto": "/home" }],
-          "ready": { "role": "heading", "name": "Đừng biến mình thành deadline.", "source": "fixture" }
+          "ready": { "role": "heading", "name": "Đừng biến mình thành deadline.", "source": "fixture" },
+          "ac_checks": [
+            { "ac": "US-03 AC01", "part": "Note hôm nay là nội dung chính của Home, với tiêu đề lấy từ API",
+              "expect": { "role": "region", "name": "Note hôm nay" }, "text": "Đừng biến mình thành deadline.",
+              "manual": "Mở app đi thẳng vào Home sau khi có BirthSnapshot (không qua landing hay đăng nhập) là thứ tự điều hướng; một trạng thái màn hình không chứng minh được." },
+            { "ac": "US-03 AC02", "part": "Khách đọc Note mà không gặp ô nhập số điện thoại, email hay OTP",
+              "count": { "selector": { "role": "textbox" }, "min": 0, "max": 0 },
+              "manual": "Note chi tiết cũng không đòi đăng nhập: kiểm ở tính năng note-detail." },
+            { "ac": "US-03 AC06", "part": "Note gọn hiện phần thân lời nhắc (câu biểu hiện ngoài đời) và việc nhỏ lấy từ API",
+              "expect": { "role": "region", "name": "Note hôm nay" }, "text": "Ngoài đời có thể trông như việc bạn cố thêm một chút dù đã mệt." },
+            { "ac": "US-03 AC06", "part": "Note gọn hiện việc nhỏ của hôm nay",
+              "expect": { "role": "region", "name": "Note hôm nay" }, "text": "Bỏ một việc không cần xong hôm nay." },
+            { "ac": "US-03 AC06", "part": "Note gọn có lối chọn mood, không phải đoán nút",
+              "expect": { "role": "button", "name": "Chọn mood hôm nay" } },
+            { "ac": "US-03 AC13", "part": "Đọc được bằng trình đọc màn hình, thứ tự focus, vùng chạm ≥44px, chữ 200%, giảm chuyển động",
+              "manual": "Quét axe chạy ở mỗi lượt verify; thứ tự focus, chữ 200% và giảm chuyển động cần kiểm tay." }
+          ]
         },
         "from-reveal": {
           "fixture": "signed-in",
