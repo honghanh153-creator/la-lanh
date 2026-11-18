@@ -800,7 +800,7 @@ class ReadingApplicationService:
         try:
             return await self._birth_timezone_lookup(guest_id, profile_id)
         except Exception:
-            logger.exception("Birthplace zone lookup failed; using the wide birth window")
+            logger.exception("Zone lookup for the approximate window failed; using the wide window")
             return None
 
     async def _optional_transits(
