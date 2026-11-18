@@ -877,6 +877,26 @@
     "pr": 722
    },
    "note": "A4: đếm run cancelled cùng head mỗi PR ngày 19.11 so với 18.11, ghi vào #719"
+  },
+  {
+   "id": "L49",
+   "title": "PR chỉ chờ PR khác (xếp chồng hoặc cùng file) mang nhãn \"st: chờ PR khác\", không phải \"st: chờ owner\"; owner chỉ là cổng cho 4 loại việc R2 (Codex kiểm tra mỗi giờ 18.11: #723 mang nhãn chờ owner dù chỉ chờ #722)",
+   "from": "Codex kiểm tra 10:45 18.11",
+   "who": "claude",
+   "due": "2026-11-19",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-labels.test.mjs",
+    "name": "a hold behind another PR is labelled as waiting on that PR, not on the owner"
+   },
+   "caller": {
+    "file": "scripts/collab-labels.mjs",
+    "contains": "statusLabels[labelKey(turn)]"
+   },
+   "closedBy": {
+    "pr": 727
+   },
+   "note": "syncStatusLabels chạy mỗi tick, nên nhãn cũ tự được thay ở lần tick kế tiếp"
   }
  ]
 }

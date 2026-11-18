@@ -9,11 +9,17 @@ export const statusLabels = {
   'codex-review': ['st: chờ review', '1d76db', 'Chờ Codex review head mới nhất'],
   merge: ['st: đã duyệt', '0e8a16', 'APPROVE @ head, chờ merge tự động'],
   hold: ['st: chờ owner', '5319e7', 'Dừng: cần owner (label, plan, xoá nhiều, base main...)'],
+  // 18.11 (Codex hourly check on #723): a PR held only behind another PR is not waiting for the
+  // owner. "st: chờ owner" there made the owner look like a gate (R2 lists four owner kinds only).
+  wait: ['st: chờ PR khác', 'c5def5', 'Chờ PR khác merge trước (xếp chồng hoặc cùng file), không cần owner'],
 };
+// Hold reasons that only wait on another PR (collab-turn prTurn).
+const waitsOnPr = /^(?:xếp chồng trên |chờ PR #\d+ cùng file)/;
+export const labelKey = turn => (turn?.turn === 'hold' && waitsOnPr.test(String(turn.reason ?? '')) ? 'wait' : turn?.turn);
 const all = Object.values(statusLabels).map(([name]) => name);
 
 export function labelChange(pr, turn) {
-  const want = statusLabels[turn?.turn]?.[0] ?? null;
+  const want = statusLabels[labelKey(turn)]?.[0] ?? null;
   const have = (pr.labels ?? []).map(l => l.name ?? l).filter(n => all.includes(n));
   return { add: want && !have.includes(want) ? want : null, remove: have.filter(n => n !== want) };
 }
