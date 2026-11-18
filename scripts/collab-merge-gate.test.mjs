@@ -438,3 +438,18 @@ test('incident replay: with fast merges every 20 minutes the full-check PR merge
   assert.ok(withIt.fast.length >= 9, 'the fast PRs still merge after the window');
   assert.ok(withIt.fast.every(m => m > withIt.mergedAt), 'no fast merge inside the reserved window');
 });
+
+// Codex P2 on #736: a reservation is never made while a merge holds the merge lock, so a merge
+// admitted before it cannot land inside the reserved window.
+test('reservation changes wait for the merge lock', async () => {
+  const lock = await import('./collab-lock.mjs');
+  r._resetReservation();
+  const release = lock.acquireLock(r.mergeLockPath(), { staleMs: 600000 });
+  assert.ok(release, 'a merge holds the lock');
+  assert.match(r.reserve(684, RH1, { nowMs: T0, lockWaitMs: 0 }).refused, /merge khác đang chạy/);
+  assert.equal(r.activeReservation(T0), null);
+  release();
+  assert.equal(r.reserve(684, RH1, { nowMs: T0, lockWaitMs: 0 }).reservation.pr, 684);
+  r._resetReservation();
+});
+

@@ -413,7 +413,21 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       // or heavy job, while waiting lets another area's merge move integration and void its check and
       // review (#633 waited 45 minutes behind content work, then needed a new check and review).
       // Checks and reviews keep the area order; the merge gate still checks every PR.
-      const merges = [...work, ...live.filter(t => !work.includes(t))].filter(t => t.turn === 'merge').slice(0, 2);
+      // Incident 18.11.2026 (Codex run 23, P1 on #736): the front reserves integration before it is
+      // synced, and collab-merge refuses every other PR while the reservation stands, so a full CI run
+      // is not voided by fast merges. The holder is validated before the merges are chosen: while it
+      // stands, only the holder may be merged, from any area; a holder that left the queue or was
+      // pushed to by someone else is released first.
+      const waitingTurns = ['claude-check', 'codex-review', 'merge'];
+      let held = reservations.active(nowMs());
+      if (held) {
+        const t = live.find(x => x.number === held.pr);
+        const why = !t ? 'không còn trong hàng' : !waitingTurns.includes(t.turn) ? `rời hàng (${t.turn})`
+          : t.head && t.head !== held.head ? 'head đổi ngoài tick' : null;
+        if (why) { reservations.release(held.pr, why); log(`reservation #${held.pr} released: ${why}`); held = null; }
+        else work = [t, ...work.filter(x => x !== t)];
+      }
+      const merges = [...work, ...live.filter(t => !work.includes(t))].filter(t => t.turn === 'merge' && (!held || t.number === held.pr)).slice(0, 2);
       for (const t of merges) {
         if (late()) break;
         show({ status: 'running', doing: `merge #${t.number}`, expectMinutes: 5, area, turns, done });
@@ -440,19 +454,8 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       // claude-fix PR ahead of it (needs-owner, conflict) no longer keeps it from syncing.
       // One session per PR (owner 16.11): a PR a session holds is never synced by the machine; its
       // session merges integration in. It may still get an author check of the head it pushed.
-      // Incident 18.11.2026 (Codex run 23): the front reserves integration before it is synced, and
-      // collab-merge refuses every other PR while the reservation stands, so a full CI run is not
-      // voided by fast merges. The reserved PR stays the front in every area until it merges or
-      // leaves the queue; a head pushed by someone else ends its reservation.
-      const waitingTurns = ['claude-check', 'codex-review', 'merge'];
-      let held = reservations.active(nowMs());
-      if (held) {
-        const t = live.find(x => x.number === held.pr);
-        const why = !t ? 'không còn trong hàng' : mergedNow.has(held.pr) ? 'đã merge' : !waitingTurns.includes(t.turn) ? `rời hàng (${t.turn})`
-          : t.head && t.head !== held.head ? 'head đổi ngoài tick' : null;
-        if (why) { reservations.release(held.pr, why); log(`reservation #${held.pr} released: ${why}`); held = null; }
-        else work = [t, ...work.filter(x => x !== t)];
-      }
+      // The holder merged in this tick (runMerge released it): integration is free for a new front.
+      if (held && mergedNow.has(held.pr)) { reservations.release(held.pr, 'đã merge'); held = null; }
       let front = held && live.find(x => x.number === held.pr && ['claude-check', 'codex-review'].includes(x.turn) && mayTouch(x.number).ok)?.number || null;
       // No new reservation from lastStartAt (23:35): nothing new starts, so nothing should wait.
       if (!held && now.hour * 60 + now.minute < lastStartAt) {

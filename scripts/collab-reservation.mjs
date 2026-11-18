@@ -55,7 +55,7 @@ export function activeReservation(nowMs = Date.now()) {
  * one, or another PR's that is still in force. An expired reservation of the same PR at the same
  * head is not renewed (`{ refused }`): it had its window.
  */
-export function reserve(pr, head, { nowMs = Date.now(), minutes = reservationMinutes } = {}) {
+function reserveUnlocked(pr, head, { nowMs = Date.now(), minutes = reservationMinutes } = {}) {
   if (!Number.isInteger(pr) || pr <= 0 || !isSha(head)) return { refused: 'PR hoặc head không hợp lệ' };
   const stored = readJson(reservationPath(), null) ?? {};
   const current = valid(stored.reservation) ? stored.reservation : null;
@@ -75,7 +75,7 @@ export function reserve(pr, head, { nowMs = Date.now(), minutes = reservationMin
 }
 
 /** Move the reservation of `pr` to its new head (the tick's own sync gave it a new head). */
-export function followHead(pr, head, { nowMs = Date.now() } = {}) {
+function followHeadUnlocked(pr, head, { nowMs = Date.now() } = {}) {
   const current = activeReservation(nowMs);
   if (!current || current.pr !== pr || !isSha(head) || current.head === head) return current;
   const stored = readJson(reservationPath(), null) ?? {};
@@ -85,7 +85,7 @@ export function followHead(pr, head, { nowMs = Date.now() } = {}) {
 }
 
 /** End the reservation (of `pr`, or any when `pr` is null). Returns whether one was ended. */
-export function releaseReservation(pr, why, { nowMs = Date.now() } = {}) {
+function releaseUnlocked(pr, why, { nowMs = Date.now() } = {}) {
   const stored = readJson(reservationPath(), null) ?? {};
   const current = valid(stored.reservation) ? stored.reservation : null;
   if (!current || (pr !== null && current.pr !== pr)) return false;
@@ -100,6 +100,17 @@ export function mergeAllowed(pr, nowMs = Date.now()) {
   if (!current || current.pr === pr) return { ok: true, reservation: current };
   const until = new Date(current.expiresAtMs).toISOString().slice(11, 16);
   return { ok: false, reason: `integration đang giữ cho #${current.pr} (CI, check, review, merge) tới ${until} UTC; PR khác chờ` };
+}
+
+// Codex P2 on #736: every reservation change takes the same lock as merge admission, so a merge
+// admitted before a reservation finishes before the holder is synced, and none starts inside it.
+const busyReserve = { refused: 'một merge khác đang chạy; thử lại ở tick sau' };
+export const reserve = (pr, head, { lockWaitMs = 30000, ...options } = {}) =>
+  withMergeLock(() => reserveUnlocked(pr, head, options), { busy: busyReserve, waitMs: lockWaitMs });
+export const followHead = (pr, head, options = {}) => withMergeLock(() => followHeadUnlocked(pr, head, options), { busy: null });
+/** `locked: true` only from inside `withMergeLock` (runMerge), which already holds the lock. */
+export function releaseReservation(pr, why, { locked = false, ...options } = {}) {
+  return locked ? releaseUnlocked(pr, why, options) : withMergeLock(() => releaseUnlocked(pr, why, options), { busy: false });
 }
 
 /** Runs `fn` under the merge lock shared by every merge entry point; `busy` when it is held. */

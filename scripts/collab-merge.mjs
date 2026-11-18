@@ -67,7 +67,7 @@ export function runMerge(number, { gh = makeGh(), dryRun = false, date, nowMs = 
     }
     try { recordMerged(pr, date); } catch {}
     writeJson(join(stateDir, 'logs', `merge-pr${pr.number}-${gate.head.slice(0, 12)}.json`), { pr: pr.number, head: gate.head, base: gate.base, retargeted, at: new Date().toISOString() });
-    if (allowed.reservation?.pr === pr.number) releaseReservation(pr.number, 'đã merge');
+    if (allowed.reservation?.pr === pr.number) releaseReservation(pr.number, 'đã merge', { locked: true });
     return { status: 'merged', head: gate.head, retargeted };
   });
 }

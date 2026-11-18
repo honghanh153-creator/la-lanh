@@ -906,8 +906,8 @@
    "due": "2026-11-19",
    "status": "done",
    "test": {
-    "file": "scripts/collab-merge-gate.test.mjs",
-    "name": "incident replay: with fast merges every 20 minutes the full-check PR merges only with the reservation"
+    "file": "scripts/collab-loop.test.mjs",
+    "name": "L50 runtime replay: the real tick merges only the reservation holder through the real runMerge, then frees integration"
    },
    "caller": {
     "file": "scripts/collab-merge.mjs",
