@@ -1,0 +1,11 @@
+[Unit]
+Description=Check daily that the staging database TLS pair has more than 10 days left
+
+[Timer]
+OnCalendar=*-*-* 03:40:00 UTC
+Persistent=true
+AccuracySec=1min
+Unit=la-lanh-staging-db-tls.service
+
+[Install]
+WantedBy=timers.target
