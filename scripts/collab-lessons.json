@@ -917,6 +917,26 @@
     "pr": 736
    },
    "note": "Tick: scripts/collab-turn.mjs giữ chỗ cho PR đầu hàng trước khi đồng bộ (test 'reservation: the front reserves before its sync…'). Gỡ tay có ghi lý do: node scripts/collab-reservation.mjs --release --reason \"…\"."
+  },
+  {
+   "id": "L52",
+   "title": "PR draft mang nhãn \"st: tạm dừng\" (agent tạm dừng), không phải \"st: chờ owner\" (kiểm tra mỗi giờ 16:45 18.11: #726 draft hiện như việc của owner)",
+   "from": "kiểm tra mỗi giờ 16:45 18.11",
+   "who": "claude",
+   "due": "2026-11-19",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-labels.test.mjs",
+    "name": "a draft is labelled paused by its agent, never \"chờ owner\""
+   },
+   "caller": {
+    "file": "scripts/collab-labels.mjs",
+    "contains": "reason === 'draft' ? 'paused' : 'hold'"
+   },
+   "closedBy": {
+    "pr": 0
+   },
+   "note": "Nối L49 (PR chờ PR khác)."
   }
  ]
 }
