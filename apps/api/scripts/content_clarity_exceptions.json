@@ -196,6 +196,14 @@
       "approver": "owner in chat 12.11.2026 (#428)",
       "max_count": 915,
       "keys_digest": "f31090c1edd317d65164e2cd092395e8586952dae8a372e2e6ce408bd4f1f63f"
+    },
+    {
+      "rule": "A7",
+      "surface": "daily",
+      "reason": "#626 date-only Daily now also rotates the Sun element's situation, so the sample reaches 3 existing group-pressure sentences (already served to readers with a birth time); no sentence was added or changed",
+      "approver": "pending owner approval (#626, 18.11.2026)",
+      "max_count": 39,
+      "keys_digest": "65edeb226e98f0944de5d2816d2d1a9dd4835245e84ba9dc86802fc7862f1740"
     }
   ]
 }
