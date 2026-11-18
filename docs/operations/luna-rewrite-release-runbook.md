@@ -20,7 +20,10 @@ changes the cache key.
   scene and action slots, and the context lead. On a **date-only** reading the situation maps
   one-to-one to the Sun sign (`SUN_ISSUES`), so the payload reveals the Sun sign, a group of about
   1/12 of readers; `test_m1_date_only_catalog_choice_reveals_the_sun_sign_and_nothing_finer` pins
-  this so it cannot widen unnoticed. No date, degree, house, other placement or identifier is
+  this so it cannot widen unnoticed. Since #626 (18.11.2026) a rotated date-only Daily takes
+  turns between the sign's situation and the situation of the sign's element (8 of 12 signs
+  have two). Both come from the Sun sign alone, so one payload, or several days of payloads,
+  still reveals at most the Sun sign (`test_date_only_issue_rotation.py`). No date, degree, house, other placement or identifier is
   sent. M1 is therefore "no direct chart facts", **not** "chart-independent". Making the catalog
   choice itself uninformative would need the rewrite separated from the personal selection (for
   example editorial-time rewriting of the catalog), with its own date-only regression.
@@ -105,6 +108,27 @@ under v4 is reused.
     past the error.
   - Staging and production have generation off, so no v2 revision exists there today. Record the
     first v2 write in the release log before enabling the pilot.
+  - Since #626 a deterministic Daily card also carries a line when Lá's line for the day is an
+    approved extra pair (`la.issue.*` in the copy registry) rather than the authored first line.
+    Such a card stores both voices (`companion` and `companion_roast`, #657) and is
+    `reading-candidate/v3`; a v2 reader cannot open it.
+  - Approving a pair does not start v3 writes on its own. Line selection is switched off in code
+    (`EXTRA_LINE_SELECTION_ENABLED = False` in `readings/companion_pool.py`, decision D of
+    17.11.2026), so `daily_companion_line` returns nothing and every deterministic card stays v1,
+    whatever is approved. No pair is approved at the time of writing either.
+  - v3 writes start in an environment only when both hold there: a release with selection
+    switched on, and at least one pair whose two sentences are approved and pass the line rules.
+    Generation can still be off at that point.
+  - The rollback floor moves at the first v3 revision actually stored, not at the approval and not
+    at the release that switches selection on. Record that first stored v3 revision in the release
+    log; from then on the rollback target must keep a reader with `companion_roast`.
+  - Withdrawing or editing the approval of one pair stops new v3 cards with that pair only. Every
+    other pair that is still approved and valid keeps producing v3 cards
+    (`extra_lines_by_issue` in `readings/companion_pool.py` drops only the pair that is no longer
+    approved).
+  - To stop all new v3 writes, switch selection off again in a release, or withdraw every
+    eligible pair. A partial withdrawal is not a stop.
+  - Either way, cards already stored keep both voices and still need the v3 reader.
   - Evidence: `tests/readings/test_candidate_compat.py`, plus a probe that opened both
     serializations with the real `3d3107a` reader (v1 OK, v2 rejected on `companion`).
 

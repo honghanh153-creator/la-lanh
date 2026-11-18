@@ -1,6 +1,6 @@
 import './collab-test-home.mjs';
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -111,6 +111,77 @@ test('the lessons test itself runs in CI', () => {
 });
 
 // L08 (Codex 14.11): a Playwright spec counts only through the chain CI runs, and only unskipped.
+test('#661: an API pytest is accepted as a lesson test only when CI runs it, by its exact function name', () => {
+  const pkg = JSON.parse(readFileSync(join(lessons.root, 'package.json'), 'utf8'));
+  assert.ok(lessons.ciTestFiles(pkg).has('apps/api/tests/scripts/test_persona_runs.py'), 'the real chain: check -> api:test -> pytest -> tests');
+  assert.deepEqual(lessons.pytestCiFiles({ scripts: { ...pkg.scripts, check: 'pnpm collab:test' } }), [], 'not run by pnpm check: not counted');
+  assert.deepEqual(lessons.pytestCiFiles({ scripts: { ...pkg.scripts, 'api:test': 'uv run --directory apps/api pytest tests/daily' } }), [], 'a filtered api:test proves nothing');
+  const base = mkdtempSync(join(tmpdir(), 'lessons-py-'));
+  mkdirSync(join(base, 'apps/api/tests/scripts'), { recursive: true });
+  writeFileSync(join(base, 'apps/api/pyproject.toml'), '[tool.pytest.ini_options]\naddopts = "-q --strict-markers"\ntestpaths = ["tests"]\n');
+  writeFileSync(join(base, 'apps/api/tests/scripts/test_runs.py'), 'def test_sim_uses_production_rotation() -> None:\n    assert True\n');
+  writeFileSync(join(base, 'apps/api/caller.py'), 'daily_variety_from=PRODUCTION\n');
+  assert.deepEqual(lessons.pytestCiFiles(pkg, { base }), ['apps/api/tests/scripts/test_runs.py']);
+  const lesson = name => ({ lessons: [{ id: 'L99', title: 't', who: 'claude', due: '2026-11-20', status: 'done',
+    test: { file: 'apps/api/tests/scripts/test_runs.py', name }, caller: { file: 'apps/api/caller.py', contains: 'daily_variety_from' }, closedBy: { pr: 1 } }] });
+  const ciFiles = lessons.ciTestFiles(pkg, { base });
+  assert.deepEqual(lessons.problems(lesson('test_sim_uses_production_rotation'), { base, ciFiles }), []);
+  assert.match(lessons.problems(lesson('test_sim_uses'), { base, ciFiles })[0], /no test named/, 'a prefix of a name is not the test');
+  writeFileSync(join(base, 'apps/api/tests/scripts/test_runs.py'), '# def test_sim_uses_production_rotation():\n');
+  assert.match(lessons.problems(lesson('test_sim_uses_production_rotation'), { base, ciFiles })[0], /no test named/, 'a commented-out test does not count');
+  writeFileSync(join(base, 'apps/api/tests/scripts/test_runs.py'), '@pytest.mark.skip(reason="x")\ndef test_sim_uses_production_rotation() -> None:\n    pass\n');
+  assert.match(lessons.problems(lesson('test_sim_uses_production_rotation'), { base, ciFiles })[0], /skipped or xfail/);
+  writeFileSync(join(base, 'apps/api/pyproject.toml'), '[tool.pytest.ini_options]\naddopts = "-q --deselect tests/x"\ntestpaths = ["tests"]\n');
+  assert.deepEqual(lessons.pytestCiFiles(pkg, { base }), [], 'a config that can drop tests proves nothing');
+  // #667: a filter as the first option, and markers that span lines.
+  for (const opts of ['"-k other_test"', '"-m slow"', '"-q -m=slow"', '["-k", "x"]']) {
+    writeFileSync(join(base, 'apps/api/pyproject.toml'), `[tool.pytest.ini_options]\naddopts = ${opts}\ntestpaths = ["tests"]\n`);
+    assert.deepEqual(lessons.pytestCiFiles(pkg, { base }), [], `addopts ${opts} can drop tests`);
+  }
+  writeFileSync(join(base, 'apps/api/pyproject.toml'), '[tool.pytest.ini_options]\naddopts = "-q --strict-markers"\ntestpaths = ["tests"]\n');
+  writeFileSync(join(base, 'apps/api/tests/scripts/test_runs.py'), '@pytest.mark.skipif(\n    not ENABLED,\n    reason="opt-in",\n)\ndef test_sim_uses_production_rotation() -> None:\n    pass\n');
+  assert.match(lessons.problems(lesson('test_sim_uses_production_rotation'), { base, ciFiles })[0], /skipped or xfail/, 'a multiline skip decorator');
+  writeFileSync(join(base, 'apps/api/tests/scripts/test_runs.py'), 'pytestmark = [\n    pytest.mark.skipif(not ENABLED, reason="x"),\n]\n\n\ndef test_sim_uses_production_rotation() -> None:\n    pass\n');
+  assert.match(lessons.problems(lesson('test_sim_uses_production_rotation'), { base, ciFiles })[0], /skipped or xfail/, 'a multiline module marker');
+  writeFileSync(join(base, 'apps/api/tests/scripts/test_runs.py'), '@pytest.mark.parametrize(\n    "x", [1, 2],\n)\ndef test_sim_uses_production_rotation(x: int) -> None:\n    pass\n');
+  assert.deepEqual(lessons.problems(lesson('test_sim_uses_production_rotation'), { base, ciFiles }), [], 'other multiline decorators are fine');
+
+  // #672: the full TOML value and the full marker expressions are read by real parsers.
+  const config = body => writeFileSync(join(base, 'apps/api/pyproject.toml'), `[tool.pytest.ini_options]\n${body}\ntestpaths = ["tests"]\n`);
+  for (const opts of ['addopts = """\n-k other_test\n"""', 'addopts = [\n  "-q",\n  "-k", "x",\n]', 'addopts = "-q -kfoo"', 'addopts = "--deselect=tests/x"', 'addopts = "--lf"']) {
+    config(opts);
+    assert.deepEqual(lessons.pytestCiFiles(pkg, { base }), [], `${opts} can drop tests`);
+  }
+  config('addopts = """\n-q\n--strict-markers\n"""');
+  assert.deepEqual(lessons.pytestCiFiles(pkg, { base }), ['apps/api/tests/scripts/test_runs.py'], 'a multiline addopts without filters is fine');
+  config('addopts = "-q"\npython_functions = ["check_*"]');
+  assert.deepEqual(lessons.pytestCiFiles(pkg, { base }), [], 'a changed collection pattern proves nothing');
+  config('addopts = "-q"');
+  writeFileSync(join(base, 'apps/api/pytest.ini'), '[pytest]\naddopts = -k other\n');
+  assert.deepEqual(lessons.pytestCiFiles(pkg, { base }), [], 'pytest.ini overrides pyproject.toml');
+  rmSync(join(base, 'apps/api/pytest.ini'));
+  const skippedBy = (source, why) => {
+    writeFileSync(join(base, 'apps/api/tests/scripts/test_runs.py'), source);
+    assert.match(lessons.problems(lesson('test_sim_uses_production_rotation'), { base, ciFiles }).join(), /skipped or xfail/, why);
+  };
+  const fn = '\n\ndef test_sim_uses_production_rotation() -> None:\n    pass\n';
+  skippedBy(`pytestmark = [\n    pytest.mark.parametrize("x", [1]),\n\n    pytest.mark.skip(reason="x"),\n]${fn}`, 'a blank line inside the module marker list');
+  skippedBy(`pytestmark = [\n    # comment\n    pytest.mark.skip(reason="x"),\n]${fn}`, 'a comment inside the module marker list');
+  skippedBy(`pytestmark = []\npytestmark = pytest.mark.skip(reason="x")${fn}`, 'a second pytestmark assignment');
+  skippedBy(`pytestmark: list = []\npytestmark += [pytest.mark.xfail]${fn}`, 'an augmented pytestmark');
+  skippedBy('@pytest.mark.skipif(\n    not ENABLED,\n\n    reason="opt-in",\n)\ndef test_sim_uses_production_rotation() -> None:\n    pass\n', 'a blank line inside a multiline skipif');
+  skippedBy(`from pytest import mark\n\n@mark.xfail${fn}`, 'a mark imported from pytest');
+  skippedBy(`if not ENABLED:\n    pytest.skip("off", allow_module_level=True)${fn}`, 'a module-level skip call');
+  skippedBy('def test_sim_uses_production_rotation() -> None:\n    pytest.skip("later")\n', 'a skip call in the test');
+  // Fail closed: no Python 3.11+ (or a failing scan) proves nothing.
+  writeFileSync(join(base, 'apps/api/tests/scripts/test_runs.py'), fn.trimStart());
+  assert.deepEqual(lessons.problems(lesson('test_sim_uses_production_rotation'), { base, ciFiles }), [], 'the clean test still passes');
+  const none = () => null;
+  assert.deepEqual(lessons.pytestCiFiles(pkg, { base, scan: none }), [], 'no scan: no pytest file counts');
+  assert.match(lessons.problems(lesson('test_sim_uses_production_rotation'), { base, ciFiles, scan: none }).join(), /could not be checked/, 'no scan: the test proves nothing');
+  assert.equal(lessons.findPython(['/nonexistent/python3']), null);
+});
+
 test('an e2e spec is accepted as a lesson test only when CI runs it, and rejected otherwise', () => {
   const pkg = JSON.parse(readFileSync(join(lessons.root, 'package.json'), 'utf8'));
   const files = lessons.ciTestFiles(pkg);

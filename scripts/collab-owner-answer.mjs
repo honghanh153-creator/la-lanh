@@ -110,10 +110,15 @@ export function liftCheck(pr, { events = null, disputes = readDisputes(disputePa
   const view = disputeView(disputes)[pr.number];
   if (view?.hold) return { lift: false, reason: view.hold };
   if (disputeStates(disputes).labels.get(`pr:${pr.number}`)?.type === 'label-added') return { lift: false, reason: 'nhãn do một bất đồng gắn, không phải do review' };
-  const last = reviewState(pr).sealed.filter(c => c.auto && c.verdict).at(-1);
-  if (!last || last.verdict.sha !== pr.headRefOid) return { lift: false, reason: 'chưa có review tự động có dấu ở head hiện tại' };
+  const sealedAuto = reviewState(pr).sealed.filter(c => c.auto && c.verdict);
+  const last = sealedAuto.at(-1);
+  // Deadlock (Codex point 6 on #637, 17.11.2026): a labelled PR never gets a new review, so a label
+  // from an older head or from before owner_actions could never be lifted by an answer.
+  if (!last || last.verdict.sha !== pr.headRefOid) return staleLift(pr, sealedAuto, events);
   const log = reviewLogFor(parseVerdictSeal(last.body, last.verdict.sha)?.receipt);
-  if (!Array.isArray(log?.ownerActions)) return { lift: false, reason: 'không đọc được log review của head này' };
+  // #678: a review at this head from before #591 has no ownerActions in its log; its label came from
+  // the old rules, so the old-rules checks decide (an answer at this head, every label before #591).
+  if (!Array.isArray(log?.ownerActions)) return staleLift(pr, [], events);
   const valid = sealedAnswers(pr);
   const reviewed = Array.isArray(log.answered) ? log.answered : [];
   const covers = kind => valid.some(x => x.kinds.includes(kind) && (x.sha === pr.headRefOid || reviewed.some(y => y.kind === kind && y.sha === x.sha)));
@@ -129,6 +134,43 @@ export function liftCheck(pr, { events = null, disputes = readDisputes(disputePa
   const recent = events.filter(e => !Number.isFinite(timeOf(e?.at)) || timeOf(e.at) >= since);
   if (!(recent.length === 1 && recent[0].event === 'labeled')) return { lift: false, reason: 'nhãn đã bị đổi sau review cuối; để owner gỡ' };
   return { lift: true };
+}
+
+// #591 (owner_actions in every verdict) merged at this time; a needs-owner label added before it
+// came from the old rules (two REQUEST_CHANGES, an oversized PR) and names no owner kind.
+export const ownerActionsSince = Date.parse('2026-11-16T07:35:10Z');
+
+// The two stale cases, both with the owner's answer recorded at the CURRENT head (so it covers the
+// content as it is now) and nothing she wrote herself after that answer:
+// - older head: the last sealed review that added the label held only kinds she has now answered,
+//   and the label has not been touched since that review;
+// - old rules: every "labeled" event predates owner_actions and no sealed review with owner_actions
+//   came after it.
+function staleLift(pr, sealedAuto, events) {
+  const answersNow = sealedAnswers(pr).filter(a => a.sha === pr.headRefOid);
+  if (!answersNow.length) return { lift: false, reason: 'chưa có review tự động có dấu ở head hiện tại, và chưa có câu trả lời của owner ghi ở head này' };
+  if (!Array.isArray(events)) return { lift: false, reason: 'không đọc được lịch sử nhãn' };
+  const newestAnswer = Math.max(...answersNow.map(a => timeOf(a.at)));
+  if (!Number.isFinite(newestAnswer)) return { lift: false, reason: 'không đọc được giờ của câu trả lời' };
+  if (trustedComments(pr.comments).some(c => timeOf(c.createdAt) > newestAnswer && !String(c.body ?? '').includes(agentMarker))) return { lift: false, reason: 'owner đã viết trên PR sau câu trả lời; để owner gỡ' };
+  const answered = new Set(answersNow.flatMap(a => a.kinds));
+  const logged = [...sealedAuto].reverse().map(c => ({ c, log: reviewLogFor(parseVerdictSeal(c.body, c.verdict.sha)?.receipt) }))
+    .find(x => Array.isArray(x.log?.ownerActions));
+  const labeled = events.filter(e => e?.event === 'labeled');
+  const lastLabel = labeled.at(-1);
+  if (!lastLabel || events.at(-1)?.event !== 'labeled') return { lift: false, reason: 'lịch sử nhãn không khớp nhãn đang gắn' };
+  if (logged && logged.log.needsOwner === true) {
+    const held = [...new Set(logged.log.ownerActions.filter(a => a.hold === 'merge').map(a => a.kind))];
+    const open = held.filter(k => !answered.has(k));
+    if (!held.length) return { lift: false, reason: 'review cuối không giữ merge vì việc của owner; nhãn có lý do khác' };
+    if (open.length) return { lift: false, reason: `còn loại chưa được owner trả lời: ${open.join(', ')}` };
+    const since = timeOf(logged.c.createdAt) - labelSkewMs;
+    const recent = events.filter(e => !Number.isFinite(timeOf(e?.at)) || timeOf(e.at) >= since);
+    if (!(recent.length === 1 && recent[0].event === 'labeled')) return { lift: false, reason: 'nhãn đã bị đổi sau review cuối; để owner gỡ' };
+    return { lift: true, mode: 'older-head' };
+  }
+  if (labeled.every(e => timeOf(e.at) < ownerActionsSince)) return { lift: true, mode: 'old-rules' };
+  return { lift: false, reason: 'nhãn gắn sau khi có owner_actions nhưng không có log review; để owner gỡ' };
 }
 
 const kindText = { cost_access: 'chi phí, dịch vụ hoặc quyền truy cập mới', release: 'phát hành', sensitive_copy: 'chữ privacy/consent/crisis/safety', data_collection: 'bật thu dữ liệu cá nhân mới' };

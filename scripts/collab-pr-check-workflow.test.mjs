@@ -86,6 +86,66 @@ test('no job-level condition skips the edited event', () => {
   for (const l of jobIfs) assert.doesNotMatch(l, /github\.event\.action|edited|changes\.base/, l);
 });
 
+// #719: the concurrency group is evaluated as GitHub would, against event payloads. A tiny evaluator
+// for the subset the group uses: github.* paths, string literals, ==, !=, !, &&, || and parentheses.
+// GitHub semantics: a missing property is null, == on strings ignores case, && and || return an
+// operand, and null renders as an empty string.
+function evalExpr(src, ctx) {
+  const tokens = src.match(/'(?:[^']|'')*'|&&|\|\||==|!=|[()!]|[A-Za-z_][\w.-]*/g) ?? [];
+  let i = 0;
+  const peek = () => tokens[i];
+  const take = t => { if (t && tokens[i] !== t) throw new Error(`expected ${t} at ${tokens[i]}`); return tokens[i++]; };
+  const truthy = v => !(v === false || v === null || v === undefined || v === 0 || v === '' || Number.isNaN(v));
+  const eq = (a, b) => (typeof a === 'string' && typeof b === 'string' ? a.toLowerCase() === b.toLowerCase() : (a ?? null) === (b ?? null));
+  const primary = () => {
+    const t = take();
+    if (t === '(') { const v = or(); take(')'); return v; }
+    if (t === '!') return !truthy(primary());
+    if (t.startsWith("'")) return t.slice(1, -1).replace(/''/g, "'");
+    if (t === 'true' || t === 'false') return t === 'true';
+    if (t === 'null') return null;
+    return t.split('.').reduce((o, k) => (o == null ? null : (o[k] ?? null)), ctx);
+  };
+  const cmp = () => { let v = primary(); while (peek() === '==' || peek() === '!=') { const op = take(); const r = primary(); v = op === '==' ? eq(v, r) : !eq(v, r); } return v; };
+  const and = () => { let v = cmp(); while (peek() === '&&') { take(); const r = cmp(); v = truthy(v) ? r : v; } return v; };
+  const or = () => { let v = and(); while (peek() === '||') { take(); const r = and(); v = truthy(v) ? v : r; } return v; };
+  const v = or();
+  if (i !== tokens.length) throw new Error(`trailing ${tokens.slice(i).join(' ')}`);
+  return v;
+}
+function concurrency() {
+  const at = lines.indexOf('concurrency:');
+  assert.ok(at >= 0, 'top-level concurrency not found');
+  const group = lines.slice(at + 1).find(l => /^ {2}group:/.test(l))?.replace(/^ {2}group:\s*/, '');
+  const cancel = lines.slice(at + 1).find(l => /^ {2}cancel-in-progress:/.test(l))?.replace(/^ {2}cancel-in-progress:\s*/, '');
+  return { group, cancel };
+}
+const groupFor = event => concurrency().group.replace(/\$\{\{(.*?)\}\}(?=\$\{\{|$|[^}])/g, (_, e) => String(evalExpr(e, { github: { event } }) ?? ''));
+
+test('#719: label changes and body edits never cancel the main run; code, retarget and the deletion label do', () => {
+  const pr = { number: 7 };
+  const main = 'pr-check-7';
+  const meta = 'pr-check-7-meta';
+  assert.equal(concurrency().cancel, 'true');
+  for (const action of ['opened', 'synchronize', 'reopened', 'ready_for_review']) assert.equal(groupFor({ action, pull_request: pr }), main, action);
+  assert.equal(groupFor({ action: 'edited', pull_request: pr, changes: { base: { ref: { from: 'x' } } } }), main, 'a retarget');
+  assert.equal(groupFor({ action: 'edited', pull_request: pr, changes: { body: { from: 'x' } } }), meta, 'a body edit');
+  assert.equal(groupFor({ action: 'edited', pull_request: pr, changes: { title: { from: 'x' } } }), meta, 'a title edit');
+  assert.equal(groupFor({ action: 'edited', pull_request: pr }), meta, 'an edit without changes');
+  for (const action of ['labeled', 'unlabeled']) {
+    assert.equal(groupFor({ action, pull_request: pr, label: { name: 'owner-ok-deletion' } }), main, `${action} owner-ok-deletion`);
+    assert.equal(groupFor({ action, pull_request: pr, label: { name: 'st: đang kiểm tra' } }), meta, `${action} a status label`);
+    assert.equal(groupFor({ action, pull_request: pr, label: { name: 'needs-owner' } }), meta, `${action} needs-owner`);
+    assert.equal(groupFor({ action, pull_request: pr }), meta, `${action} without a label field`);
+  }
+  assert.equal(groupFor({ action: 'labeled', pull_request: { number: 8 }, label: { name: 'x' } }), 'pr-check-8-meta', 'another PR has its own groups');
+  // The evaluator itself follows GitHub: case-insensitive strings, operand-returning && and ||.
+  assert.equal(evalExpr("'A' == 'a'", {}), true);
+  assert.equal(evalExpr("github.x && 'y' || ''", { github: {} }), '');
+  // The old single group would put the status label in the main group (the 18.11 cancellations).
+  assert.notEqual(meta, main);
+});
+
 test('renaming scripts/qa-server.mjs to scripts/collab-qa-server.mjs is classified full', () => {
   assert.equal(classify(dir => git(dir, 'mv', 'scripts/qa-server.mjs', 'scripts/collab-qa-server.mjs')), 'full');
 });

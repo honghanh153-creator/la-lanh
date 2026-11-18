@@ -942,6 +942,9 @@ def _content_projection(
             transit=candidate.transit,
             micro_action=candidate.micro_action,
             companion=_companion_line(candidate, projection.purpose),
+            companion_roast=candidate.companion_roast
+            if projection.purpose is ReadingPurpose.DAILY_NOTE
+            else None,
         ),
         evidence=ReadingEvidenceProjection(
             title=candidate.evidence.title,
