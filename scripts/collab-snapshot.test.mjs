@@ -4,6 +4,8 @@ import { join } from 'node:path';
 process.env.LA_LANH_COLLAB_HOME = mkdtempSync(join(tmpdir(), 'collab-snapshot-'));
 const assert = (await import('node:assert/strict')).default;
 const test = (await import('node:test')).default;
+// Incident 18.11.2026: a merge reservation written by one tick test must not steer the next.
+test.beforeEach(async () => (await import('./collab-reservation.mjs'))._resetReservation());
 const trust = await import('./collab-trust.mjs');
 const { collect, renderSnapshot, saveOnce, snapshotPath, takeSnapshot } = await import('./collab-snapshot.mjs');
 const { renderBoard } = await import('./collab-status.mjs');

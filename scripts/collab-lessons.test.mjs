@@ -1,6 +1,6 @@
 import './collab-test-home.mjs';
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -145,6 +145,41 @@ test('#661: an API pytest is accepted as a lesson test only when CI runs it, by 
   assert.match(lessons.problems(lesson('test_sim_uses_production_rotation'), { base, ciFiles })[0], /skipped or xfail/, 'a multiline module marker');
   writeFileSync(join(base, 'apps/api/tests/scripts/test_runs.py'), '@pytest.mark.parametrize(\n    "x", [1, 2],\n)\ndef test_sim_uses_production_rotation(x: int) -> None:\n    pass\n');
   assert.deepEqual(lessons.problems(lesson('test_sim_uses_production_rotation'), { base, ciFiles }), [], 'other multiline decorators are fine');
+
+  // #672: the full TOML value and the full marker expressions are read by real parsers.
+  const config = body => writeFileSync(join(base, 'apps/api/pyproject.toml'), `[tool.pytest.ini_options]\n${body}\ntestpaths = ["tests"]\n`);
+  for (const opts of ['addopts = """\n-k other_test\n"""', 'addopts = [\n  "-q",\n  "-k", "x",\n]', 'addopts = "-q -kfoo"', 'addopts = "--deselect=tests/x"', 'addopts = "--lf"']) {
+    config(opts);
+    assert.deepEqual(lessons.pytestCiFiles(pkg, { base }), [], `${opts} can drop tests`);
+  }
+  config('addopts = """\n-q\n--strict-markers\n"""');
+  assert.deepEqual(lessons.pytestCiFiles(pkg, { base }), ['apps/api/tests/scripts/test_runs.py'], 'a multiline addopts without filters is fine');
+  config('addopts = "-q"\npython_functions = ["check_*"]');
+  assert.deepEqual(lessons.pytestCiFiles(pkg, { base }), [], 'a changed collection pattern proves nothing');
+  config('addopts = "-q"');
+  writeFileSync(join(base, 'apps/api/pytest.ini'), '[pytest]\naddopts = -k other\n');
+  assert.deepEqual(lessons.pytestCiFiles(pkg, { base }), [], 'pytest.ini overrides pyproject.toml');
+  rmSync(join(base, 'apps/api/pytest.ini'));
+  const skippedBy = (source, why) => {
+    writeFileSync(join(base, 'apps/api/tests/scripts/test_runs.py'), source);
+    assert.match(lessons.problems(lesson('test_sim_uses_production_rotation'), { base, ciFiles }).join(), /skipped or xfail/, why);
+  };
+  const fn = '\n\ndef test_sim_uses_production_rotation() -> None:\n    pass\n';
+  skippedBy(`pytestmark = [\n    pytest.mark.parametrize("x", [1]),\n\n    pytest.mark.skip(reason="x"),\n]${fn}`, 'a blank line inside the module marker list');
+  skippedBy(`pytestmark = [\n    # comment\n    pytest.mark.skip(reason="x"),\n]${fn}`, 'a comment inside the module marker list');
+  skippedBy(`pytestmark = []\npytestmark = pytest.mark.skip(reason="x")${fn}`, 'a second pytestmark assignment');
+  skippedBy(`pytestmark: list = []\npytestmark += [pytest.mark.xfail]${fn}`, 'an augmented pytestmark');
+  skippedBy('@pytest.mark.skipif(\n    not ENABLED,\n\n    reason="opt-in",\n)\ndef test_sim_uses_production_rotation() -> None:\n    pass\n', 'a blank line inside a multiline skipif');
+  skippedBy(`from pytest import mark\n\n@mark.xfail${fn}`, 'a mark imported from pytest');
+  skippedBy(`if not ENABLED:\n    pytest.skip("off", allow_module_level=True)${fn}`, 'a module-level skip call');
+  skippedBy('def test_sim_uses_production_rotation() -> None:\n    pytest.skip("later")\n', 'a skip call in the test');
+  // Fail closed: no Python 3.11+ (or a failing scan) proves nothing.
+  writeFileSync(join(base, 'apps/api/tests/scripts/test_runs.py'), fn.trimStart());
+  assert.deepEqual(lessons.problems(lesson('test_sim_uses_production_rotation'), { base, ciFiles }), [], 'the clean test still passes');
+  const none = () => null;
+  assert.deepEqual(lessons.pytestCiFiles(pkg, { base, scan: none }), [], 'no scan: no pytest file counts');
+  assert.match(lessons.problems(lesson('test_sim_uses_production_rotation'), { base, ciFiles, scan: none }).join(), /could not be checked/, 'no scan: the test proves nothing');
+  assert.equal(lessons.findPython(['/nonexistent/python3']), null);
 });
 
 test('an e2e spec is accepted as a lesson test only when CI runs it, and rejected otherwise', () => {

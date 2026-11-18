@@ -79,6 +79,11 @@ cho phép.
 - **AC07:** Không còn "một tình huống cố định theo cung cả năm". Pool có 4–6 tình huống, lấy từ cung,
   nguyên tố, tính chất và **transit chắc chắn** tới các hành tinh có miền xác định
   (`la-lanh-personal-sky-events-spec.md`).
+  - *Trạng thái 18.11.2026 (#626): mới đạt một phần.* Pool lấy từ cung và nguyên tố của Mặt Trời:
+    8 cung có 2 tình huống đổi nhau mỗi ngày; Bạch Dương, Kim Ngưu, Cự Giải, Bảo Bình vẫn 1 tình
+    huống vì cung và nguyên tố cho cùng một tình huống. Mặt Trời ở ranh giới hai cung chưa được gì
+    thêm. Chưa có: tính chất, các hành tinh khác chắc cung từ ngày sinh, transit chắc chắn; nên
+    chưa tới 4–6.
 - **AC08:** Không dùng Mặt Trăng, cung mọc, nhà. Bài ghi rõ là bản đọc từ ngày sinh.
   - Câu nói về **pha** chỉ hiện khi pha chắc trên miền ngày sinh (`phase_allowed`).
   - "Ngày N" theo AC09.

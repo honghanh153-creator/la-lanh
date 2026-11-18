@@ -14,8 +14,19 @@ on:
 permissions:
   contents: read
 
+# #719 (18.11.2026): label and body edits used to share one group with code pushes, so the loop's own
+# status label (`st: đang kiểm tra`, set when the author check starts) cancelled the run it was
+# waiting for, 8–9 min in. Two groups now, no job-level `if:` (a skipped `check` must never replace
+# a failed one):
+# - main `pr-check-<N>`: opened, synchronize, reopened, ready_for_review, a retarget (edited with
+#   changes.base) and adding or removing `owner-ok-deletion` (the deletion guard reads labels from
+#   the payload). A new main run cancels the older main run.
+# - meta `pr-check-<N>-meta`: any other label change and title/body edits. A meta run is a full run
+#   of the same head; it cancels only an older meta run, never the main one.
+# The author check reads the newest run that was not cancelled (collab-check ciCheck), so a meta run
+# can supersede a main run on the same head, as a green re-run does (accepted, Codex on #719).
 concurrency:
-  group: pr-check-${{ github.event.pull_request.number }}
+  group: pr-check-${{ github.event.pull_request.number }}${{ (((github.event.action == 'labeled' || github.event.action == 'unlabeled') && github.event.label.name != 'owner-ok-deletion') || (github.event.action == 'edited' && !github.event.changes.base)) && '-meta' || '' }}
   cancel-in-progress: true
 
 jobs:
