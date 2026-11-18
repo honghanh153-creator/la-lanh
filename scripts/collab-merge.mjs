@@ -1,6 +1,7 @@
 // Merge one PR into collab/integration only when every condition in the auto-loop plan §4.2 holds.
 // Usage: node scripts/collab-merge.mjs --pr N [--dry-run]
 import { join } from 'node:path';
+import { deletionProblem } from './collab-size.mjs';
 import { agentMarker, clean, dayStatePath, fixForwardIssue, integration, isOwnPr, isSha, keyCreatedMs, makeGh, readJson, repo, reviewState, sealValid, stateDir, trustedComments, vnNow, writeJson } from './collab-trust.mjs';
 import { afterDecision, disputeView } from './collab-disagree.mjs';
 import { isMain } from './is-main.mjs';
@@ -20,6 +21,8 @@ export function mergeGate(pr, { baseFiles, disputes = disputeView() } = {}) {
   if (pr.baseRefName !== integration) reasons.push(`base là ${pr.baseRefName}, chỉ merge vào ${integration}`);
   if (pr.isDraft) reasons.push('draft');
   if (labels.includes('needs-owner')) reasons.push('needs-owner');
+  const deletion = deletionProblem(pr);
+  if (deletion) reasons.push(deletion);
   if (pr.mergeable !== 'MERGEABLE') reasons.push(`GitHub báo mergeable=${pr.mergeable}`);
   if (!isSha(pr.baseTipOid)) reasons.push(`không đọc được SHA hiện tại của ${integration}`);
   if (disputes[pr.number]?.hold) reasons.push(disputes[pr.number].hold);

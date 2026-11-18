@@ -10,7 +10,8 @@ import { bodyHash } from './collab-heal.mjs';
 import { claimsByPr, mayTouch, pruneClaims } from './collab-pr-claim.mjs';
 import { plannedWork, workRef } from './collab-work.mjs';
 import { gateValue, preflightFailure, readPreflight, recordPreflight, userSees } from './collab-preflight.mjs';
-import { sizeProblem, withRepeatNote } from './collab-size.mjs';
+import { syncStatusLabels } from './collab-labels.mjs';
+import { deletionProblem, sizeProblem, withRepeatNote } from './collab-size.mjs';
 import { withFileLock } from './collab-lock.mjs';
 import { bufferStatus, dailyLaneLabel, queueTopUp, wipCount } from './collab-buffer.mjs';
 import { afterDecision, disputeView, settleDisputes } from './collab-disagree.mjs';
@@ -68,6 +69,8 @@ export function prTurn(pr, { dropped = [], open = [], preflight = {}, baseFiles,
   if (pr.baseRefName === 'main') return out('hold', 'base là main: chỉ owner');
   if (pr.isDraft) return out('hold', 'draft');
   if (labels.includes('needs-owner')) return out('hold', 'needs-owner');
+  const deletion = deletionProblem(pr);
+  if (deletion) return out('hold', deletion);
   // L25: an open dispute holds the PR; after a decision only a newer check and review count.
   if (disputes[pr.number]?.hold) return out('hold', disputes[pr.number].hold);
   if (dropped.includes(pr.number)) return out('hold', 'owner bỏ khỏi plan hôm nay');
@@ -369,6 +372,8 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       const drops = dropSet(plan, prs, dayPath, day);
       const gone = drops.keys;
       const turns = applyDrops(ciRechecks(turnsFor(prs, { dropped: drops.prs, baseFiles: gh.compareFiles }), prs, { ci: ciStatus, seen: recheckedKeys(now.date), log }), gone);
+      // Labels follow the final turns, after a green CI re-run may have moved a PR to claude-check.
+      try { if (gh.raw) syncStatusLabels(gh, prs, turns); } catch (error) { log(`status labels: ${String(error.message ?? error).slice(0, 200)}`); }
       // #253: the scheduled tick samples the flow metric and owns the buffer top-up, so the
       // persisted queue and --status agree and the metric does not depend on report reads.
       const { queue: startBuffer } = bufferStatus(prs, turns, { plan7wPrs: plan7wPrNumbers(turns, now.date) });
