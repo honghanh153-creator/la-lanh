@@ -39,11 +39,14 @@ _LINT_RULES: tuple[tuple[str, re.Pattern[str]], ...] = (
             r"(?i:[a-z][a-z0-9+.-]*://|\bwww\.)|"
             # Any bare domain: labels of letters, digits and hyphens, Unicode included
             # ("ví-dụ.test", review r4 of #411), joined by dots and ending in an ASCII suffix
-            # of 2 to 24 letters written all lower or all upper case, with no word character
-            # touching either end. A missing space after a full stop ("việc.Rồi", "xong.Sau")
-            # or a number ("1.5") is not a domain.
+            # of 2 to 24 letters in any case ("vi-du.TeSt", review r5), with no word character
+            # touching either end. The one exception is a capitalised word right after a full
+            # stop with no space ("việc.Rồi", "xong.Sau"), which is prose, unless a path
+            # follows ("vi-du.Com/trang") or a label has a hyphen or digit ("vi-du.Com").
+            # A number ("1.5") is not a domain.
             r"(?<![\w-])[^\W_](?:[\w-]*[^\W_])?(?:\.[^\W_](?:[\w-]*[^\W_])?)*"
-            r"\.(?:[a-z]{2,24}|[A-Z]{2,24})(?![\w-])",
+            r"\.(?:(?![A-Z][a-z]+(?![\w-]))[A-Za-z]{2,24}|[A-Z][a-z]{1,23}(?=/))(?![\w-])|"
+            r"(?<![\w-])[\w-]*[-0-9][\w-]*(?:\.[\w-]+)*\.[A-Z][a-z]{1,23}(?![\w-])",
         ),
     ),
     ("contains an email address or handle", re.compile(r"@\w")),

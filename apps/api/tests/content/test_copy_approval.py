@@ -160,6 +160,18 @@ _LINT_BAD = [
     "Câu này XXX chưa xong.",
     "Lorem ipsum dolor sit amet.",
     "Câu thù nghiệm chưa chuẩn hoá.",  # decomposed grave accent, not NFC
+    # Review r4/r5 of #411: Unicode labels, any-case suffixes, printf slots with flags.
+    "Ghé ví-dụ.test để đọc thêm.",
+    "Ghé ĐỌC-THÊM.VN để đọc thêm.",
+    "Ghé vi-du.TeSt/trang để đọc thêm.",
+    "Ghé vi-du.tEST để đọc thêm.",
+    "Ghé vi-du.Com để đọc thêm.",
+    "Ghé vidu.Com/trang để đọc thêm.",
+    "Còn %02d ngày nữa.",
+    "Còn %.2f giờ nữa.",
+    "Chào %-10s nhé.",
+    "Bạn được %+d điểm.",
+    "Chào %(ten)05.1f nhé.",
 ]
 
 
