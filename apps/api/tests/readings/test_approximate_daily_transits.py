@@ -417,3 +417,215 @@ def test_the_reading_service_reads_the_birthplace_zone_and_fails_closed() -> Non
     assert asyncio.run(birth.birth_timezone(guest, UUID(int=99))) is None
     object.__setattr__(birth, "supplement_state", missing)
     assert asyncio.run(birth.birth_timezone(guest, profile)) is None
+
+
+# --- US-03 AC22 when something fails for one request only (Codex r3 on #726) -----------------
+
+
+def _transit_day(person: int) -> date:
+    """A day on which this synthetic person's Daily holds a proven transit."""
+
+    chart = _approximate()
+    return next(
+        day
+        for day in _DAYS
+        if any(f.source is FactorSource.TRANSIT for f in _plan(chart, day, person).factors)
+    )
+
+
+class _Desk:
+    """One synthetic owner's reading service, with a zone lookup the test can break."""
+
+    def __init__(self, person: int) -> None:
+        from app.domains.birth.models import BirthSnapshotRecord
+        from app.domains.readings.application import ReadingApplicationService
+        from tests.readings.test_application import MemoryReadingRepository
+
+        self.guest, self.profile = UUID(int=900 + person), UUID(int=person + 1)
+        self.zone_fails = False
+        self.repository = MemoryReadingRepository()
+        self.service = ReadingApplicationService(
+            cast(Any, self.repository),
+            _ENGINE,
+            daily_variety_key=_KEY,
+            daily_variety_from=date(2026, 10, 20),
+            birth_timezone_lookup=self._zone,
+        )
+        self.snapshot = BirthSnapshotRecord(
+            id=UUID(int=700 + person),
+            guest_id=self.guest,
+            profile_id=self.profile,
+            input_hash=b"approximate",
+            birth_date_ciphertext="encrypted",
+            result=_approximate(),
+            created_at=datetime(2026, 9, 7, 4, 30, tzinfo=UTC),
+        )
+
+    async def _zone(self, guest_id: UUID, profile_id: UUID) -> str | None:
+        if self.zone_fails:
+            raise RuntimeError("store unavailable")
+        return _ZONE
+
+    def open(self, day: date, lens: BackgroundLens | None) -> ReadingPlan:
+        import asyncio
+
+        projection = asyncio.run(
+            self.service.project(
+                guest_id=self.guest,
+                snapshot=self.snapshot,
+                purpose=ReadingPurpose.DAILY_NOTE,
+                requested_at=datetime.combine(day, time(12), tzinfo=UTC),
+                background_lens=lens,
+            )
+        )
+        key = (self.guest, self.profile, projection.active.revision_id)
+        plan_id = self.repository.revisions[key].plan_id
+        return next(r.plan for r in self.repository.plans.values() if r.id == plan_id)
+
+
+def _same_evidence(first: ReadingPlan, other: ReadingPlan) -> None:
+    renderer = DeterministicVietnameseRenderer()
+    assert other.factors == first.factors
+    assert other.transit_policy == first.transit_policy
+    assert other.precision is first.precision
+    card = renderer.render(other)
+    assert card.evidence == renderer.render(first).evidence
+    assert evaluate_candidate(other, card).accepted
+
+
+def _broken_calculation(*args: object, **kwargs: object) -> None:
+    raise RuntimeError("ephemeris unavailable")
+
+
+def test_a_failed_calculation_for_the_first_lens_holds_for_every_lens_of_the_day(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The r3 counterexample: the calculation fails while the first lens is opened and works
+    again for the next. The first lens was served from the natal chart, so the day stays so."""
+
+    from app.domains.readings import application
+
+    desk = _Desk(0)
+    day = _transit_day(0)
+    monkeypatch.setattr(application, "interval_transit_to_natal", _broken_calculation)
+    first = desk.open(day, None)
+    assert not any(f.source is FactorSource.TRANSIT for f in first.factors)
+    monkeypatch.setattr(application, "interval_transit_to_natal", interval_transit_to_natal)
+    for lens in _LENSES:
+        _same_evidence(first, desk.open(day, lens))
+    _same_evidence(first, desk.open(day, None))
+    # The next day is decided again, on its own.
+    assert any(
+        f.source is FactorSource.TRANSIT
+        for later in _DAYS
+        if later > day
+        for f in desk.open(later, None).factors
+    )
+
+
+def test_a_failed_calculation_for_a_later_lens_keeps_the_transit_of_the_day(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.domains.readings import application
+
+    desk = _Desk(1)
+    day = _transit_day(1)
+    first = desk.open(day, None)
+    assert any(f.source is FactorSource.TRANSIT for f in first.factors)
+    monkeypatch.setattr(application, "interval_transit_to_natal", _broken_calculation)
+    for lens in _LENSES:
+        _same_evidence(first, desk.open(day, lens))
+
+
+def test_a_failed_zone_lookup_for_one_lens_never_splits_the_evidence_of_the_day() -> None:
+    """Without the zone the wide window applies and fewer contacts qualify. Whichever lens is
+    opened first decides; a lookup that fails or recovers later changes nothing that day."""
+
+    for person in range(3):
+        for fails_first in (True, False):
+            desk = _Desk(person)
+            for day in _DAYS[:10]:
+                desk.zone_fails = fails_first
+                first = desk.open(day, _LENSES[0])
+                desk.zone_fails = not fails_first
+                for lens in (None, *_LENSES[1:]):
+                    _same_evidence(first, desk.open(day, lens))
+
+
+def test_a_rejected_reason_keeps_the_transit_as_evidence_for_that_lens(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """B1b on a window Daily: when a gate rejects a lens's reason sentence, the lens loses the
+    sentence, not the day's transit evidence."""
+
+    from app.domains.readings import application
+    from app.domains.readings.models import (
+        CandidateEvaluation,
+        GateFailureCode,
+        ReadingCandidate,
+    )
+
+    rejected: list[BackgroundLens | None] = []
+
+    def strict(plan: ReadingPlan, candidate: ReadingCandidate) -> CandidateEvaluation:
+        evaluation = evaluate_candidate(plan, candidate)
+        if candidate.transit is None or plan.background_lens is None:
+            return evaluation
+        rejected.append(plan.background_lens)
+        failed = evaluation.reports[0].model_copy(
+            update={
+                "passed": False,
+                "failure_codes": (GateFailureCode.EVIDENCE_DAILY_TRANSIT_LINK,),
+            }
+        )
+        return CandidateEvaluation(accepted=False, reports=(failed, *evaluation.reports[1:]))
+
+    monkeypatch.setattr(application, "evaluate_candidate", strict)
+    for person in range(3):
+        desk = _Desk(person)
+        day = _transit_day(person)
+        first = desk.open(day, None)
+        assert any(f.source is FactorSource.TRANSIT for f in first.factors)
+        for lens in _LENSES:
+            framed = desk.open(day, lens)
+            _same_evidence(first, framed)
+            assert framed.transit_reason_withheld is True
+    assert rejected, "some lens had its reason sentence rejected"
+
+
+def test_the_planner_repeats_a_day_transit_and_can_withhold_its_reason() -> None:
+    from app.domains.readings.planner import DayTransit
+
+    chart = _approximate()
+    day = _transit_day(0)
+    plain = _plan(chart, day)
+    transit = next(f for f in plain.factors if f.source is FactorSource.TRANSIT)
+
+    def repeat(
+        decision: DayTransit, lens: BackgroundLens | None, withhold: bool = False
+    ) -> ReadingPlan:
+        return ReadingPlanner().plan(
+            chart,
+            purpose=ReadingPurpose.DAILY_NOTE,
+            editorial_seed=day.isoformat(),
+            daily_variety=_variety(0, day),
+            background_lens=lens,
+            day_transit=decision,
+            withhold_transit_reason=withhold,
+        )
+
+    for lens in (None, *_LENSES):
+        assert repeat(DayTransit(transit, plain.transit_policy), lens) == _plan(chart, day, 0, lens)
+        natal = repeat(DayTransit(None, None), lens)
+        assert not any(f.source is FactorSource.TRANSIT for f in natal.factors)
+        assert natal.transit_policy is None and natal.transit_reason_withheld is None
+        withheld = repeat(DayTransit(transit, plain.transit_policy), lens, withhold=True)
+        assert withheld.factors == plain.factors and withheld.transit_reason_withheld is True
+        assert _reads_before_step_2(withheld)
+        assert DeterministicVietnameseRenderer().render(withheld).transit is None
+    # A transit whose natal placement the chart no longer offers is not carried over.
+    stray = transit.model_copy(update={"child_refs": ("natal:unknown",)})
+    assert not any(
+        f.source is FactorSource.TRANSIT
+        for f in repeat(DayTransit(stray, plain.transit_policy), None).factors
+    )

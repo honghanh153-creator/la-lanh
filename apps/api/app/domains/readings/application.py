@@ -6,6 +6,7 @@ from asyncio import to_thread
 from collections.abc import Awaitable, Callable
 from datetime import UTC, date, datetime, time, timedelta
 from hashlib import sha256
+from typing import Any
 from uuid import UUID, uuid4
 from zoneinfo import ZoneInfo
 
@@ -65,7 +66,7 @@ from app.domains.readings.models import (
     canonical_reading_revision_key,
     experiment_projection_for,
 )
-from app.domains.readings.planner import ReadingPlanner
+from app.domains.readings.planner import DayTransit, ReadingPlanner
 from app.domains.readings.renderers import (
     JYOTISH_MEANINGS_VERSION,
     DeterministicVietnameseRenderer,
@@ -183,18 +184,26 @@ class ReadingApplicationService:
                 )
             else:
                 daily_variety = None
+            day_transit = await self._day_transit(
+                guest_id, snapshot, source_chart, purpose, local_date, observed_at, background_lens
+            )
             plan, plan_record, candidate, revision = await self._deterministic_revision(
                 guest_id=guest_id,
                 snapshot=snapshot,
                 source_chart=source_chart,
                 purpose=purpose,
-                transits=await self._optional_transits(
-                    source_chart, purpose, observed_at, birth_timezone=birth_timezone
+                transits=(
+                    await self._optional_transits(
+                        source_chart, purpose, observed_at, birth_timezone=birth_timezone
+                    )
+                    if day_transit is None
+                    else None
                 ),
                 editorial_seed=editorial_seed,
                 background_lens=background_lens,
                 daily_variety=daily_variety,
                 current=current,
+                day_transit=day_transit,
             )
         lens_variant = canonical_lens_variant(plan.background_lens)
 
@@ -288,6 +297,7 @@ class ReadingApplicationService:
         background_lens: BackgroundLens | None,
         daily_variety: DailyVariety | None,
         current: datetime,
+        day_transit: DayTransit | None = None,
     ) -> tuple[ReadingPlan, ReadingPlanRecord, ReadingCandidate, ReadingRevisionRecord]:
         """Plan, render, gate and store one deterministic revision (replays by key)."""
 
@@ -298,6 +308,7 @@ class ReadingApplicationService:
             editorial_seed=editorial_seed,
             background_lens=background_lens,
             daily_variety=daily_variety,
+            day_transit=day_transit,
         )
         plan_record, _ = await self._repository.save_or_replay_plan(
             ReadingPlanRecord(
@@ -322,14 +333,16 @@ class ReadingApplicationService:
             # B1b: never keep wording whose reason was removed. Re-plan from the
             # natal chart alone; a supported natal situation stays the same, a
             # transit-driven one is replaced. The fallback plan gets its own key.
+            # A window Daily keeps the day's transit as evidence and drops only the reason
+            # sentence, so this lens holds the same evidence as every other lens (AC22).
             logger.info("Daily transit rejected; falling back to a natal-only plan")
             plan = self._planner.plan(
                 source_chart,
                 purpose=purpose,
-                transits=None,
                 editorial_seed=editorial_seed,
                 background_lens=background_lens,
                 daily_variety=daily_variety,
+                **_reason_fallback(plan_record.plan, transits, day_transit),
             )
             plan_record, _ = await self._repository.save_or_replay_plan(
                 ReadingPlanRecord(
@@ -634,14 +647,15 @@ class ReadingApplicationService:
             and plan.daily_selection is not None
             and not evaluate_candidate(plan, candidate).accepted
         ):
-            # Same B1b fallback as serving: a rejected transit reason re-plans from natal only.
+            # Same B1b fallback as serving: a rejected transit reason re-plans from natal only
+            # (a window Daily keeps the transit as evidence and drops the reason).
             plan = self._planner.plan(
                 chart,
                 purpose=ReadingPurpose.DAILY_NOTE,
-                transits=None,
                 editorial_seed=day.isoformat(),
                 background_lens=background_lens,
                 daily_variety=variety,
+                **_reason_fallback(plan, transits, None),
             )
             candidate = self._renderer.render(plan)
         blueprint = candidate.semantic_blueprint
@@ -784,6 +798,50 @@ class ReadingApplicationService:
         if acknowledged is None:
             raise ReadingActivationConflict
         return await self._hydrate(guest_id, profile_id, acknowledged)
+
+    async def _day_transit(
+        self,
+        guest_id: UUID,
+        snapshot: BirthSnapshotRecord,
+        chart: DateOnlySunResult | NatalChart,
+        purpose: ReadingPurpose,
+        local_date: date,
+        observed_at: datetime,
+        background_lens: BackgroundLens | None,
+    ) -> DayTransit | None:
+        """The transit decision another lens of this day was already served (US-03 AC22).
+
+        Codex r3 on #726: a reading is stored per lens, so without this a transit calculation
+        or zone lookup that failed while one lens was opened and worked for the next would give
+        the two lenses different evidence. The first lens opened for a day and chart snapshot
+        decides: with a transit or from the natal chart alone. Later lenses repeat it and do
+        not calculate again. Only the owner's own stored plans for the same profile, day and
+        chart snapshot are read. ``None`` when no other lens was served, or for any reading
+        that is not an approximate-time Western Daily.
+        """
+
+        if (
+            purpose is not ReadingPurpose.DAILY_NOTE
+            or not isinstance(chart, NatalChart)
+            or chart.time_precision is not TimePrecision.APPROXIMATE
+            or chart.config.tradition is not Tradition.WESTERN
+        ):
+            return None
+        own = canonical_lens_variant(background_lens)
+        for lens in (None, *(item for item in BackgroundLens if item is not BackgroundLens.AUTO)):
+            if canonical_lens_variant(lens) == own:
+                continue
+            served = await self._frozen_daily_plan(
+                guest_id, snapshot, _scope_key(chart, purpose, local_date, observed_at, lens)
+            )
+            if served is None or served.plan.daily_selection is None:
+                continue
+            transit = next(
+                (factor for factor in served.plan.factors if factor.source is FactorSource.TRANSIT),
+                None,
+            )
+            return DayTransit(factor=transit, policy=served.plan.transit_policy)
+        return None
 
     async def _birth_timezone(
         self, guest_id: UUID, profile_id: UUID, chart: DateOnlySunResult | NatalChart
@@ -1096,6 +1154,18 @@ def _public_mode_and_precision(
     if plan_precision is TimePrecision.APPROXIMATE:
         return PlanMode.FULL_SYNTHESIS, TimePrecision.APPROXIMATE
     return PlanMode.FULL_SYNTHESIS, TimePrecision.EXACT
+
+
+def _reason_fallback(
+    plan: ReadingPlan,
+    transits: TransitToNatalSnapshot | None,
+    day_transit: DayTransit | None,
+) -> dict[str, Any]:
+    """Planner inputs after a gate rejected the transit reason of ``plan``."""
+
+    if plan.transit_policy is None:
+        return {"transits": None}
+    return {"transits": transits, "day_transit": day_transit, "withhold_transit_reason": True}
 
 
 def _scope_key(
