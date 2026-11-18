@@ -857,6 +857,26 @@
     "pr": 675
    },
    "note": ""
+  },
+  {
+   "id": "L48",
+   "title": "Đổi nhãn hoặc sửa body PR không hủy run CI đang chạy trên cùng head (sự cố 18.11: nhãn trạng thái của vòng tự động hủy run #684, #717, #477 sau 8–9 phút)",
+   "from": "Codex lượt 09:35 18.11; #719",
+   "who": "claude",
+   "due": "2026-11-19",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-pr-check-workflow.test.mjs",
+    "name": "#719: label changes and body edits never cancel the main run; code, retarget and the deletion label do"
+   },
+   "caller": {
+    "file": ".github/workflows/pr-check.yml",
+    "contains": "&& '-meta' || ''"
+   },
+   "closedBy": {
+    "pr": 722
+   },
+   "note": "A4: đếm run cancelled cùng head mỗi PR ngày 19.11 so với 18.11, ghi vào #719"
   }
  ]
 }
