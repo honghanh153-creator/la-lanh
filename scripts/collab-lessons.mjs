@@ -9,8 +9,10 @@
 //   close a lesson by editing the file);
 // - an open lesson past its due date is reported as overdue in the board and the owner digest.
 // Usage: node scripts/collab-lessons.mjs   (prints the summary; exit 1 if the register is invalid)
+import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { clean, integration, makeGh, readJson, repo, reviewState, stateDir, vnNow, writeJson } from './collab-trust.mjs';
@@ -28,25 +30,45 @@ const isDate = s => /^\d{4}-\d{2}-\d{2}$/.test(s ?? '');
 export const readRegister = (path = registerPath) => JSON.parse(readFileSync(path, 'utf8'));
 
 // Test files that CI runs: a lesson's test must be one of them, or it never runs.
-export function ciTestFiles(pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')), { base = root } = {}) {
+export function ciTestFiles(pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')), { base = root, scan = pyScan } = {}) {
   const files = new Set(String(pkg.scripts?.['collab:test'] ?? '').split(/\s+/).filter(f => f.endsWith('.test.mjs')));
   for (const f of playwrightCiFiles(pkg, { base })) files.add(f);
-  for (const f of pytestCiFiles(pkg, { base })) files.add(f);
+  for (const f of pytestCiFiles(pkg, { base, scan })) files.add(f);
   return files;
+}
+
+// #672 (Codex on #668): pytest config and markers are read with real parsers (tomllib, ast) in
+// scripts/collab-pytest-scan.py, run with `python3 -I`. It needs Python 3.11+ (tomllib); the Mac's
+// /usr/bin/python3 is 3.9, so the first interpreter that can import tomllib is used. No such
+// interpreter means nothing can be proven: pytest files are not counted and every pytest lesson
+// test is treated as skipped (fail closed), never as passing.
+export const pytestScanScript = join(here, 'collab-pytest-scan.py');
+const pythonCandidates = () => [process.env.LA_LANH_PYTHON, 'python3', 'python3.13', 'python3.12', 'python3.11',
+  ...['python3.13', 'python3.12', 'python3.11'].map(p => join(homedir(), '.local', 'bin', p))].filter(Boolean);
+let foundPython;
+export function findPython(candidates = pythonCandidates()) {
+  for (const py of candidates) {
+    try { execFileSync(py, ['-I', '-c', 'import tomllib, ast'], { stdio: 'ignore', timeout: 10_000 }); return py; } catch {}
+  }
+  return null;
+}
+// One JSON answer from the scan script, or null when there is no usable Python or the scan fails.
+export function pyScan(args, { python } = {}) {
+  const py = python === undefined ? (foundPython === undefined ? (foundPython = findPython()) : foundPython) : python;
+  if (!py) return null;
+  try { return JSON.parse(execFileSync(py, ['-I', pytestScanScript, ...args], { encoding: 'utf8', timeout: 20_000, stdio: ['ignore', 'pipe', 'ignore'] })); } catch { return null; }
 }
 
 // #661 (17.11.2026): a lesson test may be an API pytest, but only through the chain CI really runs:
 // `pnpm check` runs `api:test`, which is exactly `uv run --directory apps/api pytest` (no path or
-// -k filter), and apps/api/pyproject.toml collects `testpaths = ["tests"]`. Each `test_*.py` under
+// -k filter), and apps/api/pyproject.toml collects `testpaths = ["tests"]` with no option or setting
+// that drops tests (#667, #672: the full addopts value, string or array). Each `test_*.py` under
 // apps/api/tests counts; a skipped test is caught in problems().
-export function pytestCiFiles(pkg, { base = root } = {}) {
+export function pytestCiFiles(pkg, { base = root, scan = pyScan } = {}) {
   const check = String(pkg.scripts?.check ?? '');
   const api = String(pkg.scripts?.['api:test'] ?? '').trim();
-  const config = read(base, 'apps/api/pyproject.toml');
-  if (!/\bpnpm api:test\b/.test(check) || api !== 'uv run --directory apps/api pytest' || !config) return [];
-  // #667: a filter anywhere in addopts, also its first option ("-k x", "-m slow"), can drop tests.
-  const addopts = /^\s*addopts\s*=\s*(.*)$/m.exec(config)?.[1] ?? '';
-  if (!/^testpaths = \["tests"\]$/m.test(config) || /(?:^|[\s"'=[,])(?:-k|-m|--ignore(?:-glob)?|--deselect)(?=[\s=]|$)/.test(addopts.replace(/["'\]]/g, ' '))) return [];
+  if (!/\bpnpm api:test\b/.test(check) || api !== 'uv run --directory apps/api pytest' || !existsSync(join(base, 'apps/api/pyproject.toml'))) return [];
+  if (scan(['config', join(base, 'apps/api')])?.ok !== true) return [];
   const found = [];
   const walk = dir => {
     for (const entry of readdirSync(join(base, dir), { withFileTypes: true })) {
@@ -84,31 +106,13 @@ const read = (base, file) => { const p = join(base, file); return existsSync(p) 
 // A test is found by its exact name in a test('…') call, not by any matching text.
 const code = text => text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 const hasTest = (text, name) => [...code(text).matchAll(/\btest\(\s*(['"`])((?:\\.|(?!\1).)*)\1/g)].some(m => m[2].includes(name));
-// A pytest test is found by its exact function name; a skip or xfail marker right above it, or a
-// module-level skip, means CI never proves it.
-const pyCode = text => text.replace(/^\s*#.*$/gm, '');
-const hasPyTest = (text, name) => new RegExp(`^(?:async\\s+)?def\\s+${name.replace(/[^\w]/g, '')}\\s*\\(`, 'm').test(pyCode(text)) && /^test_\w+$/.test(name);
-// #667: markers may span lines. A module `pytestmark = …` runs until the next top-level line; a
-// test's decorators are every non-blank line between the previous blank or top-level statement and
-// its `def`.
-const skipMark = /\bpytest\.mark\.(skip|skipif|xfail)\b/;
-const pySkipped = (text, name) => {
-  const lines = pyCode(text).split('\n');
-  const mark = lines.findIndex(l => /^pytestmark\s*=/.test(l));
-  if (mark >= 0) {
-    let end = mark + 1;
-    while (end < lines.length && (/^\s/.test(lines[end]) || /^[\])}]/.test(lines[end]))) end++;
-    if (skipMark.test(lines.slice(mark, end).join('\n')) || /\b(skip|skipif|xfail)\b/.test(lines[mark])) return true;
-  }
-  const at = lines.findIndex(l => new RegExp(`^(?:async\\s+)?def\\s+${name}\\s*\\(`).test(l));
-  let start = at;
-  while (start > 0 && lines[start - 1].trim() !== '' && !/^(?:async\s+)?def\s|^class\s/.test(lines[start - 1])) start--;
-  const decorators = lines.slice(start, at).join('\n');
-  return /^\s*@/m.test(decorators) && skipMark.test(decorators);
-};
+// A pytest test is found by its exact module-level function name (ast); a skip/skipif/xfail marker on
+// it, a module `pytestmark` that skips (any assignment), or a pytest.skip/xfail/importorskip call
+// means CI never proves it. No answer from the scan counts as "not found".
+const pyTest = (file, name, scan) => (/^test_\w+$/.test(name) ? scan(['test', file, name]) : { exists: false, skipped: false });
 
 // Offline problems: shape, and for "done" the evidence that exists in this checkout.
-export function problems(register, { base = root, ciFiles = ciTestFiles() } = {}) {
+export function problems(register, { base = root, ciFiles = ciTestFiles(), scan = pyScan } = {}) {
   const out = [];
   const ids = new Set();
   for (const l of register.lessons ?? []) {
@@ -129,9 +133,14 @@ export function problems(register, { base = root, ciFiles = ciTestFiles() } = {}
     const testText = l.test?.file ? read(base, l.test.file) : null;
     if (!l.test?.file || !l.test?.name) out.push(`${at}: done without a regression test`);
     else if (testText === null) out.push(`${at}: test file ${l.test.file} does not exist`);
-    else if (l.test.file.endsWith('.py') ? !hasPyTest(testText, l.test.name) : !hasTest(testText, l.test.name)) out.push(`${at}: no test named "${l.test.name}" in ${l.test.file}`);
+    else if (l.test.file.endsWith('.py')) {
+      const py = pyTest(join(base, l.test.file), l.test.name, scan);
+      if (!py) out.push(`${at}: ${l.test.file} could not be checked (no Python 3.11+ for the pytest scan), so it proves nothing`);
+      else if (!py.exists) out.push(`${at}: no test named "${l.test.name}" in ${l.test.file}`);
+      else if (!ciFiles.has(l.test.file)) out.push(`${at}: ${l.test.file} is not in pnpm collab:test, so CI never runs it`);
+      else if (py.skipped) out.push(`${at}: ${l.test.name} in ${l.test.file} is skipped or xfail, so CI does not prove it`);
+    } else if (!hasTest(testText, l.test.name)) out.push(`${at}: no test named "${l.test.name}" in ${l.test.file}`);
     else if (!ciFiles.has(l.test.file)) out.push(`${at}: ${l.test.file} is not in pnpm collab:test, so CI never runs it`);
-    else if (l.test.file.endsWith('.py') && pySkipped(testText, l.test.name)) out.push(`${at}: ${l.test.name} in ${l.test.file} is skipped or xfail, so CI does not prove it`);
     else if (l.test.file.endsWith('.spec.ts') && skipped(testText)) out.push(`${at}: ${l.test.file} skips, marks fixme or focuses a test, so CI does not run all of it`);
     const callerText = l.caller?.file ? read(base, l.caller.file) : null;
     if (!l.caller?.file || !l.caller?.contains) out.push(`${at}: done without a caller in the loop`);
