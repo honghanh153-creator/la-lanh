@@ -9,7 +9,7 @@ import {
   User,
   X,
 } from "@phosphor-icons/react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { onlineManager, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 
@@ -258,6 +258,11 @@ export function HomePage() {
       // An older replay never takes the screen back from a newer pick (Codex #449).
       const newest = intent.savedAt >= latestMoodAt.current;
       if (note) {
+        // Offline, this request pauses in memory and onError never runs, so a reload before
+        // reconnecting would lose both this choice and the older one retired below (Codex auto-3
+        // on #449, US-04 AC07). Persist it first; the reconnect resend skips while a check-in is
+        // in flight, and a success acknowledges it. Online, nothing changes.
+        if (!onlineManager.isOnline()) keepPendingMood(note.id, value, intent);
         retireOlderPendingMood(note.id, intent);
         if (newest) setUnsavedPick({ noteId: note.id, value });
         // A mood read already on its way is older than this pick; drop it.

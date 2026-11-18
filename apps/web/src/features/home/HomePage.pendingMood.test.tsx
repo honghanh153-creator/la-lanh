@@ -1,4 +1,4 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { onlineManager, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
@@ -89,7 +89,7 @@ const storing = (row: SavedRow) => () => { vi.mocked(getCurrentMood).mockResolve
 
 describe("Home pending mood lifecycle (P04)", () => {
  beforeEach(() => {
-  vi.clearAllMocks(); localStorage.clear(); sessionStorage.clear(); clearCachedDailyNote();
+  vi.clearAllMocks(); localStorage.clear(); sessionStorage.clear(); clearCachedDailyNote(); onlineManager.setOnline(true);
   sessionStorage.setItem("la-lanh-session-epoch", "epoch-a");
   Object.defineProperty(navigator,"onLine",{value:true,configurable:true});
   vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(vibe)));
@@ -155,7 +155,8 @@ describe("Home pending mood lifecycle (P04)", () => {
   await user.click(screen.getByRole("button",{name:/Rực/}));
   await screen.findByRole("button",{name:"Cảm giác hôm nay: Rực"});
   expect(checkInMood).toHaveBeenCalledTimes(1);
-  expect(localStorage.getItem("la-lanh-pending-mood-v1")).toBeNull();
+  // The newer choice replaced the queued one on the device (it survives a reload, US-04 AC07).
+  expect(JSON.parse(localStorage.getItem("la-lanh-pending-mood-v1") ?? "null")?.mood).toBe("Rực");
   Object.defineProperty(navigator,"onLine",{value:true,configurable:true});
   act(()=>{window.dispatchEvent(new Event("online"));});
   await waitFor(()=>expect(checkInMood).toHaveBeenCalledTimes(2));
@@ -180,6 +181,27 @@ describe("Home pending mood lifecycle (P04)", () => {
   await screen.findByRole("button",{name:"Cảm giác hôm nay: Rực"});
   act(()=>{window.dispatchEvent(new Event("online"));});
   expect(checkInMood).toHaveBeenCalledTimes(1);
+ });
+ it("keeps the newer offline choice across a reload before reconnecting (Codex auto-3 on #449, US-04 AC07)", async () => {
+  localStorage.setItem("la-lanh-pending-mood-v1",JSON.stringify({session_epoch:"epoch-a",note_id:baseNoteId,mood:"Chill",saved_at:Date.now()-60*1000}));
+  vi.mocked(checkInMood).mockImplementation(storing({id:"00000000-0000-4000-8000-000000000097",daily_note_id:baseNoteId,mood:"Rực",checked_in_at:"2026-10-22T00:02:00Z"}));
+  Object.defineProperty(navigator,"onLine",{value:false,configurable:true});
+  const user=userEvent.setup(); const first=renderPage();
+  await user.click(await screen.findByRole("button",{name:"Chọn cảm giác hôm nay"}));
+  act(()=>{onlineManager.setOnline(false);}); // TanStack now pauses the check-in in memory
+  await user.click(screen.getByRole("button",{name:/Rực/}));
+  await screen.findByRole("button",{name:"Cảm giác hôm nay: Rực"});
+  expect(checkInMood).not.toHaveBeenCalled();
+  // The newer choice replaced the queued one on the device before the request paused.
+  expect(JSON.parse(localStorage.getItem("la-lanh-pending-mood-v1") ?? "null")?.mood).toBe("Rực");
+  // Reload while still offline: the paused request and the in-memory client are gone.
+  first.unmount();
+  renderPage();
+  Object.defineProperty(navigator,"onLine",{value:true,configurable:true});
+  act(()=>{onlineManager.setOnline(true); window.dispatchEvent(new Event("online"));});
+  await waitFor(()=>expect(checkInMood).toHaveBeenCalledTimes(1));
+  expect(checkInMood).toHaveBeenCalledWith(baseNoteId,"Rực");
+  await waitFor(()=>expect(localStorage.getItem("la-lanh-pending-mood-v1")).toBeNull());
  });
  it("stops listening for reconnects once Home unmounts", async () => {
   Object.defineProperty(navigator,"onLine",{value:false,configurable:true});
@@ -208,7 +230,7 @@ describe("Home pending mood lifecycle (P04)", () => {
 
 describe("P04 late failure after remount", () => {
  beforeEach(() => {
-  vi.clearAllMocks(); localStorage.clear(); sessionStorage.clear(); clearCachedDailyNote();
+  vi.clearAllMocks(); localStorage.clear(); sessionStorage.clear(); clearCachedDailyNote(); onlineManager.setOnline(true);
   sessionStorage.setItem("la-lanh-session-epoch", "epoch-a");
   Object.defineProperty(navigator,"onLine",{value:true,configurable:true});
   vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(vibe)));
