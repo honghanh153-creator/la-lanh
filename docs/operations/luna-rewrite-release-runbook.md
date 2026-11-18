@@ -20,7 +20,10 @@ changes the cache key.
   scene and action slots, and the context lead. On a **date-only** reading the situation maps
   one-to-one to the Sun sign (`SUN_ISSUES`), so the payload reveals the Sun sign, a group of about
   1/12 of readers; `test_m1_date_only_catalog_choice_reveals_the_sun_sign_and_nothing_finer` pins
-  this so it cannot widen unnoticed. No date, degree, house, other placement or identifier is
+  this so it cannot widen unnoticed. Since #626 (18.11.2026) a rotated date-only Daily takes
+  turns between the sign's situation and the situation of the sign's element (8 of 12 signs
+  have two). Both come from the Sun sign alone, so one payload, or several days of payloads,
+  still reveals at most the Sun sign (`test_date_only_issue_rotation.py`). No date, degree, house, other placement or identifier is
   sent. M1 is therefore "no direct chart facts", **not** "chart-independent". Making the catalog
   choice itself uninformative would need the rewrite separated from the personal selection (for
   example editorial-time rewriting of the catalog), with its own date-only regression.

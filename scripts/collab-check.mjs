@@ -161,7 +161,9 @@ export function ciCheck(gh, head) {
   if (!isSha(head)) throw new Error('head SHA unavailable');
   const runs = (gh.json(['api', `repos/${repo}/actions/workflows/pr-check.yml/runs?head_sha=${head}&per_page=20`]).workflow_runs ?? [])
     .filter(r => r.head_sha === head && String(r.path ?? '').split('@')[0] === ciWorkflow)
-    .sort((a, b) => String(b.created_at ?? '').localeCompare(String(a.created_at ?? '')) || Number(b.run_attempt ?? 0) - Number(a.run_attempt ?? 0));
+    // #719: equal creation times (labels added in the same second) fall back to the run id, so the
+    // newest run is picked the same way every time.
+    .sort((a, b) => String(b.created_at ?? '').localeCompare(String(a.created_at ?? '')) || Number(b.id ?? 0) - Number(a.id ?? 0) || Number(b.run_attempt ?? 0) - Number(a.run_attempt ?? 0));
   // #630 (17.11): editing a PR body starts a second run for the same head and GitHub cancels one of
   // them; the cancelled run is not a result. The newest run that was not cancelled decides (an
   // unfinished one means pending); only cancelled runs means pending too, never a FAIL with a receipt.

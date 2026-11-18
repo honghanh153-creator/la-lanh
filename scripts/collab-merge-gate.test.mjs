@@ -335,3 +335,121 @@ test('audit: a merge in the last 24h whose verdict or check lacks a receipt is l
   dailyReceiptAudit({ gh, alert: text => alerts.push(text), now: day, nowMs, since: 0 });
   assert.equal(alerts.length, 1, 'once a day');
 });
+
+// Incident 18.11.2026 (Codex run 23): every merge entry point respects the merge reservation. While
+// integration is reserved for one PR, another PR with valid evidence gets no merge call; the
+// reserved PR merges and its reservation ends.
+test('reservation: runMerge refuses any other PR while integration is reserved, and the reserved PR releases it on merge', async () => {
+  const reservation = await import('./collab-reservation.mjs');
+  reservation._resetReservation();
+  const calls = [];
+  const state = pr({ baseTipOid: B2, comments: [sealedCheck({ base: B2 }), sealedVerdict()] });
+  const gh = {
+    pr: () => structuredClone(state),
+    openPrs: () => [],
+    compareFiles: () => ['docs/z.md'],
+    raw: args => { calls.push(args); return ''; },
+    comment: () => {},
+  };
+  const other = N + 1;
+  assert.ok(reservation.reserve(other, 'c'.repeat(40)).reservation);
+  const refused = runMerge(N, { gh });
+  assert.equal(refused.status, 'refused');
+  assert.match(refused.reasons.join(), new RegExp(`đang giữ cho #${other}`));
+  assert.equal(calls.length, 0, 'no merge call while another PR holds integration');
+  // The holder's reservation ends: now N may merge, and its own reservation is released after.
+  assert.equal(reservation.releaseReservation(other, 'test'), true);
+  assert.ok(reservation.reserve(N, H).reservation);
+  assert.equal(runMerge(N, { gh }).status, 'merged');
+  assert.equal(reservation.activeReservation(), null, 'the reserved PR merged: integration is free');
+  // An expired reservation does not block anyone.
+  reservation.reserve(other, 'd'.repeat(40), { nowMs: Date.now() - 2 * 3600000 });
+  assert.equal(runMerge(N, { gh }).status, 'merged');
+  reservation._resetReservation();
+});
+
+// ---- Merge reservation module (incident 18.11.2026; Codex run 23) ----
+const r = await import('./collab-reservation.mjs');
+const RH1 = '1'.repeat(40);
+const RH2 = '2'.repeat(40);
+const T0 = Date.parse('2026-11-18T05:00:00Z');
+const min = m => T0 + m * 60000;
+
+test('reservation rules: one holder, expiry, no renewal at the same head, head follow and release', () => {
+  r._resetReservation();
+  assert.equal(r.activeReservation(T0), null);
+  assert.equal(r.reserve(684, RH1, { nowMs: T0 }).reservation.pr, 684);
+  // Another PR cannot take it while it stands; the same PR keeps it.
+  const other = r.reserve(411, RH2, { nowMs: min(5) });
+  assert.equal(other.other, true);
+  assert.equal(other.reservation.pr, 684);
+  assert.equal(r.mergeAllowed(411, min(5)).ok, false);
+  assert.match(r.mergeAllowed(411, min(5)).reason, /#684/);
+  assert.equal(r.mergeAllowed(684, min(5)).ok, true);
+  // The tick's own sync moves the holder to its new head.
+  assert.equal(r.followHead(684, RH2, { nowMs: min(6) }).head, RH2);
+  // Expiry frees integration; the same PR at the same head does not get a second window.
+  assert.equal(r.activeReservation(min(r.reservationMinutes + 1)), null);
+  assert.equal(r.mergeAllowed(411, min(r.reservationMinutes + 1)).ok, true);
+  assert.match(r.reserve(684, RH2, { nowMs: min(r.reservationMinutes + 2) }).refused, /hết lượt/);
+  // Another PR may reserve now; a new head of the stuck PR may reserve later.
+  assert.equal(r.reserve(411, RH1, { nowMs: min(r.reservationMinutes + 3) }).reservation.pr, 411);
+  assert.equal(r.releaseReservation(684, 'not the holder'), false);
+  assert.equal(r.releaseReservation(411, 'merged'), true);
+  assert.equal(r.reserve(684, '3'.repeat(40), { nowMs: min(r.reservationMinutes + 4) }).reservation.pr, 684);
+  // Bad input never reserves.
+  assert.ok(r.reserve(0, RH1).refused);
+  assert.ok(r.reserve(5, 'nope').refused);
+  r._resetReservation();
+});
+
+// The incident, replayed: a full-check PR needs 35 minutes of an unchanged integration tip (CI,
+// check, review); fast PRs are ready to merge every 20 minutes. Without the reservation it never
+// merges; with it, it merges in its first window and the fast PRs follow.
+function replay({ reservations }) {
+  r._resetReservation();
+  let tip = 0;
+  let synced = null;
+  let mergedAt = null;
+  const fast = [];
+  for (let m = 0; m <= 240; m += 1) {
+    const now = min(m);
+    if (mergedAt === null) {
+      // The tick: the full PR is the front; it reserves, then syncs when it is behind.
+      if (reservations && !r.activeReservation(now)) r.reserve(684, `${String(tip).padStart(2, '0')}${'f'.repeat(38)}`, { nowMs: now });
+      if (!synced || synced.tip !== tip) synced = { tip, at: m };
+      if (synced.tip === tip && m - synced.at >= 35 && (!reservations || r.mergeAllowed(684, now).ok)) {
+        mergedAt = m;
+        tip += 1;
+        if (reservations) r.releaseReservation(684, 'merged', { nowMs: now });
+      }
+    }
+    if (m % 20 === 10 && (!reservations || r.mergeAllowed(900 + m, now).ok)) { fast.push(m); tip += 1; }
+  }
+  r._resetReservation();
+  return { mergedAt, fast };
+}
+
+test('incident replay: with fast merges every 20 minutes the full-check PR merges only with the reservation', () => {
+  const without = replay({ reservations: false });
+  assert.equal(without.mergedAt, null, 'today: the full-check PR never gets 35 quiet minutes');
+  const withIt = replay({ reservations: true });
+  assert.ok(withIt.mergedAt !== null && withIt.mergedAt <= 40, `merged at ${withIt.mergedAt}`);
+  assert.ok(withIt.fast.length >= 9, 'the fast PRs still merge after the window');
+  assert.ok(withIt.fast.every(m => m > withIt.mergedAt), 'no fast merge inside the reserved window');
+});
+
+// Codex P2 on #736: a reservation is never made while a merge holds the merge lock, so a merge
+// admitted before it cannot land inside the reserved window.
+test('reservation changes wait for the merge lock', async () => {
+  const lock = await import('./collab-lock.mjs');
+  r._resetReservation();
+  const release = lock.acquireLock(r.mergeLockPath(), { staleMs: 600000 });
+  assert.ok(release, 'a merge holds the lock');
+  assert.match(r.reserve(684, RH1, { nowMs: T0, lockWaitMs: 0 }).refused, /merge khác đang chạy/);
+  assert.equal(r.activeReservation(T0), null);
+  release();
+  assert.equal(r.reserve(684, RH1, { nowMs: T0, lockWaitMs: 0 }).reservation.pr, 684);
+  r._resetReservation();
+});
+

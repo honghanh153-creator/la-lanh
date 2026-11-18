@@ -743,8 +743,20 @@
    "title": "Test E (cây chạy sống lâu hơn wrapper) không được đỏ vô cớ trên CI Linux: 20 lần chạy liền không đỏ (sự cố #641: đỏ ở #628 và #637; #645 cho test chờ đúng phép kiểm của script và in pgrep/ps khi đỏ)",
    "from": "fix-forward #641, #650",
    "who": "claude",
-   "status": "open",
-   "due": "2026-11-20"
+   "status": "done",
+   "due": "2026-11-20",
+   "test": {
+    "file": "scripts/collab-ops-wrapper.test.mjs",
+    "name": "E: a run tree outlives its wrapper while a child still uses it, and is swept afterwards"
+   },
+   "caller": {
+    "file": "scripts/ops-run.sh",
+    "contains": "sweep() {"
+   },
+   "closedBy": {
+    "pr": 723
+   },
+   "note": "Bằng chứng 18.11: sau khi #645 merge (17.11 04:35 UTC), các lượt pr-check tạo từ 17.11 09:54 tới 18.11 03:07 UTC: 46 lượt trên ubuntu-24.04 chạy bộ collab (13 mức loop, 33 mức full); test E xanh ở cả 46, kể cả 3 lượt đỏ vì lỗi khác (44214511979 content ratchet; 44214518359, 44220244912 copy batch)"
   },
   {
    "id": "L43",
@@ -845,6 +857,66 @@
     "pr": 675
    },
    "note": ""
+  },
+  {
+   "id": "L48",
+   "title": "Đổi nhãn hoặc sửa body PR không hủy run CI đang chạy trên cùng head (sự cố 18.11: nhãn trạng thái của vòng tự động hủy run #684, #717, #477 sau 8–9 phút)",
+   "from": "Codex lượt 09:35 18.11; #719",
+   "who": "claude",
+   "due": "2026-11-19",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-pr-check-workflow.test.mjs",
+    "name": "#719: label changes and body edits never cancel the main run; code, retarget and the deletion label do"
+   },
+   "caller": {
+    "file": ".github/workflows/pr-check.yml",
+    "contains": "&& '-meta' || ''"
+   },
+   "closedBy": {
+    "pr": 722
+   },
+   "note": "A4: đếm run cancelled cùng head mỗi PR ngày 19.11 so với 18.11, ghi vào #719"
+  },
+  {
+   "id": "L49",
+   "title": "PR chỉ chờ PR khác (xếp chồng hoặc cùng file) mang nhãn \"st: chờ PR khác\", không phải \"st: chờ owner\"; owner chỉ là cổng cho 4 loại việc R2 (Codex kiểm tra mỗi giờ 18.11: #723 mang nhãn chờ owner dù chỉ chờ #722)",
+   "from": "Codex kiểm tra 10:45 18.11",
+   "who": "claude",
+   "due": "2026-11-19",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-labels.test.mjs",
+    "name": "a hold behind another PR is labelled as waiting on that PR, not on the owner"
+   },
+   "caller": {
+    "file": "scripts/collab-labels.mjs",
+    "contains": "statusLabels[labelKey(turn)]"
+   },
+   "closedBy": {
+    "pr": 727
+   },
+   "note": "syncStatusLabels chạy mỗi tick, nên nhãn cũ tự được thay ở lần tick kế tiếp"
+  },
+  {
+   "id": "L50",
+   "title": "PR cần CI đầy đủ (~32 phút) không bị bỏ đói khi các PR nhanh liên tục merge: PR đầu hàng giữ integration (reservation) trước khi đồng bộ, mọi đường merge từ chối PR khác tới khi nó merge, rời hàng hoặc hết hạn (sự cố 18.11: #411, #449, #673, #682 kẹt từ tối 17.11 sau #684)",
+   "from": "báo cáo 14:00 18.11; Codex lượt 23 (no-go nới P1-A, go reservation)",
+   "who": "claude",
+   "due": "2026-11-19",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-loop.test.mjs",
+    "name": "L50 runtime replay: the real tick merges only the reservation holder through the real runMerge, then frees integration"
+   },
+   "caller": {
+    "file": "scripts/collab-merge.mjs",
+    "contains": "mergeAllowed(number, nowMs())"
+   },
+   "closedBy": {
+    "pr": 736
+   },
+   "note": "Tick: scripts/collab-turn.mjs giữ chỗ cho PR đầu hàng trước khi đồng bộ (test 'reservation: the front reserves before its sync…'). Gỡ tay có ghi lý do: node scripts/collab-reservation.mjs --release --reason \"…\"."
   }
  ]
 }
