@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import re
+import sys
 import unicodedata
 from dataclasses import dataclass
 from functools import lru_cache
@@ -36,27 +37,52 @@ def copy_digest(text: str) -> str:
 # The two classes are closed by definition, not by a list of known spellings (review r7 of #411):
 #
 # Link. Two words joined by a dot with no space, where the last word is two or more letters of
-# any script ("vidu.vn", "vi-du.рф", "vi-du.中国") or a punycode label ("xn--p1ai"). There is no
+# any script ("vidu.vn", "vi-du.рф", "vi-du.中国") or a punycode label ("xn--p1ai"). A letter may
+# carry combining marks ("vi-du.भारत", "vi-du.বাংলা"): Python's \w leaves marks out, so the rule
+# adds every Mn/Mc/Me character itself (review r8 of #411). There is no
 # list of suffixes and no script exception, so sentences glued together ("xong.Sau", "nhỏ.Rồi")
 # count as a link too: the copy adds the space. Numbers ("1.5", "2.10.3") are not links; an IPv4
 # address is. text_lint_problems also reads a folded text, so case, full-width letters, other dot
 # characters and invisible characters are not ways around the rule.
 #
-# Template slot. "%" + optional "(name)" or "n$" + flags + width + precision ("*" too) + length
-# modifier + any conversion letter of Python or C printf. No space flag: "50% dung lượng" is
-# plain text. clarity_lint.PLACEHOLDERS uses the same PRINTF_SLOT.
+# Template slot. "%" + optional "(key)" or "n$" + flags + width + precision ("*" too) + length
+# modifier + any conversion letter of Python or C printf. The key is anything up to a closing
+# parenthesis, as Python reads it: "%(full name)s", "%(full-name)s", "%()s" and nested
+# parentheses are slots too (review r8). No space flag: "50% dung lượng" is plain text.
+# clarity_lint.PLACEHOLDERS uses the same PRINTF_SLOT.
 PRINTF_SLOT = (
-    r"%(?:\(\w+\)|\d+\$)?[-#0+]*(?:\d+|\*)?(?:\.(?:\d+|\*))?"
+    r"%(?:\([^\n]*?\)|\d+\$)?[-#0+]*(?:\d+|\*)?(?:\.(?:\d+|\*))?"
     r"(?:hh|h|ll|l|L|q|j|z|t)?[diouxXeEfFgGcrsaApn]"
 )
-_LABEL = r"[^\W_](?:[\w-]*[^\W_])?"
+
+
+def _combining_marks() -> str:
+    """Every combining mark (categories Mn, Mc, Me) as character-class ranges."""
+
+    ranges: list[tuple[int, int]] = []
+    for code in range(sys.maxunicode + 1):
+        if unicodedata.category(chr(code)).startswith("M"):
+            if ranges and ranges[-1][1] == code - 1:
+                ranges[-1] = (ranges[-1][0], code)
+            else:
+                ranges.append((code, code))
+    return "".join(
+        f"\\U{low:08x}" if low == high else f"\\U{low:08x}-\\U{high:08x}" for low, high in ranges
+    )
+
+
+_MARK = _combining_marks()
+# A letter or digit of any script, or a combining mark on one.
+_LABEL_CHAR = rf"(?:[^\W_]|[{_MARK}])"
+_LABEL = rf"[^\W_](?:(?:[\w-]|[{_MARK}])*{_LABEL_CHAR})?"
 _LINT_RULES: tuple[tuple[str, re.Pattern[str]], ...] = (
     (
         "contains a link",
         re.compile(
             r"(?i:[a-z][a-z0-9+.-]*://|\bwww\.)|"
-            rf"(?<![\w-]){_LABEL}(?:\.{_LABEL})*"
-            r"\.(?:(?i:xn--)[A-Za-z0-9-]*[A-Za-z0-9]|[^\W\d_]{2,63})(?![\w-])|"
+            rf"(?<![\w{_MARK}-]){_LABEL}(?:\.{_LABEL})*"
+            r"\.(?:(?i:xn--)[A-Za-z0-9-]*[A-Za-z0-9]|"
+            rf"[^\W\d_](?:[^\W\d_]|[{_MARK}]){{1,62}})(?![\w{_MARK}-])|"
             r"(?<![\w.])\d{1,3}(?:\.\d{1,3}){3}(?!\w|\.\d)",
         ),
     ),

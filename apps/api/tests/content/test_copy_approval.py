@@ -202,6 +202,8 @@ def test_linted_approved_copy_falls_back(monkeypatch: pytest.MonkeyPatch, text: 
         "Bạn ở TP. Hồ Chí Minh, v.v. vẫn ổn.",
         "Giảm 50% dung lượng rồi tiếp.",  # a percent sign before a word is not a slot
         "Pin còn 20%, sạc thêm 5% nữa.",
+        "Giảm 50% (xem bảng) dung lượng.",  # a key needs a conversion letter right after ")"
+        "Ghi chú: नमस्ते là lời chào.",  # marks in a word with no dot are plain text
     ],
 )
 def test_registry_lint_accepts_plain_sentences(text: str) -> None:
@@ -241,11 +243,13 @@ def test_case_and_width_variants_are_one_class(monkeypatch: pytest.MonkeyPatch, 
 # and not by the examples seen so far.
 #
 # Link (domain) = two words joined by a dot with no space, the last one 2+ letters of ANY script or
-# a punycode label. Forms: ASCII suffix; Unicode suffix (Cyrillic, Han, Arabic, Latin with marks);
+# a punycode label, letters with or without combining marks (r8). Forms: ASCII suffix; Unicode
+# suffix (Cyrillic, Han, Arabic, Latin with marks, Devanagari, Bengali, Thai, Tamil);
 # punycode suffix or label ("xn--…"); any case; full-width letters; full-width or ideographic dot;
 # path, query or port after it; an IPv4 address; an invisible character splitting the name.
 #
-# Template slot = "%" + optional "(name)" or "n$" + flags + width + precision ("*" too) + length
+# Template slot = "%" + optional "(key)" (any key up to ")", r8) or "n$" + flags + width +
+# precision ("*" too) + length
 # modifier + ANY conversion letter of Python or C printf; "$name", "${…}", "{…}", "<…>", "[…]",
 # three or more underscores.
 _DOMAIN_FORMS = [
@@ -257,6 +261,12 @@ _DOMAIN_FORMS = [
     "Ghé пример.рф để đọc thêm.",
     "Ghé vi-du.québec để đọc thêm.",  # Latin suffix with a mark
     "Ghé vi-du.مصر để đọc thêm.",  # Arabic suffix
+    "Ghé vi-du.भारत để đọc thêm.",  # Devanagari suffix: a letter then a combining mark (r8)
+    "Ghé vi-du.বাংলা để đọc thêm.",  # Bengali suffix with marks (r8)
+    "Ghé vi-du.இந்தியா để đọc thêm.",  # Tamil suffix with marks
+    "Ghé vi-du.ไทย để đọc thêm.",  # Thai suffix
+    "Ghé उदाहरण.भारत để đọc thêm.",  # Devanagari label and suffix, marks in both
+    "Ghé vi-du.भा để đọc thêm.",  # one letter and one mark is still a two-character suffix
     "Ghé vidu。com để đọc thêm.",  # ideographic full stop as the dot
     "Ghé vidu｡com để đọc thêm.",  # half-width ideographic full stop
     "Ghé vi​du.com để đọc thêm.",  # zero-width space inside the name
@@ -280,6 +290,12 @@ _SLOT_FORMS = [
     "Chào %1$s nhé.",
     "Chào %2$-10s nhé.",
     "Chào %(ten)r nhé.",
+    "Chào %(full name)s nhé.",  # a key with a space (r8)
+    "Chào %(full-name)s nhé.",  # a key with a hyphen (r8)
+    "Chào %(tên)s nhé.",
+    "Chào %()s nhé.",  # an empty key
+    "Chào %(a(b)c)s nhé.",  # nested parentheses in the key
+    "Chào %(name)-10s nhé.",
     "Chào %sơi, hôm nay thế nào?",  # a slot glued to the next word
 ]
 

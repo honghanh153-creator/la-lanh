@@ -289,6 +289,12 @@ def test_a10_finds_english_words(text: str, expected: tuple[str, ...]) -> None:
         ("Còn %llu ngày.", 1),
         ("Chào %1$s nhé.", 1),
         ("Chào %(ten)r nhé.", 1),
+        # Review r8 of #411: any mapping key Python accepts.
+        ("Chào %(full name)s nhé.", 1),
+        ("Chào %(full-name)s nhé.", 1),
+        ("Chào %()s nhé.", 1),
+        ("Chào %(a(b)c)s nhé.", 1),
+        ("Giảm 50% (xem bảng) dung lượng.", 0),
         ("Pin còn 20%, sạc thêm 5% nữa.", 0),
         ("Khoảng 50% số việc là của bạn.", 0),
         ("Giảm 50% dung lượng.", 0),
