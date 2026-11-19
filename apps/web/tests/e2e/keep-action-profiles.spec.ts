@@ -17,6 +17,7 @@ const REVISION_ID = "00000000-0000-4000-8000-000000000010";
 const OWN = "Nhắn một người để hẹn lại lịch làm việc chung của tuần này.";
 const LIGHT = "Rót một ly nước, ngồi xuống ghế gần nhất và uống chậm từng ngụm.";
 const cues = { observation: "Bạn thấy người dịu hơn chưa?", permission: "Không hợp thì bỏ qua." };
+const WRITE_DELAY_MS = 150;
 const OWN_KEY = "d".repeat(64);
 const LIGHT_KEY = "e".repeat(64);
 
@@ -96,6 +97,8 @@ class FakeServer {
   down = false;
   writes: string[] = [];
   unmocked: string[] = [];
+  /** Requests the fake is answering right now. */
+  answering = 0;
   private nextId = 1;
 
   constructor(private readonly profile: Profile) {}
@@ -164,14 +167,23 @@ class FakeServer {
         await route.abort("internetdisconnected");
         return;
       }
-      const reply = this.answer(request.method(), path, request.postDataJSON() as Record<string, unknown> | null);
-      if (!reply) {
-        this.unmocked.push(`${request.method()} ${path}`);
-        await route.fulfill({ status: 503, json: { code: "E2E_UNMOCKED", path } });
-        return;
+      this.answering += 1;
+      try {
+        // A write takes a moment, as on a real server. The page shows some results before the
+        // answer comes (stop keeping, recording an outcome), so a check of the server that does
+        // not wait for the request fails every time here, not only on a slow machine.
+        if (request.method() !== "GET") await new Promise((done) => setTimeout(done, WRITE_DELAY_MS));
+        const reply = this.answer(request.method(), path, request.postDataJSON() as Record<string, unknown> | null);
+        if (!reply) {
+          this.unmocked.push(`${request.method()} ${path}`);
+          await route.fulfill({ status: 503, json: { code: "E2E_UNMOCKED", path } });
+          return;
+        }
+        if (reply.json === undefined) await route.fulfill({ status: reply.status });
+        else await route.fulfill({ status: reply.status, json: reply.json });
+      } finally {
+        this.answering -= 1;
       }
-      if (reply.json === undefined) await route.fulfill({ status: reply.status });
-      else await route.fulfill({ status: reply.status, json: reply.json });
     });
   }
 }
@@ -191,12 +203,27 @@ async function expectTappable(page: Page, name: string, width: number) {
       else window.scrollTo(0, document.documentElement.scrollHeight);
       const r = el.getBoundingClientRect();
       const inView = r.top >= 0 && r.bottom <= window.innerHeight;
-      const hit = inView ? document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2) : null;
+      // Nine points across the target, not only its middle: a bar over one edge leaves the middle
+      // free. The side columns sit half a height in, so a rounded corner is never sampled.
+      const inset = Math.min(r.width / 2, r.height / 2);
+      const xs = [r.left + inset, r.left + r.width / 2, r.right - inset];
+      const ys = [r.top + 1, r.top + r.height / 2, r.bottom - 1];
+      let coveredBy: string | null = null;
+      if (inView) {
+        for (const y of ys) {
+          for (const x of xs) {
+            const hit = document.elementFromPoint(x, y);
+            if (coveredBy || (hit && (hit === el || el.contains(hit)))) continue;
+            const where = `${Math.round(x - r.left)},${Math.round(y - r.top)} of ${Math.round(r.width)}x${Math.round(r.height)}`;
+            coveredBy = hit ? `${hit.tagName}.${String(hit.className)} at ${where}` : `nothing at ${where}`;
+          }
+        }
+      }
       return {
         inView, left: r.left, right: r.right, height: r.height, vw: window.innerWidth,
         overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
         clipped: el.scrollWidth > el.clientWidth || el.scrollHeight > el.clientHeight,
-        coveredBy: !inView || (hit && (hit === el || el.contains(hit))) ? null : hit ? `${hit.tagName}.${String(hit.className)}` : "nothing at that point",
+        coveredBy,
       };
     }, position);
     const at = `"${name}" at ${width}px, ${position}`;
@@ -221,6 +248,17 @@ async function screenState(page: Page): Promise<string> {
   return "unknown";
 }
 
+/**
+ * Like screenState, but "busy" while a keep, stop or outcome request has not finished: the page
+ * disables these buttons until then, also while a request waits for the network to come back.
+ */
+async function settledScreenState(page: Page): Promise<string> {
+  const state = await screenState(page);
+  const name = state === "chosen" ? STOP : state === "none" ? KEEP : null;
+  if (name && !(await page.getByRole("button", { name, exact: true }).first().isEnabled())) return "busy";
+  return state;
+}
+
 function serverState(server: FakeServer): string {
   return server.kept ? server.kept.state : "none";
 }
@@ -242,6 +280,29 @@ test("the tap-target check catches a covered control and a control under 44px (#
   const bar = await page.addStyleTag({ content: ".note-detail-actions { position: fixed !important; inset: 0 !important; z-index: 999 !important; background: #fff !important; }" });
   await expect(expectTappable(page, KEEP, 360)).rejects.toThrow(/nothing covers it/);
   await bar.evaluate((el) => el.parentNode?.removeChild(el));
+  await expectTappable(page, KEEP, 360);
+
+  // A strip over the bottom 16px only: the middle of the control still answers a tap, yet less
+  // than 44px of it is free (#750).
+  const keepButton = page.getByRole("button", { name: KEEP, exact: true });
+  const strip = await keepButton.evaluateHandle((el) => {
+    const r = el.getBoundingClientRect();
+    const cover = document.createElement("div");
+    cover.className = "e2e-partial-cover";
+    cover.style.cssText = `position:absolute;left:${r.left + window.scrollX}px;top:${r.bottom - 16 + window.scrollY}px;width:${r.width}px;height:16px;z-index:999;background:#fff;`;
+    document.body.appendChild(cover);
+    return cover;
+  });
+  const partly = await keepButton.evaluate((el) => {
+    el.scrollIntoView({ block: "center", inline: "nearest" });
+    const r = el.getBoundingClientRect();
+    const at = (y: number) => document.elementFromPoint(r.left + r.width / 2, y);
+    const middle = at(r.top + r.height / 2);
+    return { middleFree: middle === el || el.contains(middle), bottom: at(r.bottom - 2)?.className };
+  });
+  expect(partly, "the strip covers the bottom edge and leaves the middle free").toEqual({ middleFree: true, bottom: "e2e-partial-cover" });
+  await expect(expectTappable(page, KEEP, 360)).rejects.toThrow(/nothing covers it/);
+  await strip.evaluate((el) => el.remove());
   await expectTappable(page, KEEP, 360);
 
   await page.addStyleTag({ content: ".reading-content__experiment-button { min-height: 0 !important; height: 30px !important; }" });
@@ -301,10 +362,13 @@ for (const profile of PROFILES) {
       await page.waitForTimeout(300);
       server.down = false;
       await page.context().setOffline(false);
-      await expect.poll(async () => `${await screenState(page)} / server ${serverState(server)}`, { timeout: 10_000 })
-        .toMatch(/^(chosen \/ server chosen|none \/ server none)$/);
+      // Agreement counts only once the request has finished and nothing is on the wire: a read on
+      // reconnect can show "kept" again while the queued "stop keeping" is still to be sent (#750).
+      await expect.poll(async () => `${await settledScreenState(page)} / server ${serverState(server)} / answering ${server.answering}`, { timeout: 10_000 })
+        .toMatch(/^(chosen \/ server chosen|none \/ server none) \/ answering 0$/);
       const afterReconnect = serverState(server);
-      test.info().annotations.push({ type: "after reconnect", description: afterReconnect });      await page.reload();
+      test.info().annotations.push({ type: "after reconnect", description: afterReconnect });
+      await page.reload();
       await showOwnAction(page);
       await expect.poll(() => screenState(page)).toBe(afterReconnect);
       if (afterReconnect === "none") {
@@ -319,7 +383,10 @@ for (const profile of PROFILES) {
       await shot("outcomes");
       await page.getByRole("button", { name: "Có ích một chút", exact: true }).click();
       await expect(page.locator(".reading-content__reflected")).toHaveText("Đã nhìn lại: Có ích một chút");
-      expect(server.kept).toMatchObject({ state: "reflected", outcome: "helpful", action_key: OWN_KEY });
+      // The page shows the outcome before the server answers, so wait for the server to have it:
+      // a reload before that would lose the outcome.
+      await expect.poll(() => server.kept).toMatchObject({ state: "reflected", outcome: "helpful", action_key: OWN_KEY });
+      await expect.poll(() => server.answering).toBe(0);
 
       // Reload once more: the recorded outcome is still there.
       await page.reload();
