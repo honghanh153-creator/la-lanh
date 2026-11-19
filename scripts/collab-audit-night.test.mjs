@@ -5,6 +5,8 @@ import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
+// Incident 18.11.2026: a merge reservation written by one tick test must not steer the next.
+test.beforeEach(async () => (await import('./collab-reservation.mjs'))._resetReservation());
 import { auditReserve, collectFacts, keepDayM4, saveFacts } from './collab-audit.mjs';
 import { alertLimit, auditMarker, auditWindow, baselineMarker, baselinePath, buildPrompt, datesIn, evidenceDigest, gatherEvidence, readRecord, runAuditCodex, runBaseline, runNightAudit, upsertAudit, validateJudgement } from './collab-audit-night.mjs';
 import { agentMarker, codexDailyCap, dayStatePath, readJson, writeJson } from './collab-trust.mjs';
