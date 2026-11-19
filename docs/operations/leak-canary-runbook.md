@@ -31,9 +31,15 @@ Yêu cầu gốc: US-03 AC12 và mục 21 (DoD delta: network, URL, history, log
 | Câu trả lời lỗi của API | nội dung mọi câu trả lời từ 400 trở lên |
 | Lịch sử trình duyệt | mọi lần đổi địa chỉ của trang |
 | URL hiện tại | sau mỗi bước |
-| Bộ nhớ trình duyệt | localStorage, sessionStorage, tên mục trong Cache, tiêu đề trang |
+| Bộ nhớ trình duyệt | localStorage, sessionStorage, mọi mục trong Cache (địa chỉ, header và nội dung câu trả lời đã lưu), tiêu đề trang |
 
 Thân request gửi tới API là đường được phép, nên không bị tìm. Nó chỉ được dùng để chứng minh mỗi dấu đã thật sự tới API. Dấu nào chưa tới API thì lượt chạy đỏ, vì khi đó chưa kiểm được gì.
+
+Giờ sinh được tìm ở mọi chỗ, cả khi viết kèm giây. Chỉ một thứ được bỏ qua: giờ ghi ở đầu mỗi dòng nhật ký máy chủ, vì đó là giờ của dòng nhật ký chứ không phải dữ liệu. Nếu lượt chạy rơi đúng phút trùng giờ sinh giả và app ghi giờ hiện tại vào một chỗ tìm khác, lượt chạy có thể đỏ nhầm; khi đó xem chỗ tìm trong báo cáo rồi mới kết luận.
+
+Nhật ký máy chủ được đọc sau khi API đã tắt hẳn và đóng đầu ra, nên các dòng ghi lúc tắt cũng được tìm. Nếu máy chủ không tắt trong 20 giây, lượt chạy hỏng (mã thoát 2), không tính là đạt.
+
+Cơ sở dữ liệu của lượt chạy là một file tạm riêng, truyền cho máy chủ QA qua `LA_LANH_QA_DATABASE_URL`, và bị xoá khi chạy xong. Giá trị `LA_LANH_QA_DATABASE_URL` có sẵn trong môi trường của người chạy không được dùng.
 
 ## Cách chạy
 
@@ -61,6 +67,8 @@ node scripts/leak-canary.mjs --plant server-log
 
 Tên chỗ tìm dùng được: `server-log`, `request-url`, `request-referer`, `external-request`, `error-report`, `error-response`, `browser-history`, `current-url`, `web-storage`.
 
+Với `web-storage`, dấu được ghi vào Cache thật của trang (trong nội dung một câu trả lời đã lưu), nên lượt chạy chỉ đỏ khi phần đọc bộ nhớ thật sự đọc được nó. Với các chỗ tìm còn lại, dấu được thêm vào danh sách đã thu, nên chỉ thử được phần tìm dấu.
+
 Phần tìm dấu có test riêng, không cần trình duyệt: `node --test scripts/leak-canary-lib.test.mjs` (chạy trong `pnpm collab:test`).
 
 ## Khi lượt chạy đỏ
@@ -76,5 +84,6 @@ Phần tìm dấu có test riêng, không cần trình duyệt: `node --test scr
 - Nhật ký ở mức DEBUG, và nhật ký của máy chủ thật (staging, production): lượt chạy dùng mức nhật ký mặc định trên máy cục bộ với SQLite.
 - Tên, biệt danh gõ ở Ghép đôi, Radar, Lá Chung (cũng đi qua lớp an toàn): lượt chạy mới gõ vào lớp an toàn qua màn Tarot.
 - Trình duyệt WebKit và app di động.
+- IndexedDB, và bộ nhớ của service worker (lượt chạy chặn service worker).
 
 Khi thêm một màn nhận dữ liệu riêng, thêm dấu và bước cho màn đó vào `scripts/leak-canary-lib.mjs` và `scripts/leak-canary.mjs` trong cùng PR.

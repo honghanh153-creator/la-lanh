@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { access, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { spawn } from "node:child_process";
+import { access, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -9,8 +10,10 @@ import {
   createQaServer,
   DEFAULT_QA_API_PORT,
   DEFAULT_QA_WEB_PORT,
+  drainOnStop,
   loopbackApiTarget,
   prepareQaDatabase,
+  stopChild,
 } from "./qa-server.mjs";
 
 test("QA CLI defaults match the documented review URL", () => {
@@ -48,6 +51,60 @@ test("QA database survives restarts by port and can still run ephemerally", asyn
   });
   assert.equal(typeof ephemeral.cleanup, "function");
   ephemeral.cleanup();
+});
+
+// Codex #753 r1: the launcher told the API to stop and left at once, and its callers waited only
+// for the launcher's exit, so the API's shutdown lines could arrive after the log had been read.
+const SLOW_WRITER = "process.stdout.write('ready\\n'); process.on('SIGTERM', () => setTimeout(() => { process.stdout.write('late-line\\n'); process.exit(0); }, 300)); setInterval(() => {}, 1000);";
+// A launcher of the old kind: passes its output on to a child, and on SIGTERM signals it and leaves.
+const HASTY_PARENT = `const { spawn } = require('node:child_process'); const child = spawn(process.execPath, ['-e', ${JSON.stringify(SLOW_WRITER)}], { stdio: 'inherit' }); process.on('SIGTERM', () => { child.kill('SIGTERM'); process.exit(0); });`;
+
+function startCollecting(script) {
+  const child = spawn(process.execPath, ["-e", script], { stdio: ["ignore", "pipe", "pipe"] });
+  const seen = { output: "", atExit: null };
+  child.stdout.on("data", (chunk) => { seen.output += chunk; });
+  child.once("exit", () => { seen.atExit = seen.output; });
+  const ready = new Promise((resolveReady) => {
+    child.stdout.on("data", () => { if (seen.output.includes("ready")) resolveReady(); });
+  });
+  return { child, seen, ready };
+}
+
+test("drainOnStop waits for lines a grandchild writes after the child itself has exited", async () => {
+  const { child, seen, ready } = startCollecting(HASTY_PARENT);
+  const stop = drainOnStop(child);
+  await ready;
+  await stop();
+  assert.ok(!seen.atExit.includes("late-line"), "the line is not there yet when the child exits: waiting for exit reads half a log");
+  assert.match(seen.output, /late-line/);
+  await stop();
+});
+
+test("drainOnStop rejects and kills a child that never closes its output", async () => {
+  const { child, ready } = startCollecting("process.stdout.write('ready\\n'); process.on('SIGTERM', () => {}); setInterval(() => {}, 1000);");
+  const stop = drainOnStop(child);
+  const gone = new Promise((resolveGone) => child.once("exit", resolveGone));
+  await ready;
+  await assert.rejects(stop({ timeoutMs: 300 }), /chưa đóng đầu ra/);
+  await gone;
+  assert.equal(child.signalCode, "SIGKILL");
+});
+
+test("stopChild resolves only after the child has finished its own shutdown", async () => {
+  const { child, seen, ready } = startCollecting(SLOW_WRITER);
+  const closed = new Promise((resolveClosed) => child.once("close", resolveClosed));
+  await ready;
+  await stopChild(child);
+  assert.equal(child.exitCode, 0);
+  await stopChild(child);
+  await closed;
+  assert.match(seen.output, /late-line/);
+});
+
+test("the launcher leaves only after the API has stopped", async () => {
+  const source = await readFile(new URL("./qa-server.mjs", import.meta.url), "utf8");
+  assert.match(source, /leaving \?\?= stopChild\(api\)\.then\(/);
+  assert.ok(!/process\.once\("SIGTERM", \(\) => \{ stop\(\); process\.exit\(0\); \}\)/.test(source));
 });
 
 test("QA server serves SPA deep links and proxies API readiness", async (context) => {

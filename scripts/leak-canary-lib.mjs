@@ -49,7 +49,7 @@ const stripAccents = (text) => text.normalize("NFD").replace(/[̀-ͯ]/g, "").rep
 const fold = (text) => String(text).normalize("NFC").toLowerCase();
 
 // Every spelling of a mark that would still identify the value: {kind, forms, clock}.
-// `clock` marks are searched after timestamps are masked (see maskTimestamps).
+// In a log line, `clock` marks are searched after the line's own timestamp is masked (see maskLogTime).
 export function buildMarks({ canary = CANARY, placeId = null, secrets = [] } = {}) {
   const { day, month, year, hour, minute } = canary;
   const plainPlace = stripAccents(canary.place);
@@ -82,13 +82,16 @@ export function buildMarks({ canary = CANARY, placeId = null, secrets = [] } = {
   return marks.map((mark) => ({ ...mark, forms: [...new Set(mark.forms.map(fold))] }));
 }
 
-const TIMESTAMP = /\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(?::\d{2}(?:[.,]\d+)?)?(?:Z|[+ -]\d{2}:?\d{2})?/gi;
-const CLOCK_WITH_SECONDS = /\b\d{1,2}:\d{2}:\d{2}(?:[.,]\d+)?\b/g;
+// The time a logger writes at the start of its line, bare or in brackets: a date with a clock time,
+// or a clock time with seconds.
+const LINE_TIME = /^(\s*[[(]?)(?:\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(?::\d{2}(?:[.,]\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?|\d{1,2}:\d{2}:\d{2}(?:[.,]\d+)?)/i;
 
 // A birth time such as "03:47" is also the clock time of every log line written in that minute
-// (#457). Timestamps and clock times with seconds are masked before a birth time is looked for.
-export function maskTimestamps(text) {
-  return text.replace(TIMESTAMP, "<timestamp>").replace(CLOCK_WITH_SECONDS, "<clock>");
+// (#457). Only that one piece of log metadata is masked: the time at the start of a log line.
+// A clock value anywhere else (a payload, a URL, storage, the rest of the line) stays searchable,
+// with or without seconds, so "03:47:00" in a query or in JSON is still a finding.
+export function maskLogTime(line) {
+  return line.replace(LINE_TIME, "$1<log-time>");
 }
 
 function decoded(text) {
@@ -108,10 +111,11 @@ function views(text) {
   return [...all].map(fold);
 }
 
-// Findings for one piece of text: [{kind}] for each mark found, once per kind.
-export function findMarks(text, marks) {
+// Findings for one piece of text: [{kind}] for each mark found, once per kind. `logLine` says the
+// text is one line of a server log, the only place where a leading timestamp is masked.
+export function findMarks(text, marks, { logLine = false } = {}) {
   const plain = views(String(text));
-  const masked = plain.map(maskTimestamps);
+  const masked = logLine ? plain.map(maskLogTime) : plain;
   const kinds = [];
   for (const mark of marks) {
     const haystacks = mark.clock ? masked : plain;
@@ -132,10 +136,50 @@ export function scanSurfaces(surfaces, marks) {
         findings.push({ surface: name, kind: "request-left-the-app", index });
         return;
       }
-      for (const kind of findMarks(entry, marks)) findings.push({ surface: name, kind, index });
+      for (const kind of findMarks(entry, marks, { logLine: name === "server-log" })) findings.push({ surface: name, kind, index });
     });
   }
   return findings;
+}
+
+// Everything the page keeps: localStorage, sessionStorage, and for each Cache entry its URL, the
+// headers and the body of the stored answer (US-03 AC12), plus the page title. It runs inside the
+// page through page.evaluate, so it must not use anything outside its own body; `env` is the
+// page's global object there and a stand-in in tests.
+export async function dumpWebStorage(env = globalThis) {
+  const entries = [];
+  for (const [name, store] of [["localStorage", env.localStorage], ["sessionStorage", env.sessionStorage]]) {
+    if (!store) continue;
+    for (let i = 0; i < store.length; i += 1) {
+      const key = store.key(i);
+      entries.push(`${name} ${key} ${store.getItem(key)}`);
+    }
+  }
+  if (env.caches) {
+    for (const name of await env.caches.keys()) {
+      const cache = await env.caches.open(name);
+      for (const request of await cache.keys()) {
+        const response = await cache.match(request);
+        const headers = response ? [...response.headers].map(([key, value]) => `${key}: ${value}`).join("\n") : "";
+        const body = response ? await response.clone().text() : "";
+        entries.push(`cache ${name} ${request.url}\n${headers}\n${body}`);
+      }
+    }
+  }
+  if (env.document) entries.push(`title ${env.document.title}`);
+  return entries;
+}
+
+// Environment of the QA launcher for one run. The launcher takes its database from
+// LA_LANH_QA_DATABASE_URL and overwrites LA_LANH_DATABASE_URL, so the scratch path goes there;
+// it also replaces a value inherited from the caller, which could name an existing database.
+export function canaryServerEnv({ base = {}, databaseFile, apiPort, webPort }) {
+  return {
+    ...base,
+    LA_LANH_QA_DATABASE_URL: `sqlite+aiosqlite:///${databaseFile}`,
+    LA_LANH_QA_API_PORT: String(apiPort),
+    LA_LANH_QA_WEB_PORT: String(webPort),
+  };
 }
 
 // True when the URL belongs to the app under test. Anything else is a request that left it.
@@ -181,7 +225,7 @@ const SURFACE_NAMES = Object.freeze({
   "error-response": "nội dung câu trả lời lỗi của API",
   "browser-history": "lịch sử trình duyệt",
   "current-url": "URL hiện tại",
-  "web-storage": "bộ nhớ trình duyệt (localStorage, sessionStorage, Cache)",
+  "web-storage": "bộ nhớ trình duyệt (localStorage, sessionStorage, nội dung Cache)",
 });
 
 // Plain report lines. No value of a mark, no URL and no log line is printed.

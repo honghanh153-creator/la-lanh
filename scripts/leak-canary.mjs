@@ -18,8 +18,9 @@ import { fileURLToPath } from "node:url";
 
 import {
   CANARY, SAFETY_TEXT, SURFACES, TAROT_QUESTION,
-  buildMarks, isLocalUrl, missingSends, reportLines, scanSurfaces, sendsIn,
+  buildMarks, canaryServerEnv, dumpWebStorage, isLocalUrl, missingSends, reportLines, scanSurfaces, sendsIn,
 } from "./leak-canary-lib.mjs";
+import { drainOnStop } from "./qa-server.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const requireFromWeb = createRequire(resolve(root, "apps/web/package.json"));
@@ -45,14 +46,10 @@ let serverLog = "";
 
 const server = spawn(process.execPath, ["scripts/qa-server.mjs"], {
   cwd: root,
-  env: {
-    ...process.env,
-    LA_LANH_DATABASE_URL: `sqlite+aiosqlite:///${join(scratch, "qa.db")}`,
-    LA_LANH_QA_API_PORT: String(apiPort),
-    LA_LANH_QA_WEB_PORT: String(webPort),
-  },
+  env: canaryServerEnv({ base: process.env, databaseFile: join(scratch, "qa.db"), apiPort, webPort }),
   stdio: ["ignore", "pipe", "pipe"],
 });
+const stopServer = drainOnStop(server);
 server.stdout.on("data", (chunk) => { serverLog += chunk; });
 server.stderr.on("data", (chunk) => { serverLog += chunk; });
 
@@ -107,24 +104,18 @@ function watchPage(page) {
 }
 
 async function readStorage(page) {
-  const dump = await page.evaluate(async () => {
-    const entries = [];
-    for (const [name, store] of [["localStorage", localStorage], ["sessionStorage", sessionStorage]]) {
-      for (let i = 0; i < store.length; i += 1) {
-        const key = store.key(i);
-        entries.push(`${name} ${key} ${store.getItem(key)}`);
-      }
-    }
-    if ("caches" in window) {
-      for (const name of await caches.keys()) {
-        const cache = await caches.open(name);
-        for (const request of await cache.keys()) entries.push(`cache ${name} ${request.url}`);
-      }
-    }
-    entries.push(`title ${document.title}`);
-    return entries;
-  });
-  surfaces["web-storage"].push(...dump);
+  surfaces["web-storage"].push(...await page.evaluate(dumpWebStorage));
+}
+
+// --plant for a surface the run collects itself: the mark goes into the real place, so the run is
+// red only if the collector reads it. Web storage: the body of an answer kept in Cache Storage.
+async function plantInPage(page) {
+  if (planted !== "web-storage") return;
+  await page.evaluate(async (text) => {
+    const cache = await caches.open("leak-canary-plant");
+    await cache.put("/__leak-canary-plant", new Response(text, { headers: { "content-type": "text/plain" } }));
+  }, `planted ${CANARY.tarotMark}`);
+  await readStorage(page);
 }
 
 const button = (page, name) => page.getByRole("button", { name }).first();
@@ -214,16 +205,17 @@ try {
   const page = await context.newPage();
   watchPage(page);
   await journey(page);
+  await plantInPage(page);
   for (const cookie of await context.cookies()) secrets.add(cookie.value);
   await browser.close();
   browser = null;
 
-  // Stop the server before reading its log, so lines written at shutdown are included.
-  server.kill("SIGTERM");
-  await new Promise((resolveExit) => server.once("exit", resolveExit));
+  // Stop the server and wait until its output is closed before reading the log: the API writes
+  // its shutdown lines after the launcher has been told to stop.
+  await stopServer();
   surfaces["server-log"] = serverLog.split("\n").filter((line) => line.trim() !== "");
 
-  if (planted) surfaces[planted].push(`planted ${CANARY.tarotMark}`);
+  if (planted && planted !== "web-storage") surfaces[planted].push(`planted ${CANARY.tarotMark}`);
   const marks = buildMarks({ placeId, secrets: [...secrets] });
   const findings = scanSurfaces(surfaces, marks);
   const missing = missingSends(sent);
@@ -235,10 +227,8 @@ try {
   exitCode = 2;
 } finally {
   if (browser) await browser.close().catch(() => {});
-  if (server.exitCode === null) {
-    server.kill("SIGTERM");
-    await new Promise((resolveExit) => server.once("exit", resolveExit));
-  }
+  // After a broken run the server may still be up; a server that will not stop keeps the run broken.
+  await stopServer().catch(() => { exitCode = 2; });
   await rm(scratch, { recursive: true, force: true });
 }
 process.exit(exitCode);
