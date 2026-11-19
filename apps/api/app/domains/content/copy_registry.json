@@ -10161,14 +10161,20 @@
   {
    "id": "privacy.la-line-device-memory",
    "category": "privacy",
-   "text": "Lá ghi nhớ câu đã nói lần trước cho từng chuyện, để lần sau nói câu khác. Việc này chỉ lưu trên máy bạn.",
-   "status": "pending"
+   "text": "Lá ghi nhớ câu đã nói lần trước cho từng chuyện để tư vấn cho bạn tốt hơn",
+   "status": "approved",
+   "approver": "owner",
+   "date": "2026-11-19",
+   "digest": "3b4098cf52f8237282332beaeed7803e868dafabaeab564522c2ce71c8338785"
   },
   {
    "id": "privacy.history-clear-device-failed",
    "category": "privacy",
-   "text": "Chưa xoá xong phần lưu trên máy này. Thử xoá lại nhé; hồ sơ vẫn được giữ.",
-   "status": "pending"
+   "text": "Hình như bạn chưa xoá phần lưu thông tin trên máy này. Thử xoá lại nhé.",
+   "status": "approved",
+   "approver": "owner",
+   "date": "2026-11-19",
+   "digest": "d68b618bc9b4151e4a143268c9991b6f46c3cf83ef6163951690a0bcbf09a7f3"
   },
   {
    "id": "lighter.action.01",

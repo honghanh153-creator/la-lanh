@@ -162,11 +162,11 @@ describe("ProfilePage resonance privacy controls", () => {
     const user = userEvent.setup(); renderPage();
     await user.click(await screen.findByRole("button", { name: /Xoá lịch sử đã xem/ }));
     await user.click(screen.getByRole("button", { name: "Xoá lịch sử" }));
-    // The new wording waits for the owner (pending privacy copy); until then the app's existing
-    // history-clear error is shown, never the unapproved sentence.
-    expect(LOCAL_ERASE_FAILED.approved).toBe(false);
-    expect(await screen.findByRole("alert")).toHaveTextContent("Chưa xác nhận được việc xoá lịch sử");
-    expect(screen.queryByText(LOCAL_ERASE_FAILED.text)).not.toBeInTheDocument();
+    // The owner wrote and approved this wording on 19.11.2026 (item AF, AF2), so the screen shows
+    // her sentence, not the generic history-clear error.
+    expect(LOCAL_ERASE_FAILED.approved).toBe(true);
+    expect(await screen.findByRole("alert")).toHaveTextContent(LOCAL_ERASE_FAILED.text);
+    expect(screen.queryByText(/Chưa xác nhận được việc xoá lịch sử/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Đã xoá lịch sử/)).not.toBeInTheDocument();
     expect(lastLaLine("changed-plan")).toBeNull();
     refuse.mockRestore();
