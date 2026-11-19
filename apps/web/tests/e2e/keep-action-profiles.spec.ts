@@ -17,6 +17,7 @@ const REVISION_ID = "00000000-0000-4000-8000-000000000010";
 const OWN = "Nhắn một người để hẹn lại lịch làm việc chung của tuần này.";
 const LIGHT = "Rót một ly nước, ngồi xuống ghế gần nhất và uống chậm từng ngụm.";
 const cues = { observation: "Bạn thấy người dịu hơn chưa?", permission: "Không hợp thì bỏ qua." };
+const WRITE_DELAY_MS = 150;
 const OWN_KEY = "d".repeat(64);
 const LIGHT_KEY = "e".repeat(64);
 
@@ -168,6 +169,10 @@ class FakeServer {
       }
       this.answering += 1;
       try {
+        // A write takes a moment, as on a real server. The page shows some results before the
+        // answer comes (stop keeping, recording an outcome), so a check of the server that does
+        // not wait for the request fails every time here, not only on a slow machine.
+        if (request.method() !== "GET") await new Promise((done) => setTimeout(done, WRITE_DELAY_MS));
         const reply = this.answer(request.method(), path, request.postDataJSON() as Record<string, unknown> | null);
         if (!reply) {
           this.unmocked.push(`${request.method()} ${path}`);
@@ -378,7 +383,10 @@ for (const profile of PROFILES) {
       await shot("outcomes");
       await page.getByRole("button", { name: "Có ích một chút", exact: true }).click();
       await expect(page.locator(".reading-content__reflected")).toHaveText("Đã nhìn lại: Có ích một chút");
-      expect(server.kept).toMatchObject({ state: "reflected", outcome: "helpful", action_key: OWN_KEY });
+      // The page shows the outcome before the server answers, so wait for the server to have it:
+      // a reload before that would lose the outcome.
+      await expect.poll(() => server.kept).toMatchObject({ state: "reflected", outcome: "helpful", action_key: OWN_KEY });
+      await expect.poll(() => server.answering).toBe(0);
 
       // Reload once more: the recorded outcome is still there.
       await page.reload();
