@@ -10409,6 +10409,186 @@
    "category": "reading",
    "text": "Thở dài ba lần rồi mà chưa ai hiểu hả? Nói rõ bạn cần gì đi.",
    "status": "pending"
+  },
+  {
+   "id": "lighter.issue.missing-context.01",
+   "category": "reading",
+   "text": "Chỗ chưa rõ cứ để đó, đứng dậy uống một cốc nước đã.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.missing-context.02",
+   "category": "reading",
+   "text": "Ghi một dòng cho riêng mình: chỗ nào bạn đang chưa rõ.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.too-many-open-loops.01",
+   "category": "reading",
+   "text": "Gấp máy lại, ngồi yên hai phút, chưa cần đụng tới việc nào.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.too-many-open-loops.02",
+   "category": "reading",
+   "text": "Ghi một dòng: việc nào đang ở trong đầu bạn nhiều nhất.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.changed-plan.01",
+   "category": "reading",
+   "text": "Kế hoạch đổi rồi thì nghỉ ba phút đã, chưa cần xếp lại ngay.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.changed-plan.02",
+   "category": "reading",
+   "text": "Đi bộ một vòng quanh nhà rồi mới tính tới lịch mới.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.comparison-loop.01",
+   "category": "reading",
+   "text": "Tắt điện thoại ba phút, nhìn ra cửa sổ thay vì xem bài của người khác.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.comparison-loop.02",
+   "category": "reading",
+   "text": "Ghi một dòng: hôm nay bạn đã làm được việc gì.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.automatic-caretaking.01",
+   "category": "reading",
+   "text": "Uống một cốc nước cho mình trước, việc của người khác để sau.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.automatic-caretaking.02",
+   "category": "reading",
+   "text": "Ngồi yên ba phút, chưa cần lo phần của ai.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.decision-fatigue.01",
+   "category": "reading",
+   "text": "Hoãn việc chọn lại năm phút, đi rửa mặt đã.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.decision-fatigue.02",
+   "category": "reading",
+   "text": "Nhắm mắt một phút, chưa cần chọn gì lúc này.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.perfect-before-start.01",
+   "category": "reading",
+   "text": "Để bản đang làm dở đó, duỗi vai và cổ một phút.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.perfect-before-start.02",
+   "category": "reading",
+   "text": "Gấp máy lại, thở chậm năm hơi, bản đó chưa cần đẹp ngay.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.group-pressure.01",
+   "category": "reading",
+   "text": "Ra khỏi chỗ đông người, đứng thở chậm một phút.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.group-pressure.02",
+   "category": "reading",
+   "text": "Tắt điện thoại năm phút rồi ngồi yên một mình, chuyện của nhóm để sau.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.avoid-small-conflict.01",
+   "category": "reading",
+   "text": "Chuyện đang ngại cứ để đó, đi bộ một vòng cho đỡ căng.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.avoid-small-conflict.02",
+   "category": "reading",
+   "text": "Ghi một dòng cho riêng mình: chuyện gì đang làm bạn khó chịu.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.defend-old-choice.01",
+   "category": "reading",
+   "text": "Chưa cần chứng minh mình đúng, uống một ngụm nước và thở chậm.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.defend-old-choice.02",
+   "category": "reading",
+   "text": "Ngồi yên hai phút rồi mới nghĩ tiếp chuyện cách cũ hay cách mới.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.capacity-before-agreement.01",
+   "category": "reading",
+   "text": "Tắt điện thoại năm phút, chưa cần gật đầu với ai lúc này.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.capacity-before-agreement.02",
+   "category": "reading",
+   "text": "Nằm xuống ba phút trước khi nghĩ tới lời mời đó.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.quick-reply.01",
+   "category": "reading",
+   "text": "Úp điện thoại xuống bàn, thở chậm năm hơi rồi mới cầm lại.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.quick-reply.02",
+   "category": "reading",
+   "text": "Đứng dậy uống một cốc nước, tin đó vẫn còn ở đó.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.repair-reply.01",
+   "category": "reading",
+   "text": "Lỡ lời rồi thì ngồi yên hai phút cho bớt nóng đã.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.repair-reply.02",
+   "category": "reading",
+   "text": "Rửa mặt bằng nước mát rồi nghỉ ba phút, chuyện kia tính sau.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.specific-feedback.01",
+   "category": "reading",
+   "text": "Đọc xong lời góp ý thì duỗi vai một phút, chưa cần sửa gì ngay.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.specific-feedback.02",
+   "category": "reading",
+   "text": "Tắt máy năm phút rồi mới xem lại lời góp ý.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.name-the-need.01",
+   "category": "reading",
+   "text": "Ghi một dòng cho riêng mình: lúc này bạn đang cần gì.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.name-the-need.02",
+   "category": "reading",
+   "text": "Ngồi yên ba phút, đặt tay lên bụng và thở đều.",
+   "status": "pending"
   }
  ],
  "version": "copy-registry/v1"

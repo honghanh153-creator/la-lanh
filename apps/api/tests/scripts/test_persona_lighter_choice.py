@@ -15,7 +15,7 @@ import pytest
 from app.domains.content import copy_approval
 from app.domains.content.copy_approval import copy_digest, parse_registry
 from app.domains.readings import lighter_action
-from app.domains.readings.lighter_action import LIGHTER_ACTION_PREFIX
+from app.domains.readings.lighter_action import ISSUE_LIGHT_PREFIX, LIGHTER_ACTION_PREFIX
 from scripts import persona_sim
 from scripts.persona_metrics import LOW_MOOD, is_light
 from scripts.persona_sim import shown_action
@@ -82,7 +82,8 @@ def _approve_lighter_pool(monkeypatch: pytest.MonkeyPatch) -> None:
 
     data = json.loads(copy_approval.REGISTRY_PATH.read_text(encoding="utf-8"))
     for entry in data["entries"]:
-        if entry["id"].startswith(LIGHTER_ACTION_PREFIX):
+        # The general list and the light actions written per Daily issue (#699).
+        if entry["id"].startswith((LIGHTER_ACTION_PREFIX, ISSUE_LIGHT_PREFIX)):
             entry.update(
                 status="approved",
                 approver="codex",
