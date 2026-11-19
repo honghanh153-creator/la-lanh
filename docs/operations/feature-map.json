@@ -22,7 +22,7 @@
         "returning": {
           "fixture": "signed-in",
           "walk": [{ "goto": "/" }],
-          "ready": { "role": "button", "name": "Chọn mood hôm nay" }
+          "ready": { "role": "button", "name": "Chọn cảm giác hôm nay" }
         },
         "offline": { "manual": "Tắt mạng rồi mở /: app không trắng trang." }
       }
@@ -239,7 +239,7 @@
             { "ac": "US-03 AC06", "part": "Note gọn hiện việc nhỏ của hôm nay",
               "expect": { "role": "region", "name": "Note hôm nay" }, "text": "Bỏ một việc không cần xong hôm nay." },
             { "ac": "US-03 AC06", "part": "Note gọn có lối chọn mood, không phải đoán nút",
-              "expect": { "role": "button", "name": "Chọn mood hôm nay" } },
+              "expect": { "role": "button", "name": "Chọn cảm giác hôm nay" } },
             { "ac": "US-03 AC13", "part": "Đọc được bằng trình đọc màn hình, thứ tự focus, vùng chạm ≥44px, chữ 200%, giảm chuyển động",
               "manual": "Quét axe chạy ở mỗi lượt verify; thứ tự focus, chữ 200% và giảm chuyển động cần kiểm tay." }
           ]
@@ -256,21 +256,21 @@
     },
     {
       "id": "mood",
-      "title": "Chọn mood hôm nay",
+      "title": "Chọn cảm giác hôm nay",
       "us": ["US-04"],
       "ac": ["US-04 AC01", "US-04 AC02", "US-04 AC04", "US-04 AC13"],
       "routes": ["/home"],
       "source_files": ["apps/web/src/features/home/HomePage.tsx", "apps/web/src/shared/storage/pendingMood.ts"],
-      "user_path": ["Home", "Bấm Chọn mood hôm nay", "Chọn một mood"],
+      "user_path": ["Home", "Bấm Chọn cảm giác hôm nay", "Chọn một mood"],
       "owner_only": false,
       "key_selectors": [
-        { "role": "button", "name": "Chọn mood hôm nay" },
+        { "role": "button", "name": "Chọn cảm giác hôm nay" },
         { "role": "button", "name": "Chill" }
       ],
       "states": {
         "sheet-open": {
           "fixture": "signed-in",
-          "walk": [{ "goto": "/home" }, { "click": { "role": "button", "name": "Chọn mood hôm nay" } }],
+          "walk": [{ "goto": "/home" }, { "click": { "role": "button", "name": "Chọn cảm giác hôm nay" } }],
           "ready": { "role": "button", "name": "Chill" }
         },
         "offline": { "manual": "Chọn mood khi offline: giữ trên máy và đồng bộ sau (US-04 AC07)." }
