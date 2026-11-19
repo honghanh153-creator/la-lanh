@@ -277,7 +277,11 @@ class PostgresExperimentRepository:
         if projection.action_key == draft.action_key:
             return projection, None
         # The lighter action offered with this same revision (#627) may be kept instead.
-        lighter_action = lighter_action_for(revision.id)
+        # Same sentence the card showed: the light action of the card's own Daily issue (#699).
+        lighter_action = lighter_action_for(
+            revision.id,
+            candidate.semantic_blueprint.mechanism_key if candidate.semantic_blueprint else None,
+        )
         if lighter_action is not None:
             lighter = lighter_experiment_for(revision.id, lighter_action)
             if lighter.action_key == draft.action_key:
