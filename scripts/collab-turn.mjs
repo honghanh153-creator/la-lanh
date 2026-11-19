@@ -10,11 +10,13 @@ import { bodyHash } from './collab-heal.mjs';
 import { claimsByPr, mayTouch, pruneClaims } from './collab-pr-claim.mjs';
 import { plannedWork, workRef } from './collab-work.mjs';
 import { gateValue, preflightFailure, readPreflight, recordPreflight, userSees } from './collab-preflight.mjs';
-import { sizeProblem, withRepeatNote } from './collab-size.mjs';
+import { syncStatusLabels } from './collab-labels.mjs';
+import { deletionProblem, sizeProblem, withRepeatNote } from './collab-size.mjs';
 import { withFileLock } from './collab-lock.mjs';
 import { bufferStatus, dailyLaneLabel, queueTopUp, wipCount } from './collab-buffer.mjs';
 import { afterDecision, disputeView, settleDisputes } from './collab-disagree.mjs';
 import { isMain } from './is-main.mjs';
+import { activeReservation, followHead, releaseReservation, reserve } from './collab-reservation.mjs';
 
 export { codexDailyCap };
 // L25: the launchd tick passes no settle, so this default is the production caller.
@@ -68,6 +70,8 @@ export function prTurn(pr, { dropped = [], open = [], preflight = {}, baseFiles,
   if (pr.baseRefName === 'main') return out('hold', 'base là main: chỉ owner');
   if (pr.isDraft) return out('hold', 'draft');
   if (labels.includes('needs-owner')) return out('hold', 'needs-owner');
+  const deletion = deletionProblem(pr);
+  if (deletion) return out('hold', deletion);
   // L25: an open dispute holds the PR; after a decision only a newer check and review count.
   if (disputes[pr.number]?.hold) return out('hold', disputes[pr.number].hold);
   if (dropped.includes(pr.number)) return out('hold', 'owner bỏ khỏi plan hôm nay');
@@ -268,7 +272,14 @@ export const autopilotSession = 'autopilot';
 // their PR carries the plan label.
 export const plan7wPrNumbers = (turns, date) => { const keys = new Set(readJson(dayStatePath(date), {}).planned7wKeys ?? []); return turns.filter(t => keys.has(unitKey(t))).map(t => t.number); };
 
-export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], prPreflight: preflight = () => ({ status: 'PASS' }), heavyFree = () => true, nowMs = Date.now, check = () => ({ status: 'skipped' }), review, merge, alert, board = () => {}, log = () => {}, watchdog = () => {}, health = () => [], copyPending = () => 0, copyBatch = null, copySaved = () => false, notify = () => {}, metrics = () => null, audit = null, incidents = null, ciStatus = null, settle = defaultSettle, mergeAudit = null } = {}) {
+const defaultReservations = {
+  active: nowMs => activeReservation(nowMs),
+  reserve: (pr, head, options) => reserve(pr, head, options),
+  follow: (pr, head, options) => followHead(pr, head, options),
+  release: (pr, why) => releaseReservation(pr, why),
+};
+
+export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], prPreflight: preflight = () => ({ status: 'PASS' }), heavyFree = () => true, nowMs = Date.now, check = () => ({ status: 'skipped' }), review, merge, alert, board = () => {}, log = () => {}, watchdog = () => {}, health = () => [], copyPending = () => 0, copyBatch = null, copySaved = () => false, notify = () => {}, metrics = () => null, audit = null, incidents = null, ciStatus = null, settle = defaultSettle, mergeAudit = null, reservations = defaultReservations } = {}) {
   // The clock is read again before each action, so a long review cannot push the next one past lastStartAt.
   const time = clock ?? (now ? () => now : () => vnNow());
   now = time();
@@ -369,6 +380,8 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       const drops = dropSet(plan, prs, dayPath, day);
       const gone = drops.keys;
       const turns = applyDrops(ciRechecks(turnsFor(prs, { dropped: drops.prs, baseFiles: gh.compareFiles }), prs, { ci: ciStatus, seen: recheckedKeys(now.date), log }), gone);
+      // Labels follow the final turns, after a green CI re-run may have moved a PR to claude-check.
+      try { if (gh.raw) syncStatusLabels(gh, prs, turns); } catch (error) { log(`status labels: ${String(error.message ?? error).slice(0, 200)}`); }
       // #253: the scheduled tick samples the flow metric and owns the buffer top-up, so the
       // persisted queue and --status agree and the metric does not depend on report reads.
       const { queue: startBuffer } = bufferStatus(prs, turns, { plan7wPrs: plan7wPrNumbers(turns, now.date) });
@@ -393,14 +406,28 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       // Trial 18–19.11 (owner 17.11): the Daily lane goes after the kept 7-week items, before the area.
       const dailyPrs = new Set(prs.filter(p => (p.labels ?? []).some(l => (l.name ?? l) === dailyLaneLabel)).map(p => p.number));
       const third = live.filter(t => !first.includes(t) && !second.includes(t) && dailyPrs.has(t.number));
-      const work = [...first, ...second, ...third, ...live.filter(t => t.area === area && !first.includes(t) && !second.includes(t) && !third.includes(t))];
+      let work = [...first, ...second, ...third, ...live.filter(t => t.area === area && !first.includes(t) && !second.includes(t) && !third.includes(t))];
       const done = [];
       const late = () => { const t = time(); return t.hour * 60 + t.minute >= lastStartAt; };
       // 17.11.2026 (#633): a PR ready to merge is merged whatever its area. Merging costs no Codex run
       // or heavy job, while waiting lets another area's merge move integration and void its check and
       // review (#633 waited 45 minutes behind content work, then needed a new check and review).
       // Checks and reviews keep the area order; the merge gate still checks every PR.
-      const merges = [...work, ...live.filter(t => !work.includes(t))].filter(t => t.turn === 'merge').slice(0, 2);
+      // Incident 18.11.2026 (Codex run 23, P1 on #736): the front reserves integration before it is
+      // synced, and collab-merge refuses every other PR while the reservation stands, so a full CI run
+      // is not voided by fast merges. The holder is validated before the merges are chosen: while it
+      // stands, only the holder may be merged, from any area; a holder that left the queue or was
+      // pushed to by someone else is released first.
+      const waitingTurns = ['claude-check', 'codex-review', 'merge'];
+      let held = reservations.active(nowMs());
+      if (held) {
+        const t = live.find(x => x.number === held.pr);
+        const why = !t ? 'không còn trong hàng' : !waitingTurns.includes(t.turn) ? `rời hàng (${t.turn})`
+          : t.head && t.head !== held.head ? 'head đổi ngoài tick' : null;
+        if (why) { reservations.release(held.pr, why); log(`reservation #${held.pr} released: ${why}`); held = null; }
+        else work = [t, ...work.filter(x => x !== t)];
+      }
+      const merges = [...work, ...live.filter(t => !work.includes(t))].filter(t => t.turn === 'merge' && (!held || t.number === held.pr)).slice(0, 2);
       for (const t of merges) {
         if (late()) break;
         show({ status: 'running', doing: `merge #${t.number}`, expectMinutes: 5, area, turns, done });
@@ -427,7 +454,18 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       // claude-fix PR ahead of it (needs-owner, conflict) no longer keeps it from syncing.
       // One session per PR (owner 16.11): a PR a session holds is never synced by the machine; its
       // session merges integration in. It may still get an author check of the head it pushed.
-      const front = work.find(t => ['claude-check', 'codex-review'].includes(t.turn) && !mergedNow.has(t.number) && mayTouch(t.number).ok)?.number ?? null;
+      // The holder merged in this tick (runMerge released it): integration is free for a new front.
+      if (held && mergedNow.has(held.pr)) { reservations.release(held.pr, 'đã merge'); held = null; }
+      let front = held && live.find(x => x.number === held.pr && ['claude-check', 'codex-review'].includes(x.turn) && mayTouch(x.number).ok)?.number || null;
+      // No new reservation from lastStartAt (23:35): nothing new starts, so nothing should wait.
+      if (!held && now.hour * 60 + now.minute < lastStartAt) {
+        for (const t of work.filter(x => ['claude-check', 'codex-review'].includes(x.turn) && !mergedNow.has(x.number) && mayTouch(x.number).ok)) {
+          const r = reservations.reserve(t.number, t.head, { nowMs: nowMs() });
+          if (r.refused) { log(`reservation #${t.number} refused: ${r.refused}`); continue; }
+          if (r.reservation?.pr === t.number) { front = t.number; log(`reservation #${t.number} until ${new Date(r.reservation.expiresAtMs).toISOString()}`); }
+          break;
+        }
+      }
       const startedMs = nowMs();
       let checks = 0;
       // #508: a recheck is spent only by a receipt or a preflight result on an unchanged head (a
@@ -448,6 +486,7 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
         if (checks > 0 && !heavyFree()) break;
         show({ status: 'running', doing: `author check #${t.number} (thường 10–35 phút)`, expectMinutes: 90, area, turns, done });
         const result = check(t.number, { auto: true, clock: time, sync: t.number === front });
+        if (t.number === front && result?.status === 'synced' && result.head) reservations.follow(t.number, result.head, { nowMs: nowMs() });
         checks += 1;
         done.push({ pr: t.number, check: result });
         markRechecked(t, result?.status);

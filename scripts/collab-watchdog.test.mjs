@@ -3,6 +3,8 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
+// Incident 18.11.2026: a merge reservation written by one tick test must not steer the next.
+test.beforeEach(async () => (await import('./collab-reservation.mjs'))._resetReservation());
 
 process.env.LA_LANH_COLLAB_HOME = mkdtempSync(join(tmpdir(), 'collab-watchdog-'));
 const { beat, describeStale, healthLines, readBeats, staleTasks, watch } = await import('./collab-watchdog.mjs');
