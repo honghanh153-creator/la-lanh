@@ -32,32 +32,39 @@ def copy_digest(text: str) -> str:
 # shown to users must never carry a link, a contact detail or an unfilled template slot.
 # Every rule applies to pending and approved entries alike; an approved entry that breaks
 # one is not servable, so runtime falls back to the caller's current approved sentence.
+#
+# The two classes are closed by definition, not by a list of known spellings (review r7 of #411):
+#
+# Link. Two words joined by a dot with no space, where the last word is two or more letters of
+# any script ("vidu.vn", "vi-du.рф", "vi-du.中国") or a punycode label ("xn--p1ai"). There is no
+# list of suffixes and no script exception, so sentences glued together ("xong.Sau", "nhỏ.Rồi")
+# count as a link too: the copy adds the space. Numbers ("1.5", "2.10.3") are not links; an IPv4
+# address is. text_lint_problems also reads a folded text, so case, full-width letters, other dot
+# characters and invisible characters are not ways around the rule.
+#
+# Template slot. "%" + optional "(name)" or "n$" + flags + width + precision ("*" too) + length
+# modifier + any conversion letter of Python or C printf. No space flag: "50% dung lượng" is
+# plain text. clarity_lint.PLACEHOLDERS uses the same PRINTF_SLOT.
+PRINTF_SLOT = (
+    r"%(?:\(\w+\)|\d+\$)?[-#0+]*(?:\d+|\*)?(?:\.(?:\d+|\*))?"
+    r"(?:hh|h|ll|l|L|q|j|z|t)?[diouxXeEfFgGcrsaApn]"
+)
+_LABEL = r"[^\W_](?:[\w-]*[^\W_])?"
 _LINT_RULES: tuple[tuple[str, re.Pattern[str]], ...] = (
     (
         "contains a link",
         re.compile(
             r"(?i:[a-z][a-z0-9+.-]*://|\bwww\.)|"
-            # Any bare domain: labels of letters, digits and hyphens, Unicode included
-            # ("ví-dụ.test"), joined by dots and ending in an ASCII suffix of 2 to 24 letters,
-            # with no word character touching either end. The rules run on the NFKC, casefolded
-            # text too (text_lint_problems), so case and full-width variants ("vidu.Com",
-            # "VIDU.COM", full-width letters) are one class (review r6 of #411). A word glued
-            # to the next sentence ("xong.Sau") therefore counts as a link: add the space.
-            # A number ("1.5") or a non-ASCII word after the dot ("nhỏ.Rồi") is not a domain.
-            r"(?<![\w-])[^\W_](?:[\w-]*[^\W_])?(?:\.[^\W_](?:[\w-]*[^\W_])?)*"
-            r"\.[a-z]{2,24}(?![\w-])",
+            rf"(?<![\w-]){_LABEL}(?:\.{_LABEL})*"
+            r"\.(?:(?i:xn--)[A-Za-z0-9-]*[A-Za-z0-9]|[^\W\d_]{2,63})(?![\w-])|"
+            r"(?<![\w.])\d{1,3}(?:\.\d{1,3}){3}(?!\w|\.\d)",
         ),
     ),
     ("contains an email address or handle", re.compile(r"@\w")),
     # Eight or more digits in one run (spaces, dots, dashes, brackets allowed between them).
     ("contains a phone number", re.compile(r"\+?\d(?:[\s.()-]*\d){7,}")),
     ("contains a placeholder bracket", re.compile(r"[{}<>\[\]]")),
-    (
-        "contains a template slot",
-        # printf slots with flags, width and precision too ("%02d", "%.2f", "%-10s"; review r4
-        # of #411). No space flag: "50% dung lượng" is plain text.
-        re.compile(r"%(?:\(\w+\))?[-#0+]*\d*(?:\.\d+)?[sdif]|\$\w|\$\{|_{3,}"),
-    ),
+    ("contains a template slot", re.compile(rf"{PRINTF_SLOT}|\$\w|\$\{{|_{{3,}}")),
     (
         "contains a draft marker",
         re.compile(r"\b(?:TODO|TBD|FIXME|XXX+|PLACEHOLDER)\b|lorem ipsum", re.IGNORECASE),
@@ -72,10 +79,19 @@ def text_lint_problems(text: str) -> tuple[str, ...]:
     found: list[str] = []
     if unicodedata.normalize("NFC", text) != text:
         found.append("text is not Unicode NFC")
+    # Invisible format characters (zero-width space, soft hyphen, word joiner, direction marks)
+    # have no place in a sentence and can split a link so that no rule sees it.
+    if any(unicodedata.category(char) == "Cf" for char in text):
+        found.append("contains an invisible character")
     # Review r6 of #411: case and width are not ways around a rule. Each rule also reads the
     # NFKC, casefolded text, so "VIDU.COM", full-width letters, "Ban@Vi-Du.Test" or full-width
-    # digits are caught by the same rule as their plain lower-case form.
-    folded = unicodedata.normalize("NFKC", text).casefold()
+    # digits are caught by the same rule as their plain lower-case form. The folded text also
+    # drops invisible characters and reads the ideographic full stop as a dot (r7).
+    folded = "".join(
+        char
+        for char in unicodedata.normalize("NFKC", text).casefold()
+        if unicodedata.category(char) != "Cf"
+    ).replace("。", ".")
     found.extend(
         reason for reason, pattern in _LINT_RULES if pattern.search(text) or pattern.search(folded)
     )

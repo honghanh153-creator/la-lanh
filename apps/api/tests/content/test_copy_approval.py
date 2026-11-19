@@ -197,8 +197,8 @@ def test_linted_approved_copy_falls_back(monkeypatch: pytest.MonkeyPatch, text: 
         "Uống một cốc nước, rồi hít thở chậm 3 lần.",
         "Nghỉ 5-10 phút… rồi quay lại việc chính.",
         "Hỏi: “Mình cần gì lúc này?” — rồi ghi ra một dòng.",
-        "Xong việc nhỏ.Rồi nghỉ.",  # missing space after a full stop is not a link
         "Ghi 1.5 giờ ngủ thêm vào sổ.",
+        "Bản 2.10.3 chạy ổn hơn.",  # three number groups are a version, not an address
         "Bạn ở TP. Hồ Chí Minh, v.v. vẫn ổn.",
         "Giảm 50% dung lượng rồi tiếp.",  # a percent sign before a word is not a slot
         "Pin còn 20%, sạc thêm 5% nữa.",
@@ -237,10 +237,71 @@ def test_case_and_width_variants_are_one_class(monkeypatch: pytest.MonkeyPatch, 
     assert copy_approval.copy_text("tarot.closing_prompt", "cũ") == "cũ"
 
 
+# Review r7 of #411: the inventory of the two lint classes, so a class is closed by its definition
+# and not by the examples seen so far.
+#
+# Link (domain) = two words joined by a dot with no space, the last one 2+ letters of ANY script or
+# a punycode label. Forms: ASCII suffix; Unicode suffix (Cyrillic, Han, Arabic, Latin with marks);
+# punycode suffix or label ("xn--…"); any case; full-width letters; full-width or ideographic dot;
+# path, query or port after it; an IPv4 address; an invisible character splitting the name.
+#
+# Template slot = "%" + optional "(name)" or "n$" + flags + width + precision ("*" too) + length
+# modifier + ANY conversion letter of Python or C printf; "$name", "${…}", "{…}", "<…>", "[…]",
+# three or more underscores.
+_DOMAIN_FORMS = [
+    "Ghé vi-du.рф để đọc thêm.",  # Cyrillic suffix
+    "Ghé vi-du.中国 để đọc thêm.",  # Han suffix
+    "Ghé vi-du.xn--p1ai để đọc thêm.",  # punycode suffix
+    "Ghé vi-du.XN--P1AI để đọc thêm.",
+    "Ghé xn--vi-d-0qa.xn--p1ai/trang để đọc thêm.",  # punycode label and suffix
+    "Ghé пример.рф để đọc thêm.",
+    "Ghé vi-du.québec để đọc thêm.",  # Latin suffix with a mark
+    "Ghé vi-du.مصر để đọc thêm.",  # Arabic suffix
+    "Ghé vidu。com để đọc thêm.",  # ideographic full stop as the dot
+    "Ghé vidu｡com để đọc thêm.",  # half-width ideographic full stop
+    "Ghé vi​du.com để đọc thêm.",  # zero-width space inside the name
+    "Ghé vidu⁠.com để đọc thêm.",  # word joiner before the dot
+    "Ghé vi­du.com để đọc thêm.",  # soft hyphen inside the name
+    "Ghé vi-du.com:8080 để đọc thêm.",
+    "Mở 192.0.2.10 để đọc thêm.",  # IPv4 (documentation range)
+    "Mở 10.0.0.1 để đọc thêm.",
+    "Xong việc nhỏ.Rồi nghỉ.",  # glued sentences read as a domain: the copy adds the space
+]
+
+_SLOT_FORMS = [
+    *(f"Còn %{kind} nữa." for kind in "diouxXeEfFgGcrsaAp"),
+    "Còn %03u ngày nữa.",
+    "Còn %*d ngày nữa.",
+    "Còn %.*f giờ nữa.",
+    "Còn %ld ngày nữa.",
+    "Còn %llu ngày nữa.",
+    "Còn %zu ngày nữa.",
+    "Còn %hhx ngày nữa.",
+    "Chào %1$s nhé.",
+    "Chào %2$-10s nhé.",
+    "Chào %(ten)r nhé.",
+    "Chào %sơi, hôm nay thế nào?",  # a slot glued to the next word
+]
+
+
+@pytest.mark.parametrize("text", [*_DOMAIN_FORMS, *_SLOT_FORMS])
+def test_every_domain_and_slot_form_is_rejected_and_falls_back(
+    monkeypatch: pytest.MonkeyPatch, text: str
+) -> None:
+    assert copy_approval.text_lint_problems(text)
+    for raw in (_entry(text=text), _approved(text)):
+        entries = parse_registry({"version": copy_approval.REGISTRY_VERSION, "entries": [raw]})
+        assert copy_approval.registry_problems(entries)
+    _use(monkeypatch, _approved(text))
+    assert copy_approval.copy_text("tarot.closing_prompt", "cũ") == "cũ"
+
+
 def test_a_word_glued_to_the_next_sentence_is_flagged_by_design() -> None:
     # Without the space, "xong.Sau" reads as a domain once case is folded; the copy adds the space.
     assert copy_approval.text_lint_problems("Ăn xong.Sau đó nghỉ một chút.") == ("contains a link",)
     assert copy_approval.text_lint_problems("Ăn xong. Sau đó nghỉ một chút.") == ()
+    assert copy_approval.text_lint_problems("Xong việc nhỏ.Rồi nghỉ.") == ("contains a link",)
+    assert copy_approval.text_lint_problems("Xong việc nhỏ. Rồi nghỉ.") == ()
 
 
 def test_checked_in_registry_is_valid() -> None:

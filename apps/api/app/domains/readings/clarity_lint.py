@@ -34,6 +34,8 @@ from datetime import date
 from itertools import pairwise
 from typing import Any
 
+from app.domains.content.copy_approval import PRINTF_SLOT
+
 # Ratcheted rules: a count may only go down and no new violating sentence may appear.
 RULES: dict[str, str] = {
     "A1": "thuật ngữ đứng trơ",
@@ -223,7 +225,7 @@ PLACEHOLDERS = re.compile(
     r"(?i:chưa sẵn sàng|đang cập nhật|lorem ipsum)"
     r"|\bTODO\b|\bFIXME\b|\bTBD\b|\bXXX\b"
     r"|\{\{[^{}]*\}\}|\{[A-Za-z_][A-Za-z0-9_.]*\}|\$\{[^{}]*\}"
-    r"|%(?:\([A-Za-z_]\w*\))?[-#0+]*\d*(?:\.\d+)?[sdif](?![^\W\d_])"
+    rf"|{PRINTF_SLOT}(?![^\W\d_])"
     r"|<[^<>\s][^<>]*>"
     r"|\[[^\[\]]*[A-Z][^\[\]]*\]"
     r"|\b(?:None|undefined|null|NaN|nil)\b"

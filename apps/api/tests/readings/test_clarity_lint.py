@@ -282,6 +282,14 @@ def test_a10_finds_english_words(text: str, expected: tuple[str, ...]) -> None:
         ("Còn %02d ngày.", 1),  # review r4 of #411: flags, width and precision
         ("Còn %.2f giờ.", 1),
         ("Chào %-10s nhé.", 1),
+        # Review r7 of #411: every printf conversion, with length modifiers and positions.
+        *((f"Còn %{kind} nữa.", 1) for kind in "diouxXeEfFgGcrsaAp"),
+        ("Còn %03u ngày.", 1),
+        ("Còn %*d ngày.", 1),
+        ("Còn %llu ngày.", 1),
+        ("Chào %1$s nhé.", 1),
+        ("Chào %(ten)r nhé.", 1),
+        ("Pin còn 20%, sạc thêm 5% nữa.", 0),
         ("Khoảng 50% số việc là của bạn.", 0),
         ("Giảm 50% dung lượng.", 0),
         ("Bạn mỉm cười [nhẹ thôi].", 0),
