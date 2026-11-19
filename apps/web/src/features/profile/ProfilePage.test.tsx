@@ -29,6 +29,7 @@ import { SESSION_EPOCH_KEY } from "../../shared/session/sessionIdentity";
 import { readCachedDailyNote, writeCachedDailyNote } from "../../shared/storage/noteCache";
 import { saveDataExport } from "./downloadMyData";
 import { ProfilePage } from "./ProfilePage";
+import { LOCAL_ERASE_FAILED } from "./historyClearCopy";
 import { OPENAI_ABUSE_RETENTION_NOTICE, OPENAI_REWRITE_SCOPE_NOTICE } from "../../shared/config/externalRewriteDisclosure";
 
 vi.mock("../../shared/api/client", async (original) => {
@@ -161,7 +162,11 @@ describe("ProfilePage resonance privacy controls", () => {
     const user = userEvent.setup(); renderPage();
     await user.click(await screen.findByRole("button", { name: /Xoá lịch sử đã xem/ }));
     await user.click(screen.getByRole("button", { name: "Xoá lịch sử" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("Chưa xoá xong phần lưu trên máy này");
+    // The new wording waits for the owner (pending privacy copy); until then the app's existing
+    // history-clear error is shown, never the unapproved sentence.
+    expect(LOCAL_ERASE_FAILED.approved).toBe(false);
+    expect(await screen.findByRole("alert")).toHaveTextContent("Chưa xác nhận được việc xoá lịch sử");
+    expect(screen.queryByText(LOCAL_ERASE_FAILED.text)).not.toBeInTheDocument();
     expect(screen.queryByText(/Đã xoá lịch sử/)).not.toBeInTheDocument();
     expect(lastLaLine("changed-plan")).toBeNull();
     refuse.mockRestore();

@@ -38,6 +38,7 @@ import { AppNav } from "../../shared/ui/AppNav";
 import { AppSheet } from "../../shared/ui/AppSheet";
 import { NightSky } from "../../shared/ui/NightSky";
 import { clearLaLineMemory } from "../../shared/storage/laLineMemory";
+import { HISTORY_CLEAR_FAILED, localEraseFailedText } from "./historyClearCopy";
 import { clearPendingMood } from "../../shared/storage/pendingMood";
 import { dropQueuedSaves } from "../../shared/storage/savedNoteMutationQueue";
 import { saveDataExport } from "./downloadMyData";
@@ -45,6 +46,8 @@ import { personaTag } from "../card/shareArt";
 
 /** The server cleared the history but this device refused to erase its own part. */
 class LocalHistoryClearError extends Error {}
+
+
 
 function formatBirthDate(isoDate: string): string {
   const [year, month, day] = isoDate.split("-");
@@ -159,10 +162,10 @@ export function ProfilePage() {
       await queryClient.invalidateQueries({ queryKey: ["daily-note-resonance"] });
     },
     onError: (failure) => setError(failure instanceof LocalHistoryClearError
-      ? "Chưa xoá xong phần lưu trên máy này. Thử xoá lại nhé; hồ sơ vẫn được giữ."
+      ? localEraseFailedText()
       : failure instanceof ApiProblem && failure.code === "HISTORY_BUSY"
       ? "Nội dung đang cập nhật. Chờ vài giây rồi thử xoá lại; lịch sử chưa bị xoá."
-      : "Chưa xác nhận được việc xoá lịch sử. Kiểm tra kết nối rồi thử lại; hồ sơ vẫn được giữ."),
+      : HISTORY_CLEAR_FAILED),
   });
   const sign = query.data ? primarySunSign(query.data.calculation) : null;
   const identity = identityFromCalculation(query.data?.calculation);

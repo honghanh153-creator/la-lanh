@@ -10165,6 +10165,12 @@
    "status": "pending"
   },
   {
+   "id": "privacy.history-clear-device-failed",
+   "category": "privacy",
+   "text": "Chưa xoá xong phần lưu trên máy này. Thử xoá lại nhé; hồ sơ vẫn được giữ.",
+   "status": "pending"
+  },
+  {
    "id": "lighter.action.01",
    "category": "reading",
    "text": "Uống một cốc nước rồi ngồi yên hai phút.",
