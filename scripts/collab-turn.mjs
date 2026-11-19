@@ -55,6 +55,12 @@ export function fileBlocker(pr, prs = [], { dropped = [], ...opts } = {}) {
   const mine = new Set(prFiles(pr));
   if (!mine.size) return null;
   const shared = prs.filter(o => o.number !== pr.number && canMove(o, dropped) && prFiles(o).some(f => mine.has(f)));
+  if (!shared.length) return null;
+  // L53 (19.11.2026): a PR that is ready to merge (Author check PASS on the live tip and APPROVE at
+  // its head) is never held by another PR on a shared file: it merges first and the other syncs.
+  // #729 (L04, due 20.11) was approved at 16:06 and waited all evening behind #753, which had not
+  // passed its check yet. Its own turn is read without the file gate (open: []).
+  if (prTurn(pr, { dropped, ...opts, open: [] }).turn === 'merge') return null;
   const order = fileOrder([pr, ...shared]);
   return order.slice(0, order.indexOf(pr)).find(o => !waitsOnClaude(o, { dropped, ...opts }))?.number ?? null;
 }

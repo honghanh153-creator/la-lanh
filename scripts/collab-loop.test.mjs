@@ -2301,3 +2301,19 @@ test('17.11 (#614): a PR behind integration that another session holds says who 
   assert.match(free.reason, /đồng bộ khi tới lượt đầu hàng/);
   assert.equal(free.claimedBy, undefined);
 });
+
+// L53 (19.11.2026): #729 was approved and checked on the live tip at 16:06, but waited behind #753
+// (privacy, an earlier group, still without a passing check) on package.json all evening.
+test('L53: a PR ready to merge is never held by an earlier PR on a shared file; the other syncs after it', () => {
+  const f = (...paths) => paths.map(path => ({ path }));
+  const shared = f('package.json');
+  const head = n => String(n).padStart(40, '0');
+  const p753 = pr({ number: 753, title: 'test(privacy): leak canary', labels: [{ name: 'area:privacy' }], createdAt: '2026-11-19T03:58:00Z', headRefOid: head(753), files: shared, comments: [] });
+  const p729 = pr({ number: 729, title: 'feat(verify): home checks', createdAt: '2026-11-18T09:00:00Z', headRefOid: head(729), files: shared, comments: [check(head(729)), approve(head(729))] });
+  assert.equal(fileBlocker(p729, [p753, p729]), null);
+  const turns = Object.fromEntries(turnsFor([p753, p729]).map(t => [t.number, t]));
+  assert.equal(turns[729].turn, 'merge');
+  // Not yet approved: the earlier group still goes first, as before.
+  const checkedOnly = { ...p729, comments: [check(head(729))] };
+  assert.equal(fileBlocker(checkedOnly, [p753, checkedOnly]), 753);
+});

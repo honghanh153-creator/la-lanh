@@ -937,6 +937,25 @@
     "pr": 738
    },
    "note": "Phục hồi sau hết hạn: test '#737: an expired holder may reserve again at the same head once integration has moved' (scripts/collab-merge-gate.test.mjs)."
+  },
+  {
+   "id": "L53",
+   "title": "PR đã sẵn sàng merge (Author check PASS trên đỉnh integration + APPROVE ở head) không bị PR khác cùng file giữ lại; PR kia đồng bộ sau (#729 chờ #753 suốt tối 19.11)",
+   "from": "phiên điều phối 19.11 (PR đã duyệt bị bỏ đói)",
+   "who": "claude",
+   "due": "2026-11-20",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-loop.test.mjs",
+    "name": "L53: a PR ready to merge is never held by an earlier PR on a shared file; the other syncs after it"
+   },
+   "caller": {
+    "file": "scripts/collab-turn.mjs",
+    "contains": "if (prTurn(pr, { dropped, ...opts, open: [] }).turn === 'merge') return null;"
+   },
+   "closedBy": {
+    "pr": 738
+   }
   }
  ]
 }
