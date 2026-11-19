@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import json
 import re
-import sys
 import unicodedata
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -37,17 +36,17 @@ def copy_digest(text: str) -> str:
 #
 # The two classes are closed by definition, not by a list of known spellings (review r7 of #411):
 #
-# Link. Closed against the IDNA label alphabet (letters, digits, combining marks, hyphen; the
-# joiners IDNA allows are invisible characters, refused on their own); tests check it against
-# Python's IDNA codec. Two words joined by a dot with no space, where the last word is two or
-# more letters of
-# any script ("vidu.vn", "vi-du.рф", "vi-du.中国") or a punycode label ("xn--p1ai"). A letter may
-# carry combining marks ("vi-du.भारत", "vi-du.বাংলা"): Python's \w leaves marks out, so the rule
-# adds every Mn/Mc/Me character itself (review r8 of #411). There is no
-# list of suffixes and no script exception, so sentences glued together ("xong.Sau", "nhỏ.Rồi")
-# count as a link too: the copy adds the space. Numbers ("1.5", "2.10.3") are not links; an IPv4
-# address is. text_lint_problems also reads a folded text, so case, full-width letters, other dot
-# characters and invisible characters are not ways around the rule.
+# Link. Decided by Python's IDNA codec, not by a character class (review r10 of #411): a word
+# (no space inside) with a dot is a link when the codec encodes it as a host name of two or more
+# labels and the last label has two or more characters and does not start with a digit. Any
+# script, combining marks and symbols count ("vidu.vn", "vi-du.рф", "vi-du.भारत", "☕.test"),
+# as do punycode labels ("xn--p1ai") and the other IDNA dots (U+3002, U+FF0E, U+FF61).
+# Punctuation around the word is not part of it ("(vidu.com)."). There is no list of suffixes,
+# so sentences glued
+# together ("xong.Sau", "nhỏ.Rồi") count as a link too: the copy adds the space. Numbers ("1.5",
+# "2.10.3", "50.000đ", "3.5km") are not links; an IPv4 address, a scheme ("https://") and "www."
+# are. text_lint_problems also reads a folded text, so case, full-width letters and invisible
+# characters are not ways around the rule.
 #
 # Template slot. Read by printf_slots(), a tokenizer that walks the printf grammar the way
 # Python's "%" operator does, not by a pattern (review r9 of #411):
@@ -125,37 +124,44 @@ def printf_slots(text: str) -> tuple[tuple[int, int], ...]:
     return tuple(slots)
 
 
-def _combining_marks() -> str:
-    """Every combining mark (categories Mn, Mc, Me) as character-class ranges."""
-
-    ranges: list[tuple[int, int]] = []
-    for code in range(sys.maxunicode + 1):
-        if unicodedata.category(chr(code)).startswith("M"):
-            if ranges and ranges[-1][1] == code - 1:
-                ranges[-1] = (ranges[-1][0], code)
-            else:
-                ranges.append((code, code))
-    return "".join(
-        f"\\U{low:08x}" if low == high else f"\\U{low:08x}-\\U{high:08x}" for low, high in ranges
-    )
+_IDNA_DOTS = re.compile("[.\u3002\uff0e\uff61]")
 
 
-_MARK = _combining_marks()
-# A letter or digit of any script, or a combining mark on one.
-_LABEL_CHAR = rf"(?:[^\W_]|[{_MARK}])"
-_LABEL = rf"[^\W_](?:(?:[\w-]|[{_MARK}])*{_LABEL_CHAR})?"
+def _strip_punctuation(word: str) -> str:
+    start, end = 0, len(word)
+    while start < end and unicodedata.category(word[start]).startswith("P"):
+        start += 1
+    while end > start and unicodedata.category(word[end - 1]).startswith("P"):
+        end -= 1
+    return word[start:end]
+
+
+def idna_hosts(text: str) -> tuple[str, ...]:
+    """Words of ``text`` that Python's IDNA codec reads as a host name; see the rule above."""
+
+    hosts: list[str] = []
+    for word in text.split():
+        host = _strip_punctuation(word)
+        labels = _IDNA_DOTS.split(host)
+        if len(labels) < 2 or not all(labels):
+            continue
+        last = labels[-1]
+        if len(last) < 2 or last[0].isdecimal():
+            continue
+        try:
+            host.encode("idna")
+        except UnicodeError:
+            continue
+        hosts.append(host)
+    return tuple(hosts)
+
+
+_WEB_ADDRESS = re.compile(
+    r"(?i:[a-z][a-z0-9+.-]*://|\bwww\.)|(?<![\w.])\d{1,3}(?:\.\d{1,3}){3}(?!\w|\.\d)"
+)
 _TEMPLATE_MARKS = re.compile(r"\$\w|\$\{|_{3,}")
 _LINT_RULES: tuple[tuple[str, Callable[[str], object]], ...] = (
-    (
-        "contains a link",
-        re.compile(
-            r"(?i:[a-z][a-z0-9+.-]*://|\bwww\.)|"
-            rf"(?<![\w{_MARK}-]){_LABEL}(?:\.{_LABEL})*"
-            r"\.(?:(?i:xn--)[A-Za-z0-9-]*[A-Za-z0-9]|"
-            rf"[^\W\d_](?:[^\W\d_]|[{_MARK}]){{1,62}})(?![\w{_MARK}-])|"
-            r"(?<![\w.])\d{1,3}(?:\.\d{1,3}){3}(?!\w|\.\d)",
-        ).search,
-    ),
+    ("contains a link", lambda text: _WEB_ADDRESS.search(text) or idna_hosts(text)),
     ("contains an email address or handle", re.compile(r"@\w").search),
     # Eight or more digits in one run (spaces, dots, dashes, brackets allowed between them).
     ("contains a phone number", re.compile(r"\+?\d(?:[\s.()-]*\d){7,}").search),

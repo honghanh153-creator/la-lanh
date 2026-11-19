@@ -203,6 +203,9 @@ def test_linted_approved_copy_falls_back(monkeypatch: pytest.MonkeyPatch, text: 
         "Giảm 50% dung lượng rồi tiếp.",  # a percent sign before a word is not a slot
         "Pin còn 20%, sạc thêm 5% nữa.",
         "Giảm 50% (xem bảng) dung lượng.",  # a key needs a conversion letter right after ")"
+        "Giá 50.000đ một hộp.",  # a last label starting with a digit is a number, not a host
+        "Đi bộ 3.5km mỗi ngày.",
+        "Rồi... nghỉ một chút.",  # empty labels are not a host
         "Ghi chú: नमस्ते là lời chào.",  # marks in a word with no dot are plain text
     ],
 )
@@ -265,6 +268,10 @@ _DOMAIN_FORMS = [
     "Ghé vi-du.বাংলা để đọc thêm.",  # Bengali suffix with marks (r8)
     "Ghé vi-du.இந்தியா để đọc thêm.",  # Tamil suffix with marks
     "Ghé vi-du.ไทย để đọc thêm.",  # Thai suffix
+    "Ghé ☕.test để đọc thêm.",  # a symbol label the IDNA codec accepts (r10)
+    "Ghé vi-du.☕☕ để đọc thêm.",  # a symbol suffix
+    "Ghé ★sao.vn để đọc thêm.",
+    "Ghé (vi-du.com) để đọc thêm.",  # punctuation around the word
     "Ghé उदाहरण.भारत để đọc thêm.",  # Devanagari label and suffix, marks in both
     "Ghé vi-du.भा để đọc thêm.",  # one letter and one mark is still a two-character suffix
     "Ghé vidu。com để đọc thêm.",  # ideographic full stop as the dot
@@ -422,34 +429,43 @@ def test_a_lone_space_flag_is_plain_text_but_a_space_with_more_is_a_slot() -> No
 
 
 def test_every_name_the_idna_codec_accepts_is_a_link() -> None:
+    """Hosts drawn from letters, marks, digits, symbols and hyphens of all of Unicode (r10).
+
+    Both the host label and the last label are drawn from the whole set, so a character the
+    rule did not think of is still in the sample. Every name the codec accepts must be refused.
+    """
+
     import random
     import sys
     import unicodedata
 
-    letters = [
+    pool = [
         chr(code)
         for code in range(sys.maxunicode + 1)
-        if unicodedata.category(chr(code)).startswith("L")
+        if unicodedata.category(chr(code))[0] in "LMNS" or chr(code) == "-"
     ]
-    marks = [
-        chr(code)
-        for code in range(sys.maxunicode + 1)
-        if unicodedata.category(chr(code)).startswith("M")
-    ]
+    starts = [char for char in pool if not char.isdecimal()]
     draw = random.Random(411)  # noqa: S311 - a fixed sample, not a secret
+
+    def label(first: list[str]) -> str:
+        return draw.choice(first) + "".join(draw.choice(pool) for _ in range(draw.randint(1, 5)))
+
     checked = 0
     missed: list[str] = []
-    while checked < 2000:
-        suffix = draw.choice(letters) + "".join(
-            draw.choice(letters) if draw.random() < 0.6 else draw.choice(marks)
-            for _ in range(draw.randint(1, 5))
-        )
-        suffix = unicodedata.normalize("NFC", suffix)
+    while checked < 3000:
+        host = unicodedata.normalize("NFC", f"{label(pool)}.{label(starts)}")
+        edges = host[0] + host[-1]
+        if any(unicodedata.category(char).startswith(("P", "Z")) for char in edges):
+            continue  # punctuation or space around a word is not part of it
+        if any(char.isspace() for char in host) or "." in host.split(".", 1)[1]:
+            continue
         try:
-            f"vi-du.{suffix}".encode("idna")
+            host.encode("idna")
         except UnicodeError:
             continue
+        if not host.split(".")[-1] or host.split(".")[-1][0].isdecimal():
+            continue
         checked += 1
-        if not copy_approval.text_lint_problems(f"Ghé vi-du.{suffix} nhé."):
-            missed.append(ascii(suffix))
+        if not copy_approval.text_lint_problems(f"Ghé {host} nhé."):
+            missed.append(ascii(host))
     assert missed == []
