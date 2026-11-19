@@ -5476,13 +5476,19 @@
    "id": "daily.bundle.avoid-small-conflict.07.action",
    "category": "reading",
    "text": "Nói với trưởng nhóm: Hôm nay mình không tiện trực, mình nhận trực ngày mai.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-18",
+   "digest": "44ca6e7b8881efab2993393a33fc59d5824b651e9e9fd4a9a55dc531f54efd7b"
   },
   {
    "id": "daily.bundle.avoid-small-conflict.07.headline",
    "category": "reading",
    "text": "Trưởng nhóm nhờ bạn trực điện thoại giờ nghỉ trưa.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-18",
+   "digest": "3b2ac9682ab23fef15541f54e07c603d4f49d5b54debc6b2cefdba4d10aedf2b"
   },
   {
    "id": "daily.bundle.avoid-small-conflict.07.scene",
@@ -5500,13 +5506,19 @@
    "id": "daily.bundle.avoid-small-conflict.08.headline",
    "category": "reading",
    "text": "Bạn cùng phòng hỏi mượn máy tính tối nay.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-18",
+   "digest": "fb7d4daa18ef506a8a7806d2e9a51fe91922324a60eaf285cd0acbbc967d14e4"
   },
   {
    "id": "daily.bundle.avoid-small-conflict.08.scene",
    "category": "reading",
    "text": "Tối nay bạn cần máy tính để nộp bài, đúng lúc bạn cùng phòng nhờ mượn, và bạn định đưa luôn.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-18",
+   "digest": "075b441e122be00a279d1f48b4d589aeb078817166dd8f32cac99126febdb98d"
   },
   {
    "id": "daily.bundle.avoid-small-conflict.09.action",
@@ -5530,13 +5542,19 @@
    "id": "daily.bundle.avoid-small-conflict.10.action",
    "category": "reading",
    "text": "Nhắn vào nhóm: Tháng này mình bận, mình chỉ nhận gom danh sách người đi.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-18",
+   "digest": "a4dd9bfc0d772d11426db07f08c4faf977078741f71ba0fff9f4f06f2aa0ee0e"
   },
   {
    "id": "daily.bundle.avoid-small-conflict.10.headline",
    "category": "reading",
    "text": "Nhóm lớp cũ hỏi ai nhận đặt chỗ họp lớp.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-18",
+   "digest": "cdc94b53b57bc6988b94b700c07ef191e56e4f4973cd33831ff3d8e851f473be"
   },
   {
    "id": "daily.bundle.avoid-small-conflict.10.scene",
