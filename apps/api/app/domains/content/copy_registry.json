@@ -5104,217 +5104,145 @@
    "id": "daily.scene.automatic-caretaking.01",
    "category": "reading",
    "text": "Khi bố mẹ nhờ đi chợ giúp, bạn bỏ dở việc đang làm để đi ngay.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "8a35e42eb1370521191dd567c9c8b59adda34558b011d2156badbec1369208a2"
+   "status": "pending"
   },
   {
    "id": "daily.scene.automatic-caretaking.02",
    "category": "reading",
    "text": "Khi có khách tới chơi, bạn lo hết cơm nước mà không nhờ ai phụ.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "b39e0e6d76816bc3efed06e1237b224b2ba0afce95512f38f9a91071ea61b79c"
+   "status": "pending"
   },
   {
    "id": "daily.scene.automatic-caretaking.03",
    "category": "reading",
    "text": "Khi ba người cùng nhắn nhờ một lúc, bạn cố giúp cả ba.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "7b0e6cb0669b2e5245dd0daedb80d40d4f1814262758bd80b5b42dd3c496a0a1"
+   "status": "pending"
   },
   {
    "id": "daily.scene.automatic-caretaking.04",
    "category": "reading",
    "text": "Khi người kia nói việc chỉ mất năm phút, bạn ngồi giúp cả tiếng.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "2e7a758297bb8c4e5cf33fa8824f314ed0e57edb90989c9a4bc578e43cce9708"
+   "status": "pending"
   },
   {
    "id": "daily.scene.automatic-caretaking.05",
    "category": "reading",
    "text": "Khi đồng nghiệp nhờ sửa giúp một tài liệu, bạn nhận ngay dù việc mình chưa xong.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "a2d9ab2224d7de4567605c9fb6a970b26340acae9340bfb0dd0d1407c8d3c4f1"
+   "status": "pending"
   },
   {
    "id": "daily.scene.automatic-caretaking.06",
    "category": "reading",
    "text": "Khi hàng xóm nhờ trông con một buổi, bạn nhận dù tuần này kín lịch.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "683e1d73203a3f67658e1083b9ba4244d805bec0d887ea25eb3e5bd154b64cc0"
+   "status": "pending"
   },
   {
    "id": "daily.scene.automatic-caretaking.07",
    "category": "reading",
    "text": "Khi bạn cùng phòng nhờ dọn hộ một lần, bạn dọn luôn phần của họ cả tuần.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "70f9ceec7fb2349e756941b7b8f8ddbd095908fc8d1f960c5e1adf5bb165bac1"
+   "status": "pending"
   },
   {
    "id": "daily.scene.automatic-caretaking.08",
    "category": "reading",
    "text": "Khi nhóm cần người đặt bàn, bạn lại lo từ đặt chỗ tới chia tiền.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "f9392715f6ea27080434be2d1ee81f00421d9899189d7c38bfaa141f7b24c9f1"
+   "status": "pending"
   },
   {
    "id": "daily.scene.automatic-caretaking.09",
    "category": "reading",
    "text": "Khi đang nghỉ trưa mà có người nhờ, bạn đứng dậy đi giúp ngay.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "34e03fd645e2c14efd370bfddce5a5a7fd5cfc20eb454a6fff23a831c2a33d3c"
+   "status": "pending"
   },
   {
    "id": "daily.scene.automatic-caretaking.10",
    "category": "reading",
    "text": "Khi được nhờ mua đồ hộ, bạn đi luôn dù trời đã tối và bạn đang mệt.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "0d40a5f1a5ad28639700866d880b738b8b54d3e65ee0d4e96d80cb447ab7cf46"
+   "status": "pending"
   },
   {
    "id": "daily.scene.automatic-caretaking.11",
    "category": "reading",
    "text": "Khi đồng nghiệp nhờ trực thay, bạn nhận dù đó là ngày nghỉ của bạn.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "11fc18e43b8c0c0e0619757d1fd6bac4d4d743dad096eb8af4600fa4632cbcec"
+   "status": "pending"
   },
   {
    "id": "daily.scene.automatic-caretaking.12",
    "category": "reading",
    "text": "Khi người kia than chưa làm xong, bạn ngồi làm phần của họ dù họ chưa nhờ.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "b3d3a627218b38dcabe8fae905abded6f627ed6bd520d1b6bd8527fe8b2b5d88"
+   "status": "pending"
   },
   {
    "id": "daily.scene.automatic-caretaking.13",
    "category": "reading",
    "text": "Khi nhóm cần người trực cuối tuần, bạn giơ tay đầu tiên dù đang mệt.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "40be32497f8630cb08e4b768d7a0f17332204a5a71e67de1fe307896fcb1b236"
+   "status": "pending"
   },
   {
    "id": "daily.scene.automatic-caretaking.14",
    "category": "reading",
    "text": "Khi điện thoại có tin nhờ, bạn trả lời ngay giữa bữa ăn.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "19b78f8ed392539b844840201970c04fccaee8e6b4860a4550dc4465fb58be24"
+   "status": "pending"
   },
   {
    "id": "daily.scene.automatic-caretaking.15",
    "category": "reading",
    "text": "Khi bạn thân cần bạn nghe tâm sự, bạn thức tới khuya dù sáng mai đi làm sớm.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "f0c612821d911972d6b3cb58a1e2abf32a5ab18f09258f39196624c121ad15f0"
+   "status": "pending"
   },
   {
    "id": "daily.scene.automatic-caretaking.16",
    "category": "reading",
    "text": "Khi người thân cần bạn đưa đi làm giấy tờ, bạn xin nghỉ dù đang có việc gấp.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "075366a714288b24369f3cf0137d143ffada19eec02e30e6aad7606d28906043"
+   "status": "pending"
   },
   {
    "id": "daily.scene.automatic-caretaking.17",
    "category": "reading",
    "text": "Khi được nhờ ở lại làm thêm, bạn gật đầu dù đã hẹn bạn đi ăn tối.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "20f058086e38e0c68305b495fb50cda7942dc0c5b4e958fca1dbf641e6ae151b"
+   "status": "pending"
   },
   {
    "id": "daily.scene.automatic-caretaking.18",
    "category": "reading",
    "text": "Khi lớp cần người gom tiền quỹ, bạn lại nhận giúp dù năm nào cũng là bạn.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "ed78e2426bb6bfcd410128204f97fe28da1880c5f51c9c75507b89f73c59cdc2"
+   "status": "pending"
   },
   {
    "id": "daily.scene.automatic-caretaking.19",
    "category": "reading",
    "text": "Khi người lớn tuổi nhờ chỉ cách dùng điện thoại, bạn ngồi chỉ tới quá giờ cơm.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "fddfb0d7418335c9195f390520e601beb372f41850939f5d010ae6c3f9a2a4dc"
+   "status": "pending"
   },
   {
    "id": "daily.scene.automatic-caretaking.20",
    "category": "reading",
    "text": "Khi bạn bè nhờ chở ra sân bay lúc năm giờ sáng, bạn nhận dù tám giờ phải đi làm.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "aa47ded3296b654f7f2621e9448c41049f2c18baed743dba5902cc3ddcc631ca"
+   "status": "pending"
   },
   {
    "id": "daily.scene.automatic-caretaking.21",
    "category": "reading",
    "text": "Khi cả nhóm đi chơi xa, bạn nhận lo hết vé, phòng và tiền ăn giúp mọi người.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "60530e4d9587722afc09ad503c2b03e39182b9d084d30cbdb12285f2e5b03d33"
+   "status": "pending"
   },
   {
    "id": "daily.scene.automatic-caretaking.22",
    "category": "reading",
    "text": "Khi giúp người khác xong lúc chín giờ tối, bạn mới bắt đầu làm việc của mình.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "5217577e798c365cf16c3d06733afeb9490dd15615d58e6cc6268a4e63d6a6a5"
+   "status": "pending"
   },
   {
    "id": "daily.scene.avoid-small-conflict.01",
    "category": "reading",
    "text": "Khi bạn bè rủ đi chơi tối nay, bạn nhận lời dù chỉ muốn nằm nghỉ.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "8a9dc634fdf5b0026c352280b5dbf6252370a5b2dffae4b6de60c40fc702c1ff"
+   "status": "pending"
   },
   {
    "id": "daily.scene.avoid-small-conflict.02",
    "category": "reading",
    "text": "Khi sếp giao thêm việc lúc sắp về, bạn gật đầu dù đã hẹn ăn tối.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "0606183056e7e4e480759debbaf7c4b4ab1f814aae1df733df27cd40c7036a03"
+   "status": "pending"
   },
   {
    "id": "daily.scene.avoid-small-conflict.03",
@@ -5326,172 +5254,115 @@
    "id": "daily.scene.avoid-small-conflict.04",
    "category": "reading",
    "text": "Khi bạn cùng phòng để lại việc rửa bát, bạn rửa luôn cho êm chuyện.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "763f07d30fe7d516aad1d6ace74c6efba4247eb06074dfb653ba84416968420b"
+   "status": "pending"
   },
   {
    "id": "daily.scene.avoid-small-conflict.05",
    "category": "reading",
    "text": "Khi người kia khen bạn giỏi rồi nhờ sửa máy tính, bạn nhận dù đang bận.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "de668c23dd73dc8ee9d64fde3a2ffa16031635ac2b9f34e5778034d060f9b29e"
+   "status": "pending"
   },
   {
    "id": "daily.scene.avoid-small-conflict.06",
    "category": "reading",
    "text": "Khi đồng nghiệp nhờ làm nốt báo cáo, bạn làm tới khuya mà không nói mình mệt.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "b89e65a3fa9ecbfd988585ae18c9bcc886cb99d2c9c84b7ea0135e6a75057072"
+   "status": "pending"
   },
   {
    "id": "daily.scene.avoid-small-conflict.07",
    "category": "reading",
    "text": "Khi nhóm chat hỏi ai nhận dẫn đoàn, bạn nhận vì không ai trả lời.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "aa005fb6212d07859888125a902d0b44e018409c0892eb5d55e2de6f00123a52"
+   "status": "pending"
   },
   {
    "id": "daily.scene.avoid-small-conflict.08",
    "category": "reading",
    "text": "Khi người kia nhờ góp tiền mua quà, bạn góp dù số tiền quá sức mình.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "e5d9283d14ff8a475cacbf1c70a5062868668377fdda1476d820445870e1ad45"
+   "status": "pending"
   },
   {
    "id": "daily.scene.avoid-small-conflict.09",
    "category": "reading",
    "text": "Khi được nhờ cho mượn xe, bạn đưa luôn rồi phải hủy việc riêng chiều đó.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "7d6a26ca5324928fce652d3feca23ca324971e1fba0dee320d5a3dcb2c4248ef"
+   "status": "pending"
   },
   {
    "id": "daily.scene.avoid-small-conflict.10",
    "category": "reading",
    "text": "Khi hai người giận nhau vì một việc nhỏ, bạn nhắn làm lành trước dù mình không sai.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "b9f73c8d8191a79c0db4e04b63d5b959e3dbafb84202a5df6e7ff2236631118a"
+   "status": "pending"
   },
   {
    "id": "daily.scene.avoid-small-conflict.11",
    "category": "reading",
    "text": "Khi được nhờ trước mặt cả phòng, bạn nhận việc vì thấy khó nói không.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "7078b0026a232d2a12e8a82f51ca3520a6d08041f36e82558b34c342e0a91afc"
+   "status": "pending"
   },
   {
    "id": "daily.scene.avoid-small-conflict.12",
    "category": "reading",
    "text": "Khi người kia đổi giờ hẹn sát giờ, bạn nhận lời và tự dời việc của mình.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "17d99f86f06fda38fee1f85f33a265b5180deed0fc0cd8992c07842fe1eabf95"
+   "status": "pending"
   },
   {
    "id": "daily.scene.avoid-small-conflict.13",
    "category": "reading",
    "text": "Khi nhóm chia việc chưa đều, bạn nhận phần nặng mà không hỏi lại.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "17852e28111e297dedcf0a6673ce4fad3ab48b8acfbcc8e843e7b7d2ae986acc"
+   "status": "pending"
   },
   {
    "id": "daily.scene.avoid-small-conflict.14",
    "category": "reading",
    "text": "Khi người kia nhờ ở lại họp thêm, bạn ngồi lại và lỡ chuyến xe về.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "443172a7067db12ade97b46cad2fe40853c53735fd72437255b014dce43b320d"
+   "status": "pending"
   },
   {
    "id": "daily.scene.avoid-small-conflict.15",
    "category": "reading",
    "text": "Khi được nhờ đi ăn cưới thay, bạn nhận lời và hủy buổi đi chơi đã hẹn.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "5bf126988237dde60a1ba18306f56cf00f70469a82c8e7598085d789b95fe358"
+   "status": "pending"
   },
   {
    "id": "daily.scene.avoid-small-conflict.16",
    "category": "reading",
    "text": "Khi người kia nhắn nhờ sửa bài lúc mười một giờ đêm, bạn nhận ngay cho xong chuyện.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "dfc5063c47de7fb371aed9176a64ffd4a879a6d5ff99b41c03c20f277c267aee"
+   "status": "pending"
   },
   {
    "id": "daily.scene.avoid-small-conflict.17",
    "category": "reading",
    "text": "Khi được nhờ làm thiết kế mà bạn không giỏi, bạn vẫn nhận vì ngại giải thích.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "ab25be1e878b6763051673620fe4d706e94842b81b77a01ecb68d2f7727eb771"
+   "status": "pending"
   },
   {
    "id": "daily.scene.avoid-small-conflict.18",
    "category": "reading",
    "text": "Khi người kia nhờ lần thứ ba trong tuần, bạn vẫn nhận dù đã thấy phiền.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "55f9111112acfbd1ac706600683e173246d1ea4d52ec9b10866fd91ac8c299d1"
+   "status": "pending"
   },
   {
    "id": "daily.scene.avoid-small-conflict.19",
    "category": "reading",
    "text": "Khi đồng nghiệp nhờ đổi ca, bạn đồng ý rồi tự hủy buổi học tiếng Anh.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "39c3b796aa84180653c3c575aeb44af560aa50de4ed1acae6dd37e33f1f18f1d"
+   "status": "pending"
   },
   {
    "id": "daily.scene.avoid-small-conflict.20",
    "category": "reading",
    "text": "Khi người bán giao nhầm hàng, bạn nhận luôn vì ngại nhắn đổi.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "c6ba8fd99637c756a3d6fa015658396ab37728b4a5bca049b67580a73c5971e5"
+   "status": "pending"
   },
   {
    "id": "daily.scene.avoid-small-conflict.21",
    "category": "reading",
    "text": "Khi người kia nhắn nhờ gấp, bạn bỏ dở việc mình để làm cho họ trước.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "c2a810f358aec2a609dec60d60ff47e0576dd39622fe77b2e41d44ebf8e19dc4"
+   "status": "pending"
   },
   {
    "id": "daily.scene.avoid-small-conflict.22",
    "category": "reading",
    "text": "Khi họ hàng nhờ chở đi đám giỗ, bạn nhận dù cuối tuần đó bạn phải làm thêm.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "34beac094dcca76e5f85fb17909b29c8cd1067b5aad70722fccde3f48f0e979c"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.avoid-small-conflict.01.action",
@@ -5731,28 +5602,19 @@
    "id": "daily.scene.capacity-before-agreement.01",
    "category": "reading",
    "text": "Khi được nhờ trong lúc đang vội, bạn có thể nhận lời mà chưa mở lịch xem.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "1d297a60deb38a46d574c6724767a9cd8db93cf731e6c06b4ff4607db80f6533"
+   "status": "pending"
   },
   {
    "id": "daily.scene.capacity-before-agreement.02",
    "category": "reading",
    "text": "Khi người kia nhờ và hỏi bạn rảnh không, bạn có thể nói có trước khi biết việc mất bao lâu.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "726b103a8db889d9713d518bc221044bdb01018d6c01d64c2020049f18a38244"
+   "status": "pending"
   },
   {
    "id": "daily.scene.capacity-before-agreement.03",
    "category": "reading",
    "text": "Khi muốn giúp một người quen, bạn có thể nhận việc dù tuần này lịch đã kín.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "139ccf5ca10acf11320e60f802d63f6e1717658afdbb16992600b0f3d90957a6"
+   "status": "pending"
   },
   {
    "id": "daily.scene.capacity-before-agreement.04",
@@ -5764,28 +5626,19 @@
    "id": "daily.scene.capacity-before-agreement.05",
    "category": "reading",
    "text": "Khi được nhờ vào đầu tuần, bạn có thể nhận lời mà chưa xem lịch cả tuần còn gì.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "56b98b3ff99b8796960984e1b1ec5668141bd3aa91a52c7e43cff9788070785d"
+   "status": "pending"
   },
   {
    "id": "daily.scene.capacity-before-agreement.06",
    "category": "reading",
    "text": "Khi người kia nhờ một việc nghe quen, bạn có thể nghĩ nó nhanh mà chưa xem lịch còn chỗ.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "a2d7d0dd8067a0fdd9d78398a10e1777e943e7e697440ba446166f1cbb11c40a"
+   "status": "pending"
   },
   {
    "id": "daily.scene.capacity-before-agreement.07",
    "category": "reading",
    "text": "Khi nhiều người nhờ trong cùng một ngày, bạn có thể nhận hết mà chưa sắp vào lịch.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "422969630931434e272efc10081dcf7f5efcc98385d501a30f5ed16d4e2b3092"
+   "status": "pending"
   },
   {
    "id": "daily.scene.capacity-before-agreement.08",
@@ -5803,64 +5656,43 @@
    "id": "daily.scene.capacity-before-agreement.10",
    "category": "reading",
    "text": "Khi lịch tuần này đã kín, bạn có thể vẫn nhận lời nhờ vì nghĩ sẽ xoay xở được.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "1639321bb5955374bf882c938995e708b2a87ec3681e33278e36990119c23a03"
+   "status": "pending"
   },
   {
    "id": "daily.scene.capacity-before-agreement.11",
    "category": "reading",
    "text": "Khi được nhờ việc cho tuần sau, bạn có thể nhận vì nghĩ lịch tuần sau còn trống.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "87470bd39776709ce8b5f5caec4ebff1b61ee4e3f00a412ec427c877034ae21f"
+   "status": "pending"
   },
   {
    "id": "daily.scene.capacity-before-agreement.12",
    "category": "reading",
    "text": "Khi người kia nhờ gấp trong hôm nay, bạn có thể nhận mà chưa xem lịch chiều còn gì.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "9c0c43e9145d8f72901ef7fca0df4a85da57d8ede18a477957356a4b67c90791"
+   "status": "pending"
   },
   {
    "id": "daily.scene.capacity-before-agreement.13",
    "category": "reading",
    "text": "Khi việc được nhờ gồm nhiều bước, bạn có thể chỉ tính bước đầu khi xem lịch.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "3c839cbbd84bf187d3d5a95d3941302d9cd800da3e66951123ed9088fa18c2e7"
+   "status": "pending"
   },
   {
    "id": "daily.scene.capacity-before-agreement.14",
    "category": "reading",
    "text": "Khi được nhờ lúc đang vui, bạn có thể nhận lời trước khi nhìn lại lịch của mình.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "6bd6d0c9366f5cafab7b4a75316223a0755f1ee77e094ef2a13ec8e1f7b71d6d"
+   "status": "pending"
   },
   {
    "id": "daily.scene.capacity-before-agreement.15",
    "category": "reading",
    "text": "Khi lịch đã có giờ nghỉ, bạn có thể nhận lời nhờ vào đúng giờ đó mà chưa để ý.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "ac769fb35153c681f8175b4c4e282b6f0e91f042b3bfa85912e755cec644d9ac"
+   "status": "pending"
   },
   {
    "id": "daily.scene.capacity-before-agreement.16",
    "category": "reading",
    "text": "Khi được nhờ nhiều việc nhỏ liên tiếp, bạn có thể quên cộng chúng lại khi xem lịch.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "7ff9279d78029fb2a7cc5fd29626209ebdc193f6604542ff68cb6ef9959ef2f1"
+   "status": "pending"
   },
   {
    "id": "daily.scene.capacity-before-agreement.17",
@@ -5872,10 +5704,7 @@
    "id": "daily.scene.capacity-before-agreement.18",
    "category": "reading",
    "text": "Khi lời nhờ đến giữa cuộc trò chuyện vui, bạn có thể nhận trước khi xem lịch.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "201a4ce099f7ab4ee933d6df5c068dd9bec001905dab9b1854000d5270cfdae6"
+   "status": "pending"
   },
   {
    "id": "daily.scene.capacity-before-agreement.19",
@@ -5887,10 +5716,7 @@
    "id": "daily.scene.capacity-before-agreement.20",
    "category": "reading",
    "text": "Khi được nhờ thêm sau một ngày dài, bạn có thể nhận mà chưa xem lịch mai.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "7ef1a04c956f724428238d4dd7a0a56bdadc85b2a080139919c9ebb249292b30"
+   "status": "pending"
   },
   {
    "id": "daily.scene.capacity-before-agreement.21",
@@ -5902,37 +5728,25 @@
    "id": "daily.scene.capacity-before-agreement.22",
    "category": "reading",
    "text": "Khi lời nhờ đến lúc lịch vừa trống, bạn có thể nhận ngay mà quên giờ nghỉ.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "bc8c3c4d4fa48c77f8ef23567a1911d9f863a87001d806c5b8a1a72667c39272"
+   "status": "pending"
   },
   {
    "id": "daily.scene.changed-plan.01",
    "category": "reading",
    "text": "Người kia nhắn xin dời buổi hẹn chiều nay, nhưng chưa nói dời sang giờ nào.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "58b4125def7ca7be293b4995a70b2d0214d10728757b6b26b01d6d55264a0c15"
+   "status": "pending"
   },
   {
    "id": "daily.scene.changed-plan.02",
    "category": "reading",
    "text": "Bạn đã xin về sớm để kịp giờ hẹn, rồi người kia nhắn xin dời sang hôm khác.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "3d976bf62be88cf9e3a471f3de1726f99cdf34064e130d8c57f723191db06063"
+   "status": "pending"
   },
   {
    "id": "daily.scene.changed-plan.03",
    "category": "reading",
    "text": "Khi người kia xin dời hẹn, bạn để trống cả buổi để chờ họ báo giờ mới.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "92edd496bc8bd501a06cba5df2c476ec82c240be2d34ab053d2a339db48e527c"
+   "status": "pending"
   },
   {
    "id": "daily.scene.changed-plan.04",
@@ -5944,28 +5758,19 @@
    "id": "daily.scene.changed-plan.05",
    "category": "reading",
    "text": "Người kia đề nghị dời hẹn sang tối mai, đúng lúc bạn đã hứa đi ăn với gia đình.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "d4f5fcaa4063c2ee1d2a2989e1fb791396d68bd72759b0a0d774c4819e828801"
+   "status": "pending"
   },
   {
    "id": "daily.scene.changed-plan.06",
    "category": "reading",
    "text": "Bạn nhắn hỏi giờ mới hai lần mà người kia vẫn chưa chốt buổi hẹn.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "075d4edd87f039a212e6eb067c81e1ace280fed6f35011f68c7c102e1ce998c3"
+   "status": "pending"
   },
   {
    "id": "daily.scene.changed-plan.07",
    "category": "reading",
    "text": "Khi buổi hẹn bị dời, bạn chưa biết có nhận thêm việc vào khoảng giờ cũ không.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "e1744f324e013d4039ec78081597d3f00b7c4b22f13bb5f07e3f7167565717c3"
+   "status": "pending"
   },
   {
    "id": "daily.scene.changed-plan.08",
@@ -5983,10 +5788,7 @@
    "id": "daily.scene.changed-plan.10",
    "category": "reading",
    "text": "Lúc người kia hỏi dời hẹn, bạn chưa mở lịch xem mình còn trống hôm nào.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "f88251804e67b3cb6ce3aa26ece4dd284db2ce07012ed6205dafc8c26d2511ba"
+   "status": "pending"
   },
   {
    "id": "daily.scene.changed-plan.11",
@@ -5998,46 +5800,31 @@
    "id": "daily.scene.changed-plan.12",
    "category": "reading",
    "text": "Bạn đã chuẩn bị xong giấy tờ cho buổi hẹn thì nghe người kia xin dời.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "47b838ca89e1ef9ee6bdc2f1a8c7bae6f36db159580b1b841e5799672ef70418"
+   "status": "pending"
   },
   {
    "id": "daily.scene.changed-plan.13",
    "category": "reading",
    "text": "Người kia xin dời hẹn sang cuối tuần, mà cuối tuần bạn đã có việc riêng trong lịch.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "fcc711968ed4cb81ab9aa282b70ed6927f97f7b933d115c5198e7b81667ee9e5"
+   "status": "pending"
   },
   {
    "id": "daily.scene.changed-plan.14",
    "category": "reading",
    "text": "Khi giờ hẹn người kia đưa ra rơi vào giờ nghỉ trưa, bạn ngại nói là giờ đó không tiện.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "0dfe9330731b383e86b4791dd9dad19ffe8a3b966d0a93c68e5fdc8f986ce73a"
+   "status": "pending"
   },
   {
    "id": "daily.scene.changed-plan.15",
    "category": "reading",
    "text": "Bạn từ chối một việc khác để giữ buổi hẹn chiều nay, rồi người kia xin dời hẹn.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "2fdc8e4c8042bd960911e0dce7765d3848bb5c76daa06d418a3e9d4c220eb6c0"
+   "status": "pending"
   },
   {
    "id": "daily.scene.changed-plan.16",
    "category": "reading",
    "text": "Bạn và người kia nhắn qua lại mấy lần mà vẫn chưa tìm được giờ hẹn mới.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "6c760492af18e296e95d87bae530c0b1581a44b1613c6f16d330dd6a625df018"
+   "status": "pending"
   },
   {
    "id": "daily.scene.changed-plan.17",
@@ -6049,46 +5836,31 @@
    "id": "daily.scene.changed-plan.18",
    "category": "reading",
    "text": "Khi đang bận họp, bạn nhận tin người kia xin dời hẹn mà chưa kịp trả lời.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "9f641b66aa108ac6587254f4a08a75fdc7e72fd46c33b8930a4292b98aa01ba9"
+   "status": "pending"
   },
   {
    "id": "daily.scene.changed-plan.19",
    "category": "reading",
    "text": "Bạn đã báo giờ hẹn cũ cho người đi cùng, và cần chờ người kia chốt giờ mới để báo lại.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "3a0a787487d132181cb5ebd3421deb439db0cb5016feaf013e5312dd98f2c6f7"
+   "status": "pending"
   },
   {
    "id": "daily.scene.changed-plan.20",
    "category": "reading",
    "text": "Lịch của bạn vẫn còn ghi buổi hẹn cũ, vì người kia chưa nói giờ mới.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "dd3dd9269c44edaf4f5c442ea2f77733279377063c8af38cd18c3af7b5343192"
+   "status": "pending"
   },
   {
    "id": "daily.scene.changed-plan.21",
    "category": "reading",
    "text": "Người kia hẹn lại tuần sau nhưng chưa nói ngày nào, nên bạn chưa dám xếp việc khác vào lịch.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "ac69067dd935eb196ef1ff208faff806939bedee25906c4d53095831065e883a"
+   "status": "pending"
   },
   {
    "id": "daily.scene.changed-plan.22",
    "category": "reading",
    "text": "Nếu buổi hẹn dời sang tối như người kia hỏi, bạn phải đổi giờ ăn và giờ đi ngủ.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "7676c93f82ff3b2639fa7dc24527ba1442068017f558a454ceb20d303ea63c3b"
+   "status": "pending"
   },
   {
    "id": "daily.scene.comparison-loop.01",
@@ -6100,10 +5872,7 @@
    "id": "daily.scene.comparison-loop.02",
    "category": "reading",
    "text": "Khi nghe người khác làm nhanh hơn mình, bạn có thể quên lý do mình chọn làm chậm.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "dbd90ad939e4ec23a7ce513fa666c0f3487567d196b9c18a0470fb4b750f1d79"
+   "status": "pending"
   },
   {
    "id": "daily.scene.comparison-loop.03",
@@ -6115,19 +5884,13 @@
    "id": "daily.scene.comparison-loop.04",
    "category": "reading",
    "text": "Khi đọc danh sách việc người khác đã xong, bạn có thể bỏ qua việc mình vừa làm được.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "a59ec70792b72007a3ba4fd1884b6a0b81d8c6688f8d9353fe22d89583c22152"
+   "status": "pending"
   },
   {
    "id": "daily.scene.comparison-loop.05",
    "category": "reading",
    "text": "Khi nghe một người cùng tuổi kể kết quả mới, bạn có thể thấy mình đang đi chậm.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "e2e7b971bc168cb71a4760c3cf632a179b692c8db7caa4f2e89a426e82a2a770"
+   "status": "pending"
   },
   {
    "id": "daily.scene.comparison-loop.06",
@@ -6157,10 +5920,7 @@
    "id": "daily.scene.comparison-loop.10",
    "category": "reading",
    "text": "Khi đọc tin người khác vừa đạt kết quả tốt, bạn có thể bỏ dở việc mình đang làm.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "cf8b1c9ed2c1e3d22184d96d34539e3e85ac49b14934b7ebb656b4c8ff716afe"
+   "status": "pending"
   },
   {
    "id": "daily.scene.comparison-loop.11",
@@ -6172,10 +5932,7 @@
    "id": "daily.scene.comparison-loop.12",
    "category": "reading",
    "text": "Khi nghe người khác kể kết quả trong bữa ăn, bạn có thể im lặng về việc mình đang làm.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "7c4acdffa04878c23e01bc8e98dab95c3a841ae52c7b6224cb388c34e4b646e1"
+   "status": "pending"
   },
   {
    "id": "daily.scene.comparison-loop.13",
@@ -6193,28 +5950,19 @@
    "id": "daily.scene.comparison-loop.15",
    "category": "reading",
    "text": "Khi xem lại việc mình làm sau lúc đọc về thành quả của người khác, bạn có thể chỉ thấy chỗ thiếu.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "ce1b77a8be8adc26fc717ab91e3f75b68de128dceeb88342df6d5603d60cf2a7"
+   "status": "pending"
   },
   {
    "id": "daily.scene.comparison-loop.16",
    "category": "reading",
    "text": "Khi được hỏi đang làm tới đâu, bạn có thể ngại kể vì nghĩ kết quả của mình chưa đáng nói.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "e2ec1da4d8d6f31539c7ec32677e37290d9ab17a415f6296d6288e8127e31d75"
+   "status": "pending"
   },
   {
    "id": "daily.scene.comparison-loop.17",
    "category": "reading",
    "text": "Khi đọc tin người khác vừa xong việc lớn, bạn có thể quên việc nhỏ mình vừa làm.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "ec9875a8d0fd636362601a8bb3068bb7283d2344e555fd969bb11a047d95f5aa"
+   "status": "pending"
   },
   {
    "id": "daily.scene.comparison-loop.18",
@@ -6232,19 +5980,13 @@
    "id": "daily.scene.comparison-loop.20",
    "category": "reading",
    "text": "Khi so kết quả với người cùng bắt đầu, bạn có thể quên mỗi người có việc riêng.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "5e299c97d7c0baec3844e765087f032e643b5027828e14c6df9d944f031692c8"
+   "status": "pending"
   },
   {
    "id": "daily.scene.comparison-loop.21",
    "category": "reading",
    "text": "Khi người khác kể chuyện tiến bộ, bạn có thể tự hỏi sao mình chưa được vậy.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "9549c5ab5cd98b70da1a64f4f38a7dc92af8a7e82e45b8904e229ae04642d6aa"
+   "status": "pending"
   },
   {
    "id": "daily.scene.comparison-loop.22",
@@ -6256,91 +5998,61 @@
    "id": "daily.scene.decision-fatigue.01",
    "category": "reading",
    "text": "Khi chọn món cho bữa tối sau một ngày dài, bạn có thể xem rất lâu mà chưa chọn được.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "dcb1ac238ed9a99c0d9afcd0008e7d1baee982b57d27fddb6aabdb816682e021"
+   "status": "pending"
   },
   {
    "id": "daily.scene.decision-fatigue.02",
    "category": "reading",
    "text": "Khi so ba món đồ gần giống nhau, bạn có thể đọc thêm đánh giá dù đã đủ để chọn.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "c8ea99402924b427ff26c63ab889ac899481e4d4dbbdec2f93de465a04f5f263"
+   "status": "pending"
   },
   {
    "id": "daily.scene.decision-fatigue.03",
    "category": "reading",
    "text": "Khi phải chọn giờ cho nhiều việc, bạn có thể đổi đi đổi lại mà chưa chốt giờ nào.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "ca33d42bbee30d5b5c651ca94f49e91ade8afd68e75ceaf55b85761c9bb402a7"
+   "status": "pending"
   },
   {
    "id": "daily.scene.decision-fatigue.04",
    "category": "reading",
    "text": "Khi một lựa chọn không quá quan trọng, bạn có thể vẫn cân nhắc như một việc lớn.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "8dcae2f343f02aacb0c20b900d48ba64ec5adae074c50eecd333157eaa76833a"
+   "status": "pending"
   },
   {
    "id": "daily.scene.decision-fatigue.05",
    "category": "reading",
    "text": "Khi phải chọn quà cho người khác, bạn có thể xem rất nhiều món mà chưa chọn được.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "423d236760a3500475905470108b23c919cf8024800643f50f9d68a8bdbc90f8"
+   "status": "pending"
   },
   {
    "id": "daily.scene.decision-fatigue.06",
    "category": "reading",
    "text": "Khi hai phương án đều ổn, bạn có thể vẫn tìm thêm lý do để chắc mình không chọn sai.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "2beb1d0cc46feaa05c4f53b4c9a887b05fd25b4ef5070b116106851b9e7029b5"
+   "status": "pending"
   },
   {
    "id": "daily.scene.decision-fatigue.07",
    "category": "reading",
    "text": "Khi có quá nhiều lựa chọn trên trang mua sắm, bạn có thể đóng trang mà chưa quyết định gì.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "4a1e7ef50fd20af4e0ee9a4382dd8a208590b0b955bfe506dbcf336257bf550d"
+   "status": "pending"
   },
   {
    "id": "daily.scene.decision-fatigue.08",
    "category": "reading",
    "text": "Khi cuối ngày còn một quyết định nhỏ, bạn có thể để nó kéo dài sang tối.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "38147e5a39426aed4907e7dd662a7ab3bf0d457a8557dc6d92c21b6e60680d58"
+   "status": "pending"
   },
   {
    "id": "daily.scene.decision-fatigue.09",
    "category": "reading",
    "text": "Khi hỏi ý nhiều người về một lựa chọn, bạn có thể nhận thêm phương án thay vì chốt được.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "15319dfc3c99853be8f95ef66138dd3248b871aaedc43c162a640f7c71432c80"
+   "status": "pending"
   },
   {
    "id": "daily.scene.decision-fatigue.10",
    "category": "reading",
    "text": "Khi phải chọn giữa hai lịch, bạn có thể đổi ý nhiều lần dù khác biệt không lớn.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "eff93a2fd6c0de53decedaaa85f86adcc1ace59bfe8c37744f71e58595512e07"
+   "status": "pending"
   },
   {
    "id": "daily.scene.decision-fatigue.11",
@@ -6352,10 +6064,7 @@
    "id": "daily.scene.decision-fatigue.12",
    "category": "reading",
    "text": "Khi chọn giữa hai phương án lúc đang đói, bạn có thể so mãi mà chưa thấy cái nào hơn.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "a876863219e69ae67b6f5fddf25b50ef3491cd32d87d4cf4d14853770bbc6c44"
+   "status": "pending"
   },
   {
    "id": "daily.scene.decision-fatigue.13",
@@ -6367,55 +6076,37 @@
    "id": "daily.scene.decision-fatigue.14",
    "category": "reading",
    "text": "Khi đọc thêm một bài so sánh, bạn có thể thấy phương án đã chọn lại kém đi.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "7240585d3b5e91f606770bd735336d5d43be1e001f31d5110c0c35ff6f22271f"
+   "status": "pending"
   },
   {
    "id": "daily.scene.decision-fatigue.15",
    "category": "reading",
    "text": "Khi quyết định có thể đổi lại sau, bạn có thể vẫn cân nhắc như thể chỉ được chọn một lần.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "c1cbb37af21e4869fd26ad9fd88635ee30f508939968d30ac734a0ac02275d6b"
+   "status": "pending"
   },
   {
    "id": "daily.scene.decision-fatigue.16",
    "category": "reading",
    "text": "Khi phải chọn thay cho cả nhà, bạn có thể lo chọn sao cho ai cũng vừa ý.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "bd95dae01a8558db9db1d498b14b202dad512667e3c2f6c2eddf6e90c4c7a41f"
+   "status": "pending"
   },
   {
    "id": "daily.scene.decision-fatigue.17",
    "category": "reading",
    "text": "Khi chọn áo cho một buổi đi chơi, bạn có thể thay đi thay lại mà chưa quyết định.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "2f773f1b36e0757440b49f09d26fdae6e8a6dc0c5a3f488996b8fbe51005f9c7"
+   "status": "pending"
   },
   {
    "id": "daily.scene.decision-fatigue.18",
    "category": "reading",
    "text": "Khi phải chọn chỗ ăn cho nhóm, bạn có thể đọc mãi mà chưa chọn được chỗ nào.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "72d52844c0451f004bf2f66117c722dbad7434d0314c94acb11f9877210e1803"
+   "status": "pending"
   },
   {
    "id": "daily.scene.decision-fatigue.19",
    "category": "reading",
    "text": "Khi đứng trước kệ hàng nhiều loại, bạn có thể cầm lên đặt xuống mà chưa chọn.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "a7f600262473de6a1535c1805f7e25ce5bf682d7b9e1f7c17d61a9bd2b6d2be3"
+   "status": "pending"
   },
   {
    "id": "daily.scene.decision-fatigue.20",
@@ -6433,46 +6124,31 @@
    "id": "daily.scene.decision-fatigue.22",
    "category": "reading",
    "text": "Khi phải quyết định nhanh lúc đã mệt, bạn có thể hoãn lại sang hôm sau.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "43af4d75d45afc1f0e22e3b9f46eff88702a63c0e20db01bf2a0bbd974bbced1"
+   "status": "pending"
   },
   {
    "id": "daily.scene.defend-old-choice.01",
    "category": "reading",
    "text": "Khi đã làm theo một cách nhiều tuần, bạn có thể ngại thử cách khác dù kết quả chưa tốt.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "7279a2a0cb79f42d93dd7fd9b2e9eaa1b0b756155e845b018c89a8d704d92d46"
+   "status": "pending"
   },
   {
    "id": "daily.scene.defend-old-choice.02",
    "category": "reading",
    "text": "Khi có người góp ý đổi cách làm, bạn có thể giải thích cách cũ thay vì xem góp ý.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "4f85c2d7364e04533e94b6486801d0e3b34d568377818624281ffeb92c733c57"
+   "status": "pending"
   },
   {
    "id": "daily.scene.defend-old-choice.03",
    "category": "reading",
    "text": "Khi kết quả tuần này giống tuần trước, bạn có thể làm thêm giờ theo cách cũ.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "451f98b7cbab4b618f46628e15b35a287eaf5e3d729d83fbea99c10b03cd31be"
+   "status": "pending"
   },
   {
    "id": "daily.scene.defend-old-choice.04",
    "category": "reading",
    "text": "Khi tiếc công đã bỏ ra, bạn có thể làm tiếp một việc mà chưa xem nó còn cần không.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "76cdf65b2aaa60863fd7c52e3a26d2c917d705f974f4616891705f7ba3ea22b3"
+   "status": "pending"
   },
   {
    "id": "daily.scene.defend-old-choice.05",
@@ -6484,10 +6160,7 @@
    "id": "daily.scene.defend-old-choice.06",
    "category": "reading",
    "text": "Khi người mới đề xuất một cách khác, bạn có thể giữ cách cũ vì đã quen làm như vậy.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "73687937e013c0d7a41a45a3c8730733a5baf460ad1fe7ab52ceb4f4a33798b5"
+   "status": "pending"
   },
   {
    "id": "daily.scene.defend-old-choice.07",
@@ -6499,10 +6172,7 @@
    "id": "daily.scene.defend-old-choice.08",
    "category": "reading",
    "text": "Khi phải thừa nhận cách cũ chưa ổn, bạn có thể thấy tiếc thời gian đã dành cho nó.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "62b90ef97bc4f7413215db35a73cc4db6c0f23eef869c4ff55ff622f2cf0fc63"
+   "status": "pending"
   },
   {
    "id": "daily.scene.defend-old-choice.09",
@@ -6520,28 +6190,19 @@
    "id": "daily.scene.defend-old-choice.11",
    "category": "reading",
    "text": "Khi một cách làm đã quen tay, bạn có thể làm theo mà chưa hỏi nó còn hợp không.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "f410425c3551eb6062ce1900fbc1dbeb1de783d6e6fb51dd85f536c07ed3168a"
+   "status": "pending"
   },
   {
    "id": "daily.scene.defend-old-choice.12",
    "category": "reading",
    "text": "Khi số liệu cho thấy kết quả chưa đổi, bạn có thể tìm lý do để tiếp tục cách cũ.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "198a923a021e03688a728d0c72061e72ab9100888911c0eadf0df6584ade81fb"
+   "status": "pending"
   },
   {
    "id": "daily.scene.defend-old-choice.13",
    "category": "reading",
    "text": "Khi cách làm của người khác cho kết quả tốt hơn, bạn có thể tìm điểm chưa ổn của nó trước.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-18",
-   "digest": "4232f520e7bf2288e6ceea39b0d5068bea1cf022f6069a7ba830fab9b1bf8bcc"
+   "status": "pending"
   },
   {
    "id": "daily.scene.defend-old-choice.14",
