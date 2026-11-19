@@ -30,8 +30,8 @@ from app.domains.experiments.tables import DailyExperimentRow
 from app.domains.guest.tables import ConsentRow, GuestSessionRow
 from app.domains.readings.application import ReadingApplicationService
 from app.domains.readings.lighter_action import (
+    ISSUE_LIGHT_PREFIX,
     LIGHTER_ACTION_PREFIX,
-    lighter_action_for,
     lighter_experiment_for,
 )
 from app.domains.readings.models import (
@@ -245,10 +245,15 @@ async def test_payload_is_encrypted_without_action_lens_or_outcome_canaries(stor
         assert plaintext_canary not in row.payload_ciphertext
 
 
-LIGHTER_TEXTS = tuple(
-    entry.text
+# The general list and the light actions written per Daily issue (#699), by entry id.
+LIGHTER_COPY = {
+    key: entry.text
     for key, entry in copy_approval.load_registry().items()
-    if key.startswith(LIGHTER_ACTION_PREFIX)
+    if key.startswith((LIGHTER_ACTION_PREFIX, ISSUE_LIGHT_PREFIX))
+}
+LIGHTER_TEXTS = tuple(LIGHTER_COPY.values())
+ISSUE_LIGHT_TEXTS = tuple(
+    text for key, text in LIGHTER_COPY.items() if key.startswith(ISSUE_LIGHT_PREFIX)
 )
 LATER_TEXT = "Rót một cốc nước và uống chậm."
 
@@ -258,11 +263,14 @@ def _use_lighter_copy(
 ) -> None:
     """The checked-in lighter sentences, all approved or all pending (plus a later one)."""
 
-    texts = (*LIGHTER_TEXTS, LATER_TEXT) if one_more else LIGHTER_TEXTS
+    copy = dict(LIGHTER_COPY)
+    if one_more:
+        copy[f"{LIGHTER_ACTION_PREFIX}99"] = LATER_TEXT
+        copy[f"{ISSUE_LIGHT_PREFIX}quick-reply.99"] = LATER_TEXT + " Rồi nghỉ."
     entries: list[dict[str, str]] = []
-    for number, text in enumerate(texts, start=1):
+    for entry_id, text in copy.items():
         entry = {
-            "id": f"{LIGHTER_ACTION_PREFIX}{number:02d}",
+            "id": entry_id,
             "category": "reading",
             "text": text,
             "status": "pending",
@@ -292,14 +300,14 @@ async def test_lighter_action_is_offered_kept_and_read_back(  # type: ignore[no-
     target = await _create_target(database, envelope)
     lighter = target.lighter
     assert lighter is not None and lighter.experiment is not None
-    assert lighter.action in LIGHTER_TEXTS and lighter.weight == "light"
+    # The card has a Daily issue, so its light action is one written for that issue (#699).
+    assert lighter.action in ISSUE_LIGHT_TEXTS and lighter.weight == "light"
     assert lighter.action != target.projection.action
     assert lighter.experiment.action_key != target.projection.action_key
 
-    # Another sentence is approved between reading the card and keeping: the card's offer and
-    # its key stay the same (review of #634).
+    # Other sentences are approved between reading the card and keeping: the card's offer and
+    # its key stay the same (review of #634), so the server still accepts that key below.
     _use_lighter_copy(monkeypatch, approved=True, one_more=True)
-    assert lighter_action_for(target.revision_id) == lighter.action
 
     chosen = await repository.choose_with_consent(
         ExperimentDraft(
