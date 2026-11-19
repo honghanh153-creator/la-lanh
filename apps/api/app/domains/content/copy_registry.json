@@ -388,10 +388,7 @@
    "id": "daily.action.capacity-before-agreement.04",
    "category": "reading",
    "text": "Nói rõ việc nào trong lịch của bạn sẽ lùi lại nếu nhận thêm.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "3316c4482c3e9d63f06ae136859fa7c28c2328adcafd1f2d34d4bb345472b67b"
+   "status": "pending"
   },
   {
    "id": "daily.action.capacity-before-agreement.05",
@@ -526,10 +523,7 @@
    "id": "daily.action.capacity-before-agreement.22",
    "category": "reading",
    "text": "Kiểm tra lịch ngày mai trước khi nhận thêm một việc.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "138fc8a560f55e518bf7109d4e9ab52d9096eabb5d919fbc457cc0fe7cccec18"
+   "status": "pending"
   },
   {
    "id": "daily.action.changed-plan.01",
@@ -1135,10 +1129,7 @@
    "id": "daily.action.defend-old-choice.11",
    "category": "reading",
    "text": "Viết lý do ban đầu bạn chọn cách này rồi xem lý do đó còn đúng không.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "4d2729dbb5b2788d92549af9f7f6e99ec45b2e783ca72556a1467508477b8c50"
+   "status": "pending"
   },
   {
    "id": "daily.action.defend-old-choice.12",
@@ -1273,10 +1264,7 @@
    "id": "daily.action.group-pressure.07",
    "category": "reading",
    "text": "Nói: Mình cần nghe giải thích thêm trước khi đồng ý.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "142fe2ee1f8e4cdb4aa7ad5c55e3eb10187edd22cdfe2c0767e4daecb4ef738f"
+   "status": "pending"
   },
   {
    "id": "daily.action.group-pressure.08",
@@ -1720,10 +1708,7 @@
    "id": "daily.action.name-the-need.16",
    "category": "reading",
    "text": "Xác nhận lại việc cụ thể người kia nhận giúp để hai bên cùng rõ.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "1fdef215e56f3672089ab2d27c47a5def321730a3d2c7016a7e6cf905016bc1d"
+   "status": "pending"
   },
   {
    "id": "daily.action.name-the-need.17",
@@ -2083,10 +2068,7 @@
    "id": "daily.action.quick-reply.16",
    "category": "reading",
    "text": "Đọc hết tệp đính kèm trước khi gửi câu trả lời.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "e94b6cac7558f9d45d5b305d89da4c4821c5979aab68aabc269822b16c2deb39"
+   "status": "pending"
   },
   {
    "id": "daily.action.quick-reply.17",
@@ -7588,19 +7570,13 @@
    "id": "daily.bundle.quick-reply.01.action",
    "category": "reading",
    "text": "Đọc hết tin nhắn của sếp rồi trả lời đúng phần sếp hỏi.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "d3e0c18f1181481b46ad61235843d2c040cd3b3b950e0392feeb43c7a5ec3f55"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.quick-reply.01.headline",
    "category": "reading",
    "text": "Sếp nhắn hỏi tiến độ báo cáo.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "2331ba0f8cfbeb0c860ed01a5d01a6a2329537f7a13a4e75486d01139e02bf28"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.quick-reply.01.scene",
@@ -7612,19 +7588,13 @@
    "id": "daily.bundle.quick-reply.02.action",
    "category": "reading",
    "text": "Đọc hết tin nhắn rồi hỏi lại ngày đi trước khi nhận lời.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "83cca02ca817740967cba830f4783d32e7a8b6d582600dbfa76d372ef190472b"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.quick-reply.02.headline",
    "category": "reading",
    "text": "Bạn thân nhắn rủ đi biển cuối tuần.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "b8714bbe661560d65e74e5608a945c53bd4472b49b4854e2c24454157e3ce51c"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.quick-reply.02.scene",
@@ -7636,46 +7606,31 @@
    "id": "daily.bundle.quick-reply.03.action",
    "category": "reading",
    "text": "Đọc hết tin nhắn của mẹ rồi trả lời từng việc một.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "7a596086eb77e3682e667dcd25c7f5227e76529345e4c14e7725532324f27568"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.quick-reply.03.headline",
    "category": "reading",
    "text": "Mẹ nhắn dặn ba việc cho cuối tuần.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "79e98d406517430ef36b9f3294807547da7df4799da0a5605471db18c23bbe8c"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.quick-reply.03.scene",
    "category": "reading",
    "text": "Mẹ gửi tin nhắn dài dặn việc cuối tuần, bạn định trả lời là biết rồi khi chưa đọc hết.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "9b3603143d94ff44e2e7ce8e3667094a73d4c196d6f42b410a1b6aabfd2fc707"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.quick-reply.04.action",
    "category": "reading",
    "text": "Đọc hết danh sách chia phần rồi mới nhắn phần bạn nhận.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "a95cc5f060d11a8038593e0952faa0cbc7e7851b1e8704718ed809de004ddfcb"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.quick-reply.04.headline",
    "category": "reading",
    "text": "Nhóm học vừa chia phần thuyết trình.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "b67ae82ea08b97c01980ff2bbd238b67fc24b824f5e2f96ae1a4e2a4b1ec7949"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.quick-reply.04.scene",
@@ -7687,46 +7642,31 @@
    "id": "daily.bundle.quick-reply.05.action",
    "category": "reading",
    "text": "Đọc hết tin nhắn của khách rồi trả lời đúng điều khách hỏi.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "a03cb1d54ff28a02d0d48bb856a5a17a601822177f78061a212ade275c51d6b2"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.quick-reply.05.headline",
    "category": "reading",
    "text": "Khách nhắn hỏi vì sao đơn hàng giao chậm.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "43a3220faf8c9292eda1b2e97a04b041de560576cf996722740f7ead7e00b413"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.quick-reply.05.scene",
    "category": "reading",
    "text": "Khách nhắn hỏi đơn giao chậm, bạn định gửi câu xin lỗi mẫu dù chưa đọc hết tin nhắn.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "b1240117975d3972567d3c2b0badecc58e5b4c13709b3556d2aa60d3adbf6bcd"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.quick-reply.06.action",
    "category": "reading",
    "text": "Đọc hết ba góp ý rồi viết câu trả lời cho từng chỗ.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "3dfff7ef39cfdc89d77b4ce5860afba81beeeaf9faf909ea8c94efbd98629c36"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.quick-reply.06.headline",
    "category": "reading",
    "text": "Đồng nghiệp góp ý ba chỗ trong bản báo cáo.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "ed0d76a784a56dd573d6a0440e0e9a1ac1c06a177c4b37b2eff28c4c05a01222"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.quick-reply.06.scene",
@@ -7744,64 +7684,43 @@
    "id": "daily.bundle.quick-reply.07.headline",
    "category": "reading",
    "text": "Ban quản lý chung cư nhắn báo cắt nước.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "d09bf0d9581033afc4ac87b88f67a26abe62408018b6e07f5cddd97aa4a310ab"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.quick-reply.07.scene",
    "category": "reading",
    "text": "Ban quản lý gửi tin nhắn báo cắt nước, bạn định hỏi lại mấy giờ dù chưa đọc hết thông báo.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "81e6a763f8137686077db3716ec13017a1356022efaea04a801c46ab684ccdda"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.quick-reply.08.action",
    "category": "reading",
    "text": "Hỏi người kia muốn bạn nghe hay góp ý, rồi mới viết câu trả lời.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "f36abb856b817c5986690d2bd490460a2314ebadeeb603728179027b88e1d23d"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.quick-reply.08.headline",
    "category": "reading",
    "text": "Người yêu nhắn một tin dài lúc khuya.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "0bd0f54798be1a30c79843f2b116de72d44c12869435020776b7ac32105dde8e"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.quick-reply.08.scene",
    "category": "reading",
    "text": "Người yêu gửi tin nhắn dài kể chuyện chỗ làm, bạn định khuyên ngay khi mới đọc hai dòng.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "60a847cc5a1495732db65b43b9865683693e0d6cd187c93b2f77331bf453ac54"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.quick-reply.09.action",
    "category": "reading",
    "text": "Đọc hết tin nhắn của thầy rồi ghi lại hạn nộp mới.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "0d515e236a8fa7f21c645420a3c1079cb0bc069fa298ea2c8a831802d7880c8c"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.quick-reply.09.headline",
    "category": "reading",
    "text": "Thầy nhắn đổi hạn nộp bài tập nhóm.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "ccd7424a3c38120e45ba4821227fa6fd7a2ba2b22fec4219efa696dbd4abe846"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.quick-reply.09.scene",
@@ -7813,19 +7732,13 @@
    "id": "daily.bundle.quick-reply.10.action",
    "category": "reading",
    "text": "Đọc hết tin nhắn rồi trả lời cả màu và cỡ áo.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "c5048b84ab4437f0967aa1acc9ad244be3f1bff2b81999615e49997dffd5c720"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.quick-reply.10.headline",
    "category": "reading",
    "text": "Người bán nhắn hỏi bạn chọn màu áo nào.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "f1d432caf94fcd532e3842bee6bf1cac33d45203eb52c6bb61d5059c2a6653bc"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.quick-reply.10.scene",
@@ -7837,46 +7750,31 @@
    "id": "daily.bundle.quick-reply.11.action",
    "category": "reading",
    "text": "Đọc hết tin nhắn rồi góp ý đúng đoạn mở bài em nhờ.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "b47703f452a3e85dadc533b964a82f2b8b7a0ad24c13d6194ec9964281aea7ce"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.quick-reply.11.headline",
    "category": "reading",
    "text": "Em gái nhắn nhờ góp ý bài luận.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "34387502abc86496ae04a1a684cecc3878e14f88130c86706fba97386c75e683"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.quick-reply.11.scene",
    "category": "reading",
    "text": "Em gái gửi tin nhắn nhờ góp ý đoạn mở bài, bạn định sửa cả bài khi chưa đọc hết.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "f6767d923b6a21f05254b01fd99c153f09a1e62b29a8583d06e653b8bbcbc5bf"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.quick-reply.12.action",
    "category": "reading",
    "text": "Kiểm tra giờ đá trong tin nhắn rồi mới gửi câu trả lời.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "323d359c7eeb4bfba9c97f9c848f4b39a25805d8a08f1ec137e101d53744ca35"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.quick-reply.12.headline",
    "category": "reading",
    "text": "Nhóm đá bóng nhắn hỏi ai đi tối nay.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "10c32ff0c407cadb9cf4e535375308786ebfc8595fa11f674b6326f246861a0b"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.quick-reply.12.scene",
@@ -8020,19 +7918,13 @@
    "id": "daily.bundle.repair-reply.01.action",
    "category": "reading",
    "text": "Nhắn lại cho đồng nghiệp rằng bạn muốn nói bản báo cáo cần sửa phần số liệu.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "b4d0923d2e105667076fd477ab770ba25744103e1e47db6579f65950ed5715cc"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.repair-reply.01.headline",
    "category": "reading",
    "text": "Câu bạn trả lời đồng nghiệp nghe hơi cộc.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "208a6dee2c3cdd01b8f2862d3a552abf75df566d422d9796856ed9571b42383b"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.repair-reply.01.scene",
@@ -8044,46 +7936,31 @@
    "id": "daily.bundle.repair-reply.02.action",
    "category": "reading",
    "text": "Nhắn lại cho bạn ấy rằng bạn chỉ sợ lỡ giờ hẹn, không phải trách bạn ấy.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "586a24797d516b893d96a9d2daf94bfb5baf5254571385bdd4389b903b8a34f5"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.repair-reply.02.headline",
    "category": "reading",
    "text": "Bạn thân đến trễ và câu bạn nhắn khá gắt.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "89320c150d7fcb4fd1135151e2feee13d1cb20c766bc914403728c3814e4f307"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.repair-reply.02.scene",
    "category": "reading",
    "text": "Ngồi chờ bạn thân đến trễ, bạn đọc lại tin nhắn mình gửi và thấy nó gắt hơn ý định.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "6ba30e07052b081300d317a9f785c05988a94dee1e08b6833f4c521aa0f6b9bd"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.repair-reply.03.action",
    "category": "reading",
    "text": "Nhắn lại cho mẹ rằng tuần này bạn bận, và nói rõ hôm nào bạn ghé được.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "e89a84adbc0ff55f95fc5413364c223bed022dba50229081a6e100ccacc93723"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.repair-reply.03.headline",
    "category": "reading",
    "text": "Mẹ hỏi chuyện cuối tuần và bạn trả lời cụt lủn.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "d7e876b6d6f67279df86f4bfa117dac17d73408585db46720e6e03b7d9b47588"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.repair-reply.03.scene",
@@ -8095,19 +7972,13 @@
    "id": "daily.bundle.repair-reply.04.action",
    "category": "reading",
    "text": "Nói lại trong nhóm rằng hạn nộp là tối thứ Sáu và hỏi bạn ấy cần gì thêm.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "3ab066ae4e97b81f0c9604bbc3f953da5b4bf1a91b5af025a6895fc6851dd0a2"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.repair-reply.04.headline",
    "category": "reading",
    "text": "Bạn cùng nhóm hỏi hạn nộp, bạn đáp hơi gắt.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "4f91f7b1102ecf70934ab812f8d8cdba0ab0380342b36d0edd958e3ffcc1df90"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.repair-reply.04.scene",
@@ -8137,19 +8008,13 @@
    "id": "daily.bundle.repair-reply.06.action",
    "category": "reading",
    "text": "Nói lại với em là tối nay bạn cần máy để làm bài, mai em mượn được.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "75cef7a38582b6d9bfdd9b2cb0dd8c9d30a62a65b1a4b6c1f3dafb7895ca2bc7"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.repair-reply.06.headline",
    "category": "reading",
    "text": "Em trai hỏi mượn máy tính, bạn từ chối khá gắt.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "23698809939ffea74bf136644f5989ea4bd33156d927491905fcb067c13f7d89"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.repair-reply.06.scene",
@@ -8161,46 +8026,31 @@
    "id": "daily.bundle.repair-reply.07.action",
    "category": "reading",
    "text": "Nhắn lại rằng tối nay bạn sẽ rửa chén, và hỏi bạn ấy có muốn chia lịch không.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "5edd01a8d331ebc09f256bbde74ecbd95d28cf94d4cf7d8131bdf179190bdb0a"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.repair-reply.07.headline",
    "category": "reading",
    "text": "Bạn cùng phòng nhắc rửa chén, bạn đáp lại cộc lốc.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "8f38946a7498afaab728fc5d9268e6835910c460b9b9c8cd1cc28d8f17caea7f"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.repair-reply.07.scene",
    "category": "reading",
    "text": "Bạn cùng phòng nhắc rửa chén qua tin nhắn, bạn trả lời ngay rồi đọc lại thấy mình gắt.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "39ed244f4ae07871d87bd317db7c6bfb15bf604e2e29c786fc88e0b0246f1696"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.repair-reply.08.action",
    "category": "reading",
    "text": "Nhắn lại cho khách tình trạng đơn hàng trong một câu rõ và xin lỗi vì trả lời cộc.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "1c20e1aded9a5fe6bfd01be36ed13f6eee167c262c7f9a7d2490c59e43df67c6"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.repair-reply.08.headline",
    "category": "reading",
    "text": "Khách hỏi lần thứ ba, bạn trả lời hơi cộc.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "1c380d611873df9a93b33b01a6bb434ef38bbaed77281c203bc82f3ee0c5986d"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.repair-reply.08.scene",
@@ -8212,19 +8062,13 @@
    "id": "daily.bundle.repair-reply.09.action",
    "category": "reading",
    "text": "Nhắn lại trong nhóm là bạn đi được, và nói rõ bạn đến lúc mấy giờ.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "780dfea3596d34a297448468174781448238967cd2abe2afde9663708d8e7f81"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.repair-reply.09.headline",
    "category": "reading",
    "text": "Nhóm đá bóng hỏi ai đi, bạn trả lời khó chịu.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "30d64337f693c16b3556cfe60657c3af02ecbd4c59598b309d0a013aef6be8f1"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.repair-reply.09.scene",
@@ -8236,28 +8080,19 @@
    "id": "daily.bundle.repair-reply.10.action",
    "category": "reading",
    "text": "Nhắn lại cho hàng xóm rằng bạn sẽ dời xe ngay, và cảm ơn vì lời nhắc.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "41c3b17dd33f7d689a80cd1eead1fe270eba7c0ef0758720c946967a4ad98e61"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.repair-reply.10.headline",
    "category": "reading",
    "text": "Hàng xóm nhờ dời xe, bạn đáp hơi gắt.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "65517d85b7ab90f7b76ce4de69351993cae95201e587a396a98af7009ead7be6"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.repair-reply.10.scene",
    "category": "reading",
    "text": "Khi đọc lại tin nhắn trả lời hàng xóm về chỗ để xe, bạn thấy mình nói gắt.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "e4e893a96a5afa18bfa21e96f525ec271bf9eede992504d265e420cf41d60c49"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.repair-reply.11.action",
@@ -8275,37 +8110,25 @@
    "id": "daily.bundle.repair-reply.11.scene",
    "category": "reading",
    "text": "Ngồi trên xe buýt, bạn đọc lại câu trả lời gửi người đang đợi và thấy nó cộc hơn ý mình.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "b14f67051f9d647f5cee8d229f596a3ef3e1b99949b9106d60654c0b8974d97b"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.repair-reply.12.action",
    "category": "reading",
    "text": "Nhắn lại cho sếp phần việc đã xong, phần còn lại và giờ bạn gửi bản cuối.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "377950bdfb27b58031a4af3dc546992a2f2aa753143d58e9d93ac2383fa7b98a"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.repair-reply.12.headline",
    "category": "reading",
    "text": "Sếp hỏi tiến độ, bạn đáp hơi khó chịu.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "1b09523af587843bad317845e974894adde0d9a1546422df9ec93b2bf18bc945"
+   "status": "pending"
   },
   {
    "id": "daily.bundle.repair-reply.12.scene",
    "category": "reading",
    "text": "Sếp nhắn hỏi việc tới đâu, bạn đọc lại tin nhắn mình trả lời và thấy nó như đang cãi.",
-   "status": "approved",
-   "approver": "codex",
-   "date": "2026-11-19",
-   "digest": "dc67f1590c555d8e187e499cab28b6bb58330cbda2f9d353f0547f98f8830669"
+   "status": "pending"
   },
   {
    "id": "daily.scene.specific-feedback.01",
