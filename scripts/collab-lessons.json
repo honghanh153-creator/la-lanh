@@ -909,6 +909,26 @@
     "pr": 727
    },
    "note": "syncStatusLabels chạy mỗi tick, nên nhãn cũ tự được thay ở lần tick kế tiếp"
+  },
+  {
+   "id": "L50",
+   "title": "PR cần CI đầy đủ (~32 phút) không bị bỏ đói khi các PR nhanh liên tục merge: PR đầu hàng giữ integration (reservation) trước khi đồng bộ, mọi đường merge từ chối PR khác tới khi nó merge, rời hàng hoặc hết hạn (sự cố 18.11: #411, #449, #673, #682 kẹt từ tối 17.11 sau #684)",
+   "from": "báo cáo 14:00 18.11; Codex lượt 23 (no-go nới P1-A, go reservation)",
+   "who": "claude",
+   "due": "2026-11-19",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-loop.test.mjs",
+    "name": "L50 runtime replay: the real tick merges only the reservation holder through the real runMerge, then frees integration"
+   },
+   "caller": {
+    "file": "scripts/collab-merge.mjs",
+    "contains": "mergeAllowed(number, nowMs())"
+   },
+   "closedBy": {
+    "pr": 736
+   },
+   "note": "Tick: scripts/collab-turn.mjs giữ chỗ cho PR đầu hàng trước khi đồng bộ (test 'reservation: the front reserves before its sync…'). Gỡ tay có ghi lý do: node scripts/collab-reservation.mjs --release --reason \"…\"."
   }
  ]
 }

@@ -9,8 +9,8 @@ import {
   User,
   X,
 } from "@phosphor-icons/react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { onlineManager, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 
 import {
@@ -36,6 +36,7 @@ import {
   captureMoodIntent,
   keepPendingMood,
   prunePendingMood,
+  retireOlderPendingMood,
   takePendingMood,
   type MoodIntent,
 } from "../../shared/storage/pendingMood";
@@ -69,6 +70,7 @@ import "./home-vitality.css";
 
 const RITUAL_KEY = "la-lanh-daily-ritual-v1";
 const UNLOCK_SNOOZE_KEY = "la-lanh-birth-supplement-snooze-until";
+const MOOD_MUTATION_KEY = ["mood-checkin"] as const;
 
 /** True once per note date: the first open of the day plays the unfold ritual. */
 function useDailyRitual(noteDate: string | undefined): boolean {
@@ -91,6 +93,8 @@ const moods: readonly { value: MoodValue; emoji: string; hint: string }[] = [
   { value: "Căng", emoji: "😵‍💫", hint: "Đầu đang quay, người đang gồng" },
   { value: "Lạc trôi", emoji: "🥴", hint: "Chưa biết mình đang ở nhịp nào" },
 ];
+/** Verbatim from US-04 AC-GWT-01. */
+const MOOD_QUESTION = "Hôm nay bạn thấy sao?";
 const isMoodValue = (value: unknown): value is MoodValue => moods.some((item) => item.value === value);
 
 export function HomePage() {
@@ -235,23 +239,41 @@ export function HomePage() {
     onError: () => setMessage("Phản hồi chưa gửi được. Không có lựa chọn nào được lưu trên máy."),
   });
 
+  // Capture time of the newest mood choice shown on screen: an older replay or a late completion
+  // never takes the screen back from a newer choice (Codex #449).
+  const latestMoodAt = useRef(0);
   const moodMutation = useMutation({
+    // The key lets the reconnect resend see a check-in still on its way. Requests are not queued:
+    // the server stamps each save when it writes it and every answer goes through applySavedMood,
+    // so the last written save is the saved mood (#627).
+    mutationKey: MOOD_MUTATION_KEY,
     // The owner and first-capture time travel with the choice, so a late callback can neither
     // relabel it under a new session nor renew its deadline (audit P04).
     mutationFn: ({ mood: value }: { mood: MoodValue; intent: MoodIntent }) => {
       if (!note) throw new Error("Missing daily note");
       return checkInMood(note.id, value);
     },
-    onMutate: ({ mood: value }) => {
+    onMutate: ({ mood: value, intent }) => {
       const previous = mood;
+      // An older replay never takes the screen back from a newer pick (Codex #449).
+      const newest = intent.savedAt >= latestMoodAt.current;
       if (note) {
-        setUnsavedPick({ noteId: note.id, value });
+        // Offline, this request pauses in memory and onError never runs, so a reload before
+        // reconnecting would lose both this choice and the older one retired below (Codex auto-3
+        // on #449, US-04 AC07). Persist it first; the reconnect resend skips while a check-in is
+        // in flight, and a success acknowledges it. Online, nothing changes.
+        if (!onlineManager.isOnline()) keepPendingMood(note.id, value, intent);
+        retireOlderPendingMood(note.id, intent);
+        if (newest) setUnsavedPick({ noteId: note.id, value });
         // A mood read already on its way is older than this pick; drop it.
         void queryClient.cancelQueries({ queryKey: dailyMoodKey(note.id) });
       }
       setMoodSheetOpen(false);
-      setLineDismissed(false);
-      setMessage("Đang lưu cảm xúc này cho bạn…");
+      if (newest) {
+        latestMoodAt.current = intent.savedAt;
+        setLineDismissed(false);
+        setMessage("Đang lưu cảm xúc này cho bạn…");
+      }
       // The pick belongs to the note on screen now; a later callback must not file it under the
       // next day's note if the day changes while the request is on its way (US-04 AC12).
       return { previous, noteId: note?.id, revision: chartDataRevision(queryClient), generation: sessionGeneration(), ownerEpoch: currentSessionEpoch() };
@@ -273,12 +295,16 @@ export function HomePage() {
       // A rejected (older) answer changed nothing, so it must not undo the reader's own choice of
       // which action to see either.
       if (accepted) resetDailyActionChoice(queryClient, payload.daily_note_id);
+      // An older pick answering while a newer one on this screen still waits must not clear that
+      // newer pick or replace its message (Codex #449).
+      if (intent.savedAt < latestMoodAt.current) return;
       // Saved: the pick for that note is no longer unsaved; the control reads the saved mood.
       setUnsavedPick((current) => (current?.noteId === payload.daily_note_id ? null : current));
       setMessage(laMoodReaction(payload.mood, vibe));
     },
     onError: (_error, { mood: value, intent }, context) => {
       if (context?.noteId) keepPendingMood(context.noteId, value, intent);
+      if (intent.savedAt < latestMoodAt.current) return;
       setMessage("Đã giữ cảm xúc trên máy. Lá Lành sẽ đồng bộ khi có mạng.");
     },
   });
@@ -290,9 +316,22 @@ export function HomePage() {
 
   useEffect(() => {
     prunePendingMood();
-    if (!note || !navigator.onLine) return;
-    const pending = takePendingMood(note.id, isMoodValue);
-    if (pending) moodMutation.mutate(pending);
+    if (!note) return;
+    const noteId = note.id;
+    // takePendingMood removes the stored choice before it is sent, so repeated `online` events
+    // cannot send it twice; a failed resend is queued again by onError for the next reconnect.
+    // A check-in that is still queued or paused offline is the newest choice: it resumes on its
+    // own, so nothing older is replayed beside it (Codex #449).
+    const resendPendingMood = () => {
+      if (!navigator.onLine) return;
+      prunePendingMood();
+      if (queryClient.isMutating({ mutationKey: MOOD_MUTATION_KEY }) > 0) return;
+      const pending = takePendingMood(noteId, isMoodValue);
+      if (pending) moodMutation.mutate(pending);
+    };
+    resendPendingMood();
+    window.addEventListener("online", resendPendingMood);
+    return () => window.removeEventListener("online", resendPendingMood);
   }, [note]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (noteQuery.isLoading) return <HomeLoading />;
@@ -366,9 +405,7 @@ export function HomePage() {
           {motionPaused ? <Play aria-hidden="true" size={19} /> : <Pause aria-hidden="true" size={19} />}
         </button>
       } />
-      <HomeValueHero date={note.note_date} moon={moonLabel} whyPath={activeReading?.sections.transit ? `${dailyContextPath("/note/today", context)}#${WHY_TODAY_ID}` : undefined}>
-        <MoodPicker mood={mood} onOpenChange={setMoodSheetOpen} onSelect={(value) => { tapFeedback(); moodMutation.mutate({ mood: value, intent: captureMoodIntent() }); }} open={moodSheetOpen} pending={moodMutation.isPending} />
-      </HomeValueHero>
+      <HomeValueHero date={note.note_date} moon={moonLabel} whyPath={activeReading?.sections.transit ? `${dailyContextPath("/note/today", context)}#${WHY_TODAY_ID}` : undefined} />
 
       {noteQuery.isError ? (
         <p className="cache-status" role="status">
@@ -402,6 +439,12 @@ export function HomePage() {
           </article>
         </section>
       )}
+
+      {/* US-04 AC-GWT-01 / US-03 AC21: a secondary check-in after the Note, never before it. */}
+      <section aria-labelledby="home-mood-title" className="home-mood-check">
+        <h2 id="home-mood-title">{MOOD_QUESTION}</h2>
+        <MoodPicker mood={mood} onOpenChange={setMoodSheetOpen} onSelect={(value) => { tapFeedback(); moodMutation.mutate({ mood: value, intent: captureMoodIntent() }); }} open={moodSheetOpen} pending={moodMutation.isPending} />
+      </section>
 
       <HomeCompanion line={lineDismissed ? null : homeCompanionLine({ vibe, companion: activeReading?.sections.companion, mood }).text} onDismissLine={() => setLineDismissed(true)}>
         {showGift && availableUpdate && note.reading_projection ? (
@@ -474,20 +517,20 @@ function MoodPicker({
       <button
         aria-expanded={open}
         aria-haspopup="dialog"
-        aria-label={selected ? `Mood hôm nay: ${selected.value}` : "Chọn mood hôm nay"}
+        aria-label={selected ? `Cảm giác hôm nay: ${selected.value}` : "Chọn cảm giác hôm nay"}
         className="mood-quick-trigger"
         onClick={() => onOpenChange(true)}
         type="button"
       >
         <span aria-hidden="true">{selected ? <span className="mood-quick-trigger__emoji">{selected.emoji}</span> : <Smiley weight="regular" size={22} />}</span>
-        <span aria-hidden="true" className="mood-quick-trigger__label">{selected?.value ?? "Chọn mood"}</span>
+        <span aria-hidden="true" className="mood-quick-trigger__label">{selected?.value ?? "Chọn"}</span>
       </button>
       <AppSheet
         closeDisabled={pending}
         eyebrow="Check-in riêng"
         onClose={() => onOpenChange(false)}
         open={open}
-        title="Hôm nay bạn đang ở mood nào?"
+        title={MOOD_QUESTION}
       >
         <div className="mood-sheet__options">
           {moods.map((option) => (
