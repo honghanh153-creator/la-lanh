@@ -131,7 +131,7 @@ export function failReason(error) {
 export function applyDecisions(registry, decisions, date, reviewed = null) {
   const approve = new Set(decisions.filter(d => d.decision === 'approve').map(d => d.id));
   const entries = registry.entries.map(e =>
-    e.status === 'pending' && !ownerOnly.has(e.category) && !notInBatch(e.id) && approve.has(e.id)
+    e.status === 'pending' && !ownerOnly.has(e.category) && !bundleOnly(e.id) && !codeCoupled(e.id) && approve.has(e.id)
       && (!reviewed || reviewed.get(e.id) === digest(e.text))
       ? { ...e, status: 'approved', approver: 'codex', date, digest: digest(e.text) }
       : e);
