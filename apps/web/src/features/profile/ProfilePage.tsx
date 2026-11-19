@@ -43,6 +43,9 @@ import { dropQueuedSaves } from "../../shared/storage/savedNoteMutationQueue";
 import { saveDataExport } from "./downloadMyData";
 import { personaTag } from "../card/shareArt";
 
+/** The server cleared the history but this device refused to erase its own part. */
+class LocalHistoryClearError extends Error {}
+
 function formatBirthDate(isoDate: string): string {
   const [year, month, day] = isoDate.split("-");
   return `${day}/${month}/${year}`;
@@ -139,6 +142,9 @@ export function ProfilePage() {
     mutationFn: async () => {
       await queryClient.cancelQueries();
       await clearReadingHistory();
+      // Which line Lá said last per issue is history too (W1). A refused erase on this device is
+      // not reported as done (Codex P1 on #734); trying again repeats both steps safely.
+      if (!(await clearLaLineMemory())) throw new LocalHistoryClearError();
     },
     onSuccess: async () => {
       // "daily-action-view" holds the mood picked in this tab (#627); it goes with the mood itself.
@@ -146,15 +152,15 @@ export function ProfilePage() {
         queryClient.removeQueries({ queryKey: [key] });
       }
       clearPendingMood();
-      // Which line Lá said last per issue is history too (W1): it goes with the clear.
-      clearLaLineMemory();
       dropQueuedSaves();
       setConfirmingHistory(false);
       setStatusMessage("Đã xoá lịch sử. Hồ sơ sinh, bản đọc hiện tại và note đã lưu vẫn được giữ.");
       await dropCachedDailyNotes(queryClient);
       await queryClient.invalidateQueries({ queryKey: ["daily-note-resonance"] });
     },
-    onError: (failure) => setError(failure instanceof ApiProblem && failure.code === "HISTORY_BUSY"
+    onError: (failure) => setError(failure instanceof LocalHistoryClearError
+      ? "Chưa xoá xong phần lưu trên máy này. Thử xoá lại nhé; hồ sơ vẫn được giữ."
+      : failure instanceof ApiProblem && failure.code === "HISTORY_BUSY"
       ? "Nội dung đang cập nhật. Chờ vài giây rồi thử xoá lại; lịch sử chưa bị xoá."
       : "Chưa xác nhận được việc xoá lịch sử. Kiểm tra kết nối rồi thử lại; hồ sơ vẫn được giữ."),
   });

@@ -11,7 +11,7 @@ import {
   rememberLaLine,
   type LaLineEntry,
 } from "./laLineMemory";
-import { SESSION_EPOCH_KEY } from "../session/sessionIdentity";
+import { SESSION_EPOCH_KEY, sessionGeneration } from "../session/sessionIdentity";
 import { testLocks } from "../session/testLocks";
 
 const A = "00000000-0000-4000-8000-0000000000a1";
@@ -91,7 +91,7 @@ describe("which line Lá said last, kept on the device (W1 phase 3, #626)", () =
 
   it("drops a late write after the memory was cleared or the session changed", async () => {
     const before = beginLaLineMemoryWrite();
-    expect(clearLaLineMemory()).toBe(true);
+    await expect(clearLaLineMemory()).resolves.toBe(true);
     await expect(rememberLaLine(before, "changed-plan", entry(AUTHORED_PAIR, "2026-11-18"))).resolves.toBe(false);
     expect(localStorage.getItem(LA_LINE_MEMORY_KEY)).toBeNull();
 
@@ -131,7 +131,7 @@ describe("which line Lá said last, kept on the device (W1 phase 3, #626)", () =
     vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new Error("blocked"); });
     expect(lastLaLine("changed-plan")).toBeNull();
     await expect(rememberLaLine({ sessionEpoch: "epoch-a", generation: 0, clears: 0 }, "changed-plan", entry(AUTHORED_PAIR, "2026-11-18"))).resolves.toBe(false);
-    expect(clearLaLineMemory()).toBe(false);
+    await expect(clearLaLineMemory()).resolves.toBe(false);
   });
 
   it("goes with delete profile, sign-out and session change (clearPersonalDataOnDevice)", async () => {
@@ -139,5 +139,57 @@ describe("which line Lá said last, kept on the device (W1 phase 3, #626)", () =
     expect(localStorage.getItem(LA_LINE_MEMORY_KEY)).not.toBeNull();
     await clearPersonalDataOnDevice();
     expect(localStorage.getItem(LA_LINE_MEMORY_KEY)).toBeNull();
+  });
+
+  it("delete profile or sign-out in one tab fences a write another tab began before (Codex P1 on #734)", async () => {
+    // Tab B captured its writer; tab A then clears the device. B's own generation and session
+    // epoch do not change, so only the clear counter in localStorage can stop B's late write.
+    await rememberLaLine(beginLaLineMemoryWrite(), "changed-plan", entry(AUTHORED_PAIR, "2026-11-18"));
+    const tabB = beginLaLineMemoryWrite();
+    expect(tabB).not.toBeNull();
+    await clearPersonalDataOnDevice();
+    sessionStorage.setItem(SESSION_EPOCH_KEY, "epoch-a");
+    const lateWriter = { ...tabB!, generation: sessionGeneration() };
+    await expect(rememberLaLine(lateWriter, "changed-plan", entry("la.issue.changed-plan.02", "2026-11-19"))).resolves.toBe(false);
+    expect(localStorage.getItem(LA_LINE_MEMORY_KEY)).toBeNull();
+  });
+
+  it("an erase waits for the writers' lock, so it never falls between a writer's check and its write", async () => {
+    await rememberLaLine(beginLaLineMemoryWrite(), "changed-plan", entry(AUTHORED_PAIR, "2026-11-18"));
+    let release!: () => void;
+    const held = navigator.locks.request("la-lanh-la-line-memory-v2", () => new Promise<void>((done) => { release = done; }));
+    await Promise.resolve();
+    let settled = false;
+    const erase = clearLaLineMemory().then((ok) => { settled = true; return ok; });
+    await new Promise((done) => setTimeout(done, 10));
+    expect(settled).toBe(false);
+    expect(localStorage.getItem(LA_LINE_MEMORY_KEY)).not.toBeNull();
+    release();
+    await held;
+    await expect(erase).resolves.toBe(true);
+    expect(localStorage.getItem(LA_LINE_MEMORY_KEY)).toBeNull();
+  });
+
+  it("a refused fence still removes the record and reports the erase as not done", async () => {
+    await rememberLaLine(beginLaLineMemoryWrite(), "changed-plan", entry(AUTHORED_PAIR, "2026-11-18"));
+    const setItem = localStorage.setItem.bind(localStorage);
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation((key: string, value: string) => {
+      if (key === "la-lanh-la-line-memory-clears-v1") throw new DOMException("full", "QuotaExceededError");
+      setItem(key, value);
+    });
+    await expect(clearLaLineMemory()).resolves.toBe(false);
+    expect(localStorage.getItem(LA_LINE_MEMORY_KEY)).toBeNull();
+    expect(lastLaLine("changed-plan")).toBeNull();
+  });
+
+  it("a refused removal reports the erase as not done, and delete profile reports it too", async () => {
+    await rememberLaLine(beginLaLineMemoryWrite(), "changed-plan", entry(AUTHORED_PAIR, "2026-11-18"));
+    const removeItem = localStorage.removeItem.bind(localStorage);
+    vi.spyOn(Storage.prototype, "removeItem").mockImplementation((key: string) => {
+      if (key === LA_LINE_MEMORY_KEY) throw new DOMException("blocked", "SecurityError");
+      removeItem(key);
+    });
+    await expect(clearLaLineMemory()).resolves.toBe(false);
+    await expect(clearPersonalDataOnDevice()).rejects.toThrow();
   });
 });

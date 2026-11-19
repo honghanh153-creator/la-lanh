@@ -5,7 +5,7 @@ import {
 } from "../api/client";
 import { setPendingChartQuarantine } from "./chartQuarantineGate";
 import { clearMatchingIntroExposure } from "./matchingIntroExposure";
-import { LA_LINE_MEMORY_KEY } from "./laLineMemory";
+import { clearLaLineMemory } from "./laLineMemory";
 import { clearCachedDailyNote } from "./noteCache";
 import { clearLocalSavedNotes } from "./savedNoteCache";
 import { PENDING_MOOD_ACK_KEY, PENDING_MOOD_KEY } from "./pendingMood";
@@ -19,9 +19,6 @@ export const PERSONAL_DATA_CLEARED_EVENT = "la-lanh-personal-data-cleared";
 const PERSONAL_LOCAL_KEYS = [
   PENDING_MOOD_KEY,
   PENDING_MOOD_ACK_KEY,
-  // Which line Lá said last per Daily issue (W1): goes with delete profile, sign-out and any
-  // session change; the history clear removes it in ProfilePage.
-  LA_LINE_MEMORY_KEY,
   "la-lanh-daily-ritual-v1",
   "la-lanh-night-nudge-dismissed-v1",
   "la-lanh-companion-growth-v1",
@@ -80,6 +77,14 @@ export async function clearPersonalDataOnDevice(): Promise<void> {
   attempt(() => sessionStorage.removeItem("la-lanh-radar-owner-start"));
   attempt(() => sessionStorage.removeItem("la-lanh-tarot-start"));
   attempt(() => sessionStorage.removeItem("la-lanh-tarot-guest-key"));
+
+  // Which line Lá said last per Daily issue (W1): goes with delete profile, sign-out and any
+  // session change, through the one erase that also fences writers in other tabs (Codex P1, #734).
+  try {
+    if (!(await clearLaLineMemory())) failures.push(new Error("Lá's line memory could not be cleared"));
+  } catch (error) {
+    failures.push(error);
+  }
 
   try {
     await removeOrphanedNativeExport();

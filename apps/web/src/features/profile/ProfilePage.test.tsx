@@ -149,6 +149,26 @@ describe("ProfilePage resonance privacy controls", () => {
     expect(lastLaLine("changed-plan")).toBeNull();
   });
 
+  it("does not report the history clear as done when this device refuses to erase Lá's line memory (Codex P1 on #734)", async () => {
+    localStorage.clear();
+    sessionStorage.setItem(SESSION_EPOCH_KEY, "epoch-a");
+    await rememberLaLine(beginLaLineMemoryWrite(), "changed-plan", { pair: "la.issue.changed-plan.02", day: "2026-11-18", appearance: "00000000-0000-4000-8000-0000000000a1" });
+    const setItem = localStorage.setItem.bind(localStorage);
+    const refuse = vi.spyOn(Storage.prototype, "setItem").mockImplementation((key: string, value: string) => {
+      if (key === "la-lanh-la-line-memory-clears-v1") throw new DOMException("full", "QuotaExceededError");
+      setItem(key, value);
+    });
+    const user = userEvent.setup(); renderPage();
+    await user.click(await screen.findByRole("button", { name: /Xoá lịch sử đã xem/ }));
+    await user.click(screen.getByRole("button", { name: "Xoá lịch sử" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Chưa xoá xong phần lưu trên máy này");
+    expect(screen.queryByText(/Đã xoá lịch sử/)).not.toBeInTheDocument();
+    expect(lastLaLine("changed-plan")).toBeNull();
+    refuse.mockRestore();
+    await user.click(screen.getByRole("button", { name: "Xoá lịch sử" }));
+    expect(await screen.findByRole("status")).toHaveTextContent("Đã xoá lịch sử");
+  });
+
   it("forgets which line Lá said last after the profile is deleted (W1, #626)", async () => {
     localStorage.clear();
     vi.mocked(deleteGuest).mockResolvedValue(undefined);

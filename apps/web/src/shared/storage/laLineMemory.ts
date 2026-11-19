@@ -1,5 +1,6 @@
 // Which line Lá said last time, per Daily issue, kept on this device only (owner decision W1,
-// 17.11.2026; #626). Phase 3 of the W1 plan, built to the contract Codex critiqued (run 47):
+// 17.11.2026; #626). Phase 3 of the W1 plan, built to the contract Codex critiqued (run 47).
+// Plan: https://github.com/honghanh153-creator/la-lanh/issues/626#issuecomment-7001994850
 //
 // - The cursor is the line's stable pair id (`la.issue.<issue>.<nn>`, or `authored` for the
 //   issue's own first line), never a slot number: adding or withdrawing a pair cannot make the
@@ -11,6 +12,10 @@
 // - A write is owned by the call that captured `beginLaLineMemoryWrite()`. It is dropped when the
 //   session changed (generation or epoch) or the memory was cleared since ("xoá lịch sử", delete
 //   profile, sign-out), checked again under a Web Lock shared by all tabs, right before writing.
+// - Every erase goes through `clearLaLineMemory()` (Codex P1 on #734): under the same lock it
+//   advances the clear counter in localStorage, which every tab reads, then removes the record.
+//   A writer captured in another tab before the erase therefore finds the counter moved and
+//   drops its write, and no erase can fall between a writer's check and its write.
 //
 // Privacy: pair ids are catalog keys, the day is the Daily's date, the appearance is the revision
 // id the app already caches with the note. No sentence text, birth data, mood or device id. It is
@@ -92,7 +97,7 @@ function read(scope: string | null): Map<string, LaLineEntry> {
   }
 }
 
-function withLock(work: () => boolean): Promise<boolean> {
+function withLock<T>(work: () => T): Promise<T> {
   if (typeof navigator !== "undefined" && typeof navigator.locks?.request === "function") {
     return navigator.locks.request(LOCK, () => work());
   }
@@ -147,15 +152,25 @@ export function rememberLaLine(owner: LaLineWriteOwner | null, issue: string, en
 }
 
 /**
- * Forget every remembered line and fence writes that began before ("xoá lịch sử"). Returns
- * `false` when storage refused the removal.
+ * Forget every remembered line and fence writes that began before, in every tab ("xoá lịch sử",
+ * delete profile, sign-out, session change). Runs under the writers' lock. The fence and the
+ * removal are tried independently, so a refused fence never leaves the record behind. Resolves
+ * `false` when either was refused: the caller must not report the erase as done.
  */
-export function clearLaLineMemory(): boolean {
-  try {
-    localStorage.setItem(CLEARS_KEY, String(clearCount() + 1));
-    localStorage.removeItem(LA_LINE_MEMORY_KEY);
-    return true;
-  } catch {
-    return false;
-  }
+export function clearLaLineMemory(): Promise<boolean> {
+  return withLock(() => {
+    let fenced = true;
+    let removed = true;
+    try {
+      localStorage.setItem(CLEARS_KEY, String(clearCount() + 1));
+    } catch {
+      fenced = false;
+    }
+    try {
+      localStorage.removeItem(LA_LINE_MEMORY_KEY);
+    } catch {
+      removed = false;
+    }
+    return fenced && removed;
+  }).catch(() => false);
 }
