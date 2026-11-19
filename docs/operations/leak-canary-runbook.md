@@ -35,7 +35,7 @@ Yêu cầu gốc: US-03 AC12 và mục 21 (DoD delta: network, URL, history, log
 
 Thân request gửi tới API là đường được phép, nên không bị tìm. Nó chỉ được dùng để chứng minh mỗi dấu đã thật sự tới API. Dấu nào chưa tới API thì lượt chạy đỏ, vì khi đó chưa kiểm được gì.
 
-Giờ sinh được tìm ở mọi chỗ, cả khi viết kèm giây. Chỉ một thứ được bỏ qua: giờ ghi ở đầu mỗi dòng nhật ký máy chủ, vì đó là giờ của dòng nhật ký chứ không phải dữ liệu. Nếu lượt chạy rơi đúng phút trùng giờ sinh giả và app ghi giờ hiện tại vào một chỗ tìm khác, lượt chạy có thể đỏ nhầm; khi đó xem chỗ tìm trong báo cáo rồi mới kết luận.
+Giờ sinh được tìm ở mọi chỗ, cả khi viết kèm giây. Chỉ một thứ được bỏ qua: giờ ghi ở đầu dòng nhật ký máy chủ khi ngay sau nó là mức của dòng viết hoa (`INFO`, `WARNING`, `ERROR`…), vì đó là giờ của dòng nhật ký chứ không phải dữ liệu. Dòng nhật ký mở đầu bằng một giờ mà không có mức theo sau thì vẫn bị tìm, vì đó có thể chính là giờ sinh. Còn một trường hợp chưa phân biệt được: app in giờ sinh ở đầu dòng rồi viết ngay một chữ mức viết hoa sau nó. Nếu lượt chạy rơi đúng phút trùng giờ sinh giả và app ghi giờ hiện tại vào một chỗ tìm khác, lượt chạy có thể đỏ nhầm; khi đó xem chỗ tìm trong báo cáo rồi mới kết luận.
 
 Nhật ký máy chủ được đọc sau khi API đã tắt hẳn và đóng đầu ra, nên các dòng ghi lúc tắt cũng được tìm. Nếu máy chủ không tắt trong 20 giây, lượt chạy hỏng (mã thoát 2), không tính là đạt.
 

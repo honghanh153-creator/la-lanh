@@ -83,13 +83,17 @@ export function buildMarks({ canary = CANARY, placeId = null, secrets = [] } = {
 }
 
 // The time a logger writes at the start of its line, bare or in brackets: a date with a clock time,
-// or a clock time with seconds.
-const LINE_TIME = /^(\s*[[(]?)(?:\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(?::\d{2}(?:[.,]\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?|\d{1,2}:\d{2}:\d{2}(?:[.,]\d+)?)/i;
+// or a clock time with seconds, and then the line's level in capitals ("03:47:12 INFO",
+// "[2026-11-19 03:47:12,512] [ERROR]", "03:47:12.5 | WARNING |"). The level is what tells a logger's
+// own timestamp from a value: a line that just starts with a clock time may be the birth time
+// itself, so it is not masked (Codex #753 r2).
+const LINE_TIME = /^(\s*[[(]?)(?:\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(?::\d{2}(?:[.,]\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?|\d{1,2}:\d{2}:\d{2}(?:[.,]\d+)?)(?=[\])]?[\s|,:-]*[[(]?(?:TRACE|DEBUG|INFO|NOTICE|WARN|WARNING|ERROR|CRITICAL|FATAL)(?![A-Za-z0-9_]))/;
 
 // A birth time such as "03:47" is also the clock time of every log line written in that minute
-// (#457). Only that one piece of log metadata is masked: the time at the start of a log line.
-// A clock value anywhere else (a payload, a URL, storage, the rest of the line) stays searchable,
-// with or without seconds, so "03:47:00" in a query or in JSON is still a finding.
+// (#457). Only that one piece of log metadata is masked: the time at the start of a log line in a
+// recognised logger format. A clock value anywhere else (a payload, a URL, storage, the rest of the
+// line, the start of a line without a level) stays searchable, with or without seconds, so
+// "03:47:00" in a query, in JSON or alone on a log line is still a finding.
 export function maskLogTime(line) {
   return line.replace(LINE_TIME, "$1<log-time>");
 }
@@ -115,7 +119,8 @@ function views(text) {
 // text is one line of a server log, the only place where a leading timestamp is masked.
 export function findMarks(text, marks, { logLine = false } = {}) {
   const plain = views(String(text));
-  const masked = logLine ? plain.map(maskLogTime) : plain;
+  // Masked before folding: the level must be in capitals, as loggers write it.
+  const masked = logLine ? views(maskLogTime(String(text))) : plain;
   const kinds = [];
   for (const mark of marks) {
     const haystacks = mark.clock ? masked : plain;

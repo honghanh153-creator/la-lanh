@@ -73,6 +73,29 @@ test("the birth time is not confused with the clock time of a log line (#457)", 
   assert.equal(maskLogTime("2026-11-19 03:47 INFO started"), "<log-time> INFO started");
 });
 
+// Codex #753 r2: a leading clock value is log metadata only when a log level follows it. A line
+// that simply starts with the submitted birth time is a leak.
+test("a log line that starts with the birth time itself is a finding", () => {
+  const inLog = (line) => findMarks(line, marks, { logLine: true });
+  assert.deepEqual(inLog("03:47:00 is the submitted birth time"), ["birth-time"]);
+  assert.deepEqual(inLog("03:47:00"), ["birth-time"]);
+  assert.deepEqual(inLog("[03:47:00] chart input"), ["birth-time"]);
+  assert.deepEqual(inLog("  03:47:00.000 birth_time_local"), ["birth-time"]);
+  assert.deepEqual(inLog("2026-11-19 03:47:00 birth time received"), ["birth-time"]);
+  assert.deepEqual(inLog("2026-11-19T03:47:00Z"), ["birth-time"]);
+  assert.deepEqual(inLog("03:47:00 information about the user"), ["birth-time"]);
+  // Recognised logger shapes stay masked.
+  assert.deepEqual(inLog("03:47:12 INFO started"), []);
+  assert.deepEqual(inLog("03:47:12.512 | WARNING | slow request"), []);
+  assert.deepEqual(inLog("[2026-11-19 03:47:12,512] [ERROR] failed"), []);
+  assert.deepEqual(inLog("2026-11-19 03:47:12 - DEBUG - tick"), []);
+  // The mask covers the timestamp only: the same value later in the line is still found.
+  assert.deepEqual(inLog("03:47:12 INFO birth_time=03:47:00"), ["birth-time"]);
+  const surfaces = clean();
+  surfaces["server-log"].push("03:47:00 is the submitted birth time");
+  assert.deepEqual(scanSurfaces(surfaces, marks).map((finding) => `${finding.surface}:${finding.kind}`), ["server-log:birth-time"]);
+});
+
 // Codex #753 r1: masking every clock value with seconds, in every surface, hid a birth time
 // written with seconds. Only the time at the start of a log line is log metadata.
 test("a birth time written with seconds is found in URLs, payloads, storage and inside a log line", () => {
