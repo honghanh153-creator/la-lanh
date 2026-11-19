@@ -1024,7 +1024,15 @@ def _content_projection(
         created_at=revision.created_at,
         experiment=experiment,
         lighter_action=(
-            lighter_action_projection(revision.id, keepable=experiment is not None)
+            lighter_action_projection(
+                revision.id,
+                keepable=experiment is not None,
+                mechanism_key=(
+                    candidate.semantic_blueprint.mechanism_key
+                    if candidate.semantic_blueprint
+                    else None
+                ),
+            )
             if projection.purpose is ReadingPurpose.DAILY_NOTE
             else None
         ),

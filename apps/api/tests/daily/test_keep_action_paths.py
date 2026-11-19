@@ -40,7 +40,7 @@ from app.domains.experiments.postgres import EXPERIMENT_PURPOSE
 from app.domains.experiments.tables import DailyExperimentRow
 from app.domains.guest.tables import ConsentRow
 from app.domains.readings import application
-from app.domains.readings.lighter_action import LIGHTER_ACTION_PREFIX
+from app.domains.readings.lighter_action import ISSUE_LIGHT_PREFIX, LIGHTER_ACTION_PREFIX
 from app.domains.readings.models import (
     ClaimTemplateId,
     PlanMode,
@@ -74,12 +74,15 @@ BIRTH_DATE_SPAN_DAYS = 23 * 365
 def _approve_lighter_pool(monkeypatch: pytest.MonkeyPatch) -> None:
     """Serve the checked-in lighter sentences, so the low-mood action (#634) is on the paths."""
 
+    # The general list and the light actions written per Daily issue (#699).
     pool = [
-        entry for key, entry in load_registry().items() if key.startswith(LIGHTER_ACTION_PREFIX)
+        entry
+        for key, entry in load_registry().items()
+        if key.startswith((LIGHTER_ACTION_PREFIX, ISSUE_LIGHT_PREFIX))
     ]
     entries = [
         {
-            "id": f"{LIGHTER_ACTION_PREFIX}{number:02d}",
+            "id": entry.id,
             "category": "reading",
             "text": entry.text,
             "status": "approved",
@@ -87,7 +90,7 @@ def _approve_lighter_pool(monkeypatch: pytest.MonkeyPatch) -> None:
             "date": "2026-11-17",
             "digest": copy_digest(entry.text),
         }
-        for number, entry in enumerate(pool, start=1)
+        for entry in pool
     ]
     registry = parse_registry({"version": copy_approval.REGISTRY_VERSION, "entries": entries})
     monkeypatch.setattr(copy_approval, "_runtime_registry", lambda: registry)
