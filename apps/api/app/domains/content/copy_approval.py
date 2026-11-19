@@ -36,7 +36,10 @@ def copy_digest(text: str) -> str:
 #
 # The two classes are closed by definition, not by a list of known spellings (review r7 of #411):
 #
-# Link. Two words joined by a dot with no space, where the last word is two or more letters of
+# Link. Closed against the IDNA label alphabet (letters, digits, combining marks, hyphen; the
+# joiners IDNA allows are invisible characters, refused on their own); tests check it against
+# Python's IDNA codec. Two words joined by a dot with no space, where the last word is two or
+# more letters of
 # any script ("vidu.vn", "vi-du.рф", "vi-du.中国") or a punycode label ("xn--p1ai"). A letter may
 # carry combining marks ("vi-du.भारत", "vi-du.বাংলা"): Python's \w leaves marks out, so the rule
 # adds every Mn/Mc/Me character itself (review r8 of #411). There is no
@@ -48,11 +51,13 @@ def copy_digest(text: str) -> str:
 # Template slot. "%" + optional "(key)" or "n$" + flags + width + precision ("*" too) + length
 # modifier + any conversion letter of Python or C printf. The key is anything up to a closing
 # parenthesis, as Python reads it: "%(full name)s", "%(full-name)s", "%()s" and nested
-# parentheses are slots too (review r8). No space flag: "50% dung lượng" is plain text.
-# clarity_lint.PLACEHOLDERS uses the same PRINTF_SLOT.
+# parentheses are slots too (review r8). The grammar is the union of Python's printf-style
+# formatting and C's (ISO C plus the POSIX "'" flag, "n$" and "*m$" positions, and the
+# I/I32/I64/w length forms); tests check it against Python's own "%" operator. No space flag:
+# "50% dung lượng" is plain text. clarity_lint.PLACEHOLDERS uses the same PRINTF_SLOT.
 PRINTF_SLOT = (
-    r"%(?:\([^\n]*?\)|\d+\$)?[-#0+]*(?:\d+|\*)?(?:\.(?:\d+|\*))?"
-    r"(?:hh|h|ll|l|L|q|j|z|t)?[diouxXeEfFgGcrsaApn]"
+    r"%(?:\([^\n]*?\)|\d+\$)?[-#0+']*(?:\d+|\*(?:\d+\$)?)?(?:\.(?:\d+|\*(?:\d+\$)?))?"
+    r"(?:hh|h|ll|l|L|q|j|z|t|I64|I32|I|w)?[diouxXeEfFgGcrsaApnCSm]"
 )
 
 

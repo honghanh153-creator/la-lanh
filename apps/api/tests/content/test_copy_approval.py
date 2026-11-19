@@ -296,6 +296,10 @@ _SLOT_FORMS = [
     "Chào %()s nhé.",  # an empty key
     "Chào %(a(b)c)s nhé.",  # nested parentheses in the key
     "Chào %(name)-10s nhé.",
+    "Còn %'d ngày nữa.",  # POSIX thousands flag
+    "Còn %*1$d ngày nữa.",  # C width taken from a numbered argument
+    "Còn %I64d ngày nữa.",  # Windows length forms
+    "Chào %S nhé.",  # C wide string
     "Chào %sơi, hôm nay thế nào?",  # a slot glued to the next word
 ]
 
@@ -364,3 +368,72 @@ def test_crisis_check_disclosure_is_the_owner_approved_privacy_copy() -> None:
     assert (entry.category, entry.text) == ("privacy", text)
     assert (entry.status, entry.approver, entry.date) == ("approved", "owner", "2026-11-15")
     assert entry.servable
+
+
+# Review r8 of #411, "đóng lớp bằng parser": the two classes are checked against the parsers that
+# define them, not only against examples. Every spec Python's own "%" operator accepts (except the
+# documented space flag) is a slot, and every name Python's IDNA codec accepts is a link.
+def test_every_printf_spec_python_accepts_is_a_template_slot() -> None:
+    import itertools
+
+    class _AnyKey(dict[str, int]):
+        def __missing__(self, key: str) -> int:
+            return 1
+
+    keys = ["", "(k)", "(full name)", "(full-name)", "()", "(a(b)c)", "(tên)"]
+    flags = [
+        "".join(chosen) for size in range(5) for chosen in itertools.combinations("#0-+", size)
+    ]
+    accepted = 0
+    missed: list[str] = []
+    for key, flag, width, precision, length, conversion in itertools.product(
+        keys, flags, ["", "5", "*"], ["", ".2", ".*"], ["", "h", "l", "L"], "diouxXeEfFgGcrsa%"
+    ):
+        spec = f"%{key}{flag}{width}{precision}{length}{conversion}"
+        stars = (width == "*") + (precision == ".*")
+        values: object = _AnyKey() if key else (1,) * (stars + (conversion != "%"))
+        try:
+            spec % values
+        except (TypeError, ValueError, KeyError):
+            continue
+        if conversion == "%":
+            continue  # "%%" is a literal percent sign, not a slot
+        accepted += 1
+        if not copy_approval.text_lint_problems(f"Chào {spec} nhé."):
+            missed.append(spec)
+    assert accepted > 20_000
+    assert missed == []
+
+
+def test_every_name_the_idna_codec_accepts_is_a_link() -> None:
+    import random
+    import sys
+    import unicodedata
+
+    letters = [
+        chr(code)
+        for code in range(sys.maxunicode + 1)
+        if unicodedata.category(chr(code)).startswith("L")
+    ]
+    marks = [
+        chr(code)
+        for code in range(sys.maxunicode + 1)
+        if unicodedata.category(chr(code)).startswith("M")
+    ]
+    draw = random.Random(411)  # noqa: S311 - a fixed sample, not a secret
+    checked = 0
+    missed: list[str] = []
+    while checked < 2000:
+        suffix = draw.choice(letters) + "".join(
+            draw.choice(letters) if draw.random() < 0.6 else draw.choice(marks)
+            for _ in range(draw.randint(1, 5))
+        )
+        suffix = unicodedata.normalize("NFC", suffix)
+        try:
+            f"vi-du.{suffix}".encode("idna")
+        except UnicodeError:
+            continue
+        checked += 1
+        if not copy_approval.text_lint_problems(f"Ghé vi-du.{suffix} nhé."):
+            missed.append(ascii(suffix))
+    assert missed == []
