@@ -29,6 +29,14 @@ export const ownerOnly = new Set(['privacy', 'consent', 'crisis', 'safety']);
 // API import failed in scripts.fallback_approval, and the loop stayed red all day. These entries change
 // together with their roast pair in a code PR, so the daily Codex batch neither sends nor approves them.
 export const codeCoupled = id => /^daily\.headline\./.test(String(id ?? ''));
+// 19.11.2026 (Codex review of #685): a Daily situation without an approved bundle rotates its scenes
+// and its actions independently (daily_psychology.py), so a loose scene that names a concrete moment
+// ("a coworker's document") lands next to unrelated advice ("cooking"). Scenes ship only inside a whole
+// bundle (headline, scene, action written together; owner 10.11.2026), never as loose variants: the
+// batch neither sends nor approves `daily.scene.*`. tests/content/test_daily_scene_bundles.py checks
+// the registry.
+export const bundleOnly = id => /^daily\.scene\./.test(String(id ?? ''));
+const notInBatch = id => codeCoupled(id) || bundleOnly(id);
 export const ruleDocs = [
   'docs/foundation/la-lanh-plain-vietnamese-content-standard.md',
   'docs/operations/decision-checklist.md',
@@ -38,7 +46,7 @@ export const ruleDocs = [
 export const digest = text => createHash('sha256').update(String(text).normalize('NFC')).digest('hex');
 
 export function selectPending(registry) {
-  return (registry.entries ?? []).filter(e => e.status === 'pending' && !ownerOnly.has(e.category) && !codeCoupled(e.id));
+  return (registry.entries ?? []).filter(e => e.status === 'pending' && !ownerOnly.has(e.category) && !notInBatch(e.id));
 }
 
 // One daily batch: a PR body with one row per entry must stay well under GitHub's 65 536-character
@@ -123,7 +131,7 @@ export function failReason(error) {
 export function applyDecisions(registry, decisions, date, reviewed = null) {
   const approve = new Set(decisions.filter(d => d.decision === 'approve').map(d => d.id));
   const entries = registry.entries.map(e =>
-    e.status === 'pending' && !ownerOnly.has(e.category) && !codeCoupled(e.id) && approve.has(e.id)
+    e.status === 'pending' && !ownerOnly.has(e.category) && !bundleOnly(e.id) && !codeCoupled(e.id) && approve.has(e.id)
       && (!reviewed || reviewed.get(e.id) === digest(e.text))
       ? { ...e, status: 'approved', approver: 'codex', date, digest: digest(e.text) }
       : e);
