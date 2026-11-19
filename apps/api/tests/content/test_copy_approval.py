@@ -300,6 +300,10 @@ _SLOT_FORMS = [
     "Còn %*1$d ngày nữa.",  # C width taken from a numbered argument
     "Còn %I64d ngày nữa.",  # Windows length forms
     "Chào %S nhé.",  # C wide string
+    "Còn %.s nữa.",  # empty precision (r9)
+    "Còn %.f giờ nữa.",
+    "Còn %05.s nữa.",
+    "Chào %(full\nname)s nhé.",  # a key with a line break (r9)
     "Chào %sơi, hôm nay thế nào?",  # a slot glued to the next word
 ]
 
@@ -380,14 +384,14 @@ def test_every_printf_spec_python_accepts_is_a_template_slot() -> None:
         def __missing__(self, key: str) -> int:
             return 1
 
-    keys = ["", "(k)", "(full name)", "(full-name)", "()", "(a(b)c)", "(tên)"]
+    keys = ["", "(k)", "(full name)", "(full-name)", "()", "(a(b)c)", "(tên)", "(full\nname)"]
     flags = [
         "".join(chosen) for size in range(5) for chosen in itertools.combinations("#0-+", size)
     ]
     accepted = 0
     missed: list[str] = []
     for key, flag, width, precision, length, conversion in itertools.product(
-        keys, flags, ["", "5", "*"], ["", ".2", ".*"], ["", "h", "l", "L"], "diouxXeEfFgGcrsa%"
+        keys, flags, ["", "5", "*"], ["", ".", ".2", ".*"], ["", "h", "l", "L"], "diouxXeEfFgGcrsa%"
     ):
         spec = f"%{key}{flag}{width}{precision}{length}{conversion}"
         stars = (width == "*") + (precision == ".*")
@@ -399,10 +403,22 @@ def test_every_printf_spec_python_accepts_is_a_template_slot() -> None:
         if conversion == "%":
             continue  # "%%" is a literal percent sign, not a slot
         accepted += 1
-        if not copy_approval.text_lint_problems(f"Chào {spec} nhé."):
+        # The tokenizer reads the whole spec as one slot, and the gate refuses the sentence.
+        if copy_approval.printf_slots(spec) != ((0, len(spec)),) or not (
+            copy_approval.text_lint_problems(f"Chào {spec} nhé.")
+        ):
             missed.append(spec)
-    assert accepted > 20_000
+    assert accepted > 25_000
     assert missed == []
+
+
+def test_a_lone_space_flag_is_plain_text_but_a_space_with_more_is_a_slot() -> None:
+    # The one exception, on purpose: "50% dung lượng" reads as "% d" to Python.
+    assert copy_approval.printf_slots("Giảm 50% dung lượng.") == ()
+    assert copy_approval.printf_slots("Còn % 5d ngày.") != ()
+    assert copy_approval.printf_slots("Chào %(ten) s nhé.") != ()
+    assert copy_approval.printf_slots("Giảm 50%% dung lượng.") == ()
+    assert copy_approval.printf_slots("Giảm 50%(chưa đóng s") == ()
 
 
 def test_every_name_the_idna_codec_accepts_is_a_link() -> None:

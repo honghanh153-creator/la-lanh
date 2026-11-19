@@ -294,6 +294,10 @@ def test_a10_finds_english_words(text: str, expected: tuple[str, ...]) -> None:
         ("Chào %(full-name)s nhé.", 1),
         ("Chào %()s nhé.", 1),
         ("Chào %(a(b)c)s nhé.", 1),
+        # Review r9: empty precision and a key with a line break.
+        ("Còn %.s nữa.", 1),
+        ("Còn %05.f giờ.", 1),
+        ("Chào %(full\nname)s nhé.", 1),
         ("Giảm 50% (xem bảng) dung lượng.", 0),
         ("Pin còn 20%, sạc thêm 5% nữa.", 0),
         ("Khoảng 50% số việc là của bạn.", 0),
