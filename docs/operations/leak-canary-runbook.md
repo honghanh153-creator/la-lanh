@@ -1,0 +1,80 @@
+# Máy kiểm không lộ dữ liệu (leak canary)
+
+Việc #690, kế hoạch 7 tuần, tuần 1. Điều kiện bắt đầu số 8: trước khi bật một tính năng mới, máy tự kiểm rằng dữ liệu riêng không lọt ra những chỗ không được phép.
+
+Yêu cầu gốc: US-03 AC12 và mục 21 (DoD delta: network, URL, history, log, cache không chứa ngày sinh, token, chữ riêng); US-04 AC09.
+
+## Nó làm gì
+
+1. Chạy bản web đã build cùng API thật trên máy, với cơ sở dữ liệu SQLite tạm (xoá sau khi chạy).
+2. Một trình duyệt đi qua app như người mới, dùng một hồ sơ giả có "dấu" dễ tìm:
+
+| Dữ liệu | Dấu | Đi qua đâu |
+|---|---|---|
+| Ngày sinh | một ngày giả cố định | màn nhập ngày sinh |
+| Giờ sinh | một giờ giả cố định | màn giờ và nơi sinh |
+| Nơi sinh | một tỉnh cố định, cả chữ gõ tìm và mã nơi | màn giờ và nơi sinh |
+| Mood | một lựa chọn cố định | Home |
+| Câu hỏi Tarot | một từ bịa | màn Tarot |
+| Chữ gõ vào lớp an toàn | một từ bịa, kèm câu mà lớp an toàn chặn | màn Tarot (API trả 422) |
+| Cookie phiên và mã CSRF | đọc lúc chạy | mọi màn |
+
+3. Tìm các dấu đó, ở mọi cách viết (có dấu, không dấu, mã hoá URL một hoặc hai lần, chữ hoa), trong:
+
+| Chỗ tìm | Lấy từ đâu |
+|---|---|
+| Nhật ký máy chủ | toàn bộ stdout và stderr của API và máy chủ QA |
+| Đường mạng | URL và query của mọi request |
+| Header Referer | mọi request |
+| Request ra ngoài app | bất kỳ request nào tới nơi khác đều tính là lỗi |
+| Báo lỗi | mọi dòng console và lỗi trang |
+| Câu trả lời lỗi của API | nội dung mọi câu trả lời từ 400 trở lên |
+| Lịch sử trình duyệt | mọi lần đổi địa chỉ của trang |
+| URL hiện tại | sau mỗi bước |
+| Bộ nhớ trình duyệt | localStorage, sessionStorage, tên mục trong Cache, tiêu đề trang |
+
+Thân request gửi tới API là đường được phép, nên không bị tìm. Nó chỉ được dùng để chứng minh mỗi dấu đã thật sự tới API. Dấu nào chưa tới API thì lượt chạy đỏ, vì khi đó chưa kiểm được gì.
+
+## Cách chạy
+
+```bash
+pnpm qa:build
+```
+
+```bash
+pnpm verify:leak
+```
+
+Lệnh này cũng chạy trong `pnpm qa:test`, nên có trong `pnpm check` và trong CI `pr-check` của mọi PR đổi code.
+
+Mã thoát: `0` đạt; `1` thấy dấu hoặc lượt chạy chưa gửi đủ dấu; `2` lượt chạy hỏng (app không lên, một bước không bấm được).
+
+Báo cáo chỉ in tên chỗ tìm, số mục đã tìm và loại dấu. Nó không in giá trị, URL hay dòng nhật ký, nên dán được vào PR công khai.
+
+## Thử chính máy kiểm
+
+Cố ý chèn một dấu vào một chỗ tìm. Lượt chạy phải đỏ (mã thoát 1):
+
+```bash
+node scripts/leak-canary.mjs --plant server-log
+```
+
+Tên chỗ tìm dùng được: `server-log`, `request-url`, `request-referer`, `external-request`, `error-report`, `error-response`, `browser-history`, `current-url`, `web-storage`.
+
+Phần tìm dấu có test riêng, không cần trình duyệt: `node --test scripts/leak-canary-lib.test.mjs` (chạy trong `pnpm collab:test`).
+
+## Khi lượt chạy đỏ
+
+- Thấy dấu: đây là lỗi lộ dữ liệu, không sửa máy kiểm cho xanh. Tìm chỗ ghi ra (báo cáo cho biết chỗ tìm và loại dấu), sửa code, thêm test cho đúng chỗ đó.
+- "chưa gửi dấu": giao diện đã đổi nên kịch bản không còn đi tới bước đó. Sửa bước trong `scripts/leak-canary.mjs`.
+- Mã thoát 2: xem dòng "bước xong" cuối cùng để biết hỏng ở bước nào.
+
+## Chưa kiểm (không tính là đạt)
+
+- Che nhanh, và màn tự che khi chuyền máy: app chưa có hai chức năng này.
+- Tên file tải về và ảnh chia sẻ: việc #691.
+- Nhật ký ở mức DEBUG, và nhật ký của máy chủ thật (staging, production): lượt chạy dùng mức nhật ký mặc định trên máy cục bộ với SQLite.
+- Tên, biệt danh gõ ở Ghép đôi, Radar, Lá Chung (cũng đi qua lớp an toàn): lượt chạy mới gõ vào lớp an toàn qua màn Tarot.
+- Trình duyệt WebKit và app di động.
+
+Khi thêm một màn nhận dữ liệu riêng, thêm dấu và bước cho màn đó vào `scripts/leak-canary-lib.mjs` và `scripts/leak-canary.mjs` trong cùng PR.
