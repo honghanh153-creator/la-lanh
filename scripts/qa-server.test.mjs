@@ -55,7 +55,10 @@ test("QA database survives restarts by port and can still run ephemerally", asyn
 
 // Codex #753 r1: the launcher told the API to stop and left at once, and its callers waited only
 // for the launcher's exit, so the API's shutdown lines could arrive after the log had been read.
-const SLOW_WRITER = "process.stdout.write('ready\\n'); process.on('SIGTERM', () => setTimeout(() => { process.stdout.write('late-line\\n'); process.exit(0); }, 300)); setInterval(() => {}, 1000);";
+// The SIGTERM handler is installed before "ready" is written: the parent kills the child as soon as it
+// reads "ready", and a signal that arrives before the handler exists ends the child at once (seen on
+// macOS under load in the author check of 19.11).
+const SLOW_WRITER = "process.on('SIGTERM', () => setTimeout(() => { process.stdout.write('late-line\\n'); process.exit(0); }, 300)); process.stdout.write('ready\\n'); setInterval(() => {}, 1000);";
 // A launcher of the old kind: passes its output on to a child, and on SIGTERM signals it and leaves.
 const HASTY_PARENT = `const { spawn } = require('node:child_process'); const child = spawn(process.execPath, ['-e', ${JSON.stringify(SLOW_WRITER)}], { stdio: 'inherit' }); process.on('SIGTERM', () => { child.kill('SIGTERM'); process.exit(0); });`;
 
@@ -81,7 +84,7 @@ test("drainOnStop waits for lines a grandchild writes after the child itself has
 });
 
 test("drainOnStop rejects and kills a child that never closes its output", async () => {
-  const { child, ready } = startCollecting("process.stdout.write('ready\\n'); process.on('SIGTERM', () => {}); setInterval(() => {}, 1000);");
+  const { child, ready } = startCollecting("process.on('SIGTERM', () => {}); process.stdout.write('ready\\n'); setInterval(() => {}, 1000);");
   const stop = drainOnStop(child);
   const gone = new Promise((resolveGone) => child.once("exit", resolveGone));
   await ready;
