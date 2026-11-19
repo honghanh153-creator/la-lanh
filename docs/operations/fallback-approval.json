@@ -1,7 +1,7 @@
 {
  "approved": {
   "copy_registry": {
-   "approved": "66b5dae44e8c1cfb74ea8ac6c83850674d3f33ef4dc0d639b5148e06952b017b",
+   "approved": "4be67242886aa159cbec4046923315a0cef684b7433d4c93979da7997fce28c2",
    "version": "copy-registry/v1"
   },
   "daily": {
@@ -34,7 +34,7 @@
     "app.domains.readings.daily_psychology.BODY_DOMAINS": "720c749c24e511f8c1b9a56ca7202900b5464d68cc63ef84c54c67a8dd2b598d",
     "app.domains.readings.daily_psychology.CAPACITY_AT_WORK_MEANING": "a73c7a630f0adbde452aa2a31180d452bc6f873bdc40a5c4b981bb97c4ada228",
     "app.domains.readings.daily_psychology.DAILY_ISSUES": "c953102784657f9caf4b91b8c00861d177bd20ab0f892efba3e038a14ea60152",
-    "app.domains.readings.daily_psychology.DAILY_PSYCHOLOGY_CONTENT_FINGERPRINT": "8091ff1a74986315a71f144b8df4d83947dd1ea98fef5a96c71cc3a4e265919f",
+    "app.domains.readings.daily_psychology.DAILY_PSYCHOLOGY_CONTENT_FINGERPRINT": "e024c98bf41b8572439c34a8828ce964009e9b9d7302bef7495fb5db73fb1a5f",
     "app.domains.readings.daily_psychology.FALLBACK_ISSUE_KEY": "275d3363598b1b243540ebb6a9616f650dc3ad740279da44a9af3da9f1442a58",
     "app.domains.readings.daily_psychology.HOUSE_ARENAS": "bf39f41134bbb536b1f4b99eb91087cde11a221426561047869e57ae9f8b24b7",
     "app.domains.readings.daily_psychology.INSUFFICIENT_CONTEXT_RULE": "9a5a781e6c0c9d26f7873afcafccf668dbafb3dcdc428ee3e94a5532bff10827",
