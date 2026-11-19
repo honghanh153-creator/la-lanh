@@ -465,18 +465,33 @@ describe("HomePage rich reading", () => {
     expect(recordResonance).not.toHaveBeenCalled();
   });
 
-  it("keeps mood check-in behind one playful icon and saves the selected mood", async () => {
+  it("asks the US-04 mood question below the Note, never in the hero (AC-GWT-01, US-03 AC21)", async () => {
+    vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(vibe)));
+    const { container } = renderPage();
+
+    const moodHeading = await screen.findByRole("heading", { name: "Hôm nay bạn thấy sao?" });
+    const note = screen.getByRole("region", { name: "Note hôm nay" });
+    expect(note.compareDocumentPosition(moodHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(note).not.toContainElement(moodHeading);
+    expect(container.querySelector(".home-value-hero")).not.toContainElement(
+      screen.getByRole("button", { name: "Chọn cảm giác hôm nay" }),
+    );
+    expect(screen.queryByText("Chọn mood")).not.toBeInTheDocument();
+  });
+
+  it("saves the selected mood from the check-in below the Note", async () => {
     const user = userEvent.setup();
     vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(vibe)));
     renderPage();
 
-    await user.click(await screen.findByRole("button", { name: "Chọn mood hôm nay" }));
-    expect(screen.getByRole("dialog", { name: "Hôm nay bạn đang ở mood nào?" })).toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: "Chọn cảm giác hôm nay" }));
+    expect(screen.getByRole("dialog", { name: "Hôm nay bạn thấy sao?" })).toBeInTheDocument();
+    expect(screen.queryByText("Hôm nay bạn đang ở mood nào?")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /Chill/ }));
 
     await waitFor(() => expect(checkInMood).toHaveBeenCalledWith(baseNoteId, "Chill"));
-    expect(screen.queryByRole("dialog", { name: "Hôm nay bạn đang ở mood nào?" })).not.toBeInTheDocument();
-    expect(await screen.findByRole("button", { name: "Mood hôm nay: Chill" })).toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: "Hôm nay bạn thấy sao?" })).not.toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Cảm giác hôm nay: Chill" })).toBeInTheDocument();
   });
 
   it("lets Lá answer the chosen mood instead of a card line that assumes another mood (Wave 1)", async () => {
@@ -486,7 +501,7 @@ describe("HomePage rich reading", () => {
     renderPage();
 
     expect(await screen.findByText("Thu hẹp lựa chọn khi đang mệt.")).toBeInTheDocument();
-    await user.click(await screen.findByRole("button", { name: "Chọn mood hôm nay" }));
+    await user.click(await screen.findByRole("button", { name: "Chọn cảm giác hôm nay" }));
     await user.click(screen.getByRole("button", { name: /Chill/ }));
     await waitFor(() => expect(screen.queryByText("Thu hẹp lựa chọn khi đang mệt.")).not.toBeInTheDocument());
     expect(screen.getAllByText(LA_MOOD_REACTIONS.Chill).length).toBeGreaterThan(0);
@@ -504,7 +519,7 @@ describe("HomePage rich reading", () => {
     expect(screen.queryByRole("button", { name: "Xem việc ban đầu" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Xem việc nhẹ hơn" })).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Chọn mood hôm nay" }));
+    await user.click(screen.getByRole("button", { name: "Chọn cảm giác hôm nay" }));
     await user.click(screen.getByRole("button", { name: /Đuối/ }));
     expect(await screen.findByText(withLighter.lighter_action.action)).toBeInTheDocument();
     expect(screen.queryByText(original)).not.toBeInTheDocument();
@@ -516,7 +531,7 @@ describe("HomePage rich reading", () => {
     expect(screen.getByText(withLighter.lighter_action.action)).toBeInTheDocument();
 
     // Another mood brings the card's own action back and removes the switch.
-    await user.click(screen.getByRole("button", { name: "Mood hôm nay: Đuối" }));
+    await user.click(screen.getByRole("button", { name: "Cảm giác hôm nay: Đuối" }));
     await user.click(screen.getByRole("button", { name: /Chill/ }));
     expect(await screen.findByText(original)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Xem việc nhẹ hơn" })).not.toBeInTheDocument();
@@ -529,10 +544,10 @@ describe("HomePage rich reading", () => {
     const withLighter = { ...vibe, lighter_action: { action: "Uống một ly nước rồi ngồi yên hai phút.", weight: "light" as const, experiment: null } };
     vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(withLighter)));
     const { client } = renderPage();
-    await user.click(await screen.findByRole("button", { name: "Chọn mood hôm nay" }));
+    await user.click(await screen.findByRole("button", { name: "Chọn cảm giác hôm nay" }));
     await user.click(screen.getByRole("button", { name: /Đuối/ }));
     expect(await screen.findByText(withLighter.lighter_action.action)).toBeInTheDocument();
-    await screen.findByRole("button", { name: "Mood hôm nay: Đuối" });
+    await screen.findByRole("button", { name: "Cảm giác hôm nay: Đuối" });
 
     // Past midnight the refetch returns the next day's note; no mood has been picked for it.
     const nextDay = { ...noteWith(projection(withLighter)), id: "00000000-0000-4000-8000-000000000002", note_date: "2026-09-08" };
@@ -540,7 +555,7 @@ describe("HomePage rich reading", () => {
     await act(async () => { await client.invalidateQueries(); });
 
     await waitFor(() => expect(getCurrentMood).toHaveBeenCalledWith(nextDay.id, expect.anything()));
-    expect(await screen.findByRole("button", { name: "Chọn mood hôm nay" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Chọn cảm giác hôm nay" })).toBeInTheDocument();
     expect(screen.getByText(vibe.sections.micro_action)).toBeInTheDocument();
     expect(screen.queryByText(withLighter.lighter_action.action)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Xem việc ban đầu" })).not.toBeInTheDocument();
@@ -559,9 +574,9 @@ describe("HomePage rich reading", () => {
     vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(withLighter)));
     if (start) moodServer.save(baseNoteId, start);
     const { client } = renderPage();
-    await user.click(await screen.findByRole("button", { name: start ? `Mood hôm nay: ${start}` : "Chọn mood hôm nay" }));
+    await user.click(await screen.findByRole("button", { name: start ? `Cảm giác hôm nay: ${start}` : "Chọn cảm giác hôm nay" }));
     await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: new RegExp(here) }));
-    await screen.findByRole("button", { name: `Mood hôm nay: ${here}` });
+    await screen.findByRole("button", { name: `Cảm giác hôm nay: ${here}` });
     // After the save Home reads the mood again; that read is the saved mood, also for the note page.
     await waitFor(() => expect(client.getQueryData<{ mood: string }>(["daily-note-mood", baseNoteId])?.mood).toBe(here));
 
@@ -569,7 +584,7 @@ describe("HomePage rich reading", () => {
     moodServer.save(baseNoteId, elsewhere);
     await act(async () => { await client.invalidateQueries({ queryKey: ["daily-note-mood"] }); });
 
-    expect(await screen.findByRole("button", { name: `Mood hôm nay: ${elsewhere}` })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: `Cảm giác hôm nay: ${elsewhere}` })).toBeInTheDocument();
     await waitFor(() => {
       expect(screen.queryByText(withLighter.lighter_action.action) !== null).toBe(lighterAfter);
       expect(screen.queryByRole("button", { name: "Xem việc ban đầu" }) !== null).toBe(lighterAfter);
@@ -593,9 +608,9 @@ describe("HomePage rich reading", () => {
     renderPage();
 
     // The first mood read is still on its way when the reader picks Đuối.
-    await user.click(await screen.findByRole("button", { name: "Chọn mood hôm nay" }));
+    await user.click(await screen.findByRole("button", { name: "Chọn cảm giác hôm nay" }));
     await user.click(screen.getByRole("button", { name: /Đuối/ }));
-    await screen.findByRole("button", { name: "Mood hôm nay: Đuối" });
+    await screen.findByRole("button", { name: "Cảm giác hôm nay: Đuối" });
     const ordinary = () => {
       expect(screen.getByText(vibe.sections.micro_action)).toBeInTheDocument();
       expect(screen.queryByText(withLighter.lighter_action.action)).not.toBeInTheDocument();
@@ -606,13 +621,13 @@ describe("HomePage rich reading", () => {
     // The slow read lands with the older saved mood while the save is still pending.
     await act(async () => { landRead(before); await new Promise((resolve) => setTimeout(resolve, 30)); });
     ordinary();
-    expect(screen.getByRole("button", { name: "Mood hôm nay: Đuối" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Cảm giác hôm nay: Đuối" })).toBeInTheDocument();
 
     // Only the confirmed save, read back from the server, brings the lighter action.
     await act(async () => { landSave(); await Promise.resolve(); });
     expect(await screen.findByText(withLighter.lighter_action.action)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Xem việc ban đầu" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Mood hôm nay: Đuối" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Cảm giác hôm nay: Đuối" })).toBeInTheDocument();
   });
 
   it.each([
@@ -627,12 +642,12 @@ describe("HomePage rich reading", () => {
     vi.mocked(checkInMood).mockImplementation(() => Promise.reject(new Error("offline")));
     renderPage();
 
-    await user.click(await screen.findByRole("button", { name: saved ? `Mood hôm nay: ${saved}` : "Chọn mood hôm nay" }));
+    await user.click(await screen.findByRole("button", { name: saved ? `Cảm giác hôm nay: ${saved}` : "Chọn cảm giác hôm nay" }));
     await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: new RegExp(pick) }));
     expect((await screen.findAllByText("Đã giữ cảm xúc trên máy. Lá Lành sẽ đồng bộ khi có mạng.")).length).toBeGreaterThan(0);
 
     // The control keeps the pick (it will be sent again); the action waits for a saved mood.
-    expect(screen.getByRole("button", { name: `Mood hôm nay: ${pick}` })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: `Cảm giác hôm nay: ${pick}` })).toBeInTheDocument();
     expect(screen.getByText(vibe.sections.micro_action)).toBeInTheDocument();
     expect(screen.queryByText(withLighter.lighter_action.action)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Xem việc/ })).not.toBeInTheDocument();
@@ -661,9 +676,9 @@ describe("HomePage rich reading", () => {
     /** Picks `pick` on the Home that is on screen; resolves once the control shows it. */
     async function pickMood(current: "Đuối" | "Chill" | null, pick: "Đuối" | "Chill") {
       const user = userEvent.setup();
-      await user.click(await screen.findByRole("button", { name: current ? `Mood hôm nay: ${current}` : "Chọn mood hôm nay" }));
+      await user.click(await screen.findByRole("button", { name: current ? `Cảm giác hôm nay: ${current}` : "Chọn cảm giác hôm nay" }));
       await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: new RegExp(pick) }));
-      await screen.findByRole("button", { name: `Mood hôm nay: ${pick}` });
+      await screen.findByRole("button", { name: `Cảm giác hôm nay: ${pick}` });
     }
     /** Opens Home with `saved` as the saved mood and picks `pick`; the save stays pending. */
     async function pickWithPendingSave(saved: "Đuối" | "Chill" | null, pick: "Đuối" | "Chill") {
@@ -697,7 +712,7 @@ describe("HomePage rich reading", () => {
       await act(async () => { settle.succeed(); await Promise.resolve(); });
       await waitFor(() => expect(client.getQueryData<{ mood: string }>(["daily-note-mood", baseNoteId])?.mood).toBe("Chill"));
       await settled();
-      expect(screen.getByRole("button", { name: "Mood hôm nay: Chill" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Cảm giác hôm nay: Chill" })).toBeInTheDocument();
       expectOrdinary();
     });
 
@@ -719,21 +734,21 @@ describe("HomePage rich reading", () => {
 
       // The new row is the saved mood now, but the pick here is still unsaved: the control keeps
       // the pick and the card keeps its own action, even though the saved mood may be Đuối.
-      expect(screen.getByRole("button", { name: `Mood hôm nay: ${pick}` })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: `Cảm giác hôm nay: ${pick}` })).toBeInTheDocument();
       expectOrdinary();
 
       if (outcome === "fails") {
         await act(async () => { settle.fail(); await Promise.resolve(); });
         expect((await screen.findAllByText("Đã giữ cảm xúc trên máy. Lá Lành sẽ đồng bộ khi có mạng.")).length).toBeGreaterThan(0);
         await settled();
-        expect(screen.getByRole("button", { name: `Mood hôm nay: ${pick}` })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: `Cảm giác hôm nay: ${pick}` })).toBeInTheDocument();
         expectOrdinary();
         return;
       }
       await act(async () => { settle.succeed(); await Promise.resolve(); });
       await waitFor(() => expect(client.getQueryData<{ mood: string }>(["daily-note-mood", baseNoteId])?.mood).toBe(pick));
       await settled();
-      expect(screen.getByRole("button", { name: `Mood hôm nay: ${pick}` })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: `Cảm giác hôm nay: ${pick}` })).toBeInTheDocument();
       if (pick === "Đuối") expect(await screen.findByText(withLighter.lighter_action.action)).toBeInTheDocument();
       else expectOrdinary();
     });
@@ -742,7 +757,7 @@ describe("HomePage rich reading", () => {
       const { client, settle } = await pickWithPendingSave(null, "Đuối");
       vi.mocked(getDailyNote).mockResolvedValue(nextDay);
       await act(async () => { await client.invalidateQueries(); });
-      expect(await screen.findByRole("button", { name: "Chọn mood hôm nay" })).toBeInTheDocument();
+      expect(await screen.findByRole("button", { name: "Chọn cảm giác hôm nay" })).toBeInTheDocument();
 
       await act(async () => { settle.succeed(); await Promise.resolve(); });
       await settled();
@@ -752,7 +767,7 @@ describe("HomePage rich reading", () => {
       expect(moodServer.read(nextDay.id)).toBeNull();
       expect(client.getQueryData<{ mood: string }>(["daily-note-mood", baseNoteId])?.mood).toBe("Đuối");
       expect(client.getQueryData(["daily-note-mood", nextDay.id])).toBeNull();
-      expect(screen.getByRole("button", { name: "Chọn mood hôm nay" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Chọn cảm giác hôm nay" })).toBeInTheDocument();
       expectOrdinary();
     });
 
@@ -763,7 +778,7 @@ describe("HomePage rich reading", () => {
       const { client, settle } = await pickWithPendingSave(null, "Đuối");
       vi.mocked(getDailyNote).mockResolvedValue(nextDay);
       await act(async () => { await client.invalidateQueries(); });
-      expect(await screen.findByRole("button", { name: "Chọn mood hôm nay" })).toBeInTheDocument();
+      expect(await screen.findByRole("button", { name: "Chọn cảm giác hôm nay" })).toBeInTheDocument();
 
       await act(async () => { settle.fail(); await Promise.resolve(); });
       expect((await screen.findAllByText("Đã giữ cảm xúc trên máy. Lá Lành sẽ đồng bộ khi có mạng.")).length).toBeGreaterThan(0);
@@ -771,14 +786,14 @@ describe("HomePage rich reading", () => {
       expect(waiting).toMatchObject({ note_id: baseNoteId, mood: "Đuối" });
       // Nothing is sent for the new day, and it keeps its own action.
       expect(vi.mocked(checkInMood).mock.calls.every(([noteId]) => noteId === baseNoteId)).toBe(true);
-      expect(screen.getByRole("button", { name: "Chọn mood hôm nay" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Chọn cảm giác hôm nay" })).toBeInTheDocument();
       expectOrdinary();
     });
 
     it("two picks in quick succession: a second pick cannot start while a save is pending, so two saves never race", async () => {
       const user = userEvent.setup();
       await pickWithPendingSave(null, "Đuối");
-      await user.click(screen.getByRole("button", { name: "Mood hôm nay: Đuối" }));
+      await user.click(screen.getByRole("button", { name: "Cảm giác hôm nay: Đuối" }));
       const options = within(screen.getByRole("dialog")).getAllByRole("button").filter((button) => button.hasAttribute("aria-pressed"));
       expect(options).toHaveLength(5);
       for (const option of options) expect(option).toBeDisabled();
@@ -798,7 +813,7 @@ describe("HomePage rich reading", () => {
       // Coming back to Home (same cache): the saved mood is Đuối, so the lighter action shows.
       reopenHome(client);
       expect(await screen.findByText(withLighter.lighter_action.action)).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "Mood hôm nay: Đuối" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Cảm giác hôm nay: Đuối" })).toBeInTheDocument();
     });
 
     it("unmount while a save is pending, then it fails: nothing shows the lighter action on return until a save succeeds", async () => {
@@ -821,7 +836,7 @@ describe("HomePage rich reading", () => {
       await act(async () => { settle.succeed(); await Promise.resolve(); });
       await settled();
       expect(client.getQueryData<{ mood: string }>(["daily-note-mood", baseNoteId])?.mood).toBe("Đuối");
-      expect(screen.getByRole("button", { name: "Mood hôm nay: Đuối" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Cảm giác hôm nay: Đuối" })).toBeInTheDocument();
       expect(screen.getByText(withLighter.lighter_action.action)).toBeInTheDocument();
     });
 
@@ -847,7 +862,7 @@ describe("HomePage rich reading", () => {
       await settled();
 
       expect(client.getQueryData<{ mood: string }>(["daily-note-mood", baseNoteId])?.mood).toBe("Đuối");
-      expect(screen.getByRole("button", { name: "Mood hôm nay: Đuối" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Cảm giác hôm nay: Đuối" })).toBeInTheDocument();
       expect(screen.getByText(withLighter.lighter_action.action)).toBeInTheDocument();
     });
 
@@ -866,7 +881,7 @@ describe("HomePage rich reading", () => {
       await settled();
       expect(moodServer.read(baseNoteId)?.mood).toBe("Đuối");
       expect(client.getQueryData<{ mood: string }>(["daily-note-mood", baseNoteId])?.mood).toBe("Đuối");
-      expect(screen.getByRole("button", { name: "Mood hôm nay: Đuối" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Cảm giác hôm nay: Đuối" })).toBeInTheDocument();
     });
 
     it("failure then success in the other order of answers: an older save failing late does not undo the newer saved mood", async () => {
@@ -881,7 +896,7 @@ describe("HomePage rich reading", () => {
       await act(async () => { saveA.fail(); await Promise.resolve(); });
       await settled();
       expect(client.getQueryData<{ mood: string }>(["daily-note-mood", baseNoteId])?.mood).toBe("Đuối");
-      expect(screen.getByRole("button", { name: "Mood hôm nay: Đuối" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Cảm giác hôm nay: Đuối" })).toBeInTheDocument();
       expect(screen.getByText(withLighter.lighter_action.action)).toBeInTheDocument();
       expect(checkInMood).toHaveBeenCalledTimes(2);
     });
@@ -911,7 +926,7 @@ describe("HomePage rich reading", () => {
 
       expect(moodServer.read(baseNoteId)?.mood).toBe(second);
       expect(client.getQueryData<{ mood: string }>(["daily-note-mood", baseNoteId])?.mood).toBe(second);
-      expect(screen.getByRole("button", { name: `Mood hôm nay: ${second}` })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: `Cảm giác hôm nay: ${second}` })).toBeInTheDocument();
       if (second === "Đuối") {
         expect(screen.getByText(withLighter.lighter_action.action)).toBeInTheDocument();
         expect(screen.getByRole("button", { name: "Xem việc ban đầu" })).toBeInTheDocument();
@@ -938,7 +953,7 @@ describe("HomePage rich reading", () => {
       await act(async () => { saveA.succeed(); await Promise.resolve(); });
       await settled();
 
-      expect(screen.getByRole("button", { name: "Mood hôm nay: Đuối" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Cảm giác hôm nay: Đuối" })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Xem việc nhẹ hơn" })).toBeInTheDocument();
       expect(screen.getByText(vibe.sections.micro_action)).toBeInTheDocument();
       expect(screen.queryByText(withLighter.lighter_action.action)).not.toBeInTheDocument();
@@ -972,7 +987,7 @@ describe("HomePage rich reading", () => {
       expect(writtenA.mood).toBe(first);
       expect(Date.parse(writtenA.checked_in_at)).toBeGreaterThan(Date.parse(writtenB.checked_in_at));
       expect(client.getQueryData<{ mood: string }>(["daily-note-mood", baseNoteId])?.mood).toBe(first);
-      expect(screen.getByRole("button", { name: `Mood hôm nay: ${first}` })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: `Cảm giác hôm nay: ${first}` })).toBeInTheDocument();
       if (first === "Đuối") {
         expect(screen.getByText(withLighter.lighter_action.action)).toBeInTheDocument();
       } else {
@@ -986,7 +1001,7 @@ describe("HomePage rich reading", () => {
     vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(vibe)));
     renderPage();
 
-    await user.click(await screen.findByRole("button", { name: "Chọn mood hôm nay" }));
+    await user.click(await screen.findByRole("button", { name: "Chọn cảm giác hôm nay" }));
     await user.click(screen.getByRole("button", { name: /Đuối/ }));
     await waitFor(() => expect(checkInMood).toHaveBeenCalledWith(baseNoteId, "Đuối"));
     expect(screen.getByText(vibe.sections.micro_action)).toBeInTheDocument();
