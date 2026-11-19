@@ -64,7 +64,19 @@
    "from": "thỏa thuận 12.11 mục B",
    "who": "codex",
    "due": "2026-11-20",
-   "status": "open"
+   "status": "done",
+   "test": {
+    "file": "scripts/verify/verify.test.mjs",
+    "name": "an unmet acceptance check fails a ready run; manual parts are never called met"
+   },
+   "caller": {
+    "file": "scripts/verify/verify.mjs",
+    "contains": "chưa đạt: ${entry.part}"
+   },
+   "closedBy": {
+    "pr": 729
+   },
+   "note": "Cơ chế từ #501; test chạy trong pnpm collab:test từ PR đóng. ac_checks có ở Khám phá (US-07) và Home (US-03 AC01, AC02, AC06; AC13 tay). Lượt 18.11 bắt được một kiểm viết sai (câu thân Note là câu biểu hiện, không phải thesis) trước khi ghi đạt. Còn: thêm ac_checks cho tính năng khác; trạng thái giờ ước lượng cho US-07 AC06"
   },
   {
    "id": "L05",
