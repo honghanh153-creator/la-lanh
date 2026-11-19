@@ -463,6 +463,7 @@ async def acknowledge_aura_transition(
             profile_id=snapshot.profile_id,
             scope_key=scope_key,
             transition_id=body.transition_id,
+            current_snapshot_id=snapshot.id,
         )
     except BirthDomainError as error:
         return _problem(error)
