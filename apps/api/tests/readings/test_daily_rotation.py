@@ -29,6 +29,7 @@ from app.domains.readings.daily_rotation import (
     day_index,
     derive_variety_key,
     round_robin_slot,
+    staircase_slots,
     top_k_slot,
 )
 from app.domains.readings.models import (
@@ -94,6 +95,27 @@ def test_round_robin_brings_a_value_back_exactly_every_n_steps(size: int) -> Non
     assert size == 1 or all(a != b for a, b in pairwise(values))
     with pytest.raises(ValueError):
         round_robin_slot(seed, "headline:quick-reply", size, -1)
+
+
+@pytest.mark.parametrize("sizes", [(6, 8, 24), (6, 8, 8), (7, 8, 21), (12, 8, 27), (6, 8, 9)])
+def test_staircase_repeats_a_whole_combination_only_after_every_combination(
+    sizes: tuple[int, int, int],
+) -> None:
+    seed = daily_variety_seed(KEY, OWNER_A, "catalog-x")
+    axes = tuple((f"axis-{i}", n) for i, n in enumerate(sizes))
+    total = sizes[0] * sizes[1] * sizes[2]
+    combos = [staircase_slots(seed, axes, step) for step in range(total + 5)]
+
+    assert len(set(combos[:total])) == total
+    assert combos[total:] == combos[: len(combos) - total]
+    # Every axis with two or more values changes on every step, boundaries included.
+    assert all(all(x != y for x, y in zip(a, b, strict=True)) for a, b in pairwise(combos))
+    # The first axis is plain round-robin.
+    assert [c[0] for c in combos[: 2 * sizes[0]]] == [
+        round_robin_slot(seed, "axis-0", sizes[0], step) for step in range(2 * sizes[0])
+    ]
+    with pytest.raises(ValueError):
+        staircase_slots(seed, axes, -1)
 
 
 def test_cycles_are_reshuffled_and_a_single_value_axis_stays_put() -> None:

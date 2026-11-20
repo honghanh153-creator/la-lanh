@@ -202,6 +202,12 @@ def test_the_extra_situations_rest_on_the_sun_factor_alone(sign: str) -> None:
 def _days_of_cards(sign: str, days: int) -> list[tuple[int, str, str, str]]:
     """(day_index, situation, headline, scene) for ``days`` days from START."""
 
+    return [card[:4] for card in _full_cards(sign, days)]
+
+
+def _full_cards(sign: str, days: int) -> list[tuple[int, str, str, str, str]]:
+    """(day_index, situation, headline, scene, action) for ``days`` days from START."""
+
     planner, renderer = ReadingPlanner(), DeterministicVietnameseRenderer()
     out = []
     for offset in range(days):
@@ -216,7 +222,7 @@ def _days_of_cards(sign: str, days: int) -> list[tuple[int, str, str, str]]:
         blueprint = card.semantic_blueprint
         assert blueprint is not None
         issue = blueprint.mechanism_key.removeprefix("psychology:")
-        out.append((day_index(local_date), issue, card.hook, card.manifestation))
+        out.append((day_index(local_date), issue, card.hook, card.manifestation, card.micro_action))
     return out
 
 
@@ -234,13 +240,28 @@ def test_a_situation_shows_all_its_headlines_and_scenes_before_one_comes_back(si
     for issue, seen in by_issue.items():
         # Appearances are consecutive counts: one per k days, nothing skipped.
         assert [step for step, _, _ in seen] == list(range(seen[0][0], seen[0][0] + len(seen)))
-        for part, size in ((1, 6), (2, 8)):
-            lines = [entry[part] for entry in seen]
-            for start in range(len(lines) - size + 1):
-                window = lines[start : start + size]
-                assert len(set(window)) == size, (sign, issue, part)
-            # ...and exactly every n appearances it starts over in the same order.
-            assert all(lines[i] == lines[i + size] for i in range(len(lines) - size))
+        headlines = [entry[1] for entry in seen]
+        for start in range(len(headlines) - 6 + 1):
+            assert len(set(headlines[start : start + 6])) == 6, (sign, issue)
+        # ...and exactly every 6 appearances the headlines start over in the same order.
+        assert all(headlines[i] == headlines[i + 6] for i in range(len(headlines) - 6))
+        # Consecutive appearances differ on every axis (US-21 AC02).
+        for (_, h1, s1), (_, h2, s2) in pairwise(seen):
+            assert h1 != h2 and s1 != s2, (sign, issue)
+
+
+@pytest.mark.parametrize("sign", SIGNS)
+def test_a_whole_card_never_comes_back_within_90_days(sign: str) -> None:
+    # Codex auto-1 on #778: fixed orders walked side by side repeat the whole card after the least
+    # common multiple of the axis sizes (24 appearances for 6, 8 and 24 lines: 48 days for a
+    # two-situation sign). US-21 AC03 asks for at least 90 days.
+    cards = _full_cards(sign, 150)
+    last: dict[tuple[str, str, str, str], int] = {}
+    for index, issue, headline, scene, action in cards:
+        key = (issue, headline, scene, action)
+        if key in last:
+            assert index - last[key] >= 90, (sign, key, index - last[key])
+        last[key] = index
 
 
 def _repeats_within_a_week(cards: list[tuple[int, str, str, str]]) -> int:

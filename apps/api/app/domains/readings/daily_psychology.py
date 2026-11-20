@@ -26,6 +26,7 @@ from app.domains.readings.daily_rotation import (
     DAILY_TOP_K,
     axis_slot,
     round_robin_slot,
+    staircase_slots,
     top_k_slot,
 )
 from app.domains.readings.interpretive_lenses import daily_mixed_radix_slots
@@ -44,7 +45,7 @@ from app.domains.readings.models import (
 DAILY_PSYCHOLOGY_MATRIX_VERSION = "daily-direct-meaning-v7"
 # What the date-only rotation index means (``_occurrence_index``); part of the content
 # fingerprint, so a stored note keeps its revision when the rule changes.
-DAILY_ROTATION_RULE = "date-only-round-robin-by-appearance-v1"
+DAILY_ROTATION_RULE = "date-only-staircase-by-appearance-v2"
 
 
 @dataclass(frozen=True)
@@ -1260,8 +1261,9 @@ def _occurrence_index(plan: ReadingPlan, pool: list[SupportedSituation]) -> int 
     A date-only pool is the same every day (the Sun sign's situations, in rank order), so its
     situation comes back every ``k`` days, ``k = min(len(pool), DAILY_TOP_K)``, and day ``d`` is
     its ``d // k``-th appearance. Headline, scene, action and bundle walk one fixed per-person
-    order by that count (``round_robin_slot``), so a line comes back only after every other line
-    of the situation, ``n * k`` days later (6 headlines, 2 situations: 12 days). Walking reshuffled
+    order each by that count (``staircase_slots``; a bundle alone, ``round_robin_slot``), so a line
+    comes back only after every other line of its axis, ``n * k`` days later (6 headlines, 2
+    situations: 12 days), and a whole card only after every combination. Walking reshuffled
     cycles by the calendar day (as before) let a situation served every second day meet only every
     second position of each cycle, so it repeated after about half its lines, often within a week.
     Consecutive appearances differ on every axis with two or more lines, which keeps US-21 AC02.
@@ -1377,21 +1379,23 @@ def apply_daily_psychology(
     else:
         # B3-1a: one cycle per axis, so consecutive days differ on every axis. A date-only
         # situation walks a fixed order by appearance instead (``_occurrence_index``).
-        seed, day = variety.seed, variety.day_index
-
-        def slot(axis: str, size: int) -> int:
-            if occurrence is None:
-                return axis_slot(seed, axis, size, day)
-            return round_robin_slot(seed, f"{axis}:{issue.key}", size, occurrence)
-
-        headline_slot, scene_slot, advice_slot = (
-            slot(axis, size)
-            for axis, size in (
-                ("headline", len(issue.headlines)),
-                ("scene", len(issue.scenes)),
-                ("action", len(actions)),
-            )
+        axes = (
+            ("headline", len(issue.headlines)),
+            ("scene", len(issue.scenes)),
+            ("action", len(actions)),
         )
+        if occurrence is None:
+            headline_slot, scene_slot, advice_slot = (
+                axis_slot(variety.seed, axis, size, variety.day_index) for axis, size in axes
+            )
+        else:
+            # One fixed order per axis, walked as a staircase so the whole card repeats only
+            # after every combination (Codex auto-1 on #778, US-21 AC03).
+            headline_slot, scene_slot, advice_slot = staircase_slots(
+                variety.seed,
+                tuple((f"{axis}:{issue.key}", size) for axis, size in axes),
+                occurrence,
+            )
     headline, scene, action = issue.headlines[headline_slot], issue.scenes[scene_slot], ""
     scene_key = f"psychology:{issue.key}:scene-{scene_slot}"
     action_key = f"psychology:{issue.key}:{arena.value}-advice-{advice_slot}"
