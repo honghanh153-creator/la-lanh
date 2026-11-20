@@ -1,7 +1,10 @@
 // Leak canary (#690): pure parts. A synthetic profile carries easy-to-find values ("marks") in
 // its birth date, birth time, birthplace, mood, Tarot question and the text that reaches the
 // safety layer. After a real run of the app, every surface that must never carry them is searched.
+// #691 adds what leaves the app as a file: the names of downloaded and shared files, the input the
+// share image is drawn from, and the metadata inside the PNG.
 // No browser and no server here, so this file runs in the collab test suite.
+import { inflateSync } from "node:zlib";
 
 // Synthetic values only, not derived from any real person. The date and the place must be valid
 // for the app, so they are ordinary values chosen to be rare in logs; the two free-text marks are
@@ -35,13 +38,17 @@ export const SURFACES = Object.freeze([
   "browser-history",
   "current-url",
   "web-storage",
+  "file-name",
+  "share-image",
+  "image-metadata",
 ]);
 
 // Cases the app cannot exercise yet. They are printed as "chưa kiểm" and never count as passed.
 export const NOT_CHECKED = Object.freeze([
   ["Che nhanh", "chưa có chức năng"],
   ["Màn tự che khi chuyền máy", "chưa có chức năng"],
-  ["Tên file tải về và ảnh chia sẻ", "việc #691"],
+  ["Chữ đã vẽ thành điểm ảnh trong ảnh PNG", "máy không đọc chữ trong ảnh; nó kiểm bản SVG mà ảnh được vẽ từ đó"],
+  ["File và ảnh chia sẻ trong app di động", "lượt chạy dùng trình duyệt, bảng chia sẻ là bản giả"],
   ["Nhật ký ở mức DEBUG và nhật ký của máy chủ thật", "lượt chạy dùng mức nhật ký mặc định trên máy cục bộ"],
 ]);
 
@@ -175,6 +182,83 @@ export async function dumpWebStorage(env = globalThis) {
   return entries;
 }
 
+// The text a share image is drawn from. The app builds one SVG, shows it and draws the PNG from
+// that same string, so the SVG is the whole input of the picture. Takes the SVG or its data URL.
+// Embedded base64 payloads (the fonts) are cut out: they are not text, and a long random string
+// can contain a short mark by accident. Numeric character references are turned back into letters.
+export function svgTextOf(source) {
+  let svg = String(source ?? "");
+  if (svg.startsWith("data:")) {
+    const body = svg.slice(svg.indexOf(",") + 1);
+    try {
+      svg = decodeURIComponent(body);
+    } catch {
+      svg = body;
+    }
+  }
+  return svg
+    .replace(/(data:[a-z0-9.+/-]+(?:;[a-z0-9=-]+)*;base64,)[A-Za-z0-9+/=\s]+/gi, "$1<payload>")
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCodePoint(Number.parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCodePoint(Number(dec)));
+}
+
+const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+// Chunks that only describe pixels and colour. Every other chunk can carry text or a date.
+const PNG_PIXEL_CHUNKS = new Set(["IHDR", "PLTE", "IDAT", "IEND", "tRNS", "gAMA", "cHRM", "sRGB", "sBIT", "bKGD", "pHYs", "hIST", "sPLT", "acTL", "fcTL", "fdAT"]);
+
+function inflated(data) {
+  try {
+    return inflateSync(data).toString("utf8");
+  } catch {
+    return "";
+  }
+}
+
+// What a PNG says besides its pixels (AC3 of #691): {chunks, texts}. `chunks` lists every chunk
+// type in order; `texts` has one entry for each chunk that is not pure pixel data: text chunks
+// (tEXt, zTXt, iTXt, with compressed parts unpacked), EXIF (eXIf), the modification time (tIME),
+// colour profiles and chunks this list does not know. Throws when the bytes are not a PNG.
+export function pngMetadata(bytes) {
+  const data = Buffer.from(bytes);
+  if (data.length < 8 || PNG_SIGNATURE.some((byte, index) => data[index] !== byte)) throw new Error("không phải file PNG");
+  const chunks = [];
+  const texts = [];
+  let offset = 8;
+  while (offset + 12 <= data.length) {
+    const length = data.readUInt32BE(offset);
+    const type = data.toString("latin1", offset + 4, offset + 8);
+    const body = data.subarray(offset + 8, offset + 8 + length);
+    if (body.length < length) throw new Error("file PNG bị cụt");
+    chunks.push(type);
+    if (type === "tIME" && length === 7) {
+      const two = (value) => String(value).padStart(2, "0");
+      texts.push(`tIME ${body.readUInt16BE(0)}-${two(body[2])}-${two(body[3])} ${two(body[4])}:${two(body[5])}:${two(body[6])}`);
+    } else if (!PNG_PIXEL_CHUNKS.has(type)) {
+      // Compressed parts start after a keyword and a few flag bytes; trying each zero byte as the
+      // start covers zTXt, iTXt and iCCP without a parser for each.
+      const unpacked = [];
+      for (let at = body.indexOf(0); at !== -1 && unpacked.length < 4; at = body.indexOf(0, at + 1)) {
+        for (const skip of [1, 2, 3]) {
+          const text = inflated(body.subarray(at + skip));
+          if (text) unpacked.push(text);
+        }
+      }
+      texts.push([type, body.toString("latin1"), body.toString("utf8"), ...unpacked].join("\n"));
+    }
+    offset += 12 + length;
+  }
+  if (chunks.at(-1) !== "IEND") throw new Error("file PNG bị cụt");
+  return { chunks, texts };
+}
+
+// Files the run must have taken out of the app. Without them the three file surfaces would pass
+// without looking at anything.
+export const REQUIRED_FILES = Object.freeze(["note-card-png", "note-card-share", "birth-card-png", "birth-card-share", "data-export-file"]);
+
+export function missingFiles(collected) {
+  return REQUIRED_FILES.filter((kind) => !collected.has(kind));
+}
+
 // Environment of the QA launcher for one run. The launcher takes its database from
 // LA_LANH_QA_DATABASE_URL and overwrites LA_LANH_DATABASE_URL, so the scratch path goes there;
 // it also replaces a value inherited from the caller, which could name an existing database.
@@ -231,10 +315,13 @@ const SURFACE_NAMES = Object.freeze({
   "browser-history": "lịch sử trình duyệt",
   "current-url": "URL hiện tại",
   "web-storage": "bộ nhớ trình duyệt (localStorage, sessionStorage, nội dung Cache)",
+  "file-name": "tên file tải về và file đưa vào bảng chia sẻ",
+  "share-image": "ảnh chia sẻ (bản SVG ảnh được vẽ từ đó, chữ mô tả ảnh, tiêu đề chia sẻ)",
+  "image-metadata": "thông tin kèm trong file ảnh PNG",
 });
 
 // Plain report lines. No value of a mark, no URL and no log line is printed.
-export function reportLines({ surfaces, findings, missing, planted = null }) {
+export function reportLines({ surfaces, findings, missing, missingFiles: noFiles = [], planted = null }) {
   const lines = [];
   for (const name of SURFACES) {
     const hits = findings.filter((finding) => finding.surface === name);
@@ -243,9 +330,10 @@ export function reportLines({ surfaces, findings, missing, planted = null }) {
     lines.push(`${hits.length ? "ĐỎ  " : "đạt "} ${SURFACE_NAMES[name]}: ${count} mục${hits.length ? `, thấy dấu: ${kinds}` : ""}`);
   }
   for (const kind of missing) lines.push(`ĐỎ   lượt chạy chưa gửi dấu "${kind}" tới API, nên chưa kiểm được gì cho dấu này`);
+  for (const kind of noFiles) lines.push(`ĐỎ   lượt chạy chưa lấy được "${kind}" từ app, nên chưa kiểm được gì cho file này`);
   for (const [name, reason] of NOT_CHECKED) lines.push(`chưa kiểm ${name} (${reason})`);
   if (planted) lines.push(`(đã cố ý chèn dấu vào "${planted}" để thử máy kiểm)`);
-  const red = findings.length > 0 || missing.length > 0;
+  const red = findings.length > 0 || missing.length > 0 || noFiles.length > 0;
   lines.push(red ? "Kết quả: ĐỎ" : "Kết quả: đạt (các ca \"chưa kiểm\" không tính là đạt)");
   return lines;
 }

@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
+import { deflateSync } from "node:zlib";
 
 import {
-  CANARY, NOT_CHECKED, REQUIRED_SENDS, SAFETY_TEXT, SURFACES, TAROT_QUESTION,
-  buildMarks, canaryServerEnv, dumpWebStorage, findMarks, isLocalUrl, maskLogTime, missingSends, reportLines, scanSurfaces, sendsIn,
+  CANARY, NOT_CHECKED, REQUIRED_FILES, REQUIRED_SENDS, SAFETY_TEXT, SURFACES, TAROT_QUESTION,
+  buildMarks, canaryServerEnv, dumpWebStorage, findMarks, isLocalUrl, maskLogTime, missingFiles, missingSends, pngMetadata,
+  reportLines, scanSurfaces, sendsIn, svgTextOf,
 } from "./leak-canary-lib.mjs";
 import { prepareQaDatabase } from "./qa-server.mjs";
 
@@ -237,6 +239,111 @@ test("AC3: cases the app cannot exercise are printed as not checked, never as pa
   assert.ok(NOT_CHECKED.some(([name]) => name === "Che nhanh"));
   assert.ok(NOT_CHECKED.some(([name]) => name === "Màn tự che khi chuyền máy"));
   assert.match(lines.at(-1), /không tính là đạt/);
+});
+
+// #691: file names, the share image and the metadata inside the PNG.
+const FILE_LEAKS = [
+  ["file-name", "birth-date", "la-lanh-note-1994-02-13.png"],
+  ["file-name", "birth-date", "la-khai-sinh-13021994-story.png"],
+  ["file-name", "birthplace", "la-lanh-quang-ngai.json"],
+  ["file-name", "birthplace", "attachment; filename*=UTF-8''la-lanh-Qu%E1%BA%A3ng%20Ng%C3%A3i.json"],
+  ["file-name", "session-secret", "la-lanh-s3cr3t-session-value-0123456789.json"],
+  ["share-image", "birth-date", "<svg><text>Sinh ngày 13/02/1994</text></svg>"],
+  ["share-image", "birth-time", "<svg><text>03:47</text></svg>"],
+  ["share-image", "mood", "alt Thẻ note hôm nay, mood Đuối"],
+  ["share-image", "tarot-question", "share title Lá Lành\ntext zqcanary690tarot\nurl "],
+  ["image-metadata", "birthplace", "tEXt\nComment\u0000Quang Ngai"],
+];
+
+for (const [surface, kind, text] of FILE_LEAKS) {
+  test(`#691 ${kind} in ${surface} is found: ${text.slice(0, 40)}`, () => {
+    const surfaces = clean();
+    surfaces[surface].push(text);
+    const findings = scanSurfaces(surfaces, marks);
+    assert.ok(findings.some((finding) => finding.surface === surface && finding.kind === kind), JSON.stringify(findings));
+  });
+}
+
+test("#691 the app's own file names are clean", () => {
+  const surfaces = clean();
+  surfaces["file-name"].push(
+    "la-lanh-note-story_9_16.png", "la-lanh-note-square_1_1.png", "la-khai-sinh-story.png", "la-khai-sinh-square.png",
+    "la-lanh-du-lieu-cua-toi.json", "attachment; filename=\"la-lanh-du-lieu-cua-toi.json\"",
+  );
+  assert.deepEqual(scanSurfaces(surfaces, marks), []);
+});
+
+test("#691 the share image text is the SVG without font payloads, with character references read", () => {
+  const payload = "QUJD".repeat(40);
+  const svg = `<svg><style>@font-face{src:url(data:font/woff2;base64,${payload}duoi${payload})}</style><text>Qu&#7843;ng Ng&#xe3;i</text></svg>`;
+  const text = svgTextOf(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`);
+  assert.ok(!text.includes(payload), "font payload is cut out");
+  assert.match(text, /data:font\/woff2;base64,<payload>/);
+  assert.match(text, /Quảng Ngãi/);
+  // A short mark spelled by accident inside the payload is not a finding; the place in the text is.
+  assert.deepEqual(findMarks(text, marks), ["birthplace"]);
+  assert.equal(svgTextOf(svg), text);
+  assert.equal(svgTextOf(null), "");
+});
+
+function pngChunk(type, body = Buffer.alloc(0)) {
+  const head = Buffer.alloc(8);
+  head.writeUInt32BE(body.length, 0);
+  head.write(type, 4, "latin1");
+  return Buffer.concat([head, body, Buffer.alloc(4)]);
+}
+const PNG_HEAD = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+const png = (...extra) => Buffer.concat([PNG_HEAD, pngChunk("IHDR", Buffer.alloc(13)), ...extra, pngChunk("IDAT", Buffer.from([1, 2, 3])), pngChunk("IEND")]);
+
+function metadataFindings(bytes) {
+  const surfaces = clean();
+  const { chunks, texts } = pngMetadata(bytes);
+  surfaces["image-metadata"].push(`chunks ${chunks.join(" ")}`, ...texts);
+  return scanSurfaces(surfaces, marks).map((finding) => finding.kind);
+}
+
+test("#691 AC3: a PNG with only pixel chunks has no metadata text", () => {
+  const plain = png(pngChunk("sRGB", Buffer.from([0])), pngChunk("pHYs", Buffer.alloc(9)));
+  assert.deepEqual(pngMetadata(plain), { chunks: ["IHDR", "sRGB", "pHYs", "IDAT", "IEND"], texts: [] });
+  assert.deepEqual(metadataFindings(plain), []);
+});
+
+test("#691 AC3: a mark planted in any PNG metadata chunk turns the check red", () => {
+  const time = Buffer.alloc(7);
+  time.writeUInt16BE(1994, 0);
+  time.set([2, 13, 3, 47, 0], 2);
+  const international = Buffer.concat([Buffer.from("Comment\0\x01\0\0\0", "latin1"), deflateSync(Buffer.from("câu hỏi zqcanary690tarot"))]);
+  const cases = [
+    ["tEXt", pngChunk("tEXt", Buffer.from("Comment\0born 1994-02-13", "latin1")), "birth-date"],
+    ["tEXt in UTF-8", pngChunk("tEXt", Buffer.from("Comment\0Quảng Ngãi", "utf8")), "birthplace"],
+    ["zTXt compressed", pngChunk("zTXt", Buffer.concat([Buffer.from("Comment\0\0", "latin1"), deflateSync(Buffer.from("zqcanary690safety"))])), "safety-text"],
+    ["iTXt compressed", pngChunk("iTXt", international), "tarot-question"],
+    ["eXIf", pngChunk("eXIf", Buffer.from("MM\0*\0\0\0\x08UserComment 13/02/1994", "latin1")), "birth-date"],
+    ["tIME", pngChunk("tIME", time), "birth-date"],
+    ["unknown chunk", pngChunk("prVt", Buffer.from("mood Đuối", "utf8")), "mood"],
+  ];
+  for (const [name, chunk, kind] of cases) assert.ok(metadataFindings(png(chunk)).includes(kind), name);
+});
+
+test("#691 a file that is not a whole PNG breaks the run instead of passing", () => {
+  assert.throws(() => pngMetadata(Buffer.from("not a png at all")), /không phải file PNG/);
+  assert.throws(() => pngMetadata(png().subarray(0, 40)), /bị cụt/);
+});
+
+test("#691 a run that did not take every file out of the app is red, and the report says which", () => {
+  assert.deepEqual(missingFiles(new Set(REQUIRED_FILES)), []);
+  const noFiles = missingFiles(new Set(REQUIRED_FILES.filter((kind) => kind !== "birth-card-png")));
+  assert.deepEqual(noFiles, ["birth-card-png"]);
+  const lines = reportLines({ surfaces: clean(), findings: [], missing: [], missingFiles: noFiles }).join("\n");
+  assert.match(lines, /chưa lấy được "birth-card-png"/);
+  assert.match(lines, /Kết quả: ĐỎ/);
+  assert.match(reportLines({ surfaces: clean(), findings: [], missing: [] }).at(-1), /Kết quả: đạt/);
+});
+
+test("#691 pixels and the mobile share sheet are reported as not checked", () => {
+  assert.ok(NOT_CHECKED.some(([name]) => name === "Chữ đã vẽ thành điểm ảnh trong ảnh PNG"));
+  assert.ok(NOT_CHECKED.some(([name]) => name === "File và ảnh chia sẻ trong app di động"));
+  assert.ok(!NOT_CHECKED.some(([, reason]) => reason.includes("#691")));
 });
 
 test("the check runs in the author check and its runbook exists", () => {
