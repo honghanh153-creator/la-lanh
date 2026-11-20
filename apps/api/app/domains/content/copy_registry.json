@@ -12263,6 +12263,132 @@
    "category": "crisis",
    "text": "Mình rất tiếc vì bạn đang phải chịu điều này. Lá không thể hỗ trợ tình huống này. Nếu bạn có thể làm hại bản thân lúc này, hãy tìm một người bạn tin cậy ở cạnh và nhờ hỗ trợ khẩn cấp.",
    "status": "pending"
+  },
+  {
+   "id": "month.ui.entry",
+   "category": "reading",
+   "text": "Hỏi về tháng này",
+   "status": "pending"
+  },
+  {
+   "id": "month.ui.intro",
+   "category": "reading",
+   "text": "Chọn một chuyện bạn đang lo. Lá trả lời theo lá số của bạn và các hành tinh trong tháng.",
+   "status": "pending"
+  },
+  {
+   "id": "month.ui.topic_heading",
+   "category": "reading",
+   "text": "Bạn muốn hỏi chuyện gì?",
+   "status": "pending"
+  },
+  {
+   "id": "month.ui.type_label",
+   "category": "reading",
+   "text": "Hoặc gõ câu hỏi của bạn",
+   "status": "pending"
+  },
+  {
+   "id": "month.ui.type_submit",
+   "category": "reading",
+   "text": "Hỏi Lá",
+   "status": "pending"
+  },
+  {
+   "id": "month.ui.part_theme",
+   "category": "reading",
+   "text": "Tháng này của bạn ở chuyện này",
+   "status": "pending"
+  },
+  {
+   "id": "month.ui.part_act",
+   "category": "reading",
+   "text": "Có thể làm ngay",
+   "status": "pending"
+  },
+  {
+   "id": "month.ui.part_say",
+   "category": "reading",
+   "text": "Có thể nói",
+   "status": "pending"
+  },
+  {
+   "id": "month.ui.window_button",
+   "category": "reading",
+   "text": "Xem lúc nào dễ hơn",
+   "status": "pending"
+  },
+  {
+   "id": "month.ui.window_label",
+   "category": "reading",
+   "text": "Khoảng dễ hơn",
+   "status": "pending"
+  },
+  {
+   "id": "month.ui.window_none",
+   "category": "reading",
+   "text": "Tháng này Lá chưa thấy khoảng nào dễ hơn hẳn. Bạn cứ làm lúc nào thấy tiện.",
+   "status": "pending"
+  },
+  {
+   "id": "month.ui.save",
+   "category": "reading",
+   "text": "Lưu",
+   "status": "pending"
+  },
+  {
+   "id": "month.ui.saved",
+   "category": "reading",
+   "text": "Đã lưu",
+   "status": "pending"
+  },
+  {
+   "id": "month.ui.saved_heading",
+   "category": "reading",
+   "text": "Câu đã lưu",
+   "status": "pending"
+  },
+  {
+   "id": "month.ui.saved_empty",
+   "category": "reading",
+   "text": "Bạn chưa lưu câu nào.",
+   "status": "pending"
+  },
+  {
+   "id": "month.ui.delete",
+   "category": "reading",
+   "text": "Xóa",
+   "status": "pending"
+  },
+  {
+   "id": "month.ui.change_topic",
+   "category": "reading",
+   "text": "Chọn mảng khác",
+   "status": "pending"
+  },
+  {
+   "id": "month.ui.try_label",
+   "category": "reading",
+   "text": "Thử",
+   "status": "pending"
+  },
+  {
+   "id": "month.ui.reminder_toggle",
+   "category": "reading",
+   "text": "Nhắc mình đầu tuần trên Trang chủ",
+   "status": "pending"
+  },
+  {
+   "id": "month.ui.reminder_home",
+   "category": "reading",
+   "text": "Đầu tuần rồi. Xem tháng này của bạn trong Khám phá.",
+   "status": "pending"
+  },
+  {
+   "id": "month.ui.error",
+   "category": "reading",
+   "text": "Lá chưa trả lời được lúc này. Bạn thử lại sau nhé.",
+   "status": "pending"
   }
  ],
  "version": "copy-registry/v1"

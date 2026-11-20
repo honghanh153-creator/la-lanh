@@ -24,6 +24,13 @@ import {
 export type HealthResponse =
   paths["/v1/health"]["get"]["responses"][200]["content"]["application/json"];
 export type GuestSession = components["schemas"]["GuestSessionResponse"];
+export type MonthTopic = components["schemas"]["Topic"];
+export type MonthStatus = components["schemas"]["MonthStatusResponse"];
+export type MonthAnswerResult = components["schemas"]["MonthAnswerResponse"];
+export type MonthAnswer = components["schemas"]["MonthAnswerView"];
+export type MonthWindow = components["schemas"]["MonthWindowResponse"];
+export type MonthOverview = components["schemas"]["MonthOverviewResponse"];
+export type SavedMonthAnswer = components["schemas"]["SavedMonthAnswerView"];
 export type BirthReveal = components["schemas"]["BirthRevealResponse"];
 export type ZodiacSign = components["schemas"]["ZodiacSign"];
 export type DailyNote = components["schemas"]["DailyNoteResponse"];
@@ -802,6 +809,58 @@ export function startTarotSession(input: {
     method: "POST",
     headers: { "Content-Type": "application/json", ...csrfHeader() },
     body: JSON.stringify(voice === "roast" ? { ...body, voice: "roast" } : body),
+  });
+}
+
+/** US-25: whether "Hỏi về tháng này" can show, and whether typed questions are switched on. */
+export function getMonthStatus(signal?: AbortSignal): Promise<MonthStatus> {
+  return request<MonthStatus>("/month/status", { signal });
+}
+
+/**
+ * Ask about this month. A typed question is sent once and never kept: not in storage, not in the
+ * URL, not in the query cache key (the caller passes it from component state only).
+ */
+export function askMonth(input: { topic?: MonthTopic | null; question?: string; consent_version?: string }): Promise<MonthAnswerResult> {
+  const body: Record<string, string> = {};
+  if (input.topic) body.topic = input.topic;
+  if (input.question) {
+    body.question = input.question;
+    if (input.consent_version) body.consent_version = input.consent_version;
+  }
+  return request<MonthAnswerResult>("/month/answers", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...csrfHeader() },
+    body: JSON.stringify(body),
+  });
+}
+
+/** Only the "Xem lúc nào dễ hơn" tap calls this; answers never carry dates. */
+export function getMonthWindow(topic: MonthTopic, signal?: AbortSignal): Promise<MonthWindow> {
+  return request<MonthWindow>(`/month/window?topic=${encodeURIComponent(topic)}`, { signal });
+}
+
+export function getMonthOverview(signal?: AbortSignal): Promise<MonthOverview> {
+  return request<MonthOverview>("/month/overview", { signal });
+}
+
+export function saveMonthAnswer(topic: MonthTopic, answerKey: string): Promise<SavedMonthAnswer> {
+  return request<SavedMonthAnswer>("/month/saved", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...csrfHeader() },
+    body: JSON.stringify({ topic, answer_key: answerKey }),
+  });
+}
+
+export async function listSavedMonthAnswers(signal?: AbortSignal): Promise<SavedMonthAnswer[]> {
+  const result = await request<{ items: SavedMonthAnswer[] }>("/month/saved", { signal });
+  return result.items;
+}
+
+export function deleteSavedMonthAnswer(id: string): Promise<void> {
+  return request<void>(`/month/saved/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    headers: csrfHeader(),
   });
 }
 

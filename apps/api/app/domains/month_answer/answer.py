@@ -31,6 +31,31 @@ from app.domains.month_answer.question import QuestionKind
 ANSWER_VERSION = "month-answer-v1"
 PARTS = ("theme", "act", "say")
 LINE_IDS = ("month.line.disclaimer", "month.line.window")
+# Web labels (apps/web/src/features/month/monthCopy.ts mirrors them; a test keeps both equal).
+# The feature shows only when these are approved too, so no screen ever shows a pending label.
+UI_IDS = (
+    "month.ui.entry",
+    "month.ui.intro",
+    "month.ui.topic_heading",
+    "month.ui.type_label",
+    "month.ui.type_submit",
+    "month.ui.part_theme",
+    "month.ui.part_act",
+    "month.ui.part_say",
+    "month.ui.window_button",
+    "month.ui.window_label",
+    "month.ui.window_none",
+    "month.ui.save",
+    "month.ui.saved",
+    "month.ui.saved_heading",
+    "month.ui.saved_empty",
+    "month.ui.delete",
+    "month.ui.change_topic",
+    "month.ui.try_label",
+    "month.ui.reminder_toggle",
+    "month.ui.reminder_home",
+    "month.ui.error",
+)
 REFRAME_KINDS = (
     QuestionKind.OUTCOME,
     QuestionKind.TIMING,
@@ -126,6 +151,7 @@ def required_copy_ids() -> tuple[str, ...]:
     ids = [cid for topic in Topic for planet in ANSWER_PLANETS for cid in copy_ids(topic, planet)]
     ids += [f"month.reframe.{kind.value}" for kind in REFRAME_KINDS]
     ids += list(LINE_IDS)
+    ids += list(UI_IDS)
     return tuple(ids)
 
 
