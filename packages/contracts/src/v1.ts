@@ -1313,6 +1313,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/radar/weekly": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Weekly Pairs
+         * @description "Hai bạn tuần này": 404 while the feature is off or the owner has no session.
+         */
+        get: operations["weekly_pairs_v1_radar_weekly_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/radar/weekly/{pair_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Weekly Pair
+         * @description Turning a pair off deletes it, with the stored birth date.
+         */
+        delete: operations["delete_weekly_pair_v1_radar_weekly__pair_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/reading-projections/{scope_key}/activate": {
         parameters: {
             query?: never;
@@ -3663,6 +3703,15 @@ export interface components {
             sentences?: {
                 [key: string]: string;
             };
+            /**
+             * Weekly
+             * @default false
+             */
+            weekly: boolean;
+            /** Weekly Sentences */
+            weekly_sentences?: {
+                [key: string]: string;
+            };
         };
         /** RadarCreateRequest */
         RadarCreateRequest: {
@@ -3759,6 +3808,11 @@ export interface components {
              * @enum {string}
              */
             context: "crush" | "friend" | "partner" | "someone" | "coworker" | "family";
+            /**
+             * Keep Weekly
+             * @default false
+             */
+            keep_weekly: boolean;
             /** Place Id */
             place_id?: string | null;
             /** Recipient Label */
@@ -3847,6 +3901,43 @@ export interface components {
          * @enum {string}
          */
         RadarStatus: "pending" | "completed" | "revoked" | "withdrawn" | "expired";
+        /** RadarWeeklyItem */
+        RadarWeeklyItem: {
+            /** Context */
+            context: string;
+            /** Easy */
+            easy?: string | null;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Initial */
+            initial?: string | null;
+            /** Quiet */
+            quiet?: string | null;
+            /** Try Line */
+            try_line?: string | null;
+            /** Watch */
+            watch?: string | null;
+            /**
+             * Week Of
+             * Format: date
+             */
+            week_of: string;
+        };
+        /** RadarWeeklyResponse */
+        RadarWeeklyResponse: {
+            /** Items */
+            items: components["schemas"]["RadarWeeklyItem"][];
+            /** Version */
+            version: string;
+        };
         /** ReadinessCheck */
         ReadinessCheck: {
             /** Blocking */
@@ -9645,6 +9736,57 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["RadarCardResponse"];
                 };
+            };
+            /** @description Request input was rejected */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    weekly_pairs_v1_radar_weekly_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarWeeklyResponse"];
+                };
+            };
+        };
+    };
+    delete_weekly_pair_v1_radar_weekly__pair_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path: {
+                pair_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Request input was rejected */
             422: {

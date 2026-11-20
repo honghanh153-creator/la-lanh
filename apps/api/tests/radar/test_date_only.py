@@ -173,13 +173,12 @@ def test_switched_off_paths_stay_closed(tmp_path: Path) -> None:
         options = client.get("/v1/public/radar/consent-options")
         assert options.status_code == 200
         assert options.headers["cache-control"].startswith("no-store")
-        assert options.json() == {
-            "invite_first": False,
-            "sentences": {},
-            "authorized_input_version": "radar-authorized-input-v1",
-            "date_consent_version": "radar-pair-date-v1",
-            "card_links": False,
-        }
+        body = options.json()
+        assert body["invite_first"] is False and body["sentences"] == {}
+        assert body["authorized_input_version"] == "radar-authorized-input-v1"
+        assert body["date_consent_version"] == "radar-pair-date-v1"
+        # Every other AL1 switch (card links, weekly pairs) is off too.
+        assert body.get("card_links", False) is False and body.get("weekly", False) is False
         date_only = {
             "recipient_label": "Mèo",
             "context": "crush",

@@ -24,7 +24,14 @@ from app.domains.erasure_journal.journal import ErasureJournal, ErasureKind
 from app.domains.guest.tables import GuestSessionRow
 from app.domains.identity.tables import PrincipalRow
 from app.domains.radar import ask as radar_ask
-from app.domains.radar.cards import MAX_CARDS_PER_RESULT, RadarCardView, card_snapshot, card_view
+from app.domains.radar import weekly as radar_weekly
+from app.domains.radar.cards import (
+    MAX_CARDS_PER_RESULT,
+    RadarCardView,
+    card_snapshot,
+    card_view,
+    initial_of,
+)
 from app.domains.radar.consent_drafts import invite_first_sentences
 from app.domains.radar.models import (
     RadarAcceptResult,
@@ -40,7 +47,8 @@ from app.domains.radar.rewrite import (
     compile_radar_rewrite_request,
     radar_rewrite_owner,
 )
-from app.domains.radar.tables import RadarRequestRow, RadarShareCardRow
+from app.domains.radar.tables import RadarRequestRow, RadarShareCardRow, RadarWeeklyPairRow
+from app.domains.radar.weekly import weekly_sentences
 from app.domains.relationships.models import RelationshipVoice
 from app.infrastructure.crypto import EnvelopeCipher, SecretHasher
 
@@ -64,6 +72,11 @@ CONSENTED_RESULT_TTL = timedelta(days=30)
 # whole time A can (owner decision P09 D1, 22/10/2026; was 7 days).
 RECEIPT_TTL = CONSENTED_RESULT_TTL
 MAX_RETAINED_REQUESTS = 100
+# AL1 direction C (off by default): a kept pair lives 90 days unless deleted sooner (draft for the
+# owner's decision); at most five kept pairs per owner.
+WEEKLY_CONSENT_VERSION = "radar-weekly-v1"
+WEEKLY_PAIR_TTL = timedelta(days=90)
+MAX_WEEKLY_PAIRS = 5
 PAGE_SIZE = 20
 MAX_PAGE_SIZE = 50
 IDEMPOTENCY_PATTERN = re.compile(r"^[A-Za-z0-9_-]{16,128}$")
@@ -109,6 +122,7 @@ class RadarService:
         content_rewrite_service: ContentRewriteService | None = None,
         invite_first_consent: bool = False,
         share_card_links: bool = False,
+        weekly_pairs: bool = False,
         erasure_journal: ErasureJournal | None = None,
     ) -> None:
         self._sessions = sessions
@@ -123,6 +137,14 @@ class RadarService:
         self._content_rewrite_service = content_rewrite_service
         self._invite_first_consent = invite_first_consent
         self._share_card_links = share_card_links
+        self._weekly_pairs = weekly_pairs
+
+    @property
+    def weekly_enabled(self) -> bool:
+        """AL1 direction C: keeping a pair for "Hai bạn tuần này". Needs the switch and the
+        owner's approval of the opt-in sentences; off by default."""
+
+        return self._weekly_pairs and weekly_sentences() is not None
 
     @property
     def share_card_links_enabled(self) -> bool:
@@ -211,8 +233,11 @@ class RadarService:
         authorization_attested: bool,
         idempotency_key: str | None = None,
         now: datetime | None = None,
+        keep_weekly: bool = False,
     ) -> dict[str, Any]:
         label = " ".join(recipient_label.split())
+        if keep_weekly and not self.weekly_enabled:
+            raise RadarInvalid
         date_only_input = birth_time_mode == DATE_ONLY_MODE
         accepted_versions = {AUTHORIZED_INPUT_VERSION}
         if self.invite_first_enabled:
@@ -246,6 +271,7 @@ class RadarService:
                 consent_version,
                 str(source.snapshot_id),
                 str(source.profile_revision),
+                keep_weekly,
             ],
         )
         async with self._creation_transaction(principal_id, owner_guest_id, current) as session:
@@ -343,6 +369,16 @@ class RadarService:
                 require_full=basis == BASIS_FULL,
             )
             session.add(row)
+            if keep_weekly:
+                await self._keep_weekly(
+                    session,
+                    principal_id=principal_id,
+                    owner_guest_id=owner_guest_id,
+                    context=context,
+                    label=label,
+                    birth_date=birth_date,
+                    now=current,
+                )
             await session.flush()
         await self._enqueue_rewrite(
             guest_id=owner_guest_id,
@@ -877,6 +913,112 @@ class RadarService:
                     )
                 ),
             )
+
+    async def _keep_weekly(
+        self,
+        session: AsyncSession,
+        *,
+        principal_id: UUID,
+        owner_guest_id: UUID,
+        context: str,
+        label: str,
+        birth_date: date,
+        now: datetime,
+    ) -> None:
+        kept = await session.scalar(
+            select(func.count())
+            .select_from(RadarWeeklyPairRow)
+            .where(
+                RadarWeeklyPairRow.principal_id == principal_id,
+                RadarWeeklyPairRow.expires_at > now,
+            )
+        )
+        if (kept or 0) >= MAX_WEEKLY_PAIRS:
+            raise RadarLimitReached
+        pair_id = uuid4()
+        session.add(
+            RadarWeeklyPairRow(
+                id=pair_id,
+                principal_id=principal_id,
+                owner_guest_id=owner_guest_id,
+                context=context,
+                label_ciphertext=self._envelope.encrypt(
+                    label.encode(), context=f"radar-weekly-label:{pair_id}".encode()
+                ),
+                birth_date_ciphertext=self._envelope.encrypt(
+                    birth_date.isoformat().encode(),
+                    context=f"radar-weekly-date:{pair_id}".encode(),
+                ),
+                consent_version=WEEKLY_CONSENT_VERSION,
+                created_at=now,
+                expires_at=now + WEEKLY_PAIR_TTL,
+            )
+        )
+
+    async def weekly(
+        self, principal_id: UUID, *, today: date | None = None
+    ) -> list[dict[str, Any]]:
+        """This week's card for each kept pair (initial only, never the nickname or date)."""
+
+        if not self.weekly_enabled:
+            raise RadarUnavailable
+        current = datetime.now(UTC)
+        monday = radar_weekly.week_start(today or current.astimezone(radar_weekly.VIETNAM).date())
+        config = CalculationConfig.western_recommended()
+        async with self._sessions() as session:
+            rows = list(
+                await session.scalars(
+                    select(RadarWeeklyPairRow)
+                    .where(
+                        RadarWeeklyPairRow.principal_id == principal_id,
+                        RadarWeeklyPairRow.expires_at > current,
+                    )
+                    .order_by(RadarWeeklyPairRow.created_at)
+                )
+            )
+        items: list[dict[str, Any]] = []
+        for pair in rows:
+            other = date.fromisoformat(
+                self._envelope.decrypt(
+                    pair.birth_date_ciphertext, context=f"radar-weekly-date:{pair.id}".encode()
+                ).decode()
+            )
+            try:
+                chart_a = await self._birth.date_only_chart_for(pair.owner_guest_id, config)
+            except BirthDomainError:
+                continue  # the owner's profile is gone; the pair goes with the guest data
+            chart_b = await self._birth.calculate_date_only_chart(
+                birth_date=other, config=config, require_adult=False
+            )
+            card = radar_weekly.card_for(
+                radar_weekly.weekly_hits(self._engine, (chart_a, chart_b), monday), monday
+            )
+            if card is None:
+                continue
+            label = self._envelope.decrypt(
+                pair.label_ciphertext, context=f"radar-weekly-label:{pair.id}".encode()
+            ).decode()
+            items.append(
+                {
+                    "id": str(pair.id),
+                    "context": pair.context,
+                    "initial": initial_of(label),
+                    "week_of": card.week_of.isoformat(),
+                    "easy": card.easy,
+                    "watch": card.watch,
+                    "try_line": card.try_line,
+                    "quiet": card.quiet,
+                    "expires_at": pair.expires_at,
+                }
+            )
+        return items
+
+    async def delete_weekly(self, principal_id: UUID, pair_id: UUID) -> None:
+        async with self._sessions() as session, session.begin():
+            pair = await session.get(RadarWeeklyPairRow, pair_id, with_for_update=True)
+            if pair is None or pair.principal_id != principal_id:
+                raise RadarUnavailable
+            await session.delete(pair)
 
     async def receipt_result(self, receipt: str) -> dict[str, Any]:
         current = datetime.now(UTC)

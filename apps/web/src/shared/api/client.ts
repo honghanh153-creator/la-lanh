@@ -228,6 +228,8 @@ export type RadarPrivateCheckInput = {
   birth_time_local: string | null;
   place_id: string | null;
   authorization_attested: boolean;
+  /** Hợp gu C (off by default): keep this pair for "Hai bạn tuần này". */
+  keep_weekly?: boolean;
 };
 /** Which Hợp gu consent screens are live (AL1), with their owner-approved sentences only. */
 export type RadarConsentOptions = {
@@ -237,7 +239,11 @@ export type RadarConsentOptions = {
   date_consent_version: string;
   /** Hợp gu C: whether card links may be created (off by default). */
   card_links?: boolean;
+  /** Hợp gu C: "Hai bạn tuần này" and its owner-approved sentences (off by default). */
+  weekly?: boolean;
+  weekly_sentences?: Partial<Record<"optin-label" | "optin-help" | "home-note", string>>;
 };
+export type RadarWeeklyItem = { id: string; context: string; initial?: string | null; week_of: string; easy?: string | null; watch?: string | null; try_line?: string | null; quiet?: string | null; expires_at: string };
 /** A Hợp gu card link as its owner sees it; never the token once created. */
 export type RadarCardLink = { id: string; status: "active" | "revoked" | "expired"; created_at: string; expires_at: string; share_url?: string | null };
 /** A Hợp gu card as anyone with the link sees it: no birth data, at most an initial. */
@@ -1411,6 +1417,14 @@ export function revokeRadarCard(cardId: string): Promise<void> {
 
 export function getPublicRadarCard(token: string, signal?: AbortSignal): Promise<PublicRadarCard> {
   return request<PublicRadarCard>(`/public/radar/cards/${encodeURIComponent(token)}`, { signal });
+}
+
+export function getRadarWeekly(signal?: AbortSignal): Promise<{ version: string; items: RadarWeeklyItem[] }> {
+  return request<{ version: string; items: RadarWeeklyItem[] }>("/radar/weekly", { signal });
+}
+
+export function deleteRadarWeekly(pairId: string): Promise<void> {
+  return request<void>(`/radar/weekly/${encodeURIComponent(pairId)}`, { method: "DELETE", headers: csrfHeader() });
 }
 
 export function getRadarConsentOptions(signal?: AbortSignal): Promise<RadarConsentOptions> {

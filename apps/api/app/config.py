@@ -114,6 +114,10 @@ class Settings(BaseSettings):
     # summary to whoever holds it and keeps it as long as the result, so it ships off (R2 kind 4).
     # The image card itself is drawn on the device and needs no switch.
     radar_share_card_links: bool = False
+    # Hợp gu AL1 direction C, "Hai bạn tuần này": keeping a pair stores the other person's birth
+    # date beyond the 24-hour check, which is new personal-data collection (R2 kind 4). Off; it
+    # also needs the owner's approval of every privacy.radar.weekly.* sentence.
+    radar_weekly_pairs: bool = False
 
     model_config = SettingsConfigDict(
         env_file=("../../.env", ".env"),

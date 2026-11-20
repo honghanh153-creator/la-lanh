@@ -13454,6 +13454,102 @@
    "category": "reading",
    "text": "Thử hôm nay: chọn một chuyện nhỏ đang vướng và nói ra trong một câu.",
    "status": "pending"
+  },
+  {
+   "id": "radar.weekly.easy.communication",
+   "category": "reading",
+   "text": "Tuần này dễ: nói chuyện và chốt kế hoạch cùng nhau.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.weekly.easy.attraction",
+   "category": "reading",
+   "text": "Tuần này dễ: làm gì đó vui cùng nhau, kể cả chuyện nhỏ.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.weekly.easy.pace",
+   "category": "reading",
+   "text": "Tuần này dễ: cùng bắt tay vào một việc đang để dở.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.weekly.easy.visibility",
+   "category": "reading",
+   "text": "Tuần này dễ: khen nhau một câu thật lòng.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.weekly.watch.communication",
+   "category": "reading",
+   "text": "Dễ vướng: tin nhắn ngắn quá làm hiểu lệch ý.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.weekly.watch.attraction",
+   "category": "reading",
+   "text": "Dễ vướng: mỗi người mong dành thời gian cho nhau theo một kiểu.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.weekly.watch.pace",
+   "category": "reading",
+   "text": "Dễ vướng: vội vàng, nói nhanh hơn nghĩ.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.weekly.watch.visibility",
+   "category": "reading",
+   "text": "Dễ vướng: cả hai cùng muốn được để ý.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.weekly.try.communication",
+   "category": "reading",
+   "text": "Thử: hỏi lại \"Ý bạn là vậy đúng không?\" trước khi trả lời.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.weekly.try.attraction",
+   "category": "reading",
+   "text": "Thử: hẹn trước một buổi ngắn chỉ hai người.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.weekly.try.pace",
+   "category": "reading",
+   "text": "Thử: chia việc thành phần nhỏ và nói rõ ai làm phần nào.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.weekly.try.visibility",
+   "category": "reading",
+   "text": "Thử: nói ra một điều bạn quý ở người kia.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.weekly.quiet",
+   "category": "reading",
+   "text": "Tuần này không có gì nổi bật giữa hai bạn. Cứ giữ nhịp như bình thường.",
+   "status": "pending"
+  },
+  {
+   "id": "privacy.radar.weekly.optin-label",
+   "category": "privacy",
+   "text": "Giữ cặp này để mỗi tuần xem hai bạn tuần này.",
+   "status": "pending"
+  },
+  {
+   "id": "privacy.radar.weekly.optin-help",
+   "category": "privacy",
+   "text": "Lá sẽ lưu ngày sinh của người ấy, đã mã hoá, tối đa 90 ngày để tính phần mỗi tuần. Chỉ chọn khi người ấy đồng ý cho việc này. Bạn xoá được bất cứ lúc nào.",
+   "status": "pending"
+  },
+  {
+   "id": "privacy.radar.weekly.home-note",
+   "category": "privacy",
+   "text": "Chỉ hiện chữ cái đầu của tên. Bấm tắt là xoá luôn cặp này.",
+   "status": "pending"
   }
  ],
  "version": "copy-registry/v1"

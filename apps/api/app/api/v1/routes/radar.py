@@ -28,6 +28,7 @@ from app.domains.radar.service import (
     RadarLimitReached,
     RadarService,
 )
+from app.domains.radar.weekly import WEEKLY_VERSION, weekly_sentences
 from app.domains.relationships.models import RelationshipVoice
 from app.infrastructure.csrf import require_trusted_origin, trusted_origins
 from app.infrastructure.owner_session import resume_owner_for_guest
@@ -111,6 +112,8 @@ class RadarPrivateCheckRequest(BaseModel):
     place_id: str | None = Field(default=None, min_length=2, max_length=80)
     consent_version: str = Field(min_length=1, max_length=64)
     authorization_attested: bool
+    # AL1 direction C (off by default): keep this pair for "Hai bạn tuần này".
+    keep_weekly: bool = False
 
     @model_validator(mode="after")
     def validate_birth_time(self) -> "RadarPrivateCheckRequest":
@@ -176,6 +179,9 @@ class RadarConsentOptionsResponse(BaseModel):
     sentences: dict[str, str] = Field(default_factory=dict)
     # AL1 direction C: whether card links may be created (the image card needs no switch).
     card_links: bool = False
+    # AL1 direction C: "Hai bạn tuần này" with its owner-approved opt-in sentences.
+    weekly: bool = False
+    weekly_sentences: dict[str, str] = Field(default_factory=dict)
     authorized_input_version: str
     date_consent_version: str
 
@@ -311,6 +317,7 @@ async def create_private_check(
             consent_version=body.consent_version,
             authorization_attested=body.authorization_attested,
             idempotency_key=idempotency_key,
+            keep_weekly=body.keep_weekly,
         )
     except OwnerSessionUnavailable:
         return Response(status_code=401)
@@ -575,6 +582,58 @@ async def revoke_card(
     return Response(status_code=204)
 
 
+class RadarWeeklyItem(BaseModel):
+    id: UUID
+    context: str
+    initial: str | None = None
+    week_of: date
+    easy: str | None = None
+    watch: str | None = None
+    try_line: str | None = None
+    quiet: str | None = None
+    expires_at: datetime
+
+
+class RadarWeeklyResponse(BaseModel):
+    version: str
+    items: list[RadarWeeklyItem]
+
+
+@router.get("/radar/weekly", response_model=RadarWeeklyResponse)
+async def weekly_pairs(request: Request, response: Response) -> RadarWeeklyResponse | Response:
+    """ "Hai bạn tuần này": 404 while the feature is off or the owner has no session."""
+
+    _safe_public(response)
+    try:
+        owner = await _owner(request)
+        items = await _service(request).weekly(owner.principal_id)
+    except (OwnerSessionUnavailable, RadarError):
+        return Response(status_code=404, headers=dict(response.headers))
+    return RadarWeeklyResponse(
+        version=WEEKLY_VERSION, items=[RadarWeeklyItem.model_validate(item) for item in items]
+    )
+
+
+@router.delete("/radar/weekly/{pair_id}", status_code=204)
+async def delete_weekly_pair(
+    pair_id: UUID,
+    request: Request,
+    csrf_token: Annotated[str | None, Header(alias="X-CSRF-Token")] = None,
+) -> Response:
+    """Turning a pair off deletes it, with the stored birth date."""
+
+    try:
+        owner = await _owner_mutation(request, csrf_token)
+        await _service(request).delete_weekly(owner.principal_id, pair_id)
+    except OwnerSessionUnavailable:
+        return Response(status_code=401)
+    except GuestDomainError:
+        return Response(status_code=403)
+    except RadarError:
+        return Response(status_code=404)
+    return Response(status_code=204)
+
+
 @router.delete("/radar/results/{request_id}", status_code=204)
 async def delete_owner_result(
     request_id: UUID,
@@ -818,6 +877,8 @@ async def consent_options(request: Request, response: Response) -> RadarConsentO
     sentences = invite_first_sentences() if service.invite_first_enabled else None
     return RadarConsentOptionsResponse(
         card_links=service.share_card_links_enabled,
+        weekly=service.weekly_enabled,
+        weekly_sentences=(weekly_sentences() or {}) if service.weekly_enabled else {},
         invite_first=sentences is not None,
         sentences=sentences or {},
         authorized_input_version=(

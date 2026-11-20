@@ -5059,6 +5059,18 @@
             },
             "title": "Sentences",
             "type": "object"
+          },
+          "weekly": {
+            "default": false,
+            "title": "Weekly",
+            "type": "boolean"
+          },
+          "weekly_sentences": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Weekly Sentences",
+            "type": "object"
           }
         },
         "required": [
@@ -5267,6 +5279,11 @@
             ],
             "title": "Context",
             "type": "string"
+          },
+          "keep_weekly": {
+            "default": false,
+            "title": "Keep Weekly",
+            "type": "boolean"
           },
           "place_id": {
             "anyOf": [
@@ -5517,6 +5534,113 @@
         ],
         "title": "RadarStatus",
         "type": "string"
+      },
+      "RadarWeeklyItem": {
+        "properties": {
+          "context": {
+            "title": "Context",
+            "type": "string"
+          },
+          "easy": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Easy"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "initial": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Initial"
+          },
+          "quiet": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quiet"
+          },
+          "try_line": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Try Line"
+          },
+          "watch": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Watch"
+          },
+          "week_of": {
+            "format": "date",
+            "title": "Week Of",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "context",
+          "week_of",
+          "expires_at"
+        ],
+        "title": "RadarWeeklyItem",
+        "type": "object"
+      },
+      "RadarWeeklyResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/RadarWeeklyItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "version",
+          "items"
+        ],
+        "title": "RadarWeeklyResponse",
+        "type": "object"
       },
       "ReadinessCheck": {
         "properties": {
@@ -14753,6 +14877,81 @@
           }
         },
         "summary": "Create Card",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
+    "/v1/radar/weekly": {
+      "get": {
+        "description": "\"Hai bạn tuần này\": 404 while the feature is off or the owner has no session.",
+        "operationId": "weekly_pairs_v1_radar_weekly_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RadarWeeklyResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Weekly Pairs",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
+    "/v1/radar/weekly/{pair_id}": {
+      "delete": {
+        "description": "Turning a pair off deletes it, with the stored birth date.",
+        "operationId": "delete_weekly_pair_v1_radar_weekly__pair_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pair_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Pair Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
+          }
+        },
+        "summary": "Delete Weekly Pair",
         "tags": [
           "radar"
         ]

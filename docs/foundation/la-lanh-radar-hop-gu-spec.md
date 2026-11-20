@@ -38,6 +38,13 @@ Owner chọn AL1 sau thử 100 người giả (34–45/100 tới được kết 
 - **Link xem thẻ (tắt, `radar_share_card_links`):** `POST /v1/radar/results/{id}/cards` (owner, CSRF) tạo link `/radar/the/<token>` (token 256 bit, chỉ lưu HMAC); bản chụp (`radar-card-v1`: context, tier, line, initial) mã hoá AES-GCM, hạn = hạn kết quả, tối đa 5 link đang mở mỗi kết quả, thu hồi bằng `POST /v1/radar/cards/{id}/revoke`. Xoá kết quả, rút kết quả hoặc xoá dữ liệu khách đều xoá link (FK cascade và xoá trực tiếp). `GET /v1/public/radar/cards/{token}` trả `no-store`, `no-referrer`, `noindex`; mọi trường hợp từ chối là một 404. Web `/radar/the/*` có header tương tự trong `_headers`. Bảng `radar_share_cards` (migration 0043) bật RLS, thu quyền `anon`/`authenticated`.
 - Link là chia sẻ một bản tóm tắt về hai người cho bất kỳ ai cầm link, nên là thu dữ liệu/chia sẻ mới (R2 loại 4): làm sẵn và để tắt.
 
+## 1e. "Hai bạn tuần này" (hướng C, nửa sau, AL1; tắt)
+
+- Giữ một cặp lâu hơn 24 giờ là thu dữ liệu cá nhân mới (R2 loại 4), nên chỉ mở khi `radar_weekly_pairs = true` **và** owner đã duyệt cả ba câu `privacy.radar.weekly.*`. Mặc định là **Không**.
+- Chủ chọn giữ ngay trên form check riêng (ô tick, mặc định không tick; `keep_weekly`), vì ngày sinh của người kia chỉ có trong request đó. Lá lưu **chỉ ngày sinh** của người kia (không giờ, không nơi) và tên gọi, đều mã hoá AES-GCM, cùng quan hệ; bảng `radar_weekly_pairs` (migration 0044, RLS). Tự hết hạn sau 90 ngày (bản nháp cho owner quyết), tối đa 5 cặp; "Tắt nhắc cặp này" xoá hẳn; xoá dữ liệu khách hoặc tài khoản xoá theo (FK cascade).
+- Thẻ tuần (`radar-weekly-v1`, `GET /v1/radar/weekly`, owner-bound, no-store) tính từ trời giữa tuần (thứ Tư 12:00 giờ Việt Nam): Mặt Trời, Sao Thủy, Sao Kim, Sao Hỏa đang đi so với bốn điểm cá nhân trong lá số ngày sinh của hai người (orb 3°). Một điều dễ, một điều dễ vướng, một việc thử; không đoán sự kiện, không ghi ngày. Câu nằm trong registry (`radar.weekly.*`, chờ duyệt); khi chưa duyệt thì không có thẻ.
+- Trên Hôm nay: chỉ chữ cái đầu của tên và quan hệ (bài thử 20.11: 3–4 người lo người khác cầm máy thấy cặp đôi).
+
 ## 2. Hai mode
 
 | Mode | Khi nào dùng | Ai nhập dữ liệu B | Kết quả | Dữ liệu B |

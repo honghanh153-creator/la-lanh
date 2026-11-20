@@ -49,6 +49,7 @@ export function RadarPrivateStartPage() {
   const [showAllPlaces, setShowAllPlaces] = useState(false);
   const [selectedPlace, setSelectedPlace] = useState<PlaceResult | null>(null);
   const [attested, setAttested] = useState(false);
+  const [keepWeekly, setKeepWeekly] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const scrolledToHistory = useRef(false);
   const activeOwnerEpoch = useRef<string | null>(null);
@@ -69,6 +70,9 @@ export function RadarPrivateStartPage() {
   const sentences = consent.data?.invite_first ? consent.data.sentences : null;
   const inviteFirst = Boolean(sentences && INVITE_FIRST_OWNER_KEYS.every((key) => sentences[key]));
   const ownerDateOnly = precision === "needs_birth_time";
+  // AL1 direction C (off by default): keep this pair for "Hai bạn tuần này"; default No.
+  const weeklySentences = consent.data?.weekly ? consent.data.weekly_sentences : null;
+  const weeklyOn = Boolean(weeklySentences?.["optin-label"] && weeklySentences["optin-help"]);
   // A date-only owner's pair is read from both dates, so the other person's time and place are not asked.
   const fullerInput = inviteFirst ? Boolean(selectedPlace) && !ownerDateOnly : true;
 
@@ -131,6 +135,7 @@ export function RadarPrivateStartPage() {
       birth_time_local: !dateOnly && birthTimeMode === "exact" ? birthTime : null,
       place_id: dateOnly ? null : selectedPlace?.place_id ?? null,
       authorization_attested: attested,
+      ...(weeklyOn && keepWeekly ? { keep_weekly: true } : {}),
       };
       const consentVersion = inviteFirst ? consent.data?.authorized_input_version : undefined;
       return createPrivateRadarCheck(input, retryKey.forDraft(input), consentVersion);
@@ -239,6 +244,7 @@ export function RadarPrivateStartPage() {
       {inviteFirst && sentences ? <div className="radar-attestation"><input aria-label={sentences["owner-attest-label"]} checked={attested} id="radar-permission" onChange={(event) => setAttested(event.target.checked)} type="checkbox" /><label htmlFor="radar-permission"><strong>{sentences["owner-attest-label"]}</strong><small>{sentences["owner-attest-help"]}</small></label></div> : <>
       <div className="radar-attestation"><input aria-label="Xác nhận đã được phép dùng thông tin sinh" checked={attested} id="radar-permission" onChange={(event) => setAttested(event.target.checked)} type="checkbox" /><label htmlFor="radar-permission"><strong>Tôi xác nhận người này đã cho phép tôi dùng thông tin sinh của họ để xem Radar.</strong><small>Nếu chưa được phép, đừng nhập hộ. Bạn có thể mời họ tự nhập ở lựa chọn phía dưới.</small></label></div>
       </>}
+      {weeklyOn && weeklySentences ? <div className="radar-weekly-optin"><input aria-label={weeklySentences["optin-label"]} checked={keepWeekly} id="radar-weekly-optin" onChange={(event) => setKeepWeekly(event.target.checked)} type="checkbox" /><label htmlFor="radar-weekly-optin"><strong>{weeklySentences["optin-label"]}</strong><small>{weeklySentences["optin-help"]}</small></label></div> : null}
       <button className="matching-primary" disabled={!complete || create.isPending || owner.isPending} type="submit">{create.isPending ? "Đang xem hai lá số…" : "Xem hợp gu"}<ArrowRight /></button>
       {!inviteFirst ? <>
       <div className="radar-no-permission"><ShieldCheck /><p><strong>Chưa được phép dùng dữ liệu?</strong><br />Để người ấy tự nhập và tự đồng ý.</p><Link to="/radar/invite">Mời họ tự nhập</Link></div>

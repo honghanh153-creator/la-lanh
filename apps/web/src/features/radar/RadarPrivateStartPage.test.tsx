@@ -366,4 +366,25 @@ describe("RadarPrivateStartPage", () => {
       expect(screen.queryByLabelText("Ngày sinh — ngày")).not.toBeInTheDocument();
     });
   });
+  // AL1 direction C (off by default): keeping a pair for "Hai bạn tuần này" is an opt-in, default No.
+  it("offers keeping the pair weekly only when the server serves the approved sentences, unticked", async () => {
+    vi.mocked(getRadarConsentOptions).mockResolvedValue({ ...SWITCHED_OFF, weekly: true, weekly_sentences: { "optin-label": "Câu giữ cặp.", "optin-help": "Câu giải thích." } });
+    vi.mocked(searchBirthPlaces).mockResolvedValue([{ place_id: "vn-hanoi", display_name: "Hà Nội", timezone_id: "Asia/Ho_Chi_Minh", country_code: "VN", confidence: "current-province-centroid" }]);
+    vi.mocked(createPrivateRadarCheck).mockResolvedValue({ request_id: "r-1" } as Awaited<ReturnType<typeof createPrivateRadarCheck>>);
+    const user = userEvent.setup();
+    renderPage();
+
+    const keep = await screen.findByLabelText("Câu giữ cặp.");
+    expect(keep).not.toBeChecked();
+    await user.type(screen.getByLabelText("Ngày sinh — ngày"), "15");
+    await user.type(screen.getByLabelText("Ngày sinh — tháng"), "03");
+    await user.type(screen.getByLabelText("Ngày sinh — năm"), "1990");
+    await user.click(screen.getByRole("button", { name: "Không rõ giờ" }));
+    await user.type(screen.getByLabelText("Thành phố / tỉnh nơi sinh"), "Hà");
+    await user.click(await screen.findByRole("button", { name: /Hà Nội/ }));
+    await user.click(screen.getByLabelText("Xác nhận đã được phép dùng thông tin sinh"));
+    await user.click(keep);
+    await user.click(screen.getByRole("button", { name: /^Xem hợp gu$/ }));
+    await waitFor(() => expect(createPrivateRadarCheck).toHaveBeenCalledWith(expect.objectContaining({ keep_weekly: true }), expect.any(String), undefined));
+  });
 });

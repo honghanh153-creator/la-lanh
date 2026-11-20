@@ -303,3 +303,6 @@
 .radar-card__links li { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; color: #c8bfe0; font-size: 0.78rem; }
 .radar-card__links button { display: flex; min-height: 2.75rem; padding: 0 0.7rem; border: 1px solid rgb(185 150 255 / 30%); border-radius: 0.75rem; align-items: center; gap: 0.3rem; color: #d9c6ff; background: transparent; font: inherit; }
 .radar-card-page { display: grid; gap: 1rem; }
+/* Hợp gu C: keep a pair for "Hai bạn tuần này" (off by default). */
+.radar-weekly-optin { display: grid; grid-template-columns: auto 1fr; gap: 0.6rem; padding: 0.8rem; border: 1px solid rgb(185 150 255 / 26%); border-radius: 1rem; color: #eee9fa; font-size: 0.74rem; line-height: 1.45; }
+.radar-weekly-optin small { display: block; margin-top: 0.25rem; color: #b9addb; }
