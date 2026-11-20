@@ -316,6 +316,20 @@
 /* #627: switch between the card's action and the lighter one. */
 :root .ultraviolet-app .home-daily-signal__lighter-switch { grid-column: 2; justify-self: start; padding: 0; border: 0; background: transparent; text-align: left; text-decoration: underline; text-underline-offset: 0.2em; }
 :root .ultraviolet-app .reading-content__lighter-switch { margin-top: 0.75rem; }
+/* #741: keep / stop keeping / look back on the night card, same controls as the note page. */
+:root .ultraviolet-app .home-daily-signal__kept { grid-column: 2; min-width: 0; }
+:root .ultraviolet-app .home-daily-signal__kept .reading-content__experiment-button { width: auto; min-height: 2.75rem; margin-top: 0.875rem; padding: 0 1rem; border: 1px solid rgb(205 231 127 / 55%); color: #ffffff; background: rgb(255 255 255 / 10%); box-shadow: none; font-size: 0.875rem; font-weight: 600; }
+:root .ultraviolet-app .home-daily-signal__kept :is(.text-button, .reading-content__outcomes button) { min-height: 2.75rem; padding: 0 0.875rem; border: 1px solid rgb(255 255 255 / 38%); border-radius: 999px; color: #f1edfb; background: transparent; font-size: 0.875rem; font-weight: 600; }
+:root .ultraviolet-app .home-daily-signal__kept :is(.text-button, button):disabled { opacity: 0.62; }
+:root .ultraviolet-app .home-daily-signal__kept .reading-content__outcomes legend { color: #f1edfb; }
+:root .ultraviolet-app .home-daily-signal__kept .reading-content__reflected { color: var(--uv-leaf); }
+:root .ultraviolet-app .home-daily-signal__kept .reading-content__experiment-error { color: #ffd0cb; font-size: 0.875rem; }
+:root .ultraviolet-app .home-daily-signal__kept .reading-content__replace-note { color: #f1edfb; font-size: 0.875rem; }
+:root .ultraviolet-app .home-daily-signal__kept .reading-content__held-experiment { background: rgb(255 255 255 / 10%); }
+:root .ultraviolet-app .home-daily-signal__kept .reading-content__held-experiment .eyebrow { margin: 0; color: var(--uv-leaf); }
+:root .ultraviolet-app .home-daily-signal__kept .reading-content__experiment-cues { border-left-color: var(--uv-leaf); color: #f1edfb; background: transparent; }
+:root .ultraviolet-app .home-daily-signal__kept .reading-content__experiment-cues :is(p, strong) { color: #f1edfb; font-size: 0.875rem; }
+:root .ultraviolet-app .home-daily-signal__kept .reading-content__held-experiment .text-button { margin-top: 0.625rem; }
 :root .ultraviolet-app .home-note-footer { display: flex; min-height: 2.75rem; margin-top: 0.5rem; align-items: center; justify-content: space-between; gap: 0.25rem; }
 :root .ultraviolet-app .home-daily-signal__paper .home-note-footer > a { display: flex; min-height: 2.75rem; align-items: center; gap: 0.375rem; color: #ffffff; font-size: 0.9375rem; font-weight: 600; text-decoration: none; }
 :root .ultraviolet-app .home-note-footer > a svg { width: 1.125rem; height: 1.125rem; }
