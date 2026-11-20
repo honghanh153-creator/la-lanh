@@ -21,6 +21,7 @@ from app.domains.readings.daily_personalization import (
     eligible_daily_situations,
 )
 from app.domains.readings.daily_rotation import DAILY_TOP_K, axis_slot, top_k_slot
+from app.domains.readings.headline_rewrites import served_headline
 from app.domains.readings.interpretive_lenses import daily_mixed_radix_slots
 from app.domains.readings.knowledge import InterpretationFrame, body_label, semantic_arena
 from app.domains.readings.models import (
@@ -1005,9 +1006,15 @@ def _expand_daily_issue(issue: DailyIssuePattern) -> DailyIssuePattern:
     # daily batch; only approved, digest-matching ones join the rotated pool.
     expanded = replace(
         issue,
+        # A headline that says the reader is tired gives way to its approved rewrite (#777).
         headlines=tuple(
             dict.fromkeys(
-                (*issue.headlines, *titles, *approved_texts(f"daily.headline.{issue.key}."))
+                served_headline(headline)
+                for headline in (
+                    *issue.headlines,
+                    *titles,
+                    *approved_texts(f"daily.headline.{issue.key}."),
+                )
             )
         ),
         scenes=tuple(
@@ -1346,7 +1353,8 @@ def apply_daily_psychology(
                 ("action", len(actions)),
             )
         )
-    headline, scene, action = issue.headlines[headline_slot], issue.scenes[scene_slot], ""
+    headline = served_headline(issue.headlines[headline_slot])
+    scene, action = issue.scenes[scene_slot], ""
     scene_key = f"psychology:{issue.key}:scene-{scene_slot}"
     action_key = f"psychology:{issue.key}:{arena.value}-advice-{advice_slot}"
     # Owner 10.11: once a situation has approved bundles, the day serves one whole bundle
