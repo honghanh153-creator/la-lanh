@@ -1363,6 +1363,28 @@ export function createRadarInvite(input: {
   });
 }
 
+/** "Hỏi về hai bạn" (Hợp gu B): pre-written questions answered from the stored reading. */
+export type RadarAskQuestions = { version: string; questions: { id: string; text: string }[] };
+export type RadarAskAnswer = {
+  version: string;
+  question_id: string;
+  question: string;
+  say: string;
+  why: string;
+  try_today?: string | null;
+  can_send: string;
+  refusal: boolean;
+  based_on?: { theme: string; label?: string | null; level_label: string; technical_note?: string | null; evidence_ids: string[] } | null;
+};
+
+export function getRadarAskQuestions(requestId: string, signal?: AbortSignal): Promise<RadarAskQuestions> {
+  return request<RadarAskQuestions>(`/radar/results/${encodeURIComponent(requestId)}/ask`, { signal });
+}
+
+export function getRadarAskAnswer(requestId: string, questionId: string, signal?: AbortSignal): Promise<RadarAskAnswer> {
+  return request<RadarAskAnswer>(`/radar/results/${encodeURIComponent(requestId)}/ask/${encodeURIComponent(questionId)}`, { signal });
+}
+
 export function getRadarConsentOptions(signal?: AbortSignal): Promise<RadarConsentOptions> {
   return request<RadarConsentOptions>("/public/radar/consent-options", { signal });
 }

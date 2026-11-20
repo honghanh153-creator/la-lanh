@@ -12986,6 +12986,474 @@
    "category": "reading",
    "text": "Bạn thích nói chuyện vào lúc nào trong ngày?",
    "status": "pending"
+  },
+  {
+   "id": "radar.ask.close.message.question",
+   "category": "reading",
+   "text": "Nhắn tin cho người ấy kiểu nào thì dễ nghe?",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.close.timing.question",
+   "category": "reading",
+   "text": "Vì sao hai bạn hay lệch nhau chuyện giờ giấc?",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.close.together.question",
+   "category": "reading",
+   "text": "Đi chơi hay làm gì chung thế nào cho cả hai cùng vui?",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.close.direct.question",
+   "category": "reading",
+   "text": "Chuyện gì mình nên nói thẳng với người ấy?",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.close.mind.question",
+   "category": "reading",
+   "text": "Người ấy có thích mình không?",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.close.message.send",
+   "category": "reading",
+   "text": "Tối thứ Sáu bạn rảnh không? Mình muốn rủ đi ăn.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.close.timing.send",
+   "category": "reading",
+   "text": "Mình chốt 7 giờ tối thứ Bảy nhé, bạn thấy được không?",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.close.together.send",
+   "category": "reading",
+   "text": "Cuối tuần này mình đi đâu đó nhé, bạn chọn chỗ, mình chọn giờ?",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.close.direct.send",
+   "category": "reading",
+   "text": "Có chuyện này mình muốn nói thật với bạn, bạn rảnh nghe một chút không?",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.close.mind.send",
+   "category": "reading",
+   "text": "Mình thấy vui khi nói chuyện với bạn. Bạn thấy sao?",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.friend.message.question",
+   "category": "reading",
+   "text": "Nhắn tin với bạn ấy kiểu nào thì dễ hiểu nhau?",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.friend.timing.question",
+   "category": "reading",
+   "text": "Vì sao hai bạn hay lệch nhau chuyện hẹn gặp?",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.friend.together.question",
+   "category": "reading",
+   "text": "Làm gì chung thì hai bạn dễ vui?",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.friend.direct.question",
+   "category": "reading",
+   "text": "Chuyện gì mình nên nói thẳng với bạn ấy?",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.friend.mind.question",
+   "category": "reading",
+   "text": "Bạn ấy nghĩ gì về mình?",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.friend.message.send",
+   "category": "reading",
+   "text": "Cuối tuần này cà phê không? Mình đang có chuyện muốn kể.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.friend.timing.send",
+   "category": "reading",
+   "text": "Mình hẹn 3 giờ chiều Chủ nhật nhé, trễ thì nhắn trước một câu.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.friend.together.send",
+   "category": "reading",
+   "text": "Hôm nào rảnh mình thử làm một cái gì mới cùng nhau không?",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.friend.direct.send",
+   "category": "reading",
+   "text": "Chuyện hôm trước mình nghĩ lại rồi, mình muốn nói rõ với bạn.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.friend.mind.send",
+   "category": "reading",
+   "text": "Mình quý bạn lắm. Dạo này bạn thấy hai đứa thế nào?",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.work.message.question",
+   "category": "reading",
+   "text": "Nhắn việc cho người ấy thế nào cho rõ?",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.work.timing.question",
+   "category": "reading",
+   "text": "Vì sao hai bạn hay lệch nhau chuyện hạn chót?",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.work.together.question",
+   "category": "reading",
+   "text": "Làm việc chung thế nào cho đỡ mệt?",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.work.direct.question",
+   "category": "reading",
+   "text": "Chuyện gì mình nên nói thẳng trong công việc?",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.work.mind.question",
+   "category": "reading",
+   "text": "Người ấy có đánh giá cao mình không?",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.work.message.send",
+   "category": "reading",
+   "text": "Phần số liệu bạn làm giúp mình nhé, cần trước 3 giờ chiều mai.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.work.timing.send",
+   "category": "reading",
+   "text": "Mình chốt hạn là thứ Năm nhé, giữa tuần mình xem lại một lần.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.work.together.send",
+   "category": "reading",
+   "text": "Việc này mình chia đôi nhé: mình lo phần đầu, bạn lo phần sau, được không?",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.work.direct.send",
+   "category": "reading",
+   "text": "Mình muốn góp ý một chút về cách hai mình chia việc, bạn có năm phút không?",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.work.mind.send",
+   "category": "reading",
+   "text": "Mình muốn làm tốt hơn khi làm chung với bạn. Bạn thấy mình nên đổi gì không?",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.family.message.question",
+   "category": "reading",
+   "text": "Nói chuyện với người ấy thế nào cho đỡ căng?",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.family.timing.question",
+   "category": "reading",
+   "text": "Vì sao hai bạn hay lệch nhau chuyện giờ giấc sinh hoạt?",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.family.together.question",
+   "category": "reading",
+   "text": "Làm gì cùng nhau thì cả hai dễ thấy vui?",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.family.direct.question",
+   "category": "reading",
+   "text": "Chuyện gì mình nên nói thẳng với người ấy?",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.family.mind.question",
+   "category": "reading",
+   "text": "Người ấy có hài lòng về mình không?",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.family.message.send",
+   "category": "reading",
+   "text": "Tối nay mình ăn cơm cùng nhau nhé, mình có chuyện vui muốn kể.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.family.timing.send",
+   "category": "reading",
+   "text": "Cuối tuần mình về lúc 6 giờ chiều nhé, có gì mình nhắn.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.family.together.send",
+   "category": "reading",
+   "text": "Chủ nhật này mình nấu một món cùng nhau không?",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.family.direct.send",
+   "category": "reading",
+   "text": "Có chuyện này mình muốn nói thật, mình nói lúc nào thì tiện?",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.family.mind.send",
+   "category": "reading",
+   "text": "Mình muốn nghe thật lòng: dạo này bạn thấy hai mình thế nào?",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.mind.reply",
+   "category": "reading",
+   "text": "Lá không đoán được người ấy nghĩ gì. Bạn có thể hỏi thẳng:",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.why.quiet",
+   "category": "reading",
+   "text": "Lá chưa thấy điểm nào rõ ở chỗ này, nên đây là gợi ý chung.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.message.good.say",
+   "category": "reading",
+   "text": "Cứ nhắn tự nhiên, hai bạn vốn dễ hiểu ý nhau.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.message.good.why",
+   "category": "reading",
+   "text": "Ở {theme}, hai bạn hợp nhau.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.message.good.try",
+   "category": "reading",
+   "text": "Thử hôm nay: hỏi một câu mở về chuyện người ấy đang làm.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.message.balanced.say",
+   "category": "reading",
+   "text": "Nhắn ngắn, nói việc trước, cảm xúc sau.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.message.balanced.why",
+   "category": "reading",
+   "text": "Ở {theme}, hai bạn ở mức vừa: có lúc hiểu nhanh, có lúc cần nói rõ hơn.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.message.balanced.try",
+   "category": "reading",
+   "text": "Thử hôm nay: viết một tin dưới hai câu, kết bằng một câu hỏi.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.message.watch.say",
+   "category": "reading",
+   "text": "Nói ý chính ngay câu đầu để không ai phải đoán.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.message.watch.why",
+   "category": "reading",
+   "text": "Ở {theme}, hai bạn dễ hiểu lệch nhau, nên câu càng rõ càng đỡ nhầm.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.message.watch.try",
+   "category": "reading",
+   "text": "Thử hôm nay: đọc lại tin trước khi gửi và bỏ những chữ có thể hiểu hai nghĩa.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.timing.good.say",
+   "category": "reading",
+   "text": "Giờ giấc ít khi là chuyện lớn giữa hai bạn.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.timing.good.why",
+   "category": "reading",
+   "text": "Ở {theme}, hai bạn khá hợp nhịp.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.timing.good.try",
+   "category": "reading",
+   "text": "Thử hôm nay: chốt luôn giờ cho lần gặp tới.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.timing.balanced.say",
+   "category": "reading",
+   "text": "Lệch giờ thường vì chưa chốt rõ, không phải vì ai không để tâm.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.timing.balanced.why",
+   "category": "reading",
+   "text": "Ở {theme}, hai bạn ở mức vừa, lúc khớp lúc không.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.timing.balanced.try",
+   "category": "reading",
+   "text": "Thử hôm nay: hẹn kèm giờ cụ thể và nhắc lại trước một ngày.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.timing.watch.say",
+   "category": "reading",
+   "text": "Hai bạn có nhịp khác nhau, nên lệch giờ dễ thành chuyện bực.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.timing.watch.why",
+   "category": "reading",
+   "text": "Ở {theme}, đây là chỗ hai bạn cần để ý.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.timing.watch.try",
+   "category": "reading",
+   "text": "Thử hôm nay: thống nhất một việc cần đúng giờ và một việc có thể linh hoạt.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.together.good.say",
+   "category": "reading",
+   "text": "Hai bạn dễ làm chung, cứ chia phần rõ là đi nhanh.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.together.good.why",
+   "category": "reading",
+   "text": "Ở {theme}, hai bạn hợp nhau.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.together.good.try",
+   "category": "reading",
+   "text": "Thử hôm nay: chọn một việc nhỏ và làm cùng từ đầu tới cuối.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.together.balanced.say",
+   "category": "reading",
+   "text": "Làm chung sẽ đỡ mệt nếu biết trước ai lo phần nào.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.together.balanced.why",
+   "category": "reading",
+   "text": "Ở {theme}, hai bạn ở mức vừa: có lúc ăn ý, có lúc cần bàn thêm.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.together.balanced.try",
+   "category": "reading",
+   "text": "Thử hôm nay: viết ra hai cột việc, mỗi người nhận một cột.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.together.watch.say",
+   "category": "reading",
+   "text": "Khi làm chung, hai bạn dễ giành nhau quyết hoặc lệch tốc độ.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.together.watch.why",
+   "category": "reading",
+   "text": "Ở {theme}, đây là chỗ hai bạn dễ va nhau.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.together.watch.try",
+   "category": "reading",
+   "text": "Thử hôm nay: chọn ai chốt việc nào trước khi bắt đầu.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.direct.good.say",
+   "category": "reading",
+   "text": "Hai bạn có thể nói thẳng mà ít khi làm nhau khó chịu.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.direct.good.why",
+   "category": "reading",
+   "text": "Ở {theme}, hai bạn dễ nghe nhau.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.direct.good.try",
+   "category": "reading",
+   "text": "Thử hôm nay: nói ra một điều bạn thấy ổn ở cách hai bạn đang làm.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.direct.balanced.say",
+   "category": "reading",
+   "text": "Nói thẳng về một việc cụ thể, tránh nói về tính cách.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.direct.balanced.why",
+   "category": "reading",
+   "text": "Ở {theme}, hai bạn ở mức vừa, nói rõ thì dễ hiểu nhau hơn.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.direct.balanced.try",
+   "category": "reading",
+   "text": "Thử hôm nay: bắt đầu bằng \"Mình thấy…\" thay vì \"Bạn lúc nào cũng…\".",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.direct.watch.say",
+   "category": "reading",
+   "text": "Chuyện chưa nói ra dễ âm ỉ giữa hai bạn, nói sớm sẽ nhẹ hơn.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.direct.watch.why",
+   "category": "reading",
+   "text": "Ở {theme}, hai bạn dễ để chuyện nhỏ thành lớn.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.ask.direct.watch.try",
+   "category": "reading",
+   "text": "Thử hôm nay: chọn một chuyện nhỏ đang vướng và nói ra trong một câu.",
+   "status": "pending"
   }
  ],
  "version": "copy-registry/v1"

@@ -9,6 +9,7 @@ import { BrandMark } from "../../shared/ui/BrandMark";
 import { ReadingDisclaimer } from "../../shared/ui/ReadingDisclaimer";
 import "../matching/matching.css";
 import "./radar.css";
+import { RadarAsk } from "./RadarAsk";
 import { RadarFlowSteps } from "./RadarFlowSteps";
 import { formatRadarExpiry, radarVoiceLabel, RADAR_CONTEXT_OPTIONS, RADAR_PENDING_REQUEST_KEY } from "./radarOptions";
 import { NightSky } from "../../shared/ui/NightSky";
@@ -222,6 +223,7 @@ export function RadarResultView({ result, onWithdraw, withdrawing = false, actio
         <p>{area.note}</p>
       </li>)}</ul> : null}
       <RadarReadable sections={sections} />
+      {ownerView && result.request_id ? <RadarAsk requestId={result.request_id} /> : null}
       {ownerView ? <RadarTarotBridge /> : null}
       <ReadingDisclaimer>{result.disclaimer}</ReadingDisclaimer>
       {ownerView && result.mode === "private_check" ? <RadarPrivateRetentionNote expiresAt={result.expires_at} /> : null}

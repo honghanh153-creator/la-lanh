@@ -24,6 +24,14 @@ Owner chọn AL1 sau thử 100 người giả (34–45/100 tới được kết 
 
 - **Web (AL1).** Năm nút ngữ cảnh; tên gọi không bắt buộc (để trống thì lịch sử ghi tên ngữ cảnh). `/radar/invite` không chặn chủ chỉ có ngày sinh. Kết quả hiện `basis_note` cạnh tiêu đề. Khi `consent-options` trả `invite_first`, `/radar/start` mở đầu bằng khối mời (nút "Gửi link mời"), form phụ chỉ cần ngày sinh, giờ và nơi sinh nằm trong "Thêm giờ và nơi sinh (không bắt buộc)" (ẩn hẳn khi chủ chỉ có ngày sinh), tick dùng câu owner đã duyệt; `/radar/i/:token` thành trang một ô ngày sinh rồi sang `/radar/receipt`. Khi tắt: form cũ, và chủ chỉ có ngày sinh thấy cổng thêm giờ cùng lối "Mời họ tự nhập".
 
+## 1c. "Hỏi về hai bạn" (hướng B, AL1)
+
+- Chủ kết quả (owner, còn hạn) chọn một câu hỏi viết sẵn; không có ô gõ chữ, không gọi AI ngoài, không lưu gì. `GET /v1/radar/results/{id}/ask` trả các câu hỏi; `GET /v1/radar/results/{id}/ask/{question_id}` trả câu trả lời (`radar-ask-v1`), cả hai owner-bound, `no-store`.
+- Câu hỏi theo nhóm quan hệ (crush/partner → `close`, friend/someone → `friend`, coworker → `work`, family → `family`) × chủ đề (`message`, `timing`, `together`, `direct`) và một câu `mind` ("Người ấy có thích mình không?" và tương tự).
+- Câu trả lời lấy từ mức của các theme trong lớp "Vì sao" của chính bản đọc đã lưu: theme cần để ý được ưu tiên, rồi theme hợp, rồi theme vừa; không có theme nào thì dùng câu "gợi ý chung". Dòng "Vì sao" chỉ nói về hai người, không nhận xét người kia (ghi chú của bài thử 20.11). Câu `mind` luôn là câu từ chối mẫu kèm một câu để hỏi thẳng.
+- Mọi câu nằm trong registry (`radar.ask.*`) ở trạng thái chờ; một câu hỏi chỉ hiện khi mọi câu nó có thể hiện đã được duyệt. Web ẩn cả khối khi chưa có câu hỏi nào.
+- Không có "Lưu câu này" như bản mock: lưu là giữ dữ liệu sau 24 giờ; thay bằng "Chép câu này" trên máy.
+
 ## 2. Hai mode
 
 | Mode | Khi nào dùng | Ai nhập dữ liệu B | Kết quả | Dữ liệu B |

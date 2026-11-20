@@ -1217,6 +1217,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/radar/results/{request_id}/ask": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Ask Questions
+         * @description Hợp gu direction B: pre-written questions only, for the owner of a live result.
+         */
+        get: operations["ask_questions_v1_radar_results__request_id__ask_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/radar/results/{request_id}/ask/{question_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ask Answer */
+        get: operations["ask_answer_v1_radar_results__request_id__ask__question_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/reading-projections/{scope_key}/activate": {
         parameters: {
             query?: never;
@@ -3445,6 +3482,53 @@ export interface components {
              * Format: uuid
              */
             request_id: string;
+        };
+        /** RadarAskAnswerResponse */
+        RadarAskAnswerResponse: {
+            based_on?: components["schemas"]["RadarAskBasis"] | null;
+            /** Can Send */
+            can_send: string;
+            /** Question */
+            question: string;
+            /** Question Id */
+            question_id: string;
+            /** Refusal */
+            refusal: boolean;
+            /** Say */
+            say: string;
+            /** Try Today */
+            try_today?: string | null;
+            /** Version */
+            version: string;
+            /** Why */
+            why: string;
+        };
+        /** RadarAskBasis */
+        RadarAskBasis: {
+            /** Evidence Ids */
+            evidence_ids?: string[];
+            /** Label */
+            label?: string | null;
+            /** Level Label */
+            level_label: string;
+            /** Technical Note */
+            technical_note?: string | null;
+            /** Theme */
+            theme: string;
+        };
+        /** RadarAskQuestion */
+        RadarAskQuestion: {
+            /** Id */
+            id: string;
+            /** Text */
+            text: string;
+        };
+        /** RadarAskQuestionsResponse */
+        RadarAskQuestionsResponse: {
+            /** Questions */
+            questions: components["schemas"]["RadarAskQuestion"][];
+            /** Version */
+            version: string;
         };
         /** RadarBoundActionRequest */
         RadarBoundActionRequest: {
@@ -9256,6 +9340,69 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Request input was rejected */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    ask_questions_v1_radar_results__request_id__ask_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarAskQuestionsResponse"];
+                };
+            };
+            /** @description Request input was rejected */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    ask_answer_v1_radar_results__request_id__ask__question_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+                question_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarAskAnswerResponse"];
+                };
             };
             /** @description Request input was rejected */
             422: {

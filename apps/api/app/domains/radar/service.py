@@ -23,6 +23,7 @@ from app.domains.content_rewrite.service import ContentRewriteService
 from app.domains.erasure_journal.journal import ErasureJournal, ErasureKind
 from app.domains.guest.tables import GuestSessionRow
 from app.domains.identity.tables import PrincipalRow
+from app.domains.radar import ask as radar_ask
 from app.domains.radar.consent_drafts import invite_first_sentences
 from app.domains.radar.models import (
     RadarAcceptResult,
@@ -750,7 +751,22 @@ class RadarService:
             result["recipient_label"] = self._label(row)
             result["mode"] = row.mode
             result["expires_at"] = row.expires_at
+            result["context"] = row.context
             return result
+
+    async def ask_questions(self, principal_id: UUID, request_id: UUID) -> list[dict[str, str]]:
+        """ "Hỏi về hai bạn": the approved questions the owner's stored reading can answer."""
+
+        return radar_ask.questions_for(await self.result(principal_id, request_id))
+
+    async def ask(self, principal_id: UUID, request_id: UUID, question_id: str) -> dict[str, Any]:
+        """One answer, built only from the owner's stored reading (no new data, no AI)."""
+
+        reading = await self.result(principal_id, request_id)
+        try:
+            return radar_ask.answer(reading, question_id).as_dict()
+        except KeyError as error:
+            raise RadarUnavailable from error
 
     async def receipt_result(self, receipt: str) -> dict[str, Any]:
         current = datetime.now(UTC)

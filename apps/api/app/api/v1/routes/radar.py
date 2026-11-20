@@ -2,7 +2,7 @@ from datetime import date, datetime
 from typing import Annotated, Any, Literal, cast
 from uuid import UUID
 
-from fastapi import APIRouter, Cookie, Depends, Header, Query, Request, Response
+from fastapi import APIRouter, Cookie, Depends, Header, Path, Query, Request, Response
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -11,6 +11,7 @@ from app.domains.guest.errors import CsrfRejected, GuestDomainError
 from app.domains.guest.service import GuestSessionService
 from app.domains.identity.models import OwnerIdentity
 from app.domains.identity.service import OwnerIdentityService, OwnerSessionUnavailable
+from app.domains.radar.ask import ASK_VERSION
 from app.domains.radar.consent_drafts import invite_first_sentences
 from app.domains.radar.models import RadarInviteView, RadarMode, RadarReceivedView, RadarStatus
 from app.domains.radar.service import (
@@ -412,6 +413,69 @@ async def owner_result(request_id: UUID, request: Request) -> RadarResultRespons
     except (OwnerSessionUnavailable, RadarError):
         return Response(status_code=404)
     return RadarResultResponse.model_validate(result)
+
+
+class RadarAskQuestion(BaseModel):
+    id: str
+    text: str
+
+
+class RadarAskQuestionsResponse(BaseModel):
+    version: str
+    questions: list[RadarAskQuestion]
+
+
+class RadarAskBasis(BaseModel):
+    theme: str
+    label: str | None = None
+    level_label: str
+    technical_note: str | None = None
+    evidence_ids: list[str] = Field(default_factory=list)
+
+
+class RadarAskAnswerResponse(BaseModel):
+    version: str
+    question_id: str
+    question: str
+    say: str
+    why: str
+    try_today: str | None = None
+    can_send: str
+    refusal: bool
+    based_on: RadarAskBasis | None = None
+
+
+@router.get("/radar/results/{request_id}/ask", response_model=RadarAskQuestionsResponse)
+async def ask_questions(
+    request_id: UUID, request: Request, response: Response
+) -> RadarAskQuestionsResponse | Response:
+    """Hợp gu direction B: pre-written questions only, for the owner of a live result."""
+
+    _safe_public(response)
+    try:
+        owner = await _owner(request)
+        questions = await _service(request).ask_questions(owner.principal_id, request_id)
+    except (OwnerSessionUnavailable, RadarError):
+        return Response(status_code=404, headers=dict(response.headers))
+    return RadarAskQuestionsResponse(
+        version=ASK_VERSION, questions=[RadarAskQuestion(**item) for item in questions]
+    )
+
+
+@router.get("/radar/results/{request_id}/ask/{question_id}", response_model=RadarAskAnswerResponse)
+async def ask_answer(
+    request_id: UUID,
+    question_id: Annotated[str, Path(pattern=r"^[a-z]{1,16}$")],
+    request: Request,
+    response: Response,
+) -> RadarAskAnswerResponse | Response:
+    _safe_public(response)
+    try:
+        owner = await _owner(request)
+        found = await _service(request).ask(owner.principal_id, request_id, question_id)
+    except (OwnerSessionUnavailable, RadarError):
+        return Response(status_code=404, headers=dict(response.headers))
+    return RadarAskAnswerResponse.model_validate(found)
 
 
 @router.delete("/radar/results/{request_id}", status_code=204)
