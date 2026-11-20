@@ -114,7 +114,7 @@ for (const [name, path] of [["home", "/home"], ["note", "/note/today"]] as const
       await page.setViewportSize({ width, height: 800 });
       await page.goto(path);
       await expectFits(page, width, "Xem việc ban đầu", LIGHT);
-      await page.screenshot({ path: resolve(OUT_DIR, `${name}-${width}-lighter.png`), fullPage: true, animations: "disabled" });
+      await page.screenshot({ path: resolve(OUT_DIR, `${name}-${width}-lighter.png`), fullPage: true, animations: "disabled", scale: "css" });
 
       // Keyboard: focus the switch, Enter shows the card's own action, Enter again the lighter one.
       await page.getByRole("button", { name: "Xem việc ban đầu" }).focus();
@@ -122,7 +122,7 @@ for (const [name, path] of [["home", "/home"], ["note", "/note/today"]] as const
       await expectFits(page, width, "Xem việc nhẹ hơn", OWN);
       await expect(page.getByRole("button", { name: "Xem việc nhẹ hơn" })).toBeFocused();
       await expect(page.getByText(LIGHT, { exact: true })).toHaveCount(0);
-      await page.screenshot({ path: resolve(OUT_DIR, `${name}-${width}-original.png`), fullPage: true, animations: "disabled" });
+      await page.screenshot({ path: resolve(OUT_DIR, `${name}-${width}-original.png`), fullPage: true, animations: "disabled", scale: "css" });
       await page.keyboard.press("Enter");
       await expect(page.getByText(LIGHT, { exact: true })).toBeVisible();
     }

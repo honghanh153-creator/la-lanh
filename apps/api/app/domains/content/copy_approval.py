@@ -10,7 +10,9 @@ only, so adding a pending entry does not trip the owner gate.
 from __future__ import annotations
 
 import json
+import re
 import unicodedata
+from collections.abc import Callable
 from dataclasses import dataclass
 from functools import lru_cache
 from hashlib import sha256
@@ -25,6 +27,181 @@ OWNER_ONLY_CATEGORIES = frozenset({"privacy", "consent", "crisis", "safety"})
 
 def copy_digest(text: str) -> str:
     return sha256(unicodedata.normalize("NFC", text).encode()).hexdigest()
+
+
+# Copy lint (register #177, PV-15). Machine-written copy goes through an auto loop, so text
+# shown to users must never carry a link, a contact detail or an unfilled template slot.
+# Every rule applies to pending and approved entries alike; an approved entry that breaks
+# one is not servable, so runtime falls back to the caller's current approved sentence.
+#
+# The two classes are closed by definition, not by a list of known spellings (review r7 of #411):
+#
+# Link. Decided by Python's IDNA codec, not by a character class (review r10 of #411): a word
+# (no space inside) with a dot is a link when the codec encodes it as a host name of two or more
+# labels and the last label has two or more characters and does not start with a digit. Any
+# script, combining marks and symbols count ("vidu.vn", "vi-du.рф", "vi-du.भारत", "☕.test"),
+# as do punycode labels ("xn--p1ai") and the other IDNA dots (U+3002, U+FF0E, U+FF61).
+# Punctuation around the word is not part of it ("(vidu.com)."). A word is first cut at the URL
+# separators "/", "?", "#", "\\" and ":" and every piece is checked on its own, so a path, query,
+# fragment or port after the host ("vidu.test/trang?x=1.5", "vidu.test/a..b", "vidu.com:8080")
+# never hides it (review r11 of #411). There is no list of suffixes,
+# so sentences glued
+# together ("xong.Sau", "nhỏ.Rồi") count as a link too: the copy adds the space. Numbers ("1.5",
+# "2.10.3", "50.000đ", "3.5km") are not links; an IPv4 address, a scheme ("https://") and "www."
+# are. text_lint_problems also reads a folded text, so case, full-width letters and invisible
+# characters are not ways around the rule.
+#
+# Template slot. Read by printf_slots(), a tokenizer that walks the printf grammar the way
+# Python's "%" operator does, not by a pattern (review r9 of #411):
+#   "%" ["(" key ")" | n "$"] flags* [width] ["." [precision]] [length] conversion
+# - key: any characters, newlines included, up to the ")" that closes it (nested parentheses
+#   counted), as Python reads it;
+# - flags "-+ #0'"; width and precision: digits or "*" (C also "*m$"); the precision may be
+#   empty ("%.s", "%05.f");
+# - length: Python's h/l/L and C's hh/ll/q/j/z/t/I/I32/I64/w;
+# - conversion: every letter of Python and C printf (diouxXeEfFgGaAcrspn, C/S/m).
+# "%%" is a literal percent sign. One exception, on purpose: a space flag with nothing else
+# ("50% dung lượng") is plain text. Tests compare the tokenizer with Python's own "%".
+_SLOT_FLAGS = frozenset("-+ #0'")
+_SLOT_LENGTHS = ("hh", "ll", "I64", "I32", "h", "l", "L", "q", "j", "z", "t", "I", "w")
+_SLOT_CONVERSIONS = frozenset("diouxXeEfFgGaAcsrpnCSm")
+_ASCII_DIGITS = frozenset("0123456789")
+
+
+def _slot_number(text: str, at: int) -> int:
+    """End of a width or precision at ``at``: digits, or "*" with an optional "m$"."""
+
+    if at < len(text) and text[at] == "*":
+        end = at + 1
+        digits = end
+        while digits < len(text) and text[digits] in _ASCII_DIGITS:
+            digits += 1
+        return digits + 1 if digits > end and digits < len(text) and text[digits] == "$" else end
+    while at < len(text) and text[at] in _ASCII_DIGITS:
+        at += 1
+    return at
+
+
+def printf_slots(text: str) -> tuple[tuple[int, int], ...]:
+    """(start, end) of every printf-style slot in ``text``; see the grammar above."""
+
+    slots: list[tuple[int, int]] = []
+    at = 0
+    while (start := text.find("%", at)) != -1:
+        at = start + 1
+        if at < len(text) and text[at] == "%":
+            at += 1
+            continue
+        cursor = at
+        named = False
+        if cursor < len(text) and text[cursor] == "(":
+            depth, cursor = 1, cursor + 1
+            while cursor < len(text) and depth:
+                depth += {"(": 1, ")": -1}.get(text[cursor], 0)
+                cursor += 1
+            if depth:
+                continue  # an unclosed key is not a slot
+            named = True
+        else:
+            digits = cursor
+            while digits < len(text) and text[digits] in _ASCII_DIGITS:
+                digits += 1
+            if digits > cursor and digits < len(text) and text[digits] == "$":
+                cursor, named = digits + 1, True
+        flags_start = cursor
+        while cursor < len(text) and text[cursor] in _SLOT_FLAGS:
+            cursor += 1
+        flags = text[flags_start:cursor]
+        rest_start = cursor
+        cursor = _slot_number(text, cursor)
+        if cursor < len(text) and text[cursor] == ".":
+            cursor = _slot_number(text, cursor + 1)
+        length = next((form for form in _SLOT_LENGTHS if text.startswith(form, cursor)), "")
+        cursor += len(length)
+        if cursor >= len(text) or text[cursor] not in _SLOT_CONVERSIONS:
+            continue
+        plain_space = not named and set(flags) == {" "} and cursor == rest_start
+        if not plain_space:
+            slots.append((start, cursor + 1))
+            at = cursor + 1
+    return tuple(slots)
+
+
+_IDNA_DOTS = re.compile("[.\u3002\uff0e\uff61]")
+# Review r11 of #411: a host is cut out of its word at these before its labels are checked.
+_URL_SEPARATORS = re.compile(r"[/?#\\:]")
+
+
+def _strip_punctuation(word: str) -> str:
+    start, end = 0, len(word)
+    while start < end and unicodedata.category(word[start]).startswith("P"):
+        start += 1
+    while end > start and unicodedata.category(word[end - 1]).startswith("P"):
+        end -= 1
+    return word[start:end]
+
+
+def idna_hosts(text: str) -> tuple[str, ...]:
+    """Words of ``text`` that Python's IDNA codec reads as a host name; see the rule above."""
+
+    hosts: list[str] = []
+    for word in text.split():
+        for piece in _URL_SEPARATORS.split(word):
+            host = _strip_punctuation(piece)
+            labels = _IDNA_DOTS.split(host)
+            if len(labels) < 2 or not all(labels):
+                continue
+            last = labels[-1]
+            if len(last) < 2 or last[0].isdecimal():
+                continue
+            try:
+                host.encode("idna")
+            except UnicodeError:
+                continue
+            hosts.append(host)
+    return tuple(hosts)
+
+
+_WEB_ADDRESS = re.compile(
+    r"(?i:[a-z][a-z0-9+.-]*://|\bwww\.)|(?<![\w.])\d{1,3}(?:\.\d{1,3}){3}(?!\w|\.\d)"
+)
+_TEMPLATE_MARKS = re.compile(r"\$\w|\$\{|_{3,}")
+_LINT_RULES: tuple[tuple[str, Callable[[str], object]], ...] = (
+    ("contains a link", lambda text: _WEB_ADDRESS.search(text) or idna_hosts(text)),
+    ("contains an email address or handle", re.compile(r"@\w").search),
+    # Eight or more digits in one run (spaces, dots, dashes, brackets allowed between them).
+    ("contains a phone number", re.compile(r"\+?\d(?:[\s.()-]*\d){7,}").search),
+    ("contains a placeholder bracket", re.compile(r"[{}<>\[\]]").search),
+    ("contains a template slot", lambda text: printf_slots(text) or _TEMPLATE_MARKS.search(text)),
+    (
+        "contains a draft marker",
+        re.compile(r"\b(?:TODO|TBD|FIXME|XXX+|PLACEHOLDER)\b|lorem ipsum", re.IGNORECASE).search,
+    ),
+)
+
+
+@lru_cache(maxsize=4096)
+def text_lint_problems(text: str) -> tuple[str, ...]:
+    """Reasons ``text`` cannot be shown to users, in rule order (empty when it is clean)."""
+
+    found: list[str] = []
+    if unicodedata.normalize("NFC", text) != text:
+        found.append("text is not Unicode NFC")
+    # Invisible format characters (zero-width space, soft hyphen, word joiner, direction marks)
+    # have no place in a sentence and can split a link so that no rule sees it.
+    if any(unicodedata.category(char) == "Cf" for char in text):
+        found.append("contains an invisible character")
+    # Review r6 of #411: case and width are not ways around a rule. Each rule also reads the
+    # NFKC, casefolded text, so "VIDU.COM", full-width letters, "Ban@Vi-Du.Test" or full-width
+    # digits are caught by the same rule as their plain lower-case form. The folded text also
+    # drops invisible characters and reads the ideographic full stop as a dot (r7).
+    folded = "".join(
+        char
+        for char in unicodedata.normalize("NFKC", text).casefold()
+        if unicodedata.category(char) != "Cf"
+    ).replace("。", ".")
+    found.extend(reason for reason, finds in _LINT_RULES if finds(text) or finds(folded))
+    return tuple(found)
 
 
 @dataclass(frozen=True)
@@ -43,6 +220,7 @@ class CopyEntry:
             found.append(f"{self.id}: status must be pending or approved")
         if not self.text.strip():
             found.append(f"{self.id}: empty text")
+        found.extend(f"{self.id}: {reason}" for reason in text_lint_problems(self.text))
         if self.status == "approved":
             if self.approver not in APPROVERS:
                 found.append(f"{self.id}: approved entry needs approver codex or owner")
