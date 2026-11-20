@@ -119,3 +119,195 @@ def test_merged_plan_game_checks_not_applicable_for_non_players() -> None:
     assert "game_understood" not in rows[0]["checks"]
     assert rows[0]["checks"]["game_hurt"] is False
     assert share(rows, "game_understood", True) == (1, 1)
+
+
+# Issue #689: is the measurement itself stable? Synthetic scores only.
+def _score(pid: str, value: int = 3, **changes: Any) -> dict[str, Any]:
+    from scripts.persona_stability import FLAGS, SCORES
+
+    return {
+        "persona": pid,
+        **dict.fromkeys(SCORES, value),
+        **dict.fromkeys(FLAGS, False),
+        **changes,
+    }
+
+
+def _passes(
+    n: int, changes: dict[int, dict[str, Any]]
+) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]], list[str]]:
+    from scripts.persona_stability import parse_scores
+
+    ids = [f"P{i:03d}" for i in range(1, n + 1)]
+    first = parse_scores([_score(pid) for pid in ids])
+    again = parse_scores([_score(pid, **changes.get(i, {})) for i, pid in enumerate(ids)])
+    return first, again, ids
+
+
+def _marks(first: Any, again: Any, ids: list[str]) -> list[bool]:
+    from scripts.persona_stability import compare, stability_checks
+
+    return [ok for _, _, ok in stability_checks(compare(first, again, ids))]
+
+
+def test_stability_passes_when_a_rescoring_stays_inside_every_mark() -> None:
+    # 10 of 100 personas move by 2 on one score, 5 up and 5 down: exactly at the 10% mark.
+    moved = {i: {"peaceful": 5 if i % 2 else 1} for i in range(10)}
+    assert _marks(*_passes(100, moved)) == [True, True, True, True]
+
+
+def test_stability_fails_on_each_mark_alone() -> None:
+    from scripts.persona_stability import compare
+
+    # The mean of one score moves by 0.16 (16 personas one point up); nobody is 2 away.
+    assert _marks(*_passes(100, {i: {"understood": 4} for i in range(16)})) == [
+        True,
+        False,
+        True,
+        True,
+    ]
+    assert _marks(*_passes(100, {i: {"understood": 4} for i in range(15)}))[1]
+    # Opposite moves cancel in the mean (review R7-6): the per-persona mark still fails.
+    cancel = {i: {"want_return": 5 if i % 2 else 1} for i in range(12)}
+    first, again, ids = _passes(100, cancel)
+    assert compare(first, again, ids)["scores"]["want_return"]["mean_shift"] == 0
+    assert _marks(first, again, ids) == [True, True, False, True]
+    # One persona with one different harm flag is enough.
+    assert _marks(*_passes(100, {7: {"privacy": True}})) == [True, True, True, False]
+
+
+def test_stability_counts_a_persona_once_and_reports_missing_scores() -> None:
+    from scripts.persona_stability import compare
+
+    first, again, ids = _passes(20, {0: {"understood": 5, "peaceful": 1}, 1: {"less_alone": 1}})
+    del again["P020"]
+    result = compare(first, again, ids)
+    assert result["far_personas"] == ["P001", "P002"]
+    assert (result["compared"], result["missing_b"]) == (19, ["P020"])
+    assert result["scores"]["understood"]["far"] == 1
+    # A pass that skipped someone cannot pass, whatever the other numbers say.
+    assert _marks(first, again, ids) == [False, False, False, False]
+
+
+def test_weighted_kappa_reads_agreement_not_only_equal_means() -> None:
+    from scripts.persona_stability import weighted_kappa
+
+    same = [(1, 1), (2, 2), (3, 3), (4, 4), (5, 5)]
+    flipped = [(1, 5), (2, 4), (3, 3), (4, 2), (5, 1)]
+    assert weighted_kappa(same) == 1
+    flipped_kappa = weighted_kappa(flipped)  # same mean, opposite reading
+    assert flipped_kappa is not None and abs(flipped_kappa + 1) < 1e-9
+    near = weighted_kappa([(1, 2), (2, 2), (3, 4), (4, 4), (5, 5)])
+    assert near is not None and 0.8 < near < 1
+    assert weighted_kappa([(3, 3), (3, 3)]) is None  # no spread: undefined, not "perfect"
+    assert weighted_kappa([]) is None
+
+
+def test_judge_output_is_refused_when_it_is_not_whole_scores_and_flags() -> None:
+    import pytest
+
+    from scripts.persona_stability import parse_scores
+
+    assert parse_scores([_score("P001")])["P001"]["understood"] == 3
+    for bad in (
+        _score("P001", understood=6),
+        _score("P001", understood=3.5),
+        _score("P001", understood=True),
+        _score("P001", privacy="no"),
+        {"persona": "P001"},
+    ):
+        with pytest.raises(ValueError):
+            parse_scores([bad])
+    with pytest.raises(ValueError):
+        parse_scores([_score("P001"), _score("P001")])
+
+
+def _run_rows(people: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [
+        {
+            "persona": p["id"],
+            "day": day,
+            "status": 200,
+            "mood": "Chill",
+            "headline": f"Tiêu đề ngày {day}",
+            "action": "Uống một cốc nước.",
+        }
+        for p in people
+        for day in range(1, 30)
+    ]
+
+
+def _report(tmp_path: Path, people: list[dict[str, Any]], rows: list[dict[str, Any]]) -> bool:
+    """Run ``report`` on a synthetic run where both passes give every persona the same scores."""
+
+    from scripts.persona_stability import cmd_report
+
+    run = tmp_path / "run"
+    run.mkdir(exist_ok=True)
+    (run / "transcript.jsonl").write_text(
+        "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in rows), encoding="utf-8"
+    )
+    (run / "meta.json").write_text(json.dumps({"git_head": "0" * 40}), encoding="utf-8")
+    personas_path = tmp_path / "personas.json"
+    personas_path.write_text(json.dumps({"personas": people}), encoding="utf-8")
+    # Score whoever still has a successful judged day, the way a judge given packets would.
+    shown = {r["persona"] for r in rows if r["status"] == 200}
+    scores = tmp_path / "scores.json"
+    scores.write_text(
+        json.dumps([_score(str(p["id"])) for p in people if p["id"] in shown]), encoding="utf-8"
+    )
+    return cmd_report(
+        run, personas_path, [str(scores)], [str(scores)], [], tmp_path / "report.md", None
+    )
+
+
+def test_report_refuses_a_run_that_lost_a_persona_or_a_required_day(tmp_path: Path) -> None:
+    # Review of #783: the expected people came from the packets, which had already dropped
+    # failed days, so a run missing someone was reported as "99/99, stable".
+    import pytest
+
+    from scripts.persona_stability import build_packets, run_gaps
+
+    people = _personas()[:12]
+    first, second = str(people[0]["id"]), str(people[1]["id"])
+    full = _run_rows(people)
+    assert run_gaps(people, full) == []
+    assert _report(tmp_path, people, full)
+
+    all_days_failed = [{**r, "status": 500} if r["persona"] == first else r for r in full]
+    only_day_1 = [r for r in full if r["day"] == 1]
+    day_1_twice = [{**r, "day": 1} if r["day"] == 8 else r for r in full]
+    one_day_failed = [
+        {**r, "status": 500} if (r["persona"], r["day"]) == (second, 15) else r for r in full
+    ]
+    no_rows_for_one = [r for r in full if r["persona"] != first]
+    for broken in (all_days_failed, only_day_1, day_1_twice, one_day_failed, no_rows_for_one):
+        assert run_gaps(people, broken)
+        with pytest.raises(ValueError, match=r"thiếu|lỗi|hai lần"):
+            _report(tmp_path, people, broken)
+        with pytest.raises(ValueError):
+            build_packets(people, broken)
+    assert "12/12" in (tmp_path / "report.md").read_text(encoding="utf-8")  # not overwritten
+    # A day outside the judged days may fail without touching the measurement.
+    other_day = [{**r, "status": 500} if r["day"] == 2 else r for r in full]
+    assert run_gaps(people, other_day) == []
+    assert _report(tmp_path, people, other_day)
+
+
+def test_packets_are_blind_and_each_pass_reads_in_its_own_order() -> None:
+    from scripts.persona_metrics import JUDGED_DAYS
+    from scripts.persona_stability import build_packets, split_for_pass
+
+    people = _personas()[:12]
+    packets = build_packets(people, _run_rows(people))
+    assert [p["persona"] for p in packets] == [p["id"] for p in people]
+    assert all(len(p["days"]) == len(JUDGED_DAYS) for p in packets)
+    assert set(packets[0]) == {"persona", "profile", "days"}
+    assert "day" not in packets[0]["days"][0]
+    first = split_for_pass(packets, "first", 3)
+    again = split_for_pass(packets, "again", 3)
+    order = [[p["persona"] for p in batch] for batch in first]
+    assert order != [[p["persona"] for p in batch] for batch in again]
+    assert order == [[p["persona"] for p in batch] for batch in split_for_pass(packets, "first", 3)]
+    assert {pid for batch in order for pid in batch} == {p["id"] for p in people}
+    assert sum(len(batch) for batch in order) == len(people)
