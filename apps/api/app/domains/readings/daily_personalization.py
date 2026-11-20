@@ -55,10 +55,12 @@ PLACEMENT_ISSUES = {
 }
 # US-21 AC07 (modality, "tính chất"): a birth date alone also gives the Sun sign's modality, which
 # is coarser than the sign. Cardinal signs start things and change the plan, fixed signs hold on
-# and keep things to themselves, mutable signs weigh many options. Ordered cardinal, fixed, mutable.
-# Chosen so that no sign is left with a single situation: the four signs whose own and element
-# situations coincide (aries, taurus, cancer, aquarius) each get a second one from their modality.
-SUN_MODALITY_ISSUES = ("changed-plan", "name-the-need", "decision-fatigue")
+# and keep things to themselves, mutable signs spread over many things at once. Ordered cardinal,
+# fixed, mutable. Chosen so that no sign is left with a single situation: the four signs whose own
+# and element situations coincide (aries, taurus, cancer, aquarius) each get a second one from
+# their modality. Mutable is not "decision-fatigue": two of its six headlines say the reader is
+# tired, and the persona run (#777) saw them on more "Rực"/"Chill" days.
+SUN_MODALITY_ISSUES = ("changed-plan", "name-the-need", "too-many-open-loops")
 SIGN_MODALITIES = {
     "aries": 0,
     "cancer": 0,

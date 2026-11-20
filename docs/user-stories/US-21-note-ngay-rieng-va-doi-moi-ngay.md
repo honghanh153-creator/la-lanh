@@ -86,8 +86,9 @@ cho phép.
     chưa tới 4–6.
   - *Trạng thái 20.11.2026 (chạy thử người dùng cũ):* thêm **tính chất** của cung Mặt Trời
     (`SUN_MODALITY_ISSUES`: thống lĩnh → đổi kế hoạch, kiên định → nói rõ nhu cầu, linh hoạt →
-    mệt vì chọn), xếp dưới nguyên tố, cùng một yếu tố Mặt Trời theo ngày sinh. 7 cung có 3 tình
-    huống, 5 cung (Bạch Dương, Kim Ngưu, Cự Giải, Bọ Cạp, Bảo Bình) có 2; không cung nào còn 1.
+    mở nhiều việc cùng lúc), xếp dưới nguyên tố, cùng một yếu tố Mặt Trời theo ngày sinh. 6 cung
+    có 3 tình huống, 6 cung (Bạch Dương, Kim Ngưu, Song Tử, Cự Giải, Bọ Cạp, Bảo Bình) có 2; không
+    cung nào còn 1.
     Không thêm câu chữ mới. Vẫn chưa có: các hành tinh khác chắc cung, transit chắc chắn.
 - **AC08:** Không dùng Mặt Trăng, cung mọc, nhà. Bài ghi rõ là bản đọc từ ngày sinh.
   - Câu nói về **pha** chỉ hiện khi pha chắc trên miền ngày sinh (`phase_allowed`).

@@ -49,7 +49,7 @@ SIGNS = tuple(SUN_ISSUES)
 # situation (US-21 AC07) these stayed on a single situation for the whole year.
 ELEMENT_COLLISION_SIGNS = {"aries", "taurus", "cancer", "aquarius"}
 # Signs where one of the three tables repeats another, so two situations rotate instead of three.
-TWO_SITUATION_SIGNS = {"aries", "taurus", "cancer", "scorpio", "aquarius"}
+TWO_SITUATION_SIGNS = {"aries", "taurus", "gemini", "cancer", "scorpio", "aquarius"}
 
 
 def _source(sign: str, status: str = "certain") -> DateOnlySunResult:
@@ -251,7 +251,7 @@ def _repeats_within_a_week(cards: list[tuple[int, str, str, str]]) -> int:
     )
 
 
-@pytest.mark.parametrize("sign", ["gemini", "libra", "aries", "scorpio"])
+@pytest.mark.parametrize("sign", ["virgo", "libra", "aries", "scorpio"])
 def test_headlines_come_back_less_often_than_with_calendar_day_rotation(
     sign: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
