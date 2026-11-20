@@ -159,6 +159,21 @@ POSITIVES: tuple[str, ...] = (
     "Lúc bố về em đã đi xa mãi mãi",
     "Chồng em không biết em đã đi xa mãi mãi",
     "Bạn thân đọc tin này mình đã đi xa mãi mãi",
+    # A parent or grandparent writing about themself (review round 3 of #808): the text reads
+    # as a letter to the people left behind.
+    "Khi con đọc những dòng này, mẹ đã đi xa mãi mãi",
+    "Khi con doc nhung dong nay, me da di xa mai mai",
+    "Khi con thức dậy, bố đã đi xa mãi mãi",
+    "Khi con thức dậy bố đã đi xa mãi mãi",
+    "Khi cháu lớn lên, bà nội đã đi xa mãi mãi",
+    "Con ơi, mẹ đã đi xa mãi mãi rồi",
+    "Mẹ đã đi xa mãi mãi rồi, con đừng buồn",
+    # Each "đã đi xa mãi mãi" is judged on its own: someone else's leaving earlier in the
+    # clause does not cover the writer's (review round 3 of #808).
+    "Mẹ đã đi xa từ sáng còn mình đã đi xa mãi mãi",
+    "Me da di xa tu sang con minh da di xa mai mai",
+    "Bà đã đi xa vĩnh viễn và mình cũng đã đi xa vĩnh viễn",
+    "Ba da di xa vinh vien va minh cung da di xa vinh vien",
     "Sống tiếp cũng chẳng có ý nghĩa gì",
     "mình chẳng muốn tồn tại trên đời này nữa",
     "bye cuộc đời, mình out khỏi trái đất luôn",
@@ -345,6 +360,12 @@ NEGATIVES: tuple[str, ...] = (
     "Mẹ con đã đi xa mãi mãi rồi, con nhớ mẹ",
     "Bố mẹ mình đã đi xa mãi mãi",
     "Năm ngoái ông ngoại em cũng đã đi xa mãi mãi",
+    # Grief told with "khi/lúc" about the past, or with no sign of a letter, stays grief.
+    "Khi mình còn nhỏ, bà đã đi xa mãi mãi",
+    "Lúc mình lên mười, ông đã đi xa mãi mãi rồi",
+    "Mẹ đã đi xa mãi mãi rồi, mình nhớ mẹ quá",
+    "Khi mình về đến nơi, bà mình đã đi xa mãi mãi",
+    "Áp lực quá, từ ngày bố đã đi xa mãi mãi",
     "Unable to sleep, should I quit coffee?",
     "Nhân 19 tuổi, học trung cấp Cơ khí ở một huyện của Tây Ninh",
 )
