@@ -326,11 +326,18 @@ test("the tap-target check catches a covered control and a control under 44px (#
 
 for (const profile of PROFILES) {
   for (const width of [360, 390]) {
-    test(`${profile.kind} at ${width}px: keep, stop, replace, lose the network, record an outcome, reload (#688)`, async ({ page }) => {
+    test(`${profile.kind} at ${width}px: keep, stop, replace, lose the network, record an outcome, reload (#688)`, async ({ page, browserName }) => {
+      // #763: the "mobile-chromium" project is the iPhone 13 preset, which runs WebKit at 3x density.
+      // On the Linux CI runner WebKit renders in software: this ~40-step flow (6 loads, 5 full-page
+      // shots, two offline rounds) takes ~6 s on a Mac but often passed 30 s there, failing at whatever
+      // step it had reached. Desktop Chromium on the same runner takes ~12 s. The shots are artifacts
+      // for people, so they are taken at CSS size; the flow keeps every check and gets a WebKit budget.
+      test.slow(browserName === "webkit", "long flow on Linux WebKit (#763)");
       const server = new FakeServer(profile);
       await server.attach(page);
       await page.setViewportSize({ width, height: 800 });
-      const shot = (step: string) => page.screenshot({ path: resolve(OUT_DIR, `${profile.kind}-${width}-${step}.png`), fullPage: true, animations: "disabled" });
+      // CSS size: at 3x density a full-page WebKit shot is 9x the pixels and the slowest step on CI.
+      const shot = (step: string) => page.screenshot({ path: resolve(OUT_DIR, `${profile.kind}-${width}-${step}.png`), fullPage: true, animations: "disabled", scale: "css" });
 
       // Keep the action on screen (the lighter one).
       await page.goto("/note/today");
