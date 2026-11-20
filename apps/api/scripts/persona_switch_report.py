@@ -210,6 +210,8 @@ def carryover(rows: list[dict[str, Any]], ids: list[str]) -> dict[str, Any]:
         "kept_found": sum(1 for c in cs if c["kept_expected"] and c["kept_found"]),
         "mood_expected": sum(c["mood_expected"] for c in cs),
         "mood_found": sum(c["mood_found"] for c in cs),
+        "mood_expired_expected": sum(c.get("mood_expired_expected", 0) for c in cs),
+        "mood_expired_still_open": sum(c.get("mood_expired_still_open", 0) for c in cs),
         "tarot_expected": sum(c["tarot_expected"] for c in cs),
         "tarot_found": sum(c["tarot_found"] for c in cs),
         "statuses_not_200": sum(
@@ -245,6 +247,33 @@ def daily_first_repeat(
     return out
 
 
+def window(run: Path) -> tuple[int, int]:
+    """First and last day number of a run, from its meta.json (offset and length of the phase)."""
+
+    meta = json.loads((run / "meta.json").read_text(encoding="utf-8"))
+    first = int(meta.get("offset", 0))
+    return first, first + int(meta["days"]) - 1
+
+
+SETUP_REFUSALS = ("BIRTH_DATE_OUT_OF_RANGE",)
+
+
+def refused_at_setup(rows: list[dict[str, Any]]) -> set[str]:
+    """Personas whose every phase-1 day failed because setup was refused on purpose."""
+
+    by: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for r in rows:
+        by[r["persona"]].append(r)
+    return {
+        pid
+        for pid, rs in by.items()
+        if all(
+            r.get("status") != 200 and any(code in str(r.get("error")) for code in SETUP_REFUSALS)
+            for r in rs
+        )
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--personas", required=True)
@@ -257,9 +286,10 @@ def main() -> None:
         ISSUE_BY_HEADLINE.update(json.loads(Path(args.issue_map).read_text(encoding="utf-8")))
     personas = json.loads(Path(args.personas).read_text(encoding="utf-8"))["personas"]
     p1 = load(Path(args.p1))
-    # A persona the app refused at setup (e.g. under 18 on the phase-1 start date) has no history
-    # to carry over; it is left out and counted.
-    served = {r["persona"] for r in p1 if r.get("status") == 200}
+    p1_window = window(Path(args.p1))
+    # Only a persona the app refused at setup on purpose (under 18 on the phase-1 start date) is
+    # left out and listed; any other failure stays in the error totals (Codex auto-1 on #781).
+    served = {p["id"] for p in personas} - refused_at_setup(p1)
     groups = {
         k: [p["id"] for p in personas if p["birth"]["precision"] == k and p["id"] in served]
         for k in PRECISIONS
@@ -271,10 +301,10 @@ def main() -> None:
     for r in p1:
         r.setdefault("phase", 1)
         by1[r["persona"]].append(r)
-    per1 = {i: per_persona(rs, 0, 28) for i, rs in by1.items()}
+    per1 = {i: per_persona(rs, *p1_window) for i, rs in by1.items()}
     result["phase1"] = {
         "groups": {g: group(per1, ids) for g, ids in groups.items()},
-        "safety": safety(p1, 0, 28),
+        "safety": safety(p1, *p1_window),
         "leaks": leaks(p1),
         "headline_rep7_by_day": {
             g: daily_first_repeat(by1, ids) for g, ids in groups.items() if g != "all"
@@ -288,11 +318,12 @@ def main() -> None:
             both[i].extend(rs)
         for r in p2:
             both[r["persona"]].append(r)
-        per2 = {i: per_persona(rs, 29, 57) for i, rs in both.items()}
+        p2_window = window(Path(path))
+        per2 = {i: per_persona(rs, *p2_window) for i, rs in both.items()}
         result["phase2"][name] = {
             "groups": {g: group(per2, ids) for g, ids in groups.items()},
             "carryover": {g: carryover(p2, ids) for g, ids in groups.items()},
-            "safety": safety(p2, 29, 57),
+            "safety": safety(p2, *p2_window),
             "leaks": leaks(p1 + p2),
             "headline_rep7_by_day": {
                 g: daily_first_repeat(both, ids) for g, ids in groups.items() if g != "all"
