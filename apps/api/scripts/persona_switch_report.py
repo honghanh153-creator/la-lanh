@@ -150,6 +150,10 @@ def leaks(rows: list[dict[str, Any]]) -> int:
             text = str(t.get("text") or "").strip()
             if len(text) >= 15:
                 owners[text].add(r["persona"])
+    # Index every text by its first 15 characters, so each shown text is scanned once.
+    by_prefix: dict[str, list[str]] = defaultdict(list)
+    for text in owners:
+        by_prefix[text[:15]].append(text)
     found = 0
     for r in rows:
         parts = [
@@ -158,9 +162,10 @@ def leaks(rows: list[dict[str, Any]]) -> int:
         for t in r.get("tarot") or []:
             parts += [t.get("headline"), t.get("summary")]
         shown = "\n".join(p for p in parts if isinstance(p, str))
-        for text, who in owners.items():
-            if r["persona"] not in who and text in shown:
-                found += 1
+        for i in range(len(shown) - 14):
+            for text in by_prefix.get(shown[i : i + 15], ()):
+                if r["persona"] not in owners[text] and shown.startswith(text, i):
+                    found += 1
     return found
 
 
@@ -226,10 +231,11 @@ def daily_first_repeat(
 
     out: dict[int, float] = {}
     days = sorted({r["day"] for i in ids for r in per_rows.get(i, [])})
+    table = {i: {r["day"]: value(r, "headline") for r in per_rows.get(i, [])} for i in ids}
     for d in days:
         hits = total = 0
         for i in ids:
-            rows = {r["day"]: value(r, "headline") for r in per_rows.get(i, [])}
+            rows = table[i]
             v = rows.get(d)
             if not v:
                 continue
