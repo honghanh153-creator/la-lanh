@@ -222,16 +222,12 @@ def test_judge_output_is_refused_when_it_is_not_whole_scores_and_flags() -> None
         parse_scores([_score("P001"), _score("P001")])
 
 
-def test_packets_are_blind_and_each_pass_reads_in_its_own_order() -> None:
-    from scripts.persona_metrics import JUDGED_DAYS
-    from scripts.persona_stability import build_packets, split_for_pass
-
-    people = _personas()[:12]
-    rows = [
+def _run_rows(people: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [
         {
             "persona": p["id"],
             "day": day,
-            "status": 500 if (p["id"], day) == (people[0]["id"], 1) else 200,
+            "status": 200,
             "mood": "Chill",
             "headline": f"Tiêu đề ngày {day}",
             "action": "Uống một cốc nước.",
@@ -239,10 +235,73 @@ def test_packets_are_blind_and_each_pass_reads_in_its_own_order() -> None:
         for p in people
         for day in range(1, 30)
     ]
-    packets = build_packets(people, rows)
+
+
+def _report(tmp_path: Path, people: list[dict[str, Any]], rows: list[dict[str, Any]]) -> bool:
+    """Run ``report`` on a synthetic run where both passes give every persona the same scores."""
+
+    from scripts.persona_stability import cmd_report
+
+    run = tmp_path / "run"
+    run.mkdir(exist_ok=True)
+    (run / "transcript.jsonl").write_text(
+        "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in rows), encoding="utf-8"
+    )
+    (run / "meta.json").write_text(json.dumps({"git_head": "0" * 40}), encoding="utf-8")
+    personas_path = tmp_path / "personas.json"
+    personas_path.write_text(json.dumps({"personas": people}), encoding="utf-8")
+    # Score whoever still has a successful judged day, the way a judge given packets would.
+    shown = {r["persona"] for r in rows if r["status"] == 200}
+    scores = tmp_path / "scores.json"
+    scores.write_text(
+        json.dumps([_score(str(p["id"])) for p in people if p["id"] in shown]), encoding="utf-8"
+    )
+    return cmd_report(
+        run, personas_path, [str(scores)], [str(scores)], [], tmp_path / "report.md", None
+    )
+
+
+def test_report_refuses_a_run_that_lost_a_persona_or_a_required_day(tmp_path: Path) -> None:
+    # Review of #783: the expected people came from the packets, which had already dropped
+    # failed days, so a run missing someone was reported as "99/99, stable".
+    import pytest
+
+    from scripts.persona_stability import build_packets, run_gaps
+
+    people = _personas()[:12]
+    first, second = str(people[0]["id"]), str(people[1]["id"])
+    full = _run_rows(people)
+    assert run_gaps(people, full) == []
+    assert _report(tmp_path, people, full)
+
+    all_days_failed = [{**r, "status": 500} if r["persona"] == first else r for r in full]
+    only_day_1 = [r for r in full if r["day"] == 1]
+    day_1_twice = [{**r, "day": 1} if r["day"] == 8 else r for r in full]
+    one_day_failed = [
+        {**r, "status": 500} if (r["persona"], r["day"]) == (second, 15) else r for r in full
+    ]
+    no_rows_for_one = [r for r in full if r["persona"] != first]
+    for broken in (all_days_failed, only_day_1, day_1_twice, one_day_failed, no_rows_for_one):
+        assert run_gaps(people, broken)
+        with pytest.raises(ValueError, match=r"thiếu|lỗi|hai lần"):
+            _report(tmp_path, people, broken)
+        with pytest.raises(ValueError):
+            build_packets(people, broken)
+    assert "12/12" in (tmp_path / "report.md").read_text(encoding="utf-8")  # not overwritten
+    # A day outside the judged days may fail without touching the measurement.
+    other_day = [{**r, "status": 500} if r["day"] == 2 else r for r in full]
+    assert run_gaps(people, other_day) == []
+    assert _report(tmp_path, people, other_day)
+
+
+def test_packets_are_blind_and_each_pass_reads_in_its_own_order() -> None:
+    from scripts.persona_metrics import JUDGED_DAYS
+    from scripts.persona_stability import build_packets, split_for_pass
+
+    people = _personas()[:12]
+    packets = build_packets(people, _run_rows(people))
     assert [p["persona"] for p in packets] == [p["id"] for p in people]
-    assert len(packets[1]["days"]) == len(JUDGED_DAYS)
-    assert len(packets[0]["days"]) == len(JUDGED_DAYS) - 1  # a failed day is not shown
+    assert all(len(p["days"]) == len(JUDGED_DAYS) for p in packets)
     assert set(packets[0]) == {"persona", "profile", "days"}
     assert "day" not in packets[0]["days"][0]
     first = split_for_pass(packets, "first", 3)

@@ -57,7 +57,7 @@ Một mảng JSON, mỗi người giả một phần tử, đúng tên khóa:
 ## Cách chạy (lặp lại được)
 
 1. `pnpm personas:run -- --name <tên>` chạy 100 người giả trên API thật.
-2. `pnpm personas:stability -- packets --run qa/personas/runs/<tên> --out <thư mục>` ghi gói cho ba lượt: `first-*.json`, `again-*.json` (chấm lại) và `second-*.json` (giám khảo thứ hai). Mỗi lượt xáo người giả theo thứ tự riêng.
+2. `pnpm personas:stability -- packets --run qa/personas/runs/<tên> --out <thư mục>` ghi gói cho ba lượt: `first-*.json`, `again-*.json` (chấm lại) và `second-*.json` (giám khảo thứ hai). Mỗi lượt xáo người giả theo thứ tự riêng. Danh sách người phải chấm lấy từ tệp người giả. Lần chạy mà có người thiếu một ngày cần chấm, có ngày đó hai lần, hoặc ngày đó bị lỗi thì lệnh `packets` và `report` đều từ chối: chạy lại bước 1.
 3. Giao mỗi tệp cho một giám khảo **mới**, với lời dặn ở dưới. Lượt `first` và `again` dùng cùng một loại giám khảo; lượt `second` dùng một giám khảo khác loại.
 4. `pnpm personas:stability -- report --run qa/personas/runs/<tên> --first <tệp điểm…> --again <tệp điểm…> --second <tệp điểm…>` ghi `qa/personas/report-stability.md`. Lệnh trả mã lỗi khi lượt chấm lại không đạt mốc.
 

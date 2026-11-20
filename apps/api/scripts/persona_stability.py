@@ -16,7 +16,9 @@ week 1) and are read here in their stricter sense:
 - two judges on the same cases: agreement is recorded (no mark was set for it).
 
 A persona that one pass did not score is reported as missing and fails the check; nothing is
-guessed. Pure functions, no app imports.
+guessed. The people to score come from the persona file: a run where one of them lacks a judged
+day, has it twice or got an error on it is refused by both commands. Pure functions, no app
+imports.
 """
 
 from __future__ import annotations
@@ -67,23 +69,54 @@ DAY_KEYS = (
 )
 
 
+def run_gaps(personas: Sequence[Mapping[str, Any]], rows: Iterable[Mapping[str, Any]]) -> list[str]:
+    """What the run lacks for a fair measurement; empty when nothing is missing.
+
+    The people to score are the ones in the persona file, not the ones the run happens to
+    hold: each needs every judged day exactly once, answered with status 200. Otherwise a run
+    that lost a persona or a week would be scored on fewer people and still read "stable".
+    """
+
+    seen: dict[tuple[str, int], list[object]] = {}
+    for row in rows:
+        seen.setdefault((row["persona"], row["day"]), []).append(row.get("status"))
+    gaps: list[str] = []
+    for persona in personas:
+        pid = persona["id"]
+        for day in judged_days(pid):
+            statuses = seen.get((pid, day), [])
+            if not statuses:
+                gaps.append(f"{pid} thiếu ngày {day}")
+            elif len(statuses) > 1:
+                gaps.append(f"{pid} có ngày {day} hai lần trở lên")
+            elif statuses[0] != 200:
+                gaps.append(f"{pid} ngày {day} bị lỗi ({statuses[0]})")
+    return gaps
+
+
 def build_packets(
     personas: Sequence[Mapping[str, Any]], rows: Iterable[Mapping[str, Any]]
 ) -> list[dict[str, Any]]:
     """One packet per persona: who they are and what the app showed on their judged days.
 
     A packet carries no build, run or pass name, so a judge cannot tell which version it reads.
+    A run with a missing, failed or repeated judged day is refused (see ``run_gaps``).
     """
 
+    rows = list(rows)
+    gaps = run_gaps(personas, rows)
+    if gaps:
+        more = f" (và {len(gaps) - 5} chỗ nữa)" if len(gaps) > 5 else ""
+        raise ValueError(
+            "Lần chạy không đủ để đo, hãy chạy lại người giả: " + "; ".join(gaps[:5]) + more
+        )
     by_persona: dict[str, list[Mapping[str, Any]]] = {}
     for row in rows:
-        if row.get("status") == 200 and row["day"] in judged_days(row["persona"]):
+        if row["day"] in judged_days(row["persona"]):
             by_persona.setdefault(row["persona"], []).append(row)
     packets: list[dict[str, Any]] = []
     for persona in personas:
-        days = sorted(by_persona.get(persona["id"], []), key=lambda r: r["day"])
-        if not days:
-            continue
+        days = sorted(by_persona[persona["id"]], key=lambda r: r["day"])
         profile = {key: persona.get(key) for key in JUDGE_PROFILE_KEYS}
         profile["what_they_entered"] = PRECISION_VI[persona["birth"]["precision"]]
         packets.append(
@@ -392,7 +425,9 @@ def cmd_report(
     notes: Path | None,
 ) -> bool:
     personas = json.loads(personas_path.read_text(encoding="utf-8"))["personas"]
-    expected = [p["persona"] for p in build_packets(personas, load_jsonl(run / "transcript.jsonl"))]
+    # Everyone in the persona file is expected; an incomplete run is refused, never shrunk.
+    build_packets(personas, load_jsonl(run / "transcript.jsonl"))
+    expected = [p["id"] for p in personas]
     meta = json.loads((run / "meta.json").read_text(encoding="utf-8"))
     base = load_pass(first)
     cmp_again = compare(base, load_pass(again), expected)
