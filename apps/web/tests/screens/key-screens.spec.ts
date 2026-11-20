@@ -15,6 +15,8 @@ type Scenario = {
   onboarding: "none" | "birth_pending" | "completed";
   deepData: boolean;
   ownerClaim: "ok" | "needs_chart";
+  // Khám phá overview variants (#790): two planets in one sign, or the chart call failing.
+  overview?: "repeat" | "error";
 };
 
 const REVISION_ID = "00000000-0000-4000-8000-000000000010";
@@ -97,6 +99,28 @@ const insightsReady = {
   },
 };
 
+// Mercury shares the Sun's sign: the API leaves out the everyday and watch lines the Sun card
+// already showed (#774), so the second card has neither section.
+const insightsRepeated = {
+  ...insightsReady,
+  reading: {
+    ...insightsReady.reading,
+    claims: [
+      {
+        ...claimDetail, id: "sun-sign", domain: "core", title: "Lõi sáng", summary: "Mặt Trời ở Ma Kết.", factor_refs: ["natal:sun:sign:capricorn"], confidence: "high",
+        hook: "Bạn sáng rõ hơn khi có cấu trúc và tiến bộ nhìn thấy được.",
+        manifestation: "Trong đời thường, bạn hay giữ mình hoạt động ổn trước, còn phần dễ tổn thương thường được xử lý sau.",
+        watch_for: "Khi căng, bạn hay biến sức chịu đựng thành tiêu chuẩn duy nhất của sự ổn.",
+      },
+      {
+        ...claimDetail, id: "mercury-sign", domain: "mind", title: "Mạch suy nghĩ", summary: "Sao Thủy ở Ma Kết.", factor_refs: ["natal:mercury:sign:capricorn"], confidence: "high",
+        hook: "Đầu óc bạn làm việc nhanh hơn khi có cấu trúc và tiến bộ nhìn thấy được.",
+        manifestation: "", watch_for: "", micro_action: "Viết ý chính trong một câu, rồi mới thêm phần giải thích.",
+      },
+    ],
+  },
+};
+
 const savedNote = {
   id: "33333333-3333-4333-8333-333333333333", daily_note_id: "44444444-4444-4444-8444-444444444444",
   revision_id: null, saved_at: "2026-09-01T08:00:00Z",
@@ -158,6 +182,8 @@ function answer(scenario: Scenario, method: string, path: string): Reply | null 
     case `POST /v1/daily-note/${NOTE_ID}/share-artifacts`:
       return { status: 200, json: shareArtifact };
     case "GET /v1/insights/overview":
+      if (scenario.overview === "error") return { status: 503, json: { code: "READING_UNAVAILABLE" } };
+      if (scenario.overview === "repeat") return { status: 200, json: insightsRepeated };
       return { status: 200, json: scenario.deepData ? insightsReady : insightsLocked };
     case "GET /v1/insights/current-sky":
       return { status: 200, json: {
@@ -241,6 +267,24 @@ const screens: Array<{ name: string; scenario: Scenario; path: string; ready: (p
   {
     name: "08-kham-pha-unlocked", path: "/insights", scenario: { ...signedIn, deepData: true },
     ready: (page) => page.getByRole("heading", { name: "Nhiều lớp trong bạn đang nói cùng lúc." }),
+  },
+  {
+    // #790: the overview prints each everyday and watch line once; the Mercury card has neither.
+    name: "08b-kham-pha-overview-no-repeat", path: "/insights/overview?tradition=western",
+    scenario: { ...signedIn, deepData: true, overview: "repeat" },
+    ready: (page) => page.getByText("Viết ý chính trong một câu, rồi mới thêm phần giải thích."),
+    before: async (page) => {
+      await expect(page.getByText("Viết ý chính trong một câu, rồi mới thêm phần giải thích.")).toBeVisible();
+      await expect(page.getByText("Ngoài đời có thể trông như…")).toHaveCount(1);
+      await expect(page.getByText("Điều cần để ý")).toHaveCount(1);
+      await expect(page.getByText("Chỗ dễ lệch nhịp")).toHaveCount(0);
+      await expect(page.getByText("Trong đời thường, bạn hay giữ mình hoạt động ổn trước", { exact: false })).toHaveCount(1);
+    },
+  },
+  {
+    name: "08c-kham-pha-overview-error", path: "/insights/overview?tradition=western",
+    scenario: { ...signedIn, deepData: true, overview: "error" },
+    ready: (page) => page.getByRole("button", { name: "Thử lại" }),
   },
   {
     name: "09-radar-start-date-only-gate", path: "/radar/start", scenario: signedIn,
