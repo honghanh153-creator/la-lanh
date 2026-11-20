@@ -16,11 +16,19 @@ from app.domains.readings.daily_personalization import (
     PLACEMENT_MEANINGS,
     REPAIR_REPLY_MEANING,
     SIGN_ELEMENTS,
+    SIGN_MODALITIES,
     SUN_ISSUES,
+    SUN_MODALITY_ISSUES,
     SupportedSituation,
     eligible_daily_situations,
 )
-from app.domains.readings.daily_rotation import DAILY_TOP_K, axis_slot, top_k_slot
+from app.domains.readings.daily_rotation import (
+    DAILY_TOP_K,
+    axis_slot,
+    round_robin_slot,
+    staircase_slots,
+    top_k_slot,
+)
 from app.domains.readings.interpretive_lenses import daily_mixed_radix_slots
 from app.domains.readings.knowledge import InterpretationFrame, body_label, semantic_arena
 from app.domains.readings.models import (
@@ -35,6 +43,9 @@ from app.domains.readings.models import (
 )
 
 DAILY_PSYCHOLOGY_MATRIX_VERSION = "daily-direct-meaning-v7"
+# What the date-only rotation index means (``_occurrence_index``); part of the content
+# fingerprint, so a stored note keeps its revision when the rule changes.
+DAILY_ROTATION_RULE = "date-only-staircase-by-appearance-v2"
 
 
 @dataclass(frozen=True)
@@ -1094,12 +1105,15 @@ def daily_content_fingerprint() -> str:
                 "placements": PLACEMENT_ISSUES,
                 "placement_meanings": PLACEMENT_MEANINGS,
                 "sign_elements": SIGN_ELEMENTS,
+                "sign_modalities": SIGN_MODALITIES,
+                "sun_modality_issues": SUN_MODALITY_ISSUES,
                 "sun_issues": SUN_ISSUES,
                 "body_domains": BODY_DOMAINS,
                 "house_arenas": {house: asdict(context) for house, context in HOUSE_ARENAS.items()},
                 "pairs": [{**asdict(rule), "bodies": sorted(rule.bodies)} for rule in PAIR_RULES],
                 "why_today": WHY_TODAY_GISTS,
                 "context_meanings": [CAPACITY_AT_WORK_MEANING, REPAIR_REPLY_MEANING],
+                "rotation": DAILY_ROTATION_RULE,
                 # Only present once a bundle is approved, so today's revision stays put.
                 **({"bundles": bundles} if bundles else {}),
             },
@@ -1241,6 +1255,32 @@ def _pick(plan: ReadingPlan, pool: list[SupportedSituation]) -> SupportedSituati
     return pool[slot]
 
 
+def _occurrence_index(plan: ReadingPlan, pool: list[SupportedSituation]) -> int | None:
+    """How many times this plan's situation has come up before, for a date-only Daily.
+
+    A date-only pool is the same every day (the Sun sign's situations, in rank order), so its
+    situation comes back every ``k`` days, ``k = min(len(pool), DAILY_TOP_K)``, and day ``d`` is
+    its ``d // k``-th appearance. Headline, scene, action and bundle walk one fixed per-person
+    order each by that count (``staircase_slots``; a bundle alone, ``round_robin_slot``), so a
+    headline (and a bundle) comes back only after every other one, ``n * k`` days later (6
+    headlines, 2 situations: 12 days), and a whole card only after every combination. Scenes and
+    actions take an extra step when the axes before them finish a period, so they are not promised
+    to show every line before one repeats; they only change between consecutive appearances.
+    Walking reshuffled cycles by the calendar day (as before) let a situation served every second
+    day meet only every second position of each cycle, so it repeated after about half its lines,
+    often within a week.
+    Consecutive appearances differ on every axis with two or more lines, which keeps US-21 AC02.
+    ``None`` keeps the calendar day:
+    plans without rotation, natal plans (their pool changes with the day's transits, so the count
+    is not known without history), and a one-situation pool, where the two are the same.
+    """
+
+    variety = plan.daily_variety
+    if variety is None or plan.daily_selection is not None or len(pool) < 2:
+        return None
+    return variety.day_index // min(len(pool), DAILY_TOP_K)
+
+
 def select_daily_situation(
     natal_plan: ReadingPlan,
     transit_plans: tuple[tuple[DerivedFactor, ReadingPlan], ...],
@@ -1322,10 +1362,13 @@ def apply_daily_psychology(
 
     arena = semantic_arena(plan.background_lens)
     issues = {issue.key: issue for issue in DAILY_ISSUES}
+    occurrence: int | None = None
     if plan.daily_selection is not None:
         selected = _frozen_situation(plan)
     else:
-        selected = _pick(plan, _situation_pool(plan, eligible_daily_situations(plan)))
+        pool = _situation_pool(plan, eligible_daily_situations(plan))
+        selected = _pick(plan, pool)
+        occurrence = _occurrence_index(plan, pool)
     issue = issues[selected.issue_key if selected else FALLBACK_ISSUE_KEY]
     actions = issue.relationship_advice if arena is SemanticArena.RELATIONSHIPS else issue.advice
     variety = plan.daily_variety
@@ -1337,15 +1380,25 @@ def apply_daily_psychology(
             (6, 8, 8),
         )
     else:
-        # B3-1a: one cycle per axis, so consecutive days differ on every axis.
-        headline_slot, scene_slot, advice_slot = (
-            axis_slot(variety.seed, axis, size, variety.day_index)
-            for axis, size in (
-                ("headline", len(issue.headlines)),
-                ("scene", len(issue.scenes)),
-                ("action", len(actions)),
-            )
+        # B3-1a: one cycle per axis, so consecutive days differ on every axis. A date-only
+        # situation walks a fixed order by appearance instead (``_occurrence_index``).
+        axes = (
+            ("headline", len(issue.headlines)),
+            ("scene", len(issue.scenes)),
+            ("action", len(actions)),
         )
+        if occurrence is None:
+            headline_slot, scene_slot, advice_slot = (
+                axis_slot(variety.seed, axis, size, variety.day_index) for axis, size in axes
+            )
+        else:
+            # One fixed order per axis, walked as a staircase so the whole card repeats only
+            # after every combination (Codex auto-1 on #778, US-21 AC03).
+            headline_slot, scene_slot, advice_slot = staircase_slots(
+                variety.seed,
+                tuple((f"{axis}:{issue.key}", size) for axis, size in axes),
+                occurrence,
+            )
     headline, scene, action = issue.headlines[headline_slot], issue.scenes[scene_slot], ""
     scene_key = f"psychology:{issue.key}:scene-{scene_slot}"
     action_key = f"psychology:{issue.key}:{arena.value}-advice-{advice_slot}"
@@ -1357,7 +1410,11 @@ def apply_daily_psychology(
         if variety is None:
             (bundle_slot,) = daily_mixed_radix_slots(plan.editorial_seed, (len(bundles),))
         else:
-            bundle_slot = axis_slot(variety.seed, "bundle", len(bundles), variety.day_index)
+            bundle_slot = (
+                axis_slot(variety.seed, "bundle", len(bundles), variety.day_index)
+                if occurrence is None
+                else round_robin_slot(variety.seed, f"bundle:{issue.key}", len(bundles), occurrence)
+            )
         headline, scene, action = bundles[bundle_slot]
         scene_key = f"psychology:{issue.key}:bundle-{bundle_slot}"
         action_key = f"psychology:{issue.key}:bundle-{bundle_slot}"
@@ -1454,9 +1511,10 @@ def issue_source_ids() -> frozenset[str]:
 def daily_issue_meaning(mechanism_key: str | None) -> str:
     """The shared catalog meaning of a Daily situation, without the chart-selected personal
     sentence that ``core_meaning`` starts with. Luna payloads use this so they carry no direct
-    chart facts. The issue itself is still chosen from the chart (coarse; on a date-only reading it
-    is the Sun sign's own situation or, on rotated plans, its element's: never finer than the Sun
-    sign, see ``SUN_ISSUES`` and ``PLACEMENT_ISSUES["sun"]``)."""
+    chart facts. The issue itself is still chosen from the chart (coarse; on a date-only reading
+    it is the Sun sign's own situation or, on rotated plans, its element's or its modality's:
+    never finer than the Sun sign, see ``SUN_ISSUES``, ``PLACEMENT_ISSUES["sun"]`` and
+    ``SUN_MODALITY_ISSUES``)."""
 
     prefix = "psychology:"
     if not mechanism_key or not mechanism_key.startswith(prefix):
