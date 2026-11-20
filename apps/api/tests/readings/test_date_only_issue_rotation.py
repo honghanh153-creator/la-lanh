@@ -227,10 +227,12 @@ def _full_cards(sign: str, days: int) -> list[tuple[int, str, str, str, str]]:
 
 
 @pytest.mark.parametrize("sign", SIGNS)
-def test_a_situation_shows_all_its_headlines_and_scenes_before_one_comes_back(sign: str) -> None:
-    # A situation served every k-th day walks one fixed order by appearance (d // k), so any n
-    # appearances in a row show n different lines. By calendar day it met only every k-th position
-    # of each reshuffled cycle and repeated a headline after about n / 2 appearances.
+def test_a_situation_shows_all_its_headlines_before_one_comes_back(sign: str) -> None:
+    # A situation served every k-th day walks one fixed headline order by appearance (d // k), so
+    # any 6 appearances in a row show 6 different headlines. Scenes only change between consecutive
+    # appearances (they take an extra staircase step at each headline period, Codex on #778).
+    # By calendar day the situation met only every k-th position of each reshuffled cycle and
+    # repeated a headline after about n / 2 appearances.
     k = len(_expected(sign))
     cards = _days_of_cards(sign, 6 * 3 * 3)
     by_issue: dict[str, list[tuple[int, str, str]]] = {}

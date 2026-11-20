@@ -1261,11 +1261,14 @@ def _occurrence_index(plan: ReadingPlan, pool: list[SupportedSituation]) -> int 
     A date-only pool is the same every day (the Sun sign's situations, in rank order), so its
     situation comes back every ``k`` days, ``k = min(len(pool), DAILY_TOP_K)``, and day ``d`` is
     its ``d // k``-th appearance. Headline, scene, action and bundle walk one fixed per-person
-    order each by that count (``staircase_slots``; a bundle alone, ``round_robin_slot``), so a line
-    comes back only after every other line of its axis, ``n * k`` days later (6 headlines, 2
-    situations: 12 days), and a whole card only after every combination. Walking reshuffled
-    cycles by the calendar day (as before) let a situation served every second day meet only every
-    second position of each cycle, so it repeated after about half its lines, often within a week.
+    order each by that count (``staircase_slots``; a bundle alone, ``round_robin_slot``), so a
+    headline (and a bundle) comes back only after every other one, ``n * k`` days later (6
+    headlines, 2 situations: 12 days), and a whole card only after every combination. Scenes and
+    actions take an extra step when the axes before them finish a period, so they are not promised
+    to show every line before one repeats; they only change between consecutive appearances.
+    Walking reshuffled cycles by the calendar day (as before) let a situation served every second
+    day meet only every second position of each cycle, so it repeated after about half its lines,
+    often within a week.
     Consecutive appearances differ on every axis with two or more lines, which keeps US-21 AC02.
     ``None`` keeps the calendar day:
     plans without rotation, natal plans (their pool changes with the day's transits, so the count
