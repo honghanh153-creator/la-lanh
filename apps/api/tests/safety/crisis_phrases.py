@@ -139,6 +139,16 @@ POSITIVES: tuple[str, ...] = (
     "Mình sẽ đi xa mãi mãi khỏi cuộc đời này",
     "Em sẽ đi xa mãi mãi thôi",
     "Mình đi xa mãi mãi mà không ai biết đâu",
+    # "đã đi xa mãi mãi" about the writer or about a time to come is still a farewell
+    # (review of #808, 20.11). Only grief for someone else is left alone.
+    "Nếu ngày mai mình đã đi xa mãi mãi, mọi người đừng tìm mình",
+    "Neu ngay mai minh da di xa mai mai, moi nguoi dung tim minh",
+    "Khi mọi người đọc thư này, mình đã đi xa mãi mãi",
+    "Khi moi nguoi doc thu nay, minh da di xa mai mai",
+    "Bố mẹ đọc được thư này thì con đã đi xa mãi mãi rồi",
+    "Bo me doc duoc thu nay thi con da di xa mai mai roi",
+    "Sáng mai bà dậy thì cháu đã đi xa mãi mãi rồi",
+    "Lúc đó em đã đi xa mãi mãi rồi",
     "Sống tiếp cũng chẳng có ý nghĩa gì",
     "mình chẳng muốn tồn tại trên đời này nữa",
     "bye cuộc đời, mình out khỏi trái đất luôn",
@@ -319,6 +329,9 @@ NEGATIVES: tuple[str, ...] = (
     "Mình muốn đi xa mãi mãi khỏi cái thành phố ồn ào này",
     "Bà mình đã đi xa mãi mãi rồi, mình nhớ bà quá",
     "Ông nội đã đi xa mãi mãi",
+    "Ba minh da di xa mai mai roi, minh nho ba qua",
+    "Anh trai mình đã đi xa mãi mãi, mình chưa quen được",
+    "Người bạn thân của mình đã đi xa mãi mãi rồi",
     "Unable to sleep, should I quit coffee?",
     "Nhân 19 tuổi, học trung cấp Cơ khí ở một huyện của Tây Ninh",
 )

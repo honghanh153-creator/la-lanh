@@ -109,6 +109,32 @@ _SLOWLY_TAIL = (
     r"quen|thu|lam quen|on|sap|xep|ke|chia|giai|sua|thay|doi|cho minh|cho em)\b)"
 )
 
+# "đi xa mãi mãi" as a farewell (the key is "đi xa").
+_GONE_FOR_GOOD = (
+    r"(?P<key>di xa)(?: \.)? (?:mai mai|vinh vien|"
+    r"(?:va )?(?:khong|chang) (?:bao gio )?(?:quay lai|tro lai|tro ve|ve nua))"
+    # The farewell may end the sentence, end on a particle, or say what it leaves behind:
+    # "… mãi mãi rồi", "… khỏi cuộc đời này", "… để không ai phải lo nữa" (#795 handoff, 20.11).
+    r"(?=\s*(?:$|\.|(?:nua|dau|luon|bai|nhe|nha|day|roi|thoi|vay|a|ah|ha|ne|r|ri|lun)\b|"
+    r"khoi (?:cuoc doi|cuoc song|doi|the gian|the gioi|tran gian|trai dat|day|moi nguoi|tat ca|"
+    r"moi thu|ca nha|gia dinh)\b|"
+    r"de (?:khong (?:ai|con ai)|moi nguoi|ca nha|gia dinh|bo me|ai cung|khoi)\b|"
+    r"(?:ma )?(?:khong|chang) (?:ai|can ai) (?:biet|tim|lo|nho)\b))"
+    # Moving away for good is not a farewell: "đi xa, không quay lại, chuyển hẳn vào Nam".
+    r"(?!.*\b(?:chuyen (?:han|nha|vao|ra|den|toi)|du hoc|lap nghiep|vao nam|ra bac|ve que)\b)"
+)
+# Someone other than the writer. Words a writer also uses for themself (anh, chị, em, con, cháu)
+# count only with a second word that makes them a relative.
+_SOMEONE_ELSE = (
+    r"(?:ba|ong|bo|me|cha|vo|chong|thay|bac|chu|cau|thim|nguoi (?:ay|do|than|yeu|ban)|"
+    r"ban (?:than|minh|toi|em|ay)|anh trai|chi gai|em trai|em gai|con trai|con gai)"
+)
+# Words that put "đã đi xa mãi mãi" in a time that has not come yet.
+_TIME_TO_COME = (
+    r"(?:neu|gia su|lo nhu|ngay mai|sang mai|toi mai|mai|toi nay|dem nay|tuan sau|thang sau|"
+    r"sau nay|den luc|luc do|khi do|se|sap|thi|thu nay|doc duoc)"
+)
+
 
 @dataclass(frozen=True)
 class _Rule:
@@ -326,21 +352,15 @@ _RULES: tuple[_Rule, ...] = (
         r"(?:theo cach (?:cua )?(?:minh|rieng)|lan cuoi|mai mai)\b",
         ("tạm biệt", "từ biệt"),
     ),
-    _rule(
-        # "đã đi xa mãi mãi" is about someone who has died (grief), not a plan.
-        r"(?<!\bda )\b(?P<key>di xa)(?: \.)? (?:mai mai|vinh vien|"
-        r"(?:va )?(?:khong|chang) (?:bao gio )?(?:quay lai|tro lai|tro ve|ve nua))"
-        # The farewell may end the sentence, end on a particle, or say what it leaves behind:
-        # "… mãi mãi rồi", "… khỏi cuộc đời này", "… để không ai phải lo nữa" (#795 handoff, 20.11).
-        r"(?=\s*(?:$|\.|(?:nua|dau|luon|bai|nhe|nha|day|roi|thoi|vay|a|ah|ha|ne|r|ri|lun)\b|"
-        r"khoi (?:cuoc doi|cuoc song|doi|the gian|the gioi|tran gian|trai dat|day|moi nguoi|tat ca|"
-        r"moi thu|ca nha|gia dinh)\b|"
-        r"de (?:khong (?:ai|con ai)|moi nguoi|ca nha|gia dinh|bo me|ai cung|khoi)\b|"
-        r"(?:ma )?(?:khong|chang) (?:ai|can ai) (?:biet|tim|lo|nho)\b))"
-        # Moving away for good is not a farewell: "đi xa, không quay lại, chuyển hẳn vào Nam".
-        r"(?!.*\b(?:chuyen (?:han|nha|vao|ra|den|toi)|du hoc|lap nghiep|vao nam|ra bac|ve que)\b)",
-        ("đi xa",),
-    ),
+    # "đi xa mãi mãi". "Đã đi xa mãi mãi" has its own two rules below.
+    _rule(rf"(?<!\bda )\b{_GONE_FOR_GOOD}", ("đi xa",)),
+    # "Bà mình đã đi xa mãi mãi rồi" is grief for someone else, not a plan, and gets a reading.
+    # That is the only "đã đi xa mãi mãi" left alone. It is still a farewell when the clause
+    # names no other person ("Khi mọi người đọc thư này, mình đã đi xa mãi mãi") ...
+    _rule(rf"(?:^|\. )(?:(?!{_SOMEONE_ELSE}\b)[^\s.]+ )*da {_GONE_FOR_GOOD}", ("đi xa",)),
+    # ... or when it is said about a time to come ("Nếu ngày mai mình đã đi xa mãi mãi, mọi
+    # người đừng tìm mình"; "Bố mẹ đọc được thư này thì con đã đi xa mãi mãi rồi").
+    _rule(rf"\b{_TIME_TO_COME}\b(?: \S+){{0,8}}? da {_GONE_FOR_GOOD}", ("đi xa",)),
     # A "last time" next to a farewell sign: giving things away, letters, nothing after today.
     _rule(
         r"^(?=.*\blan cuoi\b).*\b(?P<key>(?:cho|tang) het do(?: dac)?\b|"
