@@ -600,6 +600,26 @@
       }
     },
     {
+      "id": "radar-card-public",
+      "title": "Hợp gu — trang công khai của link xem thẻ",
+      "us": ["US-22"],
+      "ac": ["US-22 AC11"],
+      "routes": ["/radar/the/:token"],
+      "source_files": ["apps/web/src/features/radar/RadarCardPage.tsx", "apps/web/src/features/radar/RadarShareCard.tsx"],
+      "user_path": ["Người nhận mở link /radar/the/<token> từ người gửi"],
+      "owner_only": false,
+      "share_sensitive": true,
+      "key_selectors": [{ "role": "heading", "name": "Link này không còn mở được." }],
+      "states": {
+        "default": {
+          "fixture": "guest",
+          "walk": [{ "goto": "/radar/the/card-token-test" }],
+          "ready": { "role": "heading", "name": "Link này không còn mở được." }
+        },
+        "shared": { "manual": "Link xem thẻ chỉ có khi bật radar_share_card_links (mặc định tắt, AL1 hướng C). Thẻ: bậc, một câu, quan hệ, tối đa chữ cái đầu; không ngày sinh, không tên thật." }
+      }
+    },
+    {
       "id": "radar-receipt",
       "title": "Radar — biên nhận của người được mời",
       "us": ["US-13"],

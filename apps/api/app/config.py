@@ -110,6 +110,10 @@ class Settings(BaseSettings):
     # alone. It also needs every privacy.radar.invite-first.* sentence approved by the owner in
     # the copy registry; until then the service keeps these paths closed even when this is on.
     radar_invite_first_consent: bool = False
+    # Hợp gu AL1 direction C: revocable links to a frozen share card. A link discloses a pair
+    # summary to whoever holds it and keeps it as long as the result, so it ships off (R2 kind 4).
+    # The image card itself is drawn on the device and needs no switch.
+    radar_share_card_links: bool = False
 
     model_config = SettingsConfigDict(
         env_file=("../../.env", ".env"),

@@ -4543,6 +4543,46 @@
         "title": "PublicInviteResponse",
         "type": "object"
       },
+      "PublicRadarCardResponse": {
+        "description": "A card as anyone with the link sees it: no birth data, no name beyond an initial.",
+        "properties": {
+          "context": {
+            "title": "Context",
+            "type": "string"
+          },
+          "initial": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Initial"
+          },
+          "line": {
+            "title": "Line",
+            "type": "string"
+          },
+          "tier": {
+            "title": "Tier",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "version",
+          "context",
+          "tier",
+          "line"
+        ],
+        "title": "PublicRadarCardResponse",
+        "type": "object"
+      },
       "PublicRadarInviteResponse": {
         "properties": {
           "consent_version": {
@@ -4939,12 +4979,71 @@
         "title": "RadarBoundActionRequest",
         "type": "object"
       },
+      "RadarCardCreateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "show_initial": {
+            "default": false,
+            "title": "Show Initial",
+            "type": "boolean"
+          }
+        },
+        "title": "RadarCardCreateRequest",
+        "type": "object"
+      },
+      "RadarCardResponse": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "share_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Share Url"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "created_at",
+          "expires_at"
+        ],
+        "title": "RadarCardResponse",
+        "type": "object"
+      },
       "RadarConsentOptionsResponse": {
         "description": "Whether the invite-first consent screens are live, with their owner-approved sentences.",
         "properties": {
           "authorized_input_version": {
             "title": "Authorized Input Version",
             "type": "string"
+          },
+          "card_links": {
+            "default": false,
+            "title": "Card Links",
+            "type": "boolean"
           },
           "date_consent_version": {
             "title": "Date Consent Version",
@@ -5277,6 +5376,17 @@
             },
             "title": "Compatibility Map",
             "type": "array"
+          },
+          "context": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Context"
           },
           "dimensions": {
             "items": {
@@ -13147,6 +13257,49 @@
         ]
       }
     },
+    "/v1/public/radar/cards/{token}": {
+      "get": {
+        "description": "The card behind a link: no-store, no-referrer, noindex; one not-found for every refusal\n(off, unknown, revoked, expired, result gone or withdrawn).",
+        "operationId": "public_card_v1_public_radar_cards__token__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicRadarCardResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
+          }
+        },
+        "summary": "Public Card",
+        "tags": [
+          "radar-public"
+        ]
+      }
+    },
     "/v1/public/radar/consent-options": {
       "get": {
         "description": "No personal data; tells the web which consent screens it may show (AL1).",
@@ -13580,6 +13733,58 @@
         "summary": "Public Preview",
         "tags": [
           "radar-public"
+        ]
+      }
+    },
+    "/v1/radar/cards/{card_id}/revoke": {
+      "post": {
+        "operationId": "revoke_card_v1_radar_cards__card_id__revoke_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "card_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Card Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
+          }
+        },
+        "summary": "Revoke Card",
+        "tags": [
+          "radar"
         ]
       }
     },
@@ -14433,6 +14638,121 @@
           }
         },
         "summary": "Ask Answer",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
+    "/v1/radar/results/{request_id}/cards": {
+      "get": {
+        "operationId": "list_cards_v1_radar_results__request_id__cards_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/RadarCardResponse"
+                  },
+                  "title": "Response List Cards V1 Radar Results  Request Id  Cards Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
+          }
+        },
+        "summary": "List Cards",
+        "tags": [
+          "radar"
+        ]
+      },
+      "post": {
+        "description": "AL1 direction C: a revocable link to a frozen card. 404 while the switch is off.",
+        "operationId": "create_card_v1_radar_results__request_id__cards_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RadarCardCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RadarCardResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
+          }
+        },
+        "summary": "Create Card",
         "tags": [
           "radar"
         ]

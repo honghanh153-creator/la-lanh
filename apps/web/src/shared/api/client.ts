@@ -235,7 +235,13 @@ export type RadarConsentOptions = {
   sentences: Partial<Record<RadarInviteFirstSentence, string>>;
   authorized_input_version: string;
   date_consent_version: string;
+  /** Hợp gu C: whether card links may be created (off by default). */
+  card_links?: boolean;
 };
+/** A Hợp gu card link as its owner sees it; never the token once created. */
+export type RadarCardLink = { id: string; status: "active" | "revoked" | "expired"; created_at: string; expires_at: string; share_url?: string | null };
+/** A Hợp gu card as anyone with the link sees it: no birth data, at most an initial. */
+export type PublicRadarCard = { version: string; context: string; tier: string; line: string; initial?: string | null };
 export type RadarInviteFirstSentence =
   | "owner-invite-heading" | "owner-invite-body" | "owner-attest-label" | "owner-attest-help"
   | "owner-date-only-storage" | "recipient-heading" | "recipient-body" | "recipient-consent" | "recipient-decline";
@@ -250,6 +256,8 @@ export type PublicRadarInvite = {
   privacy_note: string;
 };
 export type RadarResult = {
+  /** Owner views only (AL1): the relationship the owner chose. */
+  context?: RadarInvite["context"] | null;
   request_id?: string | null;
   recipient_label?: string | null;
   mode?: RadarInvite["mode"] | null;
@@ -588,7 +596,7 @@ function cookieCapable(path: string, method = "GET"): boolean {
   if (identityOperation(path) || path === "/session/renew" || path === "/identity/claim") return true;
   // Capability cookies share the browser jar with profile transitions too.
   if (path.startsWith("/public/radar/")) {
-    return method === "GET" ? !["/public/radar/current", "/public/radar/receipt", "/public/radar/consent-options"].includes(path)
+    return method === "GET" ? !["/public/radar/current", "/public/radar/receipt", "/public/radar/consent-options"].includes(path) && !path.startsWith("/public/radar/cards/")
       : ["/public/radar/current/accept", "/public/radar/current/accept-date", "/public/radar/current/decline", "/public/radar/receipt/withdraw"].includes(path);
   }
   return method === "POST" && path.startsWith("/public/la-chung/")
@@ -1383,6 +1391,26 @@ export function getRadarAskQuestions(requestId: string, signal?: AbortSignal): P
 
 export function getRadarAskAnswer(requestId: string, questionId: string, signal?: AbortSignal): Promise<RadarAskAnswer> {
   return request<RadarAskAnswer>(`/radar/results/${encodeURIComponent(requestId)}/ask/${encodeURIComponent(questionId)}`, { signal });
+}
+
+export function createRadarCard(requestId: string, showInitial: boolean): Promise<RadarCardLink> {
+  return request<RadarCardLink>(`/radar/results/${encodeURIComponent(requestId)}/cards`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...csrfHeader() },
+    body: JSON.stringify({ show_initial: showInitial }),
+  });
+}
+
+export function listRadarCards(requestId: string, signal?: AbortSignal): Promise<RadarCardLink[]> {
+  return request<RadarCardLink[]>(`/radar/results/${encodeURIComponent(requestId)}/cards`, { signal });
+}
+
+export function revokeRadarCard(cardId: string): Promise<void> {
+  return request<void>(`/radar/cards/${encodeURIComponent(cardId)}/revoke`, { method: "POST", headers: csrfHeader() });
+}
+
+export function getPublicRadarCard(token: string, signal?: AbortSignal): Promise<PublicRadarCard> {
+  return request<PublicRadarCard>(`/public/radar/cards/${encodeURIComponent(token)}`, { signal });
 }
 
 export function getRadarConsentOptions(signal?: AbortSignal): Promise<RadarConsentOptions> {

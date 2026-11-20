@@ -12,6 +12,7 @@ from app.domains.guest.service import GuestSessionService
 from app.domains.identity.models import OwnerIdentity
 from app.domains.identity.service import OwnerIdentityService, OwnerSessionUnavailable
 from app.domains.radar.ask import ASK_VERSION
+from app.domains.radar.cards import RadarCardView
 from app.domains.radar.consent_drafts import invite_first_sentences
 from app.domains.radar.models import RadarInviteView, RadarMode, RadarReceivedView, RadarStatus
 from app.domains.radar.service import (
@@ -173,6 +174,8 @@ class RadarConsentOptionsResponse(BaseModel):
 
     invite_first: bool
     sentences: dict[str, str] = Field(default_factory=dict)
+    # AL1 direction C: whether card links may be created (the image card needs no switch).
+    card_links: bool = False
     authorized_input_version: str
     date_consent_version: str
 
@@ -228,6 +231,8 @@ class RadarResultResponse(PublicRadarResultResponse):
     """Owner (A) views only: adds the label A set to manage the invite."""
 
     recipient_label: str | None = None
+    # The relationship A chose (AL1: five contexts); used by "Hỏi về hai bạn" and the card.
+    context: str | None = None
 
 
 def _service(request: Request) -> RadarService:
@@ -478,6 +483,98 @@ async def ask_answer(
     return RadarAskAnswerResponse.model_validate(found)
 
 
+class RadarCardCreateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    # Off by default: the card shows no name unless the owner asks for the first letter.
+    show_initial: bool = False
+
+
+class RadarCardResponse(BaseModel):
+    id: UUID
+    status: str
+    created_at: datetime
+    expires_at: datetime
+    share_url: str | None = None
+
+
+class PublicRadarCardResponse(BaseModel):
+    """A card as anyone with the link sees it: no birth data, no name beyond an initial."""
+
+    version: str
+    context: str
+    tier: str
+    line: str
+    initial: str | None = None
+
+
+def _card(view: RadarCardView, share_url: str | None = None) -> RadarCardResponse:
+    return RadarCardResponse(
+        id=view.id,
+        status=view.status,
+        created_at=view.created_at,
+        expires_at=view.expires_at,
+        share_url=share_url,
+    )
+
+
+@router.post("/radar/results/{request_id}/cards", response_model=RadarCardResponse)
+async def create_card(
+    request_id: UUID,
+    body: RadarCardCreateRequest,
+    request: Request,
+    response: Response,
+    csrf_token: Annotated[str | None, Header(alias="X-CSRF-Token")] = None,
+) -> RadarCardResponse | Response:
+    """AL1 direction C: a revocable link to a frozen card. 404 while the switch is off."""
+
+    _safe_public(response)
+    try:
+        owner = await _owner_mutation(request, csrf_token)
+        view, token = await _service(request).create_card(
+            owner.principal_id, request_id, show_initial=body.show_initial
+        )
+    except OwnerSessionUnavailable:
+        return Response(status_code=401, headers=dict(response.headers))
+    except GuestDomainError:
+        return Response(status_code=403, headers=dict(response.headers))
+    except RadarLimitReached:
+        return Response(status_code=429, headers=dict(response.headers))
+    except RadarError:
+        return Response(status_code=404, headers=dict(response.headers))
+    return _card(view, f"/radar/the/{token}")
+
+
+@router.get("/radar/results/{request_id}/cards", response_model=list[RadarCardResponse])
+async def list_cards(
+    request_id: UUID, request: Request, response: Response
+) -> list[RadarCardResponse] | Response:
+    _safe_public(response)
+    try:
+        owner = await _owner(request)
+        views = await _service(request).list_cards(owner.principal_id, request_id)
+    except (OwnerSessionUnavailable, RadarError):
+        return Response(status_code=404, headers=dict(response.headers))
+    return [_card(view) for view in views]
+
+
+@router.post("/radar/cards/{card_id}/revoke", status_code=204)
+async def revoke_card(
+    card_id: UUID,
+    request: Request,
+    csrf_token: Annotated[str | None, Header(alias="X-CSRF-Token")] = None,
+) -> Response:
+    try:
+        owner = await _owner_mutation(request, csrf_token)
+        await _service(request).revoke_card(owner.principal_id, card_id)
+    except OwnerSessionUnavailable:
+        return Response(status_code=401)
+    except GuestDomainError:
+        return Response(status_code=403)
+    except RadarError:
+        return Response(status_code=404)
+    return Response(status_code=204)
+
+
 @router.delete("/radar/results/{request_id}", status_code=204)
 async def delete_owner_result(
     request_id: UUID,
@@ -697,6 +794,21 @@ async def accept_invite_with_date(
     )
 
 
+@public_router.get("/public/radar/cards/{token}", response_model=PublicRadarCardResponse)
+async def public_card(
+    token: str, request: Request, response: Response
+) -> PublicRadarCardResponse | Response:
+    """The card behind a link: no-store, no-referrer, noindex; one not-found for every refusal
+    (off, unknown, revoked, expired, result gone or withdrawn)."""
+
+    _safe_public(response)
+    try:
+        snapshot = await _service(request).card(token)
+    except RadarError:
+        return Response(status_code=404, headers=dict(response.headers))
+    return PublicRadarCardResponse.model_validate(snapshot)
+
+
 @public_router.get("/public/radar/consent-options", response_model=RadarConsentOptionsResponse)
 async def consent_options(request: Request, response: Response) -> RadarConsentOptionsResponse:
     """No personal data; tells the web which consent screens it may show (AL1)."""
@@ -705,6 +817,7 @@ async def consent_options(request: Request, response: Response) -> RadarConsentO
     service = _service(request)
     sentences = invite_first_sentences() if service.invite_first_enabled else None
     return RadarConsentOptionsResponse(
+        card_links=service.share_card_links_enabled,
         invite_first=sentences is not None,
         sentences=sentences or {},
         authorized_input_version=(

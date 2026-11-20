@@ -248,6 +248,14 @@ function answer(flags: Flags, method: string, path: string): Reply | null {
         ? { status: 200, json: { request_id: IDS.radarRequest, context: "friend", voice: "straight_warm", expires_at: "2026-11-19T03:00:00Z", consent_version: "radar-pair-v1",
           requires_exact_birth_profile: false, privacy_note: "Bản thử: chỉ dùng dữ liệu giả." } }
         : { status: 404, json: { code: "RADAR_INVITE_NOT_FOUND" } };
+    // Hợp gu AL1: the invite-first screens and card links are off, "Hỏi về hai bạn" has no
+    // approved question yet, and a card link that does not exist answers not-found.
+    case "GET /v1/public/radar/consent-options":
+      return { status: 200, json: { invite_first: false, sentences: {}, authorized_input_version: "radar-authorized-input-v1", date_consent_version: "radar-pair-date-v1", card_links: false } };
+    case `GET /v1/radar/results/${IDS.radarRequest}/ask`:
+      return { status: 200, json: { version: "radar-ask-v1", questions: [] } };
+    case "GET /v1/public/radar/cards/card-token-test":
+      return { status: 404, json: { code: "RADAR_CARD_NOT_FOUND" } };
     case "GET /v1/birth-places/search":
       return { status: 200, json: [] };
     case "GET /v1/birth-profile/supplement/edit":

@@ -908,6 +908,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/public/radar/cards/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Public Card
+         * @description The card behind a link: no-store, no-referrer, noindex; one not-found for every refusal
+         *     (off, unknown, revoked, expired, result gone or withdrawn).
+         */
+        get: operations["public_card_v1_public_radar_cards__token__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/public/radar/consent-options": {
         parameters: {
             query?: never;
@@ -1070,6 +1091,23 @@ export interface paths {
         get: operations["public_preview_v1_public_radar__token__get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/radar/cards/{card_id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke Card */
+        post: operations["revoke_card_v1_radar_cards__card_id__revoke_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1248,6 +1286,27 @@ export interface paths {
         get: operations["ask_answer_v1_radar_results__request_id__ask__question_id__get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/radar/results/{request_id}/cards": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Cards */
+        get: operations["list_cards_v1_radar_results__request_id__cards_get"];
+        put?: never;
+        /**
+         * Create Card
+         * @description AL1 direction C: a revocable link to a frozen card. 404 while the switch is off.
+         */
+        post: operations["create_card_v1_radar_results__request_id__cards_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3379,6 +3438,22 @@ export interface components {
             /** Statements */
             statements: components["schemas"]["PublicStatementResponse"][];
         };
+        /**
+         * PublicRadarCardResponse
+         * @description A card as anyone with the link sees it: no birth data, no name beyond an initial.
+         */
+        PublicRadarCardResponse: {
+            /** Context */
+            context: string;
+            /** Initial */
+            initial?: string | null;
+            /** Line */
+            line: string;
+            /** Tier */
+            tier: string;
+            /** Version */
+            version: string;
+        };
         /** PublicRadarInviteResponse */
         PublicRadarInviteResponse: {
             /**
@@ -3538,6 +3613,36 @@ export interface components {
              */
             request_id: string;
         };
+        /** RadarCardCreateRequest */
+        RadarCardCreateRequest: {
+            /**
+             * Show Initial
+             * @default false
+             */
+            show_initial: boolean;
+        };
+        /** RadarCardResponse */
+        RadarCardResponse: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Share Url */
+            share_url?: string | null;
+            /** Status */
+            status: string;
+        };
         /**
          * RadarConsentOptionsResponse
          * @description Whether the invite-first consent screens are live, with their owner-approved sentences.
@@ -3545,6 +3650,11 @@ export interface components {
         RadarConsentOptionsResponse: {
             /** Authorized Input Version */
             authorized_input_version: string;
+            /**
+             * Card Links
+             * @default false
+             */
+            card_links: boolean;
             /** Date Consent Version */
             date_consent_version: string;
             /** Invite First */
@@ -3694,6 +3804,8 @@ export interface components {
             compatibility_map?: {
                 [key: string]: unknown;
             }[];
+            /** Context */
+            context?: string | null;
             /** Dimensions */
             dimensions?: {
                 [key: string]: unknown;
@@ -8649,6 +8761,37 @@ export interface operations {
             };
         };
     };
+    public_card_v1_public_radar_cards__token__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicRadarCardResponse"];
+                };
+            };
+            /** @description Request input was rejected */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
     consent_options_v1_public_radar_consent_options_get: {
         parameters: {
             query?: never;
@@ -8919,6 +9062,37 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["PublicRadarInviteResponse"];
                 };
+            };
+            /** @description Request input was rejected */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    revoke_card_v1_radar_cards__card_id__revoke_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path: {
+                card_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Request input was rejected */
             422: {
@@ -9402,6 +9576,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RadarAskAnswerResponse"];
+                };
+            };
+            /** @description Request input was rejected */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    list_cards_v1_radar_results__request_id__cards_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarCardResponse"][];
+                };
+            };
+            /** @description Request input was rejected */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    create_card_v1_radar_results__request_id__cards_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RadarCardCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarCardResponse"];
                 };
             };
             /** @description Request input was rejected */

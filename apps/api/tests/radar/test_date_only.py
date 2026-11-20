@@ -178,6 +178,7 @@ def test_switched_off_paths_stay_closed(tmp_path: Path) -> None:
             "sentences": {},
             "authorized_input_version": "radar-authorized-input-v1",
             "date_consent_version": "radar-pair-date-v1",
+            "card_links": False,
         }
         date_only = {
             "recipient_label": "Mèo",

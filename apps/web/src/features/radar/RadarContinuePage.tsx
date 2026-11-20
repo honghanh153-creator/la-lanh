@@ -10,6 +10,7 @@ import { ReadingDisclaimer } from "../../shared/ui/ReadingDisclaimer";
 import "../matching/matching.css";
 import "./radar.css";
 import { RadarAsk } from "./RadarAsk";
+import { RadarShareCard } from "./RadarShareCard";
 import { RadarFlowSteps } from "./RadarFlowSteps";
 import { formatRadarExpiry, radarVoiceLabel, RADAR_CONTEXT_OPTIONS, RADAR_PENDING_REQUEST_KEY } from "./radarOptions";
 import { NightSky } from "../../shared/ui/NightSky";
@@ -224,6 +225,7 @@ export function RadarResultView({ result, onWithdraw, withdrawing = false, actio
       </li>)}</ul> : null}
       <RadarReadable sections={sections} />
       {ownerView && result.request_id ? <RadarAsk requestId={result.request_id} /> : null}
+      {ownerView && result.request_id ? <RadarShareCard result={result} /> : null}
       {ownerView ? <RadarTarotBridge /> : null}
       <ReadingDisclaimer>{result.disclaimer}</ReadingDisclaimer>
       {ownerView && result.mode === "private_check" ? <RadarPrivateRetentionNote expiresAt={result.expires_at} /> : null}

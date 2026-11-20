@@ -294,3 +294,12 @@
 .radar-ask__question { color: #a99bd0; }
 .radar-ask__say { color: #f7f0ff; font-size: 1rem; font-weight: 700; }
 .radar-ask__answer blockquote { margin: 0; padding: 0.7rem; border-left: 3px solid var(--match-lime); border-radius: 0.6rem; color: #f2ecff; background: rgb(223 255 52 / 6%); }
+/* Hợp gu C: share card. */
+.radar-card-open { margin: 0.5rem 0 1rem; }
+.radar-card { position: relative; z-index: 1; display: grid; margin: 1.5rem 0; padding: 1rem; border: 1px solid rgb(223 255 52 / 26%); border-radius: 1.3rem; gap: 0.8rem; background: rgb(20 18 52 / 70%); }
+.radar-card h2 { margin: 0; font-size: 1.1rem; }
+.radar-card .consent-check { display: grid; grid-template-columns: auto 1fr; gap: 0.6rem; min-height: 2.75rem; align-items: center; color: #eee9fa; font-size: 0.8rem; }
+.radar-card__links { display: grid; margin: 0; padding: 0; gap: 0.5rem; list-style: none; }
+.radar-card__links li { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; color: #c8bfe0; font-size: 0.78rem; }
+.radar-card__links button { display: flex; min-height: 2.75rem; padding: 0 0.7rem; border: 1px solid rgb(185 150 255 / 30%); border-radius: 0.75rem; align-items: center; gap: 0.3rem; color: #d9c6ff; background: transparent; font: inherit; }
+.radar-card-page { display: grid; gap: 1rem; }

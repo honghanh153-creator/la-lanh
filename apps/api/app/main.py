@@ -263,6 +263,7 @@ def create_app(
                 content_rewrite_service=content_rewrite_service,
                 erasure_journal=erasure_journal,
                 invite_first_consent=resolved_settings.radar_invite_first_consent,
+                share_card_links=resolved_settings.radar_share_card_links,
             )
             if app.state.birth_chart_service is not None and engine is not None
             else None
