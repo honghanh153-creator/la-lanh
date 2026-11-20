@@ -149,6 +149,16 @@ POSITIVES: tuple[str, ...] = (
     "Bo me doc duoc thu nay thi con da di xa mai mai roi",
     "Sáng mai bà dậy thì cháu đã đi xa mãi mãi rồi",
     "Lúc đó em đã đi xa mãi mãi rồi",
+    # A relative named earlier in the clause is not the one who has gone (review round 2 of
+    # #808): the writer is the one leaving.
+    "Khi mẹ thức dậy con đã đi xa mãi mãi",
+    "Khi me thuc day con da di xa mai mai",
+    "Mẹ ơi con đã đi xa mãi mãi rồi",
+    "Mẹ, con đã đi xa mãi mãi rồi",
+    "Bà mất rồi, cháu cũng đã đi xa mãi mãi",
+    "Lúc bố về em đã đi xa mãi mãi",
+    "Chồng em không biết em đã đi xa mãi mãi",
+    "Bạn thân đọc tin này mình đã đi xa mãi mãi",
     "Sống tiếp cũng chẳng có ý nghĩa gì",
     "mình chẳng muốn tồn tại trên đời này nữa",
     "bye cuộc đời, mình out khỏi trái đất luôn",
@@ -332,6 +342,9 @@ NEGATIVES: tuple[str, ...] = (
     "Ba minh da di xa mai mai roi, minh nho ba qua",
     "Anh trai mình đã đi xa mãi mãi, mình chưa quen được",
     "Người bạn thân của mình đã đi xa mãi mãi rồi",
+    "Mẹ con đã đi xa mãi mãi rồi, con nhớ mẹ",
+    "Bố mẹ mình đã đi xa mãi mãi",
+    "Năm ngoái ông ngoại em cũng đã đi xa mãi mãi",
     "Unable to sleep, should I quit coffee?",
     "Nhân 19 tuổi, học trung cấp Cơ khí ở một huyện của Tây Ninh",
 )

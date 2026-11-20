@@ -129,6 +129,12 @@ _SOMEONE_ELSE = (
     r"(?:ba|ong|bo|me|cha|vo|chong|thay|bac|chu|cau|thim|nguoi (?:ay|do|than|yeu|ban)|"
     r"ban (?:than|minh|toi|em|ay)|anh trai|chi gai|em trai|em gai|con trai|con gai)"
 )
+# That person as the subject of "đã đi xa": "bà", "ông nội", "ba mình", "bạn thân của mình",
+# "mẹ cũng". Nothing else may stand between the person and "đã".
+_GRIEF_SUBJECT = (
+    rf"{_SOMEONE_ELSE}(?: (?:noi|ngoai|ruot|nuoi|ca|hai|ut))?(?: (?:cua )?{_SELF})?"
+    r"(?: (?:cung|vua|moi))?"
+)
 # Words that put "đã đi xa mãi mãi" in a time that has not come yet.
 _TIME_TO_COME = (
     r"(?:neu|gia su|lo nhu|ngay mai|sang mai|toi mai|mai|toi nay|dem nay|tuan sau|thang sau|"
@@ -355,9 +361,12 @@ _RULES: tuple[_Rule, ...] = (
     # "đi xa mãi mãi". "Đã đi xa mãi mãi" has its own two rules below.
     _rule(rf"(?<!\bda )\b{_GONE_FOR_GOOD}", ("đi xa",)),
     # "Bà mình đã đi xa mãi mãi rồi" is grief for someone else, not a plan, and gets a reading.
-    # That is the only "đã đi xa mãi mãi" left alone. It is still a farewell when the clause
-    # names no other person ("Khi mọi người đọc thư này, mình đã đi xa mãi mãi") ...
-    _rule(rf"(?:^|\. )(?:(?!{_SOMEONE_ELSE}\b)[^\s.]+ )*da {_GONE_FOR_GOOD}", ("đi xa",)),
+    # That is the only "đã đi xa mãi mãi" left alone, and only when that other person is the one
+    # who has gone: the words right before "đã". A relative named earlier in the clause does not
+    # count ("Khi mẹ thức dậy con đã đi xa mãi mãi" is the writer leaving). It is also a
+    # farewell when the clause names no other person ("Khi mọi người đọc thư này, mình đã đi
+    # xa mãi mãi") ...
+    _rule(rf"(?:^|\. )(?:(?!{_GRIEF_SUBJECT} da di xa\b)[^\s.]+ )*da {_GONE_FOR_GOOD}", ("đi xa",)),
     # ... or when it is said about a time to come ("Nếu ngày mai mình đã đi xa mãi mãi, mọi
     # người đừng tìm mình"; "Bố mẹ đọc được thư này thì con đã đi xa mãi mãi rồi").
     _rule(rf"\b{_TIME_TO_COME}\b(?: \S+){{0,8}}? da {_GONE_FOR_GOOD}", ("đi xa",)),
