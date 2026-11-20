@@ -22,7 +22,7 @@ const ACK_PREFIX = "la-lanh-aura-transition-ack-v1:";
 
 const unlockLabels: Record<string, string> = {
   multi_factor: "Nhiều yếu tố được đọc cùng nhau",
-  house_arena: "Các House và lĩnh vực đời sống",
+  house_arena: "Các nhà và lĩnh vực đời sống",
   rising_angles: "Rising và các góc chính xác",
   current_sky: "Bầu trời hiện tại nối vào câu chuyện",
 };

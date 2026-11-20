@@ -443,7 +443,7 @@ test("guest can add exact birth time and place only after explicit deep-data con
 
   await expect(page).toHaveURL(/\/aura-cutover$/);
   await expect(page.getByRole("heading", { name: "Aura không tự thay Note của bạn." })).toBeFocused();
-  await expect(page.getByText("Các House và lĩnh vực đời sống")).toBeVisible();
+  await expect(page.getByText("Các nhà và lĩnh vực đời sống")).toBeVisible();
   await page.getByRole("button", { name: "Dùng Aura hôm nay" }).click();
 
   await expect(page).toHaveURL(/\/home$/);
