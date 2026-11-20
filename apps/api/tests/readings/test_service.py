@@ -1,9 +1,12 @@
 from datetime import UTC, datetime
 
+import pytest
+
 from app.domains.astro.engine import NatalChartEngine
 from app.domains.astro.models import CalculationConfig, ChartInput, Tradition
 from app.domains.content import copy_approval
 from app.domains.content.copy_approval import copy_digest, parse_registry
+from app.domains.readings.models import ReadingClaim
 from app.domains.readings.service import InsightReadingService
 
 
@@ -92,7 +95,7 @@ def test_planets_in_the_same_sign_never_share_a_card_sentence() -> None:
     assert len(tails) == len(set(tails)), tails
 
 
-def _same_sign_reading() -> list:
+def _same_sign_reading() -> list[ReadingClaim]:
     chart = NatalChartEngine().calculate_chart(
         ChartInput(
             utc_datetime=datetime(1997, 9, 20, 5, 0, tzinfo=UTC), latitude=20.84, longitude=106.69
@@ -118,7 +121,7 @@ def test_a_card_never_repeats_an_earlier_cards_everyday_or_watch_sentence() -> N
     assert mercury.manifestation == ""
 
 
-def test_approved_planet_sentences_are_served_per_planet(monkeypatch) -> None:
+def test_approved_planet_sentences_are_served_per_planet(monkeypatch: pytest.MonkeyPatch) -> None:
     claims = _same_sign_reading()
     sign = next(c for c in claims if c.id == "sun-sign").factor_refs[1].split(":")[-1]
     entries = []
