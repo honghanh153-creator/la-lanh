@@ -76,7 +76,12 @@ export function useDailyExperiment({
     staleTime: 0,
   });
 
+  // Keep, stop and look-back requests are sent at once, also with no network (#741). The default
+  // would hold the request and send it when the network returns, possibly after the reader has
+  // left the page, while the message for this case says nothing was changed. Sent at once, the
+  // request fails, the screen goes back to what the server has, and that message is true.
   const chooseMutation = useMutation({
+    networkMode: "always",
     onMutate: captureMutationContext,
     mutationFn: (input: DailyExperimentChoice) => {
       if (!input) throw new Error("Missing experiment choice");
@@ -96,6 +101,7 @@ export function useDailyExperiment({
   });
 
   const undoMutation = useMutation({
+    networkMode: "always",
     mutationFn: undoDailyExperiment,
     onMutate: async () => {
       const context = captureMutationContext();
@@ -119,6 +125,7 @@ export function useDailyExperiment({
   });
 
   const reflectMutation = useMutation({
+    networkMode: "always",
     mutationFn: reflectDailyExperiment,
     onMutate: async (input) => {
       const context = captureMutationContext();
