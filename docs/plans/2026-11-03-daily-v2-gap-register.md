@@ -168,7 +168,7 @@ Một nhà có nhiều nghĩa. Ví dụ của owner: Sao Mộc qua nhà 5 có th
 | GT-18 | Giám khảo chỉ chấm một phần mảnh | P1 | Chấm 100% (~1.100 mảnh) offline | Mở |
 | GT-19, GT-20 | Tông và lĩnh vực không được đối chiếu với góc; note ghép từ mảnh có thể tự mâu thuẫn | P1 | Gắn tag góc/tông/lĩnh vực/lập trường; luật ghép; lint note đã ghép cho 200+ lá số × 365 ngày | Mở |
 | GT-28 | Luật nghiệm thu chưa rõ: một note 10 mảnh với 3% mảnh lỗi thì 26% note lỗi | P1 | Lấy mẫu note đã ghép, 0/100 mỗi giọng; định nghĩa "lỗi nghiêm trọng" | Mở |
-| PV-15 | LLM tạo mảnh rồi đi thẳng qua vòng tự merge | P1 | Lint mảnh (NFC, không URL/số điện thoại/placeholder); manifest; CODEOWNERS; không tự merge; bật qua revision của studio sau khi chủ sản phẩm duyệt | Mở |
+| PV-15 | LLM tạo mảnh rồi đi thẳng qua vòng tự merge | P1 | Lint mảnh (NFC, không URL/số điện thoại/placeholder); manifest; CODEOWNERS; không tự merge; bật qua revision của studio sau khi chủ sản phẩm duyệt | Mở (11.11: lint câu trong `copy_registry.json` đã có — NFC, không link, email, số điện thoại, chỗ trống mẫu; còn manifest, CODEOWNERS, không tự merge) |
 | GT-26 | Giám khảo cùng họ model với người viết | P2 | Giám khảo khác họ, ghim phiên bản, trích dẫn phải khớp đúng chuỗi | Mở |
 | GT-29, GT-30 | Người đọc giả lập thay cho người thật; vòng viết lại học cách lách lint | P2 | Người đọc giả lập chỉ để lọc trước; giữ bộ luật ẩn mà vòng viết lại không thấy | Mở |
 | PV-16 | Dữ liệu sinh thật có thể lọt vào bộ mẫu vàng hoặc giám khảo | P2 | Chỉ dùng persona tổng hợp, CI kiểm tra | Mở |

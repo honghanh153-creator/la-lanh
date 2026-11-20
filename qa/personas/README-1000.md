@@ -61,3 +61,14 @@ Lưu ý: ở các lần chấm mock trước, "dùng chung máy" và "không có
 
 - Số liệu nguồn là mẫu nhỏ, mẫu thuận tiện hoặc của một trường; nhiều tỉ lệ là giả định. Tỉ lệ ở đây để người giả gần thực tế hơn, không phải để suy ra tỉ lệ người dùng thật.
 - Người viết là mô hình AI, nên hồ sơ có thể giống nhau về giọng văn.
+
+## Người dùng cũ qua một bản phát hành (20.11.2026)
+
+Để thử người đã dùng app **trước** một bản phát hành: cùng 1000 người, cùng database và lịch sử, đổi code giữa chừng.
+
+- `apps/api/scripts/persona_switch.py --phase 1` chạy N ngày trên checkout bản cũ, giữ SQLite của từng worker và cookie khách của từng người trong `--state`.
+- `--phase 2 --offset N` chạy tiếp trên checkout bản mới với **bản sao** của `--state`: ngày, giờ giả và khoá idempotency đi tiếp từ chỗ dừng. Ngày đầu giai đoạn 2 mở lại note đã lưu, việc đang giữ, mood và phiên Tarot của giai đoạn 1 (`carryover`).
+- Mood, câu Tarot, câu khủng hoảng và câu "chết" nghĩa bóng lặp theo chu kỳ 29 ngày của người giả (`day % 29`), nên giai đoạn 2 thử lại an toàn.
+- Chép harness của bản mới sang checkout bản cũ (`persona_*.py`, `qa/personas`) để chỉ code app khác nhau. Hai bản phải cùng schema (cùng Alembic head).
+- `apps/api/scripts/persona_switch_report.py --p1 RUN/p1 --p2 new=RUN/p2-new --p2 old=RUN/p2-old` tính theo từng loại hồ sơ: lặp so với **toàn bộ lịch sử** (tiêu đề, nội dung, việc nhỏ, lời Lá), số chủ đề trong 14 ngày, mood "Đuối" → việc nhẹ, an toàn (bắt khủng hoảng, báo nhầm), lộ chữ giữa người, mở lại đồ của giai đoạn 1.
+- Chạy nặng qua `collab-test-guard.mjs`. SQLite tạm, không mạng, không tạo người giả trên server thật.
