@@ -375,7 +375,10 @@ async def test_an_extra_line_is_stored_with_the_card_and_voiced_as_a_pair(
     assert first.active.sections.companion in authored
     assert stored(first).companion is None
 
-    # One approved pair per issue (made up from the authored pair): Lá now alternates.
+    # Two approved pairs per issue (made up from the authored pair). This date-only profile
+    # rotates two situations, so each comes back every second day; with one extra pair the
+    # calendar-day slot would lock each situation onto one line (the reason selection is deferred,
+    # decision D). Three lines per situation are walked on that rhythm.
     extras = {
         issue: CompanionLine(
             f"{entry.line.direct.rstrip('.!?…')}, bạn nhé.",
@@ -383,17 +386,26 @@ async def test_an_extra_line_is_stored_with_the_card_and_voiced_as_a_pair(
         )
         for issue, entry in COMPANION_ISSUE_LINES.items()
     }
-    for issue, line in extras.items():
-        assert extra_line_problems(line, COMPANION_ISSUE_LINES[issue]) == [], issue
+    seconds = {
+        issue: CompanionLine(
+            f"{entry.line.direct.rstrip('.!?…')}, bạn à.",
+            f"{entry.line.roast.rstrip('.!?…')}, nghe.",
+        )
+        for issue, entry in COMPANION_ISSUE_LINES.items()
+    }
+    for pool in (extras, seconds):
+        for issue, line in pool.items():
+            assert extra_line_problems(line, COMPANION_ISSUE_LINES[issue]) == [], issue
     _use(
         monkeypatch,
         [
             entry
-            for issue, line in extras.items()
-            for entry in _pair(issue, 1, line.direct, line.roast)
+            for number, pool in ((1, extras), (2, seconds))
+            for issue, line in pool.items()
+            for entry in _pair(issue, number, line.direct, line.roast)
         ],
     )
-    roasts = {line.direct: line.roast for line in extras.values()}
+    roasts = {line.direct: line.roast for pool in (extras, seconds) for line in pool.values()}
 
     extra_day = plain_day = None
     for offset in range(1, 1 + 2 * DAILY_TOP_K):
@@ -420,7 +432,9 @@ async def test_an_extra_line_is_stored_with_the_card_and_voiced_as_a_pair(
 
     # A card already opened keeps both voices when the pair is edited or withdrawn later
     # (Codex r1 on #657: the roast used to be looked up again on every read).
-    issue = next(key for key, pair in extras.items() if pair.direct == line)
+    issue = next(
+        key for pool in (extras, seconds) for key, pair in pool.items() if pair.direct == line
+    )
     _use(monkeypatch, _pair(issue, 1, line, "Một câu khịa đã sửa sau đó, nha."))
     assert (await open_day(extra_day, ReadingVoice.ROAST)).active.sections.companion == roasts[line]
     _use(monkeypatch, [])
