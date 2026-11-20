@@ -5,7 +5,7 @@ import { existsSync, mkdirSync, mkdtempSync, realpathSync, writeFileSync } from 
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { applyDecisions, codeCoupled, failReason, batchBranch, commitArgs, batchFor, batchSize, codexBin, readSaved, buildPrompt, digest, main, pendingCount, readRejected, recordRejected, renderBody, runCopyBatch, selectPending, validateDecisions } from './codex-copy-review.mjs';
+import { applyDecisions, bundleOnly, codeCoupled, failReason, batchBranch, commitArgs, batchFor, batchSize, codexBin, readSaved, buildPrompt, digest, main, pendingCount, readRejected, recordRejected, renderBody, runCopyBatch, selectPending, validateDecisions } from './codex-copy-review.mjs';
 import { bodyProblems } from './collab-preflight.mjs';
 
 // Synthetic sentences only.
@@ -259,4 +259,19 @@ test('16.11: Daily direct headlines are never sent to or approved by the copy ba
   const error = Object.assign(new Error('Command failed: uv run python -m scripts.fallback_approval\nUsing CPython 3.13.13\nTraceback (most recent call last):\n  File "voice.py", line 599, in _validate_catalog\nValueError: Roast headlines for synthetic-key must cover every direct headline'), { stderr: '' });
   assert.equal(failReason(error), 'Command failed: uv run python -m scripts.fallback_approval — ValueError: Roast headlines for synthetic-key must cover every direct headline');
   assert.equal(failReason(new Error('gh: timeout')), 'gh: timeout');
+});
+
+// 19.11.2026 (Codex review of #685): loose Daily scenes rotate apart from the advice when a situation
+// has no approved bundle, so a concrete scene met unrelated advice. Scenes ship only in whole bundles.
+test('19.11: loose Daily scenes are never sent to or approved by the copy batch; bundle scenes are', () => {
+  const reg = { entries: [
+    { id: 'daily.scene.synthetic-key.01', category: 'reading', status: 'pending', text: 'Câu cảnh thử.' },
+    { id: 'daily.action.synthetic-key.01', category: 'reading', status: 'pending', text: 'Câu việc thử.' },
+    { id: 'daily.bundle.synthetic-key.01.scene', category: 'reading', status: 'pending', text: 'Câu cảnh trong gói thử.' },
+  ] };
+  assert.deepEqual(selectPending(reg).map(e => e.id), ['daily.action.synthetic-key.01', 'daily.bundle.synthetic-key.01.scene']);
+  const next = applyDecisions(reg, reg.entries.map(e => ({ id: e.id, decision: 'approve' })), '2026-11-19');
+  assert.deepEqual(next.entries.map(e => e.status), ['pending', 'approved', 'approved'], 'a loose scene stays pending even if a decision approves it');
+  assert.equal(bundleOnly('daily.scene.x.02'), true);
+  assert.equal(bundleOnly('daily.bundle.x.02.scene'), false);
 });

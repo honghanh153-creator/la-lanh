@@ -284,7 +284,12 @@ def create_app(
                 PostgresResonanceRepository(database.sessions, envelope, erasure_journal)
             )
             app.state.experiment_service = ExperimentService(
-                PostgresExperimentRepository(database.sessions, envelope, erasure_journal)
+                PostgresExperimentRepository(
+                    database.sessions,
+                    envelope,
+                    erasure_journal,
+                    keep_action_all_profiles=resolved_settings.keep_action_all_profiles,
+                )
             )
             app.state.saved_note_service = SavedNoteService(
                 PostgresSavedNoteRepository(database.sessions, envelope, erasure_journal),
@@ -314,6 +319,7 @@ def create_app(
                         if app.state.birth_chart_service is not None
                         else None
                     ),
+                    keep_action_all_profiles=resolved_settings.keep_action_all_profiles,
                 )
         try:
             yield
