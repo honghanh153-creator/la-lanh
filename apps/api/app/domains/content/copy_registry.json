@@ -11129,6 +11129,870 @@
    "category": "reading",
    "text": "Ngồi yên ba phút, đặt tay lên bụng và thở đều.",
    "status": "pending"
+  },
+  {
+   "id": "insight.everyday.sun.aries",
+   "category": "reading",
+   "text": "Khi muốn làm gì, bạn hay bắt tay ngay rồi mới tính chi tiết sau.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.sun.taurus",
+   "category": "reading",
+   "text": "Bạn hay chọn một hướng chắc chắn rồi đi đều, không thích bị giục đổi giữa chừng.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.sun.gemini",
+   "category": "reading",
+   "text": "Bạn hay làm nhiều việc nhỏ cùng lúc và thấy vui khi được học thêm điều mới.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.sun.cancer",
+   "category": "reading",
+   "text": "Bạn hay dồn sức vào việc chăm lo cho người thân và nơi mình thấy là nhà.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.sun.leo",
+   "category": "reading",
+   "text": "Bạn hay muốn việc mình làm có dấu ấn riêng và được người khác nhìn thấy.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.sun.virgo",
+   "category": "reading",
+   "text": "Bạn hay thấy ổn hơn khi làm xong một việc cụ thể, dù chỉ là việc nhỏ.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.sun.libra",
+   "category": "reading",
+   "text": "Bạn hay hỏi ý người khác trước khi chọn hướng đi cho mình.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.sun.scorpio",
+   "category": "reading",
+   "text": "Bạn hay dồn sức vào ít việc nhưng làm tới cùng, và không thích kể nhiều.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.sun.sagittarius",
+   "category": "reading",
+   "text": "Bạn hay chọn việc cho mình thấy có ý nghĩa, hoặc được đi, được học thêm.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.sun.capricorn",
+   "category": "reading",
+   "text": "Bạn hay đặt mục tiêu dài và làm từng bước, kể cả khi chưa ai thấy kết quả.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.sun.aquarius",
+   "category": "reading",
+   "text": "Bạn hay làm theo cách riêng, kể cả khi số đông đang chọn cách khác.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.sun.pisces",
+   "category": "reading",
+   "text": "Bạn hay làm tốt nhất khi việc đó có ích cho ai đó, không chỉ vì được giao.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.moon.aries",
+   "category": "reading",
+   "text": "Khi buồn hay bực, bạn hay nói ra ngay và cũng nguôi khá nhanh.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.moon.taurus",
+   "category": "reading",
+   "text": "Sau một ngày mệt, bạn hay cần ăn ngon, ngủ đủ và ở chỗ quen.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.moon.gemini",
+   "category": "reading",
+   "text": "Khi rối, bạn hay nhắn tin hoặc kể với ai đó để nói được mình đang thấy gì.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.moon.cancer",
+   "category": "reading",
+   "text": "Khi buồn, bạn hay tìm về người thân hoặc một góc quen để thấy yên tâm.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.moon.leo",
+   "category": "reading",
+   "text": "Khi buồn, bạn hay cần một lời hỏi han hoặc một cái ôm từ người mình quý.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.moon.virgo",
+   "category": "reading",
+   "text": "Khi lo, bạn hay dọn dẹp hoặc làm một việc tay chân để bình tĩnh lại.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.moon.libra",
+   "category": "reading",
+   "text": "Khi không vui, bạn hay cố giữ không khí dễ chịu cho mọi người trước.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.moon.scorpio",
+   "category": "reading",
+   "text": "Khi bị tổn thương, bạn hay giữ kín và chỉ kể với rất ít người.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.moon.sagittarius",
+   "category": "reading",
+   "text": "Khi buồn, bạn hay ra ngoài, đi đâu đó hoặc đổi chỗ ngồi cho nhẹ đầu.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.moon.capricorn",
+   "category": "reading",
+   "text": "Khi mệt, bạn hay cố làm cho xong việc rồi mới cho mình nghỉ.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.moon.aquarius",
+   "category": "reading",
+   "text": "Khi buồn, bạn hay lùi ra một chút để nghĩ trước khi nói cảm xúc.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.moon.pisces",
+   "category": "reading",
+   "text": "Bạn hay buồn theo khi người bên cạnh buồn, dù chuyện không phải của mình.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.mercury.aries",
+   "category": "reading",
+   "text": "Khi nói chuyện, bạn hay vào thẳng ý chính và trả lời khá nhanh.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.mercury.taurus",
+   "category": "reading",
+   "text": "Bạn hay nghĩ kỹ trước khi nói và nhớ lâu điều mình đã hiểu chắc.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.mercury.gemini",
+   "category": "reading",
+   "text": "Bạn hay hỏi nhiều, đọc nhiều và nối các ý khác nhau rất nhanh.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.mercury.cancer",
+   "category": "reading",
+   "text": "Bạn hay nhớ một chuyện qua cảm xúc lúc đó và nói nhẹ nhàng khi chuyện khó.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.mercury.leo",
+   "category": "reading",
+   "text": "Khi kể chuyện, bạn hay kể sinh động và muốn người nghe thật sự chú ý.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.mercury.virgo",
+   "category": "reading",
+   "text": "Bạn hay ghi chú, lập danh sách và để ý những chi tiết người khác bỏ qua.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.mercury.libra",
+   "category": "reading",
+   "text": "Khi trao đổi, bạn hay cân nhắc cả hai phía trước khi nói ý mình.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.mercury.scorpio",
+   "category": "reading",
+   "text": "Bạn hay nghe nhiều hơn nói và hỏi đúng chỗ người khác đang né.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.mercury.sagittarius",
+   "category": "reading",
+   "text": "Bạn hay nói thẳng điều mình tin và thích bàn chuyện lớn hơn chuyện vặt.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.mercury.capricorn",
+   "category": "reading",
+   "text": "Bạn hay nói ngắn, rõ, và chỉ nói khi đã nghĩ xong.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.mercury.aquarius",
+   "category": "reading",
+   "text": "Bạn hay nghĩ khác số đông và thích hỏi: sao không làm theo cách khác?",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.mercury.pisces",
+   "category": "reading",
+   "text": "Bạn hay hiểu ý người khác qua giọng nói, nét mặt hơn là qua từng chữ.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.venus.aries",
+   "category": "reading",
+   "text": "Khi quý ai, bạn hay chủ động rủ rê và thể hiện ra khá rõ.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.venus.taurus",
+   "category": "reading",
+   "text": "Bạn hay thể hiện tình cảm bằng việc cụ thể: một bữa ăn, một món quà, một lần đưa đón.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.venus.gemini",
+   "category": "reading",
+   "text": "Bạn hay quý người nói chuyện hợp và giữ liên lạc bằng những tin nhắn vui.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.venus.cancer",
+   "category": "reading",
+   "text": "Bạn hay chăm người mình thương bằng những việc nhỏ hằng ngày.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.venus.leo",
+   "category": "reading",
+   "text": "Bạn hay muốn được khen, được để ý, và cũng hào phóng khen người khác.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.venus.virgo",
+   "category": "reading",
+   "text": "Bạn hay thể hiện tình cảm bằng cách giúp một việc cụ thể đúng lúc người kia cần.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.venus.libra",
+   "category": "reading",
+   "text": "Bạn hay quý những mối quan hệ có qua có lại và cư xử tử tế với nhau.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.venus.scorpio",
+   "category": "reading",
+   "text": "Bạn hay mở lòng chậm, nhưng khi đã tin thì gắn bó rất sâu.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.venus.sagittarius",
+   "category": "reading",
+   "text": "Bạn hay quý người cho mình tự do và cùng mình thử điều mới.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.venus.capricorn",
+   "category": "reading",
+   "text": "Bạn hay thể hiện tình cảm bằng việc có mặt đều đặn và giữ lời hứa.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.venus.aquarius",
+   "category": "reading",
+   "text": "Bạn hay quý những mối quan hệ cho mình vẫn là mình và có khoảng riêng.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.venus.pisces",
+   "category": "reading",
+   "text": "Bạn hay dễ thương người, dễ cảm thông và hay nhường người mình quý.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.mars.aries",
+   "category": "reading",
+   "text": "Khi muốn gì, bạn hay lao vào làm ngay và không ngại cạnh tranh.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.mars.taurus",
+   "category": "reading",
+   "text": "Bạn hay khởi động chậm, nhưng đã làm thì làm đều và bền.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.mars.gemini",
+   "category": "reading",
+   "text": "Bạn hay làm hăng theo từng đợt và làm tốt khi được đổi việc liên tục.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.mars.cancer",
+   "category": "reading",
+   "text": "Bạn hay mạnh mẽ nhất khi bảo vệ người nhà hoặc người mình thương.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.mars.leo",
+   "category": "reading",
+   "text": "Bạn hay làm hăng hơn khi có người cổ vũ hoặc khi việc đó là của mình.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.mars.virgo",
+   "category": "reading",
+   "text": "Bạn hay làm việc chăm chỉ, cẩn thận và muốn mọi thứ đâu ra đó.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.mars.libra",
+   "category": "reading",
+   "text": "Bạn hay tránh cãi nhau và muốn giải quyết bằng cách nói chuyện.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.mars.scorpio",
+   "category": "reading",
+   "text": "Khi đã muốn gì, bạn hay kiên trì rất lâu và ít khi bỏ cuộc.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.mars.sagittarius",
+   "category": "reading",
+   "text": "Bạn hay hăng hái lúc bắt đầu và cần một mục tiêu đủ lớn để làm tiếp.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.mars.capricorn",
+   "category": "reading",
+   "text": "Bạn hay đặt kế hoạch rõ và đi từng bước tới đích.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.mars.aquarius",
+   "category": "reading",
+   "text": "Bạn hay hăng nhất khi được làm theo cách mình nghĩ ra.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.mars.pisces",
+   "category": "reading",
+   "text": "Bạn hay làm theo cảm hứng và có sức hơn khi việc đó giúp được ai đó.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.jupiter.aries",
+   "category": "reading",
+   "text": "Bạn hay mở ra cơ hội mới bằng cách dám thử trước người khác.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.jupiter.taurus",
+   "category": "reading",
+   "text": "Bạn hay tin vào những gì tích góp dần, từ tiền bạc tới kỹ năng.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.jupiter.gemini",
+   "category": "reading",
+   "text": "Bạn hay biết thêm nhiều điều nhờ học, đọc và quen thêm người mới.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.jupiter.cancer",
+   "category": "reading",
+   "text": "Bạn hay lớn lên nhờ gia đình, người thân hoặc một nhóm thân như người nhà.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.jupiter.leo",
+   "category": "reading",
+   "text": "Bạn hay có thêm cơ hội khi dám đứng ra, chia sẻ hoặc thể hiện điều mình giỏi.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.jupiter.virgo",
+   "category": "reading",
+   "text": "Bạn hay tiến bộ nhờ làm đi làm lại một việc tới khi thành thạo.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.jupiter.libra",
+   "category": "reading",
+   "text": "Bạn hay có thêm cơ hội nhờ các mối quan hệ và việc làm chung với người khác.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.jupiter.scorpio",
+   "category": "reading",
+   "text": "Bạn hay lớn lên sau những lần phải đối mặt với chuyện khó.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.jupiter.sagittarius",
+   "category": "reading",
+   "text": "Bạn hay học được nhiều nhờ đi xa, học thêm hoặc gặp người khác mình.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.jupiter.capricorn",
+   "category": "reading",
+   "text": "Bạn hay tin vào kết quả đến từ kỷ luật và làm bền bỉ lâu dài.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.jupiter.aquarius",
+   "category": "reading",
+   "text": "Bạn hay có ý tưởng mới khi ở trong một nhóm cùng chí hướng.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.jupiter.pisces",
+   "category": "reading",
+   "text": "Bạn hay thấy nhẹ lòng khi giúp người khác hoặc làm việc có ý nghĩa.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.sun.aries",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ quyết quá nhanh rồi mới thấy mình chưa hỏi đủ.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.sun.taurus",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ giữ cách cũ dù nó đã không còn hợp.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.sun.gemini",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ mở thêm việc mới thay vì làm xong việc đang dở.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.sun.cancer",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ lo cho mọi người trước mà quên việc của mình.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.sun.leo",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ buồn lâu nếu công sức của mình không ai nhắc tới.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.sun.virgo",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ sửa đi sửa lại một việc đã đủ tốt.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.sun.libra",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ chờ người khác chọn hộ để khỏi phải quyết.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.sun.scorpio",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ ôm hết một mình và không nói ai biết mình đang mệt.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.sun.sagittarius",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ bỏ ngang để tìm một hướng mới hấp dẫn hơn.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.sun.capricorn",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ làm thêm giờ thay vì nói rằng mình đã quá tải.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.sun.aquarius",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ rút ra xa và trả lời rất ngắn.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.sun.pisces",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ để người khác quyết hộ rồi thấy mình đi sai hướng.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.moon.aries",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ nói nặng lời rồi sau đó mới thấy tiếc.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.moon.taurus",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ thu mình trong thói quen cũ và ngại đổi gì thêm.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.moon.gemini",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ nghĩ nhiều tới khuya mà vẫn chưa nói được mình đang thấy gì.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.moon.cancer",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ tủi thân và chờ người khác tự nhận ra.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.moon.leo",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ nghĩ mình không được quan tâm nếu không ai hỏi han.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.moon.virgo",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ tự trách mình vì những lỗi rất nhỏ.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.moon.libra",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ nói “không sao” dù trong lòng vẫn còn khó chịu.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.moon.scorpio",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ nhớ mãi một câu nói làm mình đau.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.moon.sagittarius",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ né chuyện khó bằng cách bận rộn với việc khác.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.moon.capricorn",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ gồng tiếp và chỉ thấy mệt khi đã quá sức.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.moon.aquarius",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ im lặng rất lâu và khiến người khác thấy xa cách.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.moon.pisces",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ ôm nỗi buồn của người khác mà quên phần của mình.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.mercury.aries",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ ngắt lời người khác hoặc trả lời trước khi nghe hết.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.mercury.taurus",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ giữ ý mình dù người kia đã đưa thêm thông tin.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.mercury.gemini",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ nói lan man và nhảy qua lại giữa nhiều chuyện.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.mercury.cancer",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ nghe một câu bình thường thành câu trách mình.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.mercury.leo",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ khó chịu nếu ý mình bị bỏ qua giữa đám đông.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.mercury.virgo",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ soi lỗi trong lời người khác và cả lời của mình.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.mercury.libra",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ nói vòng vo để khỏi làm ai phật lòng.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.mercury.scorpio",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ đoán ý xấu sau một tin nhắn ngắn.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.mercury.sagittarius",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ hứa nhanh hoặc nói quá lên so với điều mình làm được.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.mercury.capricorn",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ nói cứng và khiến người nghe thấy bị chê.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.mercury.aquarius",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ tranh luận bằng lý lẽ mà bỏ qua cảm xúc người kia.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.mercury.pisces",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ nói không rõ ý để tránh va chạm.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.venus.aries",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ mất hứng nhanh nếu người kia trả lời chậm.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.venus.taurus",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ giữ chặt một mối quan hệ dù nó đã làm mình mệt.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.venus.gemini",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ nói chuyện vui để né cuộc nói chuyện thật.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.venus.cancer",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ cần người kia hỏi han nhiều hơn mà ngại nói ra.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.venus.leo",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ giận dỗi khi người kia quên một dịp quan trọng với bạn.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.venus.virgo",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ góp ý quá nhiều và người kia nghe thành chê.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.venus.libra",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ chiều ý người kia rồi quên mình cũng có mong muốn.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.venus.scorpio",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ thử lòng người kia thay vì hỏi thẳng.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.venus.sagittarius",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ rút đi khi mối quan hệ bắt đầu cần cam kết.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.venus.capricorn",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ giữ khoảng cách và ngại nói rằng mình cần được quan tâm.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.venus.aquarius",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ lạnh đi và người kia khó biết bạn đang nghĩ gì.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.venus.pisces",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ nhịn quá lâu rồi buồn mà không ai biết.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.mars.aries",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ nóng và nói ra điều chưa kịp nghĩ.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.mars.taurus",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ lì ra và không chịu đổi ý.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.mars.gemini",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ bỏ dở nhiều việc cùng lúc.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.mars.cancer",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ giận ngầm thay vì nói thẳng điều mình không chịu.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.mars.leo",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ tự ái nếu bị chỉnh trước mặt người khác.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.mars.virgo",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ ôm hết việc vì thấy người khác làm chưa kỹ.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.mars.libra",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ nói đồng ý rồi trong lòng vẫn bực.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.mars.scorpio",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ giữ cơn giận trong lòng rất lâu.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.mars.sagittarius",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ hấp tấp hoặc nhận quá nhiều việc.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.mars.capricorn",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ làm quá sức và khắt khe với chính mình.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.mars.aquarius",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ làm ngược lại chỉ vì không thích bị bảo phải làm gì.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.mars.pisces",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ trì hoãn và đợi tới phút chót mới làm.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.jupiter.aries",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ nhận một cơ hội quá vội mà chưa xem kỹ.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.jupiter.taurus",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ nghĩ phải có đủ mọi thứ mới thấy yên tâm.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.jupiter.gemini",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ học nhiều thứ một lúc mà không đi sâu được cái nào.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.jupiter.cancer",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ ngại rời khỏi chỗ quen dù có cơ hội tốt.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.jupiter.leo",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ hứa nhiều hơn sức mình để giữ hình ảnh.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.jupiter.virgo",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ chờ thật hoàn hảo rồi mới dám bắt đầu.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.jupiter.libra",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ nhận lời quá nhiều người để không ai buồn.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.jupiter.scorpio",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ nghi ngờ một cơ hội tốt vì sợ bị lừa.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.jupiter.sagittarius",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ ôm quá nhiều kế hoạch mà chưa xong cái nào.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.jupiter.capricorn",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ nghĩ phải thật vất vả mới xứng đáng có kết quả.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.jupiter.aquarius",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ bỏ qua lời khuyên vì muốn làm theo cách riêng.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.jupiter.pisces",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ tin người quá nhanh hoặc giúp quá sức mình.",
+   "status": "pending"
   }
  ],
  "version": "copy-registry/v1"
