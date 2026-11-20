@@ -29,6 +29,12 @@ from app.infrastructure.crypto import EnvelopeCipher, SecretHasher
 _IDEMPOTENCY_PATTERN = re.compile(r"^[A-Za-z0-9_-]{22,200}$")
 
 
+# US-25 typed month questions (built, switched off). The wording is consent.month.typed_question;
+# bump the version whenever the owner-approved wording changes.
+MONTH_QUESTION_CONSENT_VERSION = "month-typed-question-v1"
+MONTH_QUESTION_CONSENT_PURPOSE = "month_typed_question"
+
+
 class GuestSessionService:
     def __init__(
         self,
@@ -207,6 +213,38 @@ class GuestSessionService:
                 purpose="reading_resonance",
                 accepted_at=now or datetime.now(UTC),
             )
+        )
+
+    async def accept_month_question_consent(
+        self, guest_id: UUID, *, version: str, now: datetime | None = None
+    ) -> None:
+        """US-25: verifiable record (who, which wording, when) of consent to typed questions.
+
+        Decree 356/2025/NĐ-CP Article 6(1)-(2): consent must be verifiable and kept by the
+        controller. Only the version is stored, never any question text.
+        """
+
+        if version != MONTH_QUESTION_CONSENT_VERSION:
+            raise ConsentVersionInvalid
+        await self._repository.save_consent(
+            ConsentRecord(
+                guest_id=guest_id,
+                version=version,
+                purpose=MONTH_QUESTION_CONSENT_PURPOSE,
+                accepted_at=now or datetime.now(UTC),
+            )
+        )
+
+    async def has_month_question_consent(self, guest_id: UUID) -> bool:
+        return await self._repository.has_consent(
+            guest_id, MONTH_QUESTION_CONSENT_VERSION, MONTH_QUESTION_CONSENT_PURPOSE
+        )
+
+    async def revoke_month_question_consent(
+        self, guest_id: UUID, *, now: datetime | None = None
+    ) -> None:
+        await self._repository.revoke_consent(
+            guest_id, MONTH_QUESTION_CONSENT_PURPOSE, now or datetime.now(UTC)
         )
 
     async def revoke_resonance_consent(

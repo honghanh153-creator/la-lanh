@@ -289,7 +289,12 @@ birth, place or identity field and calls no third party or AI service.
   `consent.month.typed_question` and the crisis notice `crisis.self_harm.notice.month`. When on,
   the text passes the crisis guard first, is read in memory into two closed labels (topic and
   question kind), and is dropped. Retention: the request only. It is never stored, logged, echoed
-  in the answer or sent to any processor; the answer never quotes it.
+  in the answer or sent to any processor; the answer never quotes it. Before the text is read, a
+  consent record (guest, wording version `month-typed-question-v1`, time; purpose
+  `month_typed_question`) is kept in `consents`, exported and withdrawable via
+  `DELETE /v1/month/consent` (Decree 356/2025/NĐ-CP Art. 6(1)-(2)). Typed text may reveal
+  sensitive data under Art. 4(1)(c)-(e), so the consent wording says so (Art. 6(4)); processing
+  sensitive data may also end the small-business exemption of Art. 41 (owner decision, #794).
 - **Saving (US-25 AC12):** nothing is saved automatically. "Lưu" sends a topic and an answer key
   only; the server recomputes the answer and stores the composed answer (topic label, three parts,
   basis, disclaimer, reframe line) in `saved_month_answers`, AES-GCM encrypted with the row id as

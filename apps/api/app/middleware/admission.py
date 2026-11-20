@@ -83,6 +83,8 @@ def _policy(request: Request) -> AdmissionPolicy | None:
         return AdmissionPolicy("guest-create", per_peer=10, global_limit=120)
     if request.method == "POST" and path == "/v1/tarot/sessions":
         return AdmissionPolicy("tarot-session-create", per_peer=20, global_limit=240)
+    if request.method == "DELETE" and path == "/v1/month/consent":
+        return AdmissionPolicy("month-consent", per_peer=30, global_limit=360)
     if request.method in {"POST", "DELETE"} and path.startswith("/v1/month/saved"):
         return AdmissionPolicy("month-saved", per_peer=30, global_limit=360)
     if request.method == "POST" and path == "/v1/month/answers":

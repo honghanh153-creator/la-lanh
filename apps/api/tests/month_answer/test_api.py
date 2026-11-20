@@ -14,6 +14,7 @@ from sqlalchemy import func, select
 from app.api.crisis_guard import CRISIS_NOTICE_CODE
 from app.config import Settings
 from app.db.base import Base
+from app.domains.guest.tables import ConsentRow
 from app.main import create_app
 from app.middleware import admission
 
@@ -288,7 +289,47 @@ def test_typed_outcome_question_gets_no_yes_no_and_is_not_echoed_logged_or_store
         assert not re.match(r"^(Có|Không|Được|Chưa)\b", answer[part])
     assert CANARY not in response.text
     assert CANARY not in caplog.text
-    assert _row_counts(typed_client) == before
+    after = _row_counts(typed_client)
+    # The only new row is the consent record (Decree 356 Art. 6): never the question.
+    assert {name: after[name] - before[name] for name in after if after[name] != before[name]} == {
+        "consents": 1
+    }
+
+
+def test_typed_consent_is_recorded_once_and_can_be_withdrawn(
+    typed_client: TestClient, approve_month: Callable[..., None]
+) -> None:
+    approve_month(owner=True)
+    headers = _person(typed_client, "consent-record")
+    body = {"question": "Làm sao nói với sếp là mình quá tải?", "consent_version": CONSENT}
+    for _ in range(3):
+        assert typed_client.post("/v1/month/answers", json=body, headers=headers).status_code == 200
+    app: Any = typed_client.app
+
+    async def rows() -> list[tuple[str, str, bool]]:
+        async with app.state.database.sessions() as session:
+            found = await session.execute(
+                select(ConsentRow.version, ConsentRow.purpose, ConsentRow.revoked_at).where(
+                    ConsentRow.purpose == "month_typed_question"
+                )
+            )
+            return [(version, purpose, revoked is None) for version, purpose, revoked in found]
+
+    assert typed_client.portal is not None
+    assert typed_client.portal.call(rows) == [(CONSENT, "month_typed_question", True)]
+    withdrawn = typed_client.delete("/v1/month/consent", headers=headers)
+    assert withdrawn.status_code == 204
+    assert typed_client.portal.call(rows) == [(CONSENT, "month_typed_question", False)]
+    export = typed_client.post("/v1/session/data-export", headers=headers).json()
+    assert any(item["purpose"] == "month_typed_question" for item in export["consents"])
+
+
+def test_withdraw_needs_csrf(typed_client: TestClient) -> None:
+    _person(typed_client, "consent-csrf")
+    assert typed_client.delete("/v1/month/consent", headers={"Origin": ORIGIN}).status_code in {
+        401,
+        403,
+    }
 
 
 def test_typed_question_without_a_topic_asks_for_one(

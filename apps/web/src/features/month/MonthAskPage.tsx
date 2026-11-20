@@ -12,6 +12,7 @@ import {
   getMonthWindow,
   listSavedMonthAnswers,
   saveMonthAnswer,
+  withdrawMonthConsent,
   type MonthAnswer,
   type MonthTopic,
   type MonthWindow,
@@ -43,6 +44,10 @@ export function MonthAskPage() {
   const [needTopic, setNeedTopic] = useState<string | null>(null);
   const [crisis, setCrisis] = useState<string | null>(null);
 
+  const withdraw = useMutation({
+    mutationFn: () => withdrawMonthConsent(),
+    onSuccess: () => setConsented(false),
+  });
   const ask = useMutation({
     mutationFn: (input: Parameters<typeof askMonth>[0]) => askMonth(input),
     onMutate: () => {
@@ -135,6 +140,9 @@ export function MonthAskPage() {
               </label>
               <button className="electric-button" disabled={ask.isPending || !consented || typed.trim().length < 8} type="submit">
                 {monthCopy("month.ui.type_submit")}
+              </button>
+              <button className="month-withdraw" disabled={withdraw.isPending} onClick={() => withdraw.mutate()} type="button">
+                {monthCopy("month.ui.withdraw_consent")}
               </button>
             </form>
           ) : null}

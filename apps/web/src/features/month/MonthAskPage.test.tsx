@@ -13,6 +13,7 @@ import {
   getMonthWindow,
   listSavedMonthAnswers,
   saveMonthAnswer,
+  withdrawMonthConsent,
   type MonthAnswer,
   type MonthStatus,
 } from "../../shared/api/client";
@@ -30,6 +31,7 @@ vi.mock("../../shared/api/client", async (original) => {
     getMonthWindow: vi.fn(),
     listSavedMonthAnswers: vi.fn(),
     saveMonthAnswer: vi.fn(),
+    withdrawMonthConsent: vi.fn(),
   };
 });
 
@@ -176,6 +178,22 @@ describe("Hỏi về tháng này (US-25)", () => {
     expect(JSON.stringify({ ...localStorage })).not.toContain(CANARY);
     expect(JSON.stringify({ ...sessionStorage })).not.toContain(CANARY);
     expect(window.location.href).not.toContain(CANARY);
+  });
+
+  it("lets the person withdraw consent to typed questions", async () => {
+    const user = userEvent.setup();
+    vi.mocked(withdrawMonthConsent).mockResolvedValue();
+    vi.mocked(getMonthStatus).mockResolvedValue(status({
+      typed_questions: true,
+      consent: { version: "month-typed-question-v1", copy_id: "consent.month.typed_question", text: "Câu đồng ý (bản nháp)." },
+    }));
+    renderAt(<MonthAskPage />);
+    const box = await screen.findByRole("checkbox");
+    await user.click(box);
+    expect(box).toBeChecked();
+    await user.click(screen.getByRole("button", { name: "Rút lại đồng ý cho câu gõ" }));
+    expect(withdrawMonthConsent).toHaveBeenCalled();
+    await waitFor(() => expect(box).not.toBeChecked());
   });
 
   it("shows only the crisis notice for crisis text and clears the box", async () => {

@@ -12255,7 +12255,7 @@
   {
    "id": "consent.month.typed_question",
    "category": "consent",
-   "text": "Câu bạn gõ chỉ dùng để Lá chọn mảng và cách trả lời ngay lúc này. Lá không lưu câu này, không ghi lại và không gửi cho ai.",
+   "text": "Câu bạn gõ có thể có thông tin nhạy cảm như sức khỏe hay chuyện riêng tư. Lá chỉ dùng câu này để chọn mảng và cách trả lời ngay lúc này, không lưu, không ghi lại và không gửi cho ai.",
    "status": "pending"
   },
   {
@@ -12388,6 +12388,12 @@
    "id": "month.ui.error",
    "category": "reading",
    "text": "Lá chưa trả lời được lúc này. Bạn thử lại sau nhé.",
+   "status": "pending"
+  },
+  {
+   "id": "month.ui.withdraw_consent",
+   "category": "reading",
+   "text": "Rút lại đồng ý cho câu gõ",
    "status": "pending"
   }
  ],

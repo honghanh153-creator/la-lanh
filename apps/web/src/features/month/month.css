@@ -37,3 +37,4 @@
 .month-reminder { display: flex; gap: .5rem; align-items: center; min-height: 44px; font-size: .9rem; }
 .month-reminder input { min-width: 22px; min-height: 22px; }
 .home-month-reminder { display: block; margin: .5rem 0; }
+.month-withdraw { justify-self: start; min-height: 44px; background: transparent; border: 0; padding: 0; color: inherit; font: inherit; font-size: .85rem; text-decoration: underline; }

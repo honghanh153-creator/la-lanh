@@ -857,6 +857,11 @@ export async function listSavedMonthAnswers(signal?: AbortSignal): Promise<Saved
   return result.items;
 }
 
+/** Withdraw consent to typed month questions (US-25; Decree 356 Art. 5). */
+export function withdrawMonthConsent(): Promise<void> {
+  return request<void>("/month/consent", { method: "DELETE", headers: csrfHeader() });
+}
+
 export function deleteSavedMonthAnswer(id: string): Promise<void> {
   return request<void>(`/month/saved/${encodeURIComponent(id)}`, {
     method: "DELETE",

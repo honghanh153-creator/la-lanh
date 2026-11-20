@@ -55,6 +55,7 @@ UI_IDS = (
     "month.ui.reminder_toggle",
     "month.ui.reminder_home",
     "month.ui.error",
+    "month.ui.withdraw_consent",
 )
 REFRAME_KINDS = (
     QuestionKind.OUTCOME,

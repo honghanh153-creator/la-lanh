@@ -25,6 +25,9 @@ from app.api.crisis_guard import crisis_guard
 from app.domains.birth.errors import BirthDomainError
 from app.domains.content.copy_approval import approved_copy
 from app.domains.guest.errors import GuestDomainError
+from app.domains.guest.service import (
+    MONTH_QUESTION_CONSENT_VERSION as TYPED_CONSENT_VERSION,
+)
 from app.domains.guest.service import GuestSessionService
 from app.domains.month_answer.answer import feature_ready
 from app.domains.month_answer.facts import Topic
@@ -51,7 +54,6 @@ logger = logging.getLogger(__name__)
 
 MONTH_CRISIS_COPY_ID = "crisis.self_harm.notice.month"
 TYPED_CONSENT_COPY_ID = "consent.month.typed_question"
-TYPED_CONSENT_VERSION = "month-typed-question-v1"
 NEED_TOPIC_COPY_ID = "month.line.need_topic"
 NO_STORE = {"Cache-Control": "no-store, max-age=0"}
 
@@ -268,6 +270,13 @@ async def month_answer(
             return _problem(403, "MONTH_TYPED_QUESTIONS_OFF")
         if body.consent_version != TYPED_CONSENT_VERSION:
             return _problem(428, "MONTH_TYPED_CONSENT_REQUIRED")
+        try:
+            # Decree 356 Art. 6(1)-(2): keep a verifiable record before the text is read.
+            await _guests(request).accept_month_question_consent(
+                guest.id, version=TYPED_CONSENT_VERSION
+            )
+        except GuestDomainError as error:
+            return _domain_problem(error)
         labels = read_question(body.question)
         kind = labels.kind
         topic = topic or labels.topic
@@ -436,4 +445,23 @@ async def delete_saved_month_answer(
         return _domain_problem(error)
     if not await repository.delete(guest.id, saved_id):
         return _problem(404, "MONTH_SAVED_NOT_FOUND")
+    return Response(status_code=204, headers=NO_STORE)
+
+
+@router.delete(
+    "/month/consent",
+    status_code=204,
+    responses={401: {}, 403: {}},
+)
+async def withdraw_month_question_consent(
+    request: Request,
+    csrf_token: Annotated[str | None, Header(alias="X-CSRF-Token")] = None,
+) -> Response:
+    """Withdraw consent to typed questions; nothing typed was ever stored, so nothing else goes."""
+
+    try:
+        guest = await _mutation_guest(request, csrf_token)
+        await _guests(request).revoke_month_question_consent(guest.id)
+    except GuestDomainError as error:
+        return _domain_problem(error)
     return Response(status_code=204, headers=NO_STORE)

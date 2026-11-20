@@ -24,6 +24,7 @@ export const MONTH_COPY = {
   "month.ui.try_label": "Thử",
   "month.ui.reminder_toggle": "Nhắc mình đầu tuần trên Trang chủ",
   "month.ui.reminder_home": "Đầu tuần rồi. Xem tháng này của bạn trong Khám phá.",
+  "month.ui.withdraw_consent": "Rút lại đồng ý cho câu gõ",
   "month.ui.error": "Lá chưa trả lời được lúc này. Bạn thử lại sau nhé.",
 } as const;
 
