@@ -8,6 +8,8 @@ import { expect, test, type Page } from "@playwright/test";
 // of profile (date only, approximate time, exact time) at 360 and 390px: keep, stop keeping,
 // replace, record an outcome, reload, and lose the network in between. The API is a stateful fake
 // that answers the way the server does once every kind of profile is offered the action (#716).
+// #741: Home shows the same kept action with the same controls, and a press with no network changes
+// nothing and says so.
 // Synthetic data only.
 const OUT_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "../../test-results/keep-action");
 mkdirSync(OUT_DIR, { recursive: true });
@@ -27,6 +29,7 @@ const REPLACE = "Thay việc đang giữ";
 const CONFIRM_REPLACE = "Xác nhận thay việc đang giữ";
 const OPEN_REFLECTION = "Mở phần nhìn lại";
 const SHOW_ORIGINAL = "Xem việc ban đầu";
+const OFFLINE_NOTE = "Bạn đang ngoại tuyến. Ý định chưa được thay đổi; thử lại khi có mạng nhé.";
 
 type Profile = {
   kind: string;
@@ -239,7 +242,7 @@ async function expectTappable(page: Page, name: string, width: number) {
   return button;
 }
 
-/** What the note page says about the kept action, in the same words the fake server uses. */
+/** What the page (note page or Home) says about the kept action, in the fake server's words. */
 async function screenState(page: Page): Promise<string> {
   const reflected = await page.locator(".reading-content__reflected").count();
   if (reflected) return "reflected";
@@ -267,6 +270,17 @@ function serverState(server: FakeServer): string {
 async function showOwnAction(page: Page) {
   await page.getByRole("button", { name: SHOW_ORIGINAL, exact: true }).click();
   await expect(page.locator(".reading-content__action > .reading-content__experiment-action").first()).toHaveText(OWN);
+}
+
+/** Home's card for the day's action. */
+function homeAdvice(page: Page) {
+  return page.getByRole("complementary", { name: "Việc có thể thử hôm nay" });
+}
+
+/** The same on Home: its card opens on the lighter action too. */
+async function showOwnActionOnHome(page: Page) {
+  await homeAdvice(page).getByRole("button", { name: SHOW_ORIGINAL, exact: true }).click();
+  await expect(homeAdvice(page).locator("> p").first()).toHaveText(OWN);
 }
 
 // Negative controls: the layout check must fail when something covers the control or shrinks it.
@@ -354,27 +368,58 @@ for (const profile of PROFILES) {
       await expect(held).toHaveCount(0);
       expect(await screenState(page)).toBe("chosen");
 
-      // Lose the network, press "stop keeping", get the network back: screen and server agree,
-      // whichever way the request went, and they still agree after a reload.
+      // Lose the network and press "stop keeping": the request is sent at once and fails, nothing
+      // is changed, and the page says so (#741). Nothing is sent later when the network returns.
+      server.down = true;
+      await page.context().setOffline(true);
+      const writesBefore = server.writes.length;
+      await page.getByRole("button", { name: STOP, exact: true }).click();
+      await expect(page.locator(".reading-content__experiment-error")).toHaveText(OFFLINE_NOTE);
+      await expect.poll(() => settledScreenState(page)).toBe("chosen");
+      server.down = false;
+      await page.context().setOffline(false);
+      await page.waitForTimeout(600);
+      await expect.poll(() => server.answering).toBe(0);
+      expect(server.writes.length, "no write is sent after the network returns").toBe(writesBefore);
+      expect(serverState(server)).toBe("chosen");
+      expect(await settledScreenState(page)).toBe("chosen");
+      await page.reload();
+      await showOwnAction(page);
+      await expect.poll(() => screenState(page)).toBe("chosen");
+
+      // Home shows the same kept action with the same controls (US-03 AC33): stop keeping there,
+      // keep again there, and the note page agrees after each.
+      await page.goto("/home");
+      await expect(homeAdvice(page).getByText(LIGHT, { exact: true })).toBeVisible();
+      await expect(homeAdvice(page).locator(".reading-content__held-experiment").getByText(OWN, { exact: true })).toBeVisible();
+      await showOwnActionOnHome(page);
+      await expect(homeAdvice(page).locator(".reading-content__held-experiment")).toHaveCount(0);
+      await expectTappable(page, OPEN_REFLECTION, width);
+      await shot("home-kept");
+      await (await expectTappable(page, STOP, width)).click();
+      await expectTappable(page, KEEP, width);
+      await expect.poll(() => server.kept).toBeNull();
+      await expect.poll(() => server.answering).toBe(0);
+      await page.goto("/note/today");
+      await showOwnAction(page);
+      await expect.poll(() => screenState(page)).toBe("none");
+      await page.goto("/home");
+      await showOwnActionOnHome(page);
+      await page.getByRole("button", { name: KEEP, exact: true }).click();
+      await expectTappable(page, STOP, width);
+      expect(server.kept?.action_key).toBe(OWN_KEY);
+      // With no network a press on Home changes nothing either, and says so.
       server.down = true;
       await page.context().setOffline(true);
       await page.getByRole("button", { name: STOP, exact: true }).click();
-      await page.waitForTimeout(300);
+      await expect(homeAdvice(page).locator(".reading-content__experiment-error")).toHaveText(OFFLINE_NOTE);
+      await expect.poll(() => settledScreenState(page)).toBe("chosen");
       server.down = false;
       await page.context().setOffline(false);
-      // Agreement counts only once the request has finished and nothing is on the wire: a read on
-      // reconnect can show "kept" again while the queued "stop keeping" is still to be sent (#750).
-      await expect.poll(async () => `${await settledScreenState(page)} / server ${serverState(server)} / answering ${server.answering}`, { timeout: 10_000 })
-        .toMatch(/^(chosen \/ server chosen|none \/ server none) \/ answering 0$/);
-      const afterReconnect = serverState(server);
-      test.info().annotations.push({ type: "after reconnect", description: afterReconnect });
-      await page.reload();
+      expect(serverState(server)).toBe("chosen");
+      await page.goto("/note/today");
       await showOwnAction(page);
-      await expect.poll(() => screenState(page)).toBe(afterReconnect);
-      if (afterReconnect === "none") {
-        await page.getByRole("button", { name: KEEP, exact: true }).click();
-        await expect(page.getByRole("button", { name: STOP, exact: true })).toBeVisible();
-      }
+      await expect.poll(() => screenState(page)).toBe("chosen");
 
       // Record an outcome: only after the reader opens that part themselves (US-03 AC34).
       await expect(page.getByRole("group", { name: "Điều gì đúng với bạn?" })).toHaveCount(0);
@@ -394,10 +439,13 @@ for (const profile of PROFILES) {
       await expect(page.locator(".reading-content__reflected")).toHaveText("Đã nhìn lại: Có ích một chút");
       await shot("reflected");
 
-      // Home shows the same day's action and still fits the width.
+      // Home shows the same day's action and the recorded outcome, and still fits the width.
       await page.goto("/home");
-      const advice = page.getByRole("complementary", { name: "Việc có thể thử hôm nay" });
+      const advice = homeAdvice(page);
       await expect(advice.getByText(LIGHT, { exact: true })).toBeVisible();
+      await showOwnActionOnHome(page);
+      await expect(advice.locator(".reading-content__reflected")).toHaveText("Đã nhìn lại: Có ích một chút");
+      await shot("home-reflected");
       expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), `Home has no horizontal scroll at ${width}px`).toBeLessThanOrEqual(0);
 
       expect(server.unmocked, "API calls without a mock").toEqual([]);

@@ -1424,6 +1424,31 @@ test('L50 runtime replay: the real tick merges only the reservation holder throu
   reservation._resetReservation();
 });
 
+// Fix-forward #739 (L51): when a PR merges earlier in the tick, the front's reservation and its
+// synced head record the live integration tip, not the one read before the merge.
+test('#739: a reservation made after a merge in the same tick records the live tip', () => {
+  const date = '2026-11-16';
+  const T1 = BASE; // the tip the turns were read at (the seals of #70 are for it)
+  const T2 = '2'.repeat(40);
+  const open = [
+    pr({ number: 70, title: 'content(copy): fast one', comments: [check(A), approve(A)], baseTipOid: T1, createdAt: '2026-11-01T00:00:00Z' }),
+    pr({ number: 60, title: 'content(copy): full one', baseTipOid: T1, createdAt: '2026-11-02T00:00:00Z' }),
+  ];
+  const seen = [];
+  let held = null;
+  const reservations = {
+    active: () => held,
+    reserve: (n, head, o) => { seen.push(['reserve', n, o.tip]); held = { pr: n, head, tip: o.tip, expiresAtMs: Date.now() + 3600000 }; return { reservation: held }; },
+    follow: (n, head, o) => { seen.push(['follow', n, o.tip]); return held; },
+    release: () => true,
+  };
+  const gh = { ...plannedGh(open, date), pr: () => ({ ...structuredClone(open[1]), baseTipOid: T2 }) };
+  tick({ gh, now: { date, hour: 11, minute: 5 }, review: () => ({ status: 'posted' }), reservations,
+    merge: n => (n === 70 ? { status: 'merged' } : { status: 'refused' }),
+    check: n => (n === 60 ? { status: 'synced', head: 'd'.repeat(40) } : { status: 'ci-pending' }) });
+  assert.deepEqual(seen, [['reserve', 60, T2], ['follow', 60, T2]]);
+});
+
 // ---- owner 16.11.2026 (5-fix package, item 3a): one session per PR ----
 const claims = await import('./collab-pr-claim.mjs');
 const claimsTurn = await import('./collab-turn.mjs');
@@ -2275,4 +2300,20 @@ test('17.11 (#614): a PR behind integration that another session holds says who 
   const free = waitOn(905);
   assert.match(free.reason, /đồng bộ khi tới lượt đầu hàng/);
   assert.equal(free.claimedBy, undefined);
+});
+
+// L53 (19.11.2026): #729 was approved and checked on the live tip at 16:06, but waited behind #753
+// (privacy, an earlier group, still without a passing check) on package.json all evening.
+test('L53: a PR ready to merge is never held by an earlier PR on a shared file; the other syncs after it', () => {
+  const f = (...paths) => paths.map(path => ({ path }));
+  const shared = f('package.json');
+  const head = n => String(n).padStart(40, '0');
+  const p753 = pr({ number: 753, title: 'test(privacy): leak canary', labels: [{ name: 'area:privacy' }], createdAt: '2026-11-19T03:58:00Z', headRefOid: head(753), files: shared, comments: [] });
+  const p729 = pr({ number: 729, title: 'feat(verify): home checks', createdAt: '2026-11-18T09:00:00Z', headRefOid: head(729), files: shared, comments: [check(head(729)), approve(head(729))] });
+  assert.equal(fileBlocker(p729, [p753, p729]), null);
+  const turns = Object.fromEntries(turnsFor([p753, p729]).map(t => [t.number, t]));
+  assert.equal(turns[729].turn, 'merge');
+  // Not yet approved: the earlier group still goes first, as before.
+  const checkedOnly = { ...p729, comments: [check(head(729))] };
+  assert.equal(fileBlocker(checkedOnly, [p753, checkedOnly]), 753);
 });

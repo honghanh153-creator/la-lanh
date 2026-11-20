@@ -55,7 +55,7 @@ export function activeReservation(nowMs = Date.now()) {
  * one, or another PR's that is still in force. An expired reservation of the same PR at the same
  * head is not renewed (`{ refused }`): it had its window.
  */
-function reserveUnlocked(pr, head, { nowMs = Date.now(), minutes = reservationMinutes } = {}) {
+function reserveUnlocked(pr, head, { nowMs = Date.now(), minutes = reservationMinutes, tip = null } = {}) {
   if (!Number.isInteger(pr) || pr <= 0 || !isSha(head)) return { refused: 'PR hoặc head không hợp lệ' };
   const stored = readJson(reservationPath(), null) ?? {};
   const current = valid(stored.reservation) ? stored.reservation : null;
@@ -63,23 +63,27 @@ function reserveUnlocked(pr, head, { nowMs = Date.now(), minutes = reservationMi
     if (current.pr !== pr) return { reservation: current, other: true };
     if (current.head === head) return { reservation: current };
   }
-  const expired = [...(stored.expired ?? []), ...(current && nowMs >= current.expiresAtMs ? [{ pr: current.pr, head: current.head }] : [])].slice(-20);
-  if (expired.some(e => e.pr === pr && e.head === head)) {
+  const expired = [...(stored.expired ?? []), ...(current && nowMs >= current.expiresAtMs ? [{ pr: current.pr, head: current.head, tip: current.tip ?? null }] : [])].slice(-20);
+  // Fix-forward #737: the spent window is bound to the integration tip it had. Once integration has
+  // moved (another PR merged), the PR needs a sync and may reserve again; an unknown tip refuses.
+  const spent = e => e.pr === pr && e.head === head && (!isSha(tip) || !isSha(e.tip) || e.tip === tip);
+  if (expired.some(spent)) {
     if (current && nowMs >= current.expiresAtMs) write({ reservation: null, expired });
     return { refused: `#${pr} đã hết lượt giữ integration ở head ${head.slice(0, 7)}` };
   }
-  const reservation = { pr, head, reservedAtMs: nowMs, expiresAtMs: nowMs + minutes * 60000 };
+  const reservation = { pr, head, tip: isSha(tip) ? tip : null, reservedAtMs: nowMs, expiresAtMs: nowMs + minutes * 60000 };
   write({ reservation, expired });
   log(`reserve #${pr} @ ${head.slice(0, 7)} until ${new Date(reservation.expiresAtMs).toISOString()}`);
   return { reservation };
 }
 
 /** Move the reservation of `pr` to its new head (the tick's own sync gave it a new head). */
-function followHeadUnlocked(pr, head, { nowMs = Date.now() } = {}) {
+function followHeadUnlocked(pr, head, { nowMs = Date.now(), tip = null } = {}) {
   const current = activeReservation(nowMs);
-  if (!current || current.pr !== pr || !isSha(head) || current.head === head) return current;
+  if (!current || current.pr !== pr || !isSha(head) || (current.head === head && (!isSha(tip) || current.tip === tip))) return current;
   const stored = readJson(reservationPath(), null) ?? {};
-  const moved = { ...current, head };
+  // #739: the sync merged the live tip into the head; the window is bound to that tip.
+  const moved = { ...current, head, ...(isSha(tip) ? { tip } : {}) };
   write({ ...stored, reservation: moved });
   return moved;
 }
