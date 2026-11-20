@@ -213,7 +213,7 @@ const screens: Array<{ name: string; scenario: Scenario; path: string; ready: (p
   {
     name: "02-birth-date", path: "/birth",
     scenario: { onboarding: "birth_pending", deepData: false, ownerClaim: "needs_chart" },
-    ready: (page) => page.getByRole("button", { name: "Khớp tín hiệu" }),
+    ready: (page) => page.getByRole("button", { name: "Tiếp tục" }),
   },
   {
     name: "03-reveal", path: "/reveal", scenario: signedIn,
