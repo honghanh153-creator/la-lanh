@@ -10243,6 +10243,42 @@
    "status": "pending"
   },
   {
+   "id": "la.issue.missing-context.02.direct",
+   "category": "reading",
+   "text": "Chưa chắc người kia muốn gì thì hỏi lại cho rõ.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.missing-context.02.roast",
+   "category": "reading",
+   "text": "Đọc đi đọc lại vẫn không ra ý hả? Hỏi lại một câu cho rõ.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.missing-context.03.direct",
+   "category": "reading",
+   "text": "Hỏi người gửi một câu: ý bạn là vậy phải không?",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.missing-context.03.roast",
+   "category": "reading",
+   "text": "Tin nhắn ngắn quá nên khó hiểu hả? Hỏi lại cho chắc đi.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.missing-context.04.direct",
+   "category": "reading",
+   "text": "Thiếu thông tin thì hỏi thêm, khỏi phải tự hiểu một mình.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.missing-context.04.roast",
+   "category": "reading",
+   "text": "Tự hiểu một mình rồi lỡ hiểu sai thì phiền. Hỏi lại đi.",
+   "status": "pending"
+  },
+  {
    "id": "la.issue.too-many-open-loops.01.direct",
    "category": "reading",
    "text": "Chọn một việc, làm xong rồi mới sang việc khác.",
@@ -10252,6 +10288,42 @@
    "id": "la.issue.too-many-open-loops.01.roast",
    "category": "reading",
    "text": "Việc nào cũng làm dở một nửa hả? Chọn một việc làm xong đi.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.too-many-open-loops.02.direct",
+   "category": "reading",
+   "text": "Làm xong một việc nhỏ trước, rồi mới mở việc tiếp theo.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.too-many-open-loops.02.roast",
+   "category": "reading",
+   "text": "Mười việc dở dang mà định làm thêm hả? Xong một việc đã.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.too-many-open-loops.03.direct",
+   "category": "reading",
+   "text": "Ghi các việc dở ra giấy, rồi chọn một việc làm cho xong.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.too-many-open-loops.03.roast",
+   "category": "reading",
+   "text": "Danh sách việc dài hơn cả ngày rồi đó. Chọn một việc thôi.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.too-many-open-loops.04.direct",
+   "category": "reading",
+   "text": "Hôm nay chỉ cần xong một việc là đã tốt rồi.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.too-many-open-loops.04.roast",
+   "category": "reading",
+   "text": "Đang làm ba việc cùng lúc hả? Gác hai việc, xong một việc trước.",
    "status": "pending"
   },
   {
@@ -10267,6 +10339,42 @@
    "status": "pending"
   },
   {
+   "id": "la.issue.changed-plan.02.direct",
+   "category": "reading",
+   "text": "Nhắn xác nhận giờ hẹn mới trước khi đổi các việc khác.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.changed-plan.02.roast",
+   "category": "reading",
+   "text": "Lịch vừa đổi mà bạn đã xếp lại cả tuần hả? Xác nhận giờ trước.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.changed-plan.03.direct",
+   "category": "reading",
+   "text": "Chốt lại giờ hẹn với người kia, rồi mới sửa lịch của bạn.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.changed-plan.03.roast",
+   "category": "reading",
+   "text": "Người ta dời hẹn, bạn dời cả ngày theo hả? Chốt giờ đã.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.changed-plan.04.direct",
+   "category": "reading",
+   "text": "Hỏi rõ giờ mới, ghi vào lịch, rồi làm tiếp việc đang dở.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.changed-plan.04.roast",
+   "category": "reading",
+   "text": "Lịch đổi phút chót thì bực thật. Chốt giờ mới rồi hẵng tính.",
+   "status": "pending"
+  },
+  {
    "id": "la.issue.comparison-loop.01.direct",
    "category": "reading",
    "text": "Ghi ra một việc bạn đã làm được trong tuần này.",
@@ -10276,6 +10384,42 @@
    "id": "la.issue.comparison-loop.01.roast",
    "category": "reading",
    "text": "Xem ảnh người ta nãy giờ rồi đó. Kể một việc bạn đã làm xem.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.comparison-loop.02.direct",
+   "category": "reading",
+   "text": "Ghi ra ba việc bạn đã làm hôm nay, nhỏ cũng được.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.comparison-loop.02.roast",
+   "category": "reading",
+   "text": "Lướt bài khoe của người khác nãy giờ rồi. Đếm việc của mình đi.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.comparison-loop.03.direct",
+   "category": "reading",
+   "text": "Nhìn lại bài tập của mình tuần trước và tuần này.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.comparison-loop.03.roast",
+   "category": "reading",
+   "text": "Xem thành tích người ta mãi thì mệt. Nhìn việc mình đã xong đi.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.comparison-loop.04.direct",
+   "category": "reading",
+   "text": "Kể với bản thân một việc bạn đã làm tốt hơn tháng trước.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.comparison-loop.04.roast",
+   "category": "reading",
+   "text": "Người ta chạy nhanh thì kệ. Bạn đã làm được gì, ghi ra xem.",
    "status": "pending"
   },
   {
@@ -10291,6 +10435,42 @@
    "status": "pending"
   },
   {
+   "id": "la.issue.automatic-caretaking.02.direct",
+   "category": "reading",
+   "text": "Trước khi nhận giúp, xem sức mình hôm nay còn bao nhiêu.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.automatic-caretaking.02.roast",
+   "category": "reading",
+   "text": "Ai nhờ cũng nhận thì lấy đâu ra sức. Xem lại sức mình đi.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.automatic-caretaking.03.direct",
+   "category": "reading",
+   "text": "Nói với người nhờ: hôm nay mình chỉ giúp được một lúc.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.automatic-caretaking.03.roast",
+   "category": "reading",
+   "text": "Định giúp cả nhóm hả? Nói rõ bạn giúp được bao lâu thôi.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.automatic-caretaking.04.direct",
+   "category": "reading",
+   "text": "Giúp vừa sức là đủ, phần còn lại có thể nói để mai.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.automatic-caretaking.04.roast",
+   "category": "reading",
+   "text": "Ai nhờ gì cũng gật hả? Nói vừa sức mình thôi.",
+   "status": "pending"
+  },
+  {
    "id": "la.issue.decision-fatigue.01.direct",
    "category": "reading",
    "text": "Gạch đi hai lựa chọn bạn ít thích nhất trước.",
@@ -10300,6 +10480,42 @@
    "id": "la.issue.decision-fatigue.01.roast",
    "category": "reading",
    "text": "Lướt menu mười phút rồi vẫn chưa gọi món hả? Gạch bớt đi.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.decision-fatigue.02.direct",
+   "category": "reading",
+   "text": "Chỉ giữ hai lựa chọn, rồi chọn cái làm bạn đỡ lo hơn.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.decision-fatigue.02.roast",
+   "category": "reading",
+   "text": "So sánh tới phương án thứ tám rồi hả? Gạch bớt cho nhẹ đầu.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.decision-fatigue.03.direct",
+   "category": "reading",
+   "text": "Gạch bớt những lựa chọn không hợp, chỉ giữ lại hai cái.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.decision-fatigue.03.roast",
+   "category": "reading",
+   "text": "Chọn tới chọn lui cả buổi rồi. Gạch bớt cho còn hai cái đi.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.decision-fatigue.04.direct",
+   "category": "reading",
+   "text": "Đặt một tiêu chí, gạch những lựa chọn không đạt.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.decision-fatigue.04.roast",
+   "category": "reading",
+   "text": "Mở hai chục tab so giá rồi đó. Bớt lại ba tab thôi.",
    "status": "pending"
   },
   {
@@ -10315,6 +10531,42 @@
    "status": "pending"
   },
   {
+   "id": "la.issue.perfect-before-start.02.direct",
+   "category": "reading",
+   "text": "Đặt giờ gửi bản nháp, tới giờ thì bấm gửi.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.perfect-before-start.02.roast",
+   "category": "reading",
+   "text": "Bản nháp nằm trong máy cả tuần rồi đó. Gửi đi cho người ta đọc.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.perfect-before-start.03.direct",
+   "category": "reading",
+   "text": "Gửi bản đang có, ghi chú phần bạn còn phân vân.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.perfect-before-start.03.roast",
+   "category": "reading",
+   "text": "Sửa từng dấu chấm phẩy rồi kìa. Gửi trước, góp ý về rồi tính.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.perfect-before-start.04.direct",
+   "category": "reading",
+   "text": "Người đọc cần bản nháp hơn bản hoàn hảo. Gửi đi nhé.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.perfect-before-start.04.roast",
+   "category": "reading",
+   "text": "Đọc lại lần thứ năm rồi hả? Bấm gửi đi, không sao đâu.",
+   "status": "pending"
+  },
+  {
    "id": "la.issue.group-pressure.01.direct",
    "category": "reading",
    "text": "Chưa hiểu chỗ nào thì hỏi ngay trong buổi họp.",
@@ -10324,6 +10576,42 @@
    "id": "la.issue.group-pressure.01.roast",
    "category": "reading",
    "text": "Cả nhóm gật nên bạn gật theo hả? Hỏi một câu có sao đâu.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.group-pressure.02.direct",
+   "category": "reading",
+   "text": "Hỏi lại một chỗ bạn chưa hiểu trước khi đồng ý.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.group-pressure.02.roast",
+   "category": "reading",
+   "text": "Cả nhóm nói ok nên bạn cũng ok hả? Hỏi lại một chỗ đã.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.group-pressure.03.direct",
+   "category": "reading",
+   "text": "Nhắn riêng hỏi một bạn trong nhóm phần bạn còn chưa rõ.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.group-pressure.03.roast",
+   "category": "reading",
+   "text": "Ngại hỏi giữa nhóm thì nhắn riêng hỏi một người cũng được.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.group-pressure.04.direct",
+   "category": "reading",
+   "text": "Đồng ý cũng được, nhưng hỏi rõ phần việc của bạn trước.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.group-pressure.04.roast",
+   "category": "reading",
+   "text": "Gật xong mới hỏi mình phải làm gì thì muộn. Hỏi trước đi.",
    "status": "pending"
   },
   {
@@ -10339,6 +10627,42 @@
    "status": "pending"
   },
   {
+   "id": "la.issue.avoid-small-conflict.02.direct",
+   "category": "reading",
+   "text": "Nói rõ phần nào bạn làm được, phần nào bạn không nhận.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.avoid-small-conflict.02.roast",
+   "category": "reading",
+   "text": "Chữ được nói ra trước khi kịp nghĩ hả? Lần này nói rõ đi.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.avoid-small-conflict.03.direct",
+   "category": "reading",
+   "text": "Từ chối một việc nhỏ hôm nay, nói ngắn gọn là được.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.avoid-small-conflict.03.roast",
+   "category": "reading",
+   "text": "Sợ mất lòng nên nhận hết hả? Thử từ chối một việc nhỏ xem.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.avoid-small-conflict.04.direct",
+   "category": "reading",
+   "text": "Nói thật là hôm nay bạn đang bận, chưa nhận thêm được.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.avoid-small-conflict.04.roast",
+   "category": "reading",
+   "text": "Gật đầu xong lại ngồi than. Lần này nói thật luôn cho nhẹ.",
+   "status": "pending"
+  },
+  {
    "id": "la.issue.defend-old-choice.01.direct",
    "category": "reading",
    "text": "Kiểm tra xem cách này đã ra kết quả gì chưa.",
@@ -10348,6 +10672,42 @@
    "id": "la.issue.defend-old-choice.01.roast",
    "category": "reading",
    "text": "Làm ba tuần chưa ra gì mà vẫn làm tiếp hả? Xem kết quả cái đã.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.defend-old-choice.02.direct",
+   "category": "reading",
+   "text": "So kết quả tuần này với tuần trước rồi mới quyết.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.defend-old-choice.02.roast",
+   "category": "reading",
+   "text": "Bỏ công nhiều rồi nên tiếc hả? Nhìn kết quả cái đã.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.defend-old-choice.03.direct",
+   "category": "reading",
+   "text": "Kiểm tra một lần làm gần nhất có ra kết quả không.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.defend-old-choice.03.roast",
+   "category": "reading",
+   "text": "Cách cũ quen tay thật, nhưng kiểm tra xem còn hiệu quả không.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.defend-old-choice.04.direct",
+   "category": "reading",
+   "text": "Thử cách khác cho một phần nhỏ, rồi so kết quả.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.defend-old-choice.04.roast",
+   "category": "reading",
+   "text": "Đi mãi một hướng hả? Thử hướng khác một chút, so kết quả xem.",
    "status": "pending"
   },
   {
@@ -10363,6 +10723,42 @@
    "status": "pending"
   },
   {
+   "id": "la.issue.capacity-before-agreement.02.direct",
+   "category": "reading",
+   "text": "Nhìn lịch tuần này trước khi nói có với việc mới.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.capacity-before-agreement.02.roast",
+   "category": "reading",
+   "text": "Hứa trước rồi mới mở lịch thì dễ kẹt. Xem lịch trước đi.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.capacity-before-agreement.03.direct",
+   "category": "reading",
+   "text": "Ghi việc mới vào lịch xem có chỗ không, rồi hẵng trả lời.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.capacity-before-agreement.03.roast",
+   "category": "reading",
+   "text": "Tuần này còn trống buổi nào không? Xem lịch rồi hẵng gật.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.capacity-before-agreement.04.direct",
+   "category": "reading",
+   "text": "Hẹn trả lời sau, để bạn có thời gian xem lịch.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.capacity-before-agreement.04.roast",
+   "category": "reading",
+   "text": "Không cần trả lời liền đâu. Xem lịch xong rồi nhắn lại.",
+   "status": "pending"
+  },
+  {
    "id": "la.issue.quick-reply.01.direct",
    "category": "reading",
    "text": "Đọc tới dòng cuối của tin nhắn rồi mới gõ trả lời.",
@@ -10372,6 +10768,42 @@
    "id": "la.issue.quick-reply.01.roast",
    "category": "reading",
    "text": "Mới đọc dòng đầu đã gõ xong rồi hả? Đọc nốt phần sau đi.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.quick-reply.02.direct",
+   "category": "reading",
+   "text": "Đọc lại câu hỏi của người kia trước khi bấm gửi.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.quick-reply.02.roast",
+   "category": "reading",
+   "text": "Gõ nhanh quá trả lời trật câu rồi kìa. Đọc lại đi.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.quick-reply.03.direct",
+   "category": "reading",
+   "text": "Đọc hết tin, đếm xem người kia hỏi mấy câu.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.quick-reply.03.roast",
+   "category": "reading",
+   "text": "Tin có ba câu hỏi mà bạn trả lời một. Đọc lại xem.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.quick-reply.04.direct",
+   "category": "reading",
+   "text": "Đọc chậm tin nhắn dài, rồi trả lời từng ý.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.quick-reply.04.roast",
+   "category": "reading",
+   "text": "Lướt tin như lướt video hả? Tin này đọc chậm thôi.",
    "status": "pending"
   },
   {
@@ -10387,6 +10819,42 @@
    "status": "pending"
   },
   {
+   "id": "la.issue.repair-reply.02.direct",
+   "category": "reading",
+   "text": "Nhắn lại một câu nhẹ hơn cho câu lúc nãy.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.repair-reply.02.roast",
+   "category": "reading",
+   "text": "Lỡ gắt rồi thì nhắn lại một câu cho người ta yên tâm.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.repair-reply.03.direct",
+   "category": "reading",
+   "text": "Gặp lại thì nói lại: lúc nãy mình hơi vội.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.repair-reply.03.roast",
+   "category": "reading",
+   "text": "Gửi xong mới thấy câu đó hơi gắt hả? Sửa lại một câu là được.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.repair-reply.04.direct",
+   "category": "reading",
+   "text": "Sửa một câu cho dịu hơn là đủ, không cần giải thích dài.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.repair-reply.04.roast",
+   "category": "reading",
+   "text": "Câu lúc nãy hơi gắt đó. Nhắn lại ngắn thôi, vậy là ổn.",
+   "status": "pending"
+  },
+  {
    "id": "la.issue.specific-feedback.01.direct",
    "category": "reading",
    "text": "Chỉ vào một đoạn rồi hỏi: đoạn này dễ hiểu chưa?",
@@ -10399,6 +10867,42 @@
    "status": "pending"
   },
   {
+   "id": "la.issue.specific-feedback.02.direct",
+   "category": "reading",
+   "text": "Đánh dấu một phần bạn còn lo, rồi hỏi về phần đó.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.specific-feedback.02.roast",
+   "category": "reading",
+   "text": "Hỏi bài này được không thì ai cũng gật. Hỏi cụ thể một phần đi.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.specific-feedback.03.direct",
+   "category": "reading",
+   "text": "Hỏi một câu cụ thể: phần mở đầu đã rõ chưa?",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.specific-feedback.03.roast",
+   "category": "reading",
+   "text": "Gửi nguyên file rồi hỏi ổn không? Chỉ một chỗ cần xem đi.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.specific-feedback.04.direct",
+   "category": "reading",
+   "text": "Chọn một phần, hỏi người đọc thấy phần đó thế nào.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.specific-feedback.04.roast",
+   "category": "reading",
+   "text": "Hỏi cả bài thì nhận về cả rổ ý. Hỏi một chỗ thôi.",
+   "status": "pending"
+  },
+  {
    "id": "la.issue.name-the-need.01.direct",
    "category": "reading",
    "text": "Nói rõ bạn cần người kia làm giúp việc gì, lúc nào.",
@@ -10408,6 +10912,42 @@
    "id": "la.issue.name-the-need.01.roast",
    "category": "reading",
    "text": "Thở dài ba lần rồi mà chưa ai hiểu hả? Nói rõ bạn cần gì đi.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.name-the-need.02.direct",
+   "category": "reading",
+   "text": "Nhắn cho một người: mình cần giúp việc này, tối nay.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.name-the-need.02.roast",
+   "category": "reading",
+   "text": "Than mệt cả ngày mà chưa nhờ ai. Nhắn rõ việc cần giúp xem.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.name-the-need.03.direct",
+   "category": "reading",
+   "text": "Nói rõ việc nào bạn muốn người kia đỡ một tay.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.name-the-need.03.roast",
+   "category": "reading",
+   "text": "Người ta đâu đọc được suy nghĩ. Nói rõ bạn cần gì nhé.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.name-the-need.04.direct",
+   "category": "reading",
+   "text": "Hỏi mình cần gì nhất hôm nay, rồi nói với một người.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.name-the-need.04.roast",
+   "category": "reading",
+   "text": "Im lặng chịu một mình hoài hả? Kể ra bạn cần gì đi.",
    "status": "pending"
   },
   {
