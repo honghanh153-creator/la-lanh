@@ -64,7 +64,19 @@
    "from": "thỏa thuận 12.11 mục B",
    "who": "codex",
    "due": "2026-11-20",
-   "status": "open"
+   "status": "done",
+   "test": {
+    "file": "scripts/verify/verify.test.mjs",
+    "name": "an unmet acceptance check fails a ready run; manual parts are never called met"
+   },
+   "caller": {
+    "file": "scripts/verify/verify.mjs",
+    "contains": "chưa đạt: ${entry.part}"
+   },
+   "closedBy": {
+    "pr": 729
+   },
+   "note": "Cơ chế từ #501; test chạy trong pnpm collab:test từ PR đóng. ac_checks có ở Khám phá (US-07) và Home (US-03 AC01, AC02, AC06; AC13 tay). Lượt 18.11 bắt được một kiểm viết sai (câu thân Note là câu biểu hiện, không phải thesis) trước khi ghi đạt. Còn: thêm ac_checks cho tính năng khác; trạng thái giờ ước lượng cho US-07 AC06"
   },
   {
    "id": "L05",
@@ -917,6 +929,45 @@
     "pr": 736
    },
    "note": "Tick: scripts/collab-turn.mjs giữ chỗ cho PR đầu hàng trước khi đồng bộ (test 'reservation: the front reserves before its sync…'). Gỡ tay có ghi lý do: node scripts/collab-reservation.mjs --release --reason \"…\"."
+  },
+  {
+   "id": "L51",
+   "title": "PR giữ chỗ hết hạn được giữ chỗ lại khi integration đã đổi (cần đồng bộ), không được gia hạn ở cùng đỉnh; reservation ghi đỉnh integration thật sau các merge trong cùng tick (Codex P2 trên #736 và #738: #737, #739)",
+   "from": "fix-forward #737, #739",
+   "who": "claude",
+   "due": "2026-11-19",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-loop.test.mjs",
+    "name": "#739: a reservation made after a merge in the same tick records the live tip"
+   },
+   "caller": {
+    "file": "scripts/collab-turn.mjs",
+    "contains": "tip: mergedNow.size ? liveTip(t.number) : t.tip"
+   },
+   "closedBy": {
+    "pr": 738
+   },
+   "note": "Phục hồi sau hết hạn: test '#737: an expired holder may reserve again at the same head once integration has moved' (scripts/collab-merge-gate.test.mjs)."
+  },
+  {
+   "id": "L53",
+   "title": "PR đã sẵn sàng merge (Author check PASS trên đỉnh integration + APPROVE ở head) không bị PR khác cùng file giữ lại; PR kia đồng bộ sau (#729 chờ #753 suốt tối 19.11)",
+   "from": "phiên điều phối 19.11 (PR đã duyệt bị bỏ đói)",
+   "who": "claude",
+   "due": "2026-11-20",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-loop.test.mjs",
+    "name": "L53: a PR ready to merge is never held by an earlier PR on a shared file; the other syncs after it"
+   },
+   "caller": {
+    "file": "scripts/collab-turn.mjs",
+    "contains": "if (prTurn(pr, { dropped, ...opts, open: [] }).turn === 'merge') return null;"
+   },
+   "closedBy": {
+    "pr": 738
+   }
   }
  ]
 }

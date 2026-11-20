@@ -453,3 +453,17 @@ test('reservation changes wait for the merge lock', async () => {
   r._resetReservation();
 });
 
+
+// Fix-forward #737: an expired holder is not stuck forever. Its spent window is bound to the
+// integration tip; after another PR merges (the tip moves), it needs a sync and may reserve again.
+test('#737: an expired holder may reserve again at the same head once integration has moved', () => {
+  r._resetReservation();
+  const tip1 = 'a'.repeat(40);
+  const tip2 = 'b'.repeat(40);
+  assert.equal(r.reserve(61, RH1, { nowMs: T0, tip: tip1, lockWaitMs: 0 }).reservation.tip, tip1);
+  const later = min(r.reservationMinutes + 1);
+  assert.match(r.reserve(61, RH1, { nowMs: later, tip: tip1, lockWaitMs: 0 }).refused, /hết lượt/, 'same head, same tip: no second window');
+  assert.match(r.reserve(61, RH1, { nowMs: later, lockWaitMs: 0 }).refused, /hết lượt/, 'unknown tip: still refused');
+  assert.equal(r.reserve(61, RH1, { nowMs: later + 60000, tip: tip2, lockWaitMs: 0 }).reservation.pr, 61, 'integration moved: it may reserve again');
+  r._resetReservation();
+});
