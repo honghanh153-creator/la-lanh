@@ -13,7 +13,9 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 from typing import Annotated, Literal, cast
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, Query, Request, Response
 from fastapi.responses import JSONResponse
@@ -31,6 +33,11 @@ from app.domains.month_answer.question import (
     QUESTION_MIN_CHARS,
     QuestionKind,
     read_question,
+)
+from app.domains.month_answer.saved import (
+    PostgresSavedMonthAnswers,
+    SavedMonthAnswer,
+    SavedMonthAnswerLimit,
 )
 from app.domains.month_answer.service import (
     MonthAnswerService,
@@ -104,6 +111,24 @@ class MonthWindowResponse(BaseModel):
     line: str | None = None
 
 
+class MonthSaveRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    topic: Topic
+    answer_key: str = Field(min_length=32, max_length=32, pattern=r"^[0-9a-f]{32}$")
+
+
+class SavedMonthAnswerView(BaseModel):
+    id: UUID
+    month: str
+    saved_at: datetime
+    answer: MonthAnswerView
+
+
+class SavedMonthAnswerList(BaseModel):
+    items: tuple[SavedMonthAnswerView, ...]
+
+
 class MonthOverviewItem(BaseModel):
     area: Literal["work", "love", "money", "self"]
     label: str
@@ -125,6 +150,45 @@ def _service(request: Request) -> MonthAnswerService:
         engine=getattr(request.app.state, "astro_engine", None),
         birth_service=getattr(request.app.state, "birth_chart_service", None),
         daily_service=request.app.state.daily_note_service,
+    )
+
+
+def _saved(request: Request) -> PostgresSavedMonthAnswers | None:
+    return cast(
+        PostgresSavedMonthAnswers | None,
+        getattr(request.app.state, "saved_month_answers", None),
+    )
+
+
+def _saved_view(item: SavedMonthAnswer) -> SavedMonthAnswerView:
+    content = item.content
+    basis = content.get("basis")
+    basis_map = cast(dict[str, str], basis) if isinstance(basis, dict) else {}
+    return SavedMonthAnswerView(
+        id=item.id,
+        month=item.month,
+        saved_at=item.saved_at,
+        answer=MonthAnswerView(
+            month=item.month,
+            topic=Topic(item.topic),
+            topic_label=str(content.get("topic_label", "")),
+            reframe=cast(str | None, content.get("reframe")),
+            theme=str(content.get("theme", "")),
+            act=str(content.get("act", "")),
+            say=str(content.get("say", "")),
+            basis=MonthBasis(
+                line=str(basis_map.get("line", "")), detail=str(basis_map.get("detail", ""))
+            ),
+            disclaimer=str(content.get("disclaimer", "")),
+            answer_key="",
+        ),
+    )
+
+
+async def _mutation_guest(request: Request, csrf_token: str | None):  # type: ignore[no-untyped-def]
+    require_trusted_origin(request, trusted_origins(request))
+    return await _guests(request).verify_csrf(
+        request.cookies.get(request.app.state.settings.guest_cookie_name), csrf_token
     )
 
 
@@ -296,3 +360,80 @@ async def month_overview(request: Request, response: Response) -> MonthOverviewR
             for item in items
         ),
     )
+
+
+@router.post(
+    "/month/saved",
+    response_model=SavedMonthAnswerView,
+    status_code=201,
+    responses={401: {}, 403: {}, 404: {}, 409: {}, 429: {}, 503: {}},
+)
+async def save_month_answer(
+    body: MonthSaveRequest,
+    request: Request,
+    response: Response,
+    csrf_token: Annotated[str | None, Header(alias="X-CSRF-Token")] = None,
+) -> SavedMonthAnswerView | Response:
+    """Explicit "Lưu" only. The answer is recomputed server-side; the client sends no text."""
+
+    response.headers.update(NO_STORE)
+    repository = _saved(request)
+    if repository is None:
+        return _problem(503, "MONTH_ANSWER_UNAVAILABLE")
+    try:
+        guest = await _mutation_guest(request, csrf_token)
+        answer = await _service(request).answer_for_key(guest.id, body.topic, body.answer_key)
+        if answer is None:
+            return _problem(409, "MONTH_ANSWER_CHANGED")
+        saved = await repository.save(guest.id, answer)
+    except (BirthDomainError, GuestDomainError) as error:
+        return _domain_problem(error)
+    except MonthAnswerUnavailable:
+        return _problem(503, "MONTH_ANSWER_UNAVAILABLE")
+    except SavedMonthAnswerLimit:
+        return _problem(429, "MONTH_SAVED_LIMIT")
+    return _saved_view(saved)
+
+
+@router.get(
+    "/month/saved",
+    response_model=SavedMonthAnswerList,
+    responses={401: {}, 503: {}},
+)
+async def list_saved_month_answers(
+    request: Request, response: Response
+) -> SavedMonthAnswerList | Response:
+    response.headers.update(NO_STORE)
+    repository = _saved(request)
+    if repository is None:
+        return _problem(503, "MONTH_ANSWER_UNAVAILABLE")
+    try:
+        guest = await _guests(request).resume(
+            request.cookies.get(request.app.state.settings.guest_cookie_name)
+        )
+    except GuestDomainError as error:
+        return _domain_problem(error)
+    items = await repository.list_for_guest(guest.id)
+    return SavedMonthAnswerList(items=tuple(_saved_view(item) for item in items))
+
+
+@router.delete(
+    "/month/saved/{saved_id}",
+    status_code=204,
+    responses={401: {}, 403: {}, 404: {}, 503: {}},
+)
+async def delete_saved_month_answer(
+    saved_id: UUID,
+    request: Request,
+    csrf_token: Annotated[str | None, Header(alias="X-CSRF-Token")] = None,
+) -> Response:
+    repository = _saved(request)
+    if repository is None:
+        return _problem(503, "MONTH_ANSWER_UNAVAILABLE")
+    try:
+        guest = await _mutation_guest(request, csrf_token)
+    except GuestDomainError as error:
+        return _domain_problem(error)
+    if not await repository.delete(guest.id, saved_id):
+        return _problem(404, "MONTH_SAVED_NOT_FOUND")
+    return Response(status_code=204, headers=NO_STORE)

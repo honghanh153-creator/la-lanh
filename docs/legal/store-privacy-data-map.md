@@ -290,8 +290,14 @@ birth, place or identity field and calls no third party or AI service.
   the text passes the crisis guard first, is read in memory into two closed labels (topic and
   question kind), and is dropped. Retention: the request only. It is never stored, logged, echoed
   in the answer or sent to any processor; the answer never quotes it.
-- **Saving:** nothing is saved automatically. Explicit "Lưu" and its own deletable list come in a
-  separate change with its own retention, export and erasure entries.
+- **Saving (US-25 AC12):** nothing is saved automatically. "Lưu" sends a topic and an answer key
+  only; the server recomputes the answer and stores the composed answer (topic label, three parts,
+  basis, disclaimer, reframe line) in `saved_month_answers`, AES-GCM encrypted with the row id as
+  context, never the typed text or a date window. Own list, deletable one by one; delete appends a
+  `saved_month_answer_removed` erasure-journal entry (keyed digest, no content). Retention: until the
+  person deletes it, removes birth time or place (deleted with saved notes and share links), or the
+  guest is erased (cascade). Included in the data export as `saved_month_answers`. RLS on, no grants
+  to `anon`/`authenticated`. At most 200 per guest.
 - **Declarations:** while the typed path is off, App Privacy and Data Safety answers do not change
   (derived astrology content is already declared). Before switching it on, re-check whether
   processing typed text without storing it counts as "collected" under the current Apple and Google

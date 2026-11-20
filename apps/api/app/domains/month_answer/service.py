@@ -107,6 +107,25 @@ class MonthAnswerService:
             raise MonthAnswerUnavailable
         return answer
 
+    async def answer_for_key(
+        self, guest_id: UUID, topic: Topic, answer_key: str, *, today: date | None = None
+    ) -> MonthAnswer | None:
+        """The answer the person is looking at, recomputed; ``None`` if it no longer matches.
+
+        Saving never takes text from the client: the server recomputes the answer from the chart,
+        the topic and this month, tries each question kind, and keeps the one whose key matches.
+        """
+
+        engine = self._engine_or_raise()
+        chart = await self._chart(guest_id)
+        month = month_key(today or today_in_vietnam())
+        fact = await to_thread(month_fact, engine, chart, topic, month)
+        for kind in QuestionKind:
+            answer = compose(fact, kind, self._copy)
+            if answer is not None and answer.answer_key == answer_key:
+                return answer
+        return None
+
     async def window(
         self, guest_id: UUID, topic: Topic, *, today: date | None = None
     ) -> WindowAnswer | None:
