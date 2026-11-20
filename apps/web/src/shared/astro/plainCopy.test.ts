@@ -16,6 +16,8 @@ const RETIRED_LABELS = [
   "Bản đọc Natal",
   "Bạn xuất hiện ngày nào?",
   "Chia sẻ card",
+  "Trạm bắt sóng bên trong bạn",
+  "giữ nguyên trên máy chủ",
 ];
 const IMAGE_WORDS = ["nhịp", "cánh cửa", "căn phòng", "đỡ lấy", "hướng đi", "gọi tên"];
 
