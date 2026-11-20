@@ -1,7 +1,7 @@
 {
  "approved": {
   "copy_registry": {
-   "approved": "7f5e3fb9a3777d5617cb798e218e6b7b5b6ea03bad4f38531e97c3ccdea8bb45",
+   "approved": "11a4cb2797c21a3cfa9146949d138f0576f541378a792ae939d96c31e4c65ce4",
    "version": "copy-registry/v1"
   },
   "daily": {
@@ -262,6 +262,7 @@
   "mood_lighter_task_17_11": "Owner approved privacy.mood-lighter-task on 17.11.2026, item S, relayed verbatim by the coordinator session (their words: \"S2 nhé nhưng thay vì ghi là trên máy bạn thì ghi là dành cho bạn được rồi?\"), text character for character as in copy_registry.json, approver owner, date 2026-11-17. Rendered on the consent and /privacy page next to the note and mood retention text from apps/web/src/shared/config/moodLighterTaskNote.ts; a web test keeps the two equal. Adding it moves the copy_registry.approved pin; no other pinned table changed.",
   "owner_receipt": "docs/reviews/production-release-2026-10-26/receipt.md (previous: docs/reviews/production-release-2026-10-21/receipt.md)",
   "owner_workbook": "docs/reviews/production-release-2026-10-16/content-approval.xlsx (owner content review of 16/10/2026)",
+  "radar_am1_20_11": "Owner approved AM1 on 20.11.2026, relayed verbatim by the coordinator session (their word: \"am1\"): apply the Hợp gu owner-only copy table (audit 20.11, section 5) word for word. Five privacy lines added to copy_registry.json as privacy.radar.* (approver owner, date 2026-11-20); web tests keep the landing and consent page text equal to the registry. Adding them moves the copy_registry.approved pin; no other pinned table changed.",
   "radar_deep_dive_138": "PR #139 / issue #138: DEEP_DIVE practice actions keep the follow-up question (\"Sau đó đối chiếu phản hồi thật…\") on the first action only, so the page no longer repeats a sentence; no new sentence. Owner approved this copy in chat on 31/10/2026 (\"duyệt copy #139\"); approved_release unchanged.",
   "radar_readable_v2": "docs/reviews/2026-10-29-hop-gu-readable.md: Hợp gu renderer radar-readable-v2 / conditional-reflection-v4 / radar-tier-ref-v1 (named tiers, context areas, threshold-gated friction, one Xem thêm layer), built on the owner's order of 29/10/2026 from the owner's feedback and the research report Phần B; the new copy is NOT yet read by the owner and must be read before any release; approved_release unchanged; Codex r55 (30/10/2026): UNCLEAR_FIT_HEADLINES, NO_CLEAR_FIT_REASON, UNCLEAR_FIT_LABEL and BALANCED_FIT_COPY for pairs without a good theme (draft copy, owner reading pending with the rest of US-22), tests/radar/test_readable_r55.py",
   "radar_titles_211": "PR #211 / issue #194: two fixed Radar titles reworded (why section: \"Những điều Lá đã dựa vào\"; perspectives: \"Cùng một lần gặp, mỗi người để tâm một chuyện khác\"). Owner approved in chat on 04.11.2026 (\"211 duyệt\"); approved_release unchanged.",
