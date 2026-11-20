@@ -207,6 +207,8 @@ def test_linted_approved_copy_falls_back(monkeypatch: pytest.MonkeyPatch, text: 
         "Đi bộ 3.5km mỗi ngày.",
         "Rồi... nghỉ một chút.",  # empty labels are not a host
         "Ghi chú: नमस्ते là lời chào.",  # marks in a word with no dot are plain text
+        "Chọn và/hoặc bỏ qua 1.5/2 việc.",  # a slash between plain words or numbers is not a link
+        "Lúc 7:30 sáng, đi bộ 2.5km.",
     ],
 )
 def test_registry_lint_accepts_plain_sentences(text: str) -> None:
@@ -280,6 +282,15 @@ _DOMAIN_FORMS = [
     "Ghé vidu⁠.com để đọc thêm.",  # word joiner before the dot
     "Ghé vi­du.com để đọc thêm.",  # soft hyphen inside the name
     "Ghé vi-du.com:8080 để đọc thêm.",
+    # Review r11: a path, query or fragment after the host must not hide it.
+    "Ghé vi-du.test/trang?x=1.5 để đọc thêm.",
+    "Ghé vi-du.test/a..b để đọc thêm.",
+    "Ghé vi-du.test/" + "a" * 64 + " để đọc thêm.",
+    "Ghé vi-du.test?x=1.5 để đọc thêm.",
+    "Ghé vi-du.test#muc.2 để đọc thêm.",
+    "Ghé vi-du.test:8080/x..y để đọc thêm.",
+    "Ghé xem/vi-du.test để đọc thêm.",  # a host after a slash
+    "Ghé vi-du.рф/trang?x=1.5 để đọc thêm.",
     "Mở 192.0.2.10 để đọc thêm.",  # IPv4 (documentation range)
     "Mở 10.0.0.1 để đọc thêm.",
     "Xong việc nhỏ.Rồi nghỉ.",  # glued sentences read as a domain: the copy adds the space

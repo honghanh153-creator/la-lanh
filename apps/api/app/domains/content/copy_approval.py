@@ -41,7 +41,10 @@ def copy_digest(text: str) -> str:
 # labels and the last label has two or more characters and does not start with a digit. Any
 # script, combining marks and symbols count ("vidu.vn", "vi-du.рф", "vi-du.भारत", "☕.test"),
 # as do punycode labels ("xn--p1ai") and the other IDNA dots (U+3002, U+FF0E, U+FF61).
-# Punctuation around the word is not part of it ("(vidu.com)."). There is no list of suffixes,
+# Punctuation around the word is not part of it ("(vidu.com)."). A word is first cut at the URL
+# separators "/", "?", "#", "\\" and ":" and every piece is checked on its own, so a path, query,
+# fragment or port after the host ("vidu.test/trang?x=1.5", "vidu.test/a..b", "vidu.com:8080")
+# never hides it (review r11 of #411). There is no list of suffixes,
 # so sentences glued
 # together ("xong.Sau", "nhỏ.Rồi") count as a link too: the copy adds the space. Numbers ("1.5",
 # "2.10.3", "50.000đ", "3.5km") are not links; an IPv4 address, a scheme ("https://") and "www."
@@ -125,6 +128,8 @@ def printf_slots(text: str) -> tuple[tuple[int, int], ...]:
 
 
 _IDNA_DOTS = re.compile("[.\u3002\uff0e\uff61]")
+# Review r11 of #411: a host is cut out of its word at these before its labels are checked.
+_URL_SEPARATORS = re.compile(r"[/?#\\:]")
 
 
 def _strip_punctuation(word: str) -> str:
@@ -141,18 +146,19 @@ def idna_hosts(text: str) -> tuple[str, ...]:
 
     hosts: list[str] = []
     for word in text.split():
-        host = _strip_punctuation(word)
-        labels = _IDNA_DOTS.split(host)
-        if len(labels) < 2 or not all(labels):
-            continue
-        last = labels[-1]
-        if len(last) < 2 or last[0].isdecimal():
-            continue
-        try:
-            host.encode("idna")
-        except UnicodeError:
-            continue
-        hosts.append(host)
+        for piece in _URL_SEPARATORS.split(word):
+            host = _strip_punctuation(piece)
+            labels = _IDNA_DOTS.split(host)
+            if len(labels) < 2 or not all(labels):
+                continue
+            last = labels[-1]
+            if len(last) < 2 or last[0].isdecimal():
+                continue
+            try:
+                host.encode("idna")
+            except UnicodeError:
+                continue
+            hosts.append(host)
     return tuple(hosts)
 
 
