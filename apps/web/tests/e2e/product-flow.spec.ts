@@ -198,7 +198,7 @@ test("guest can reveal, save mood, and create a share card", async ({ page }) =>
 
   await page.goto("/card");
   await expect(page.getByRole("heading", { name: "Đừng biến mình thành deadline." })).toBeVisible();
-  await page.getByRole("button", { name: /safe link/i }).click();
+  await page.getByRole("button", { name: /Tạo link riêng/i }).click();
   await expect(page.getByRole("status")).toContainText("Không kèm ngày/giờ/nơi sinh");
   expect(sharedRevisionId).toBe("00000000-0000-4000-8000-000000000010");
 });
