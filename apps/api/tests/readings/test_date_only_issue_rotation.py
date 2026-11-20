@@ -13,6 +13,7 @@ from uuid import UUID
 import pytest
 
 from app.domains.astro.models import DateOnlySunResult, ZodiacSign
+from app.domains.readings import daily_psychology
 from app.domains.readings.daily_personalization import (
     PLACEMENT_ISSUES,
     SIGN_ELEMENTS,
@@ -101,9 +102,7 @@ def test_every_sign_has_a_modality_and_the_tables_leave_no_sign_on_one_situation
     # Three signs per modality, the same as per element.
     assert sorted(list(SIGN_MODALITIES.values()).count(m) for m in range(3)) == [4, 4, 4]
     assert {
-        sign
-        for sign in SIGNS
-        if SUN_ISSUES[sign] == PLACEMENT_ISSUES["sun"][SIGN_ELEMENTS[sign]]
+        sign for sign in SIGNS if SUN_ISSUES[sign] == PLACEMENT_ISSUES["sun"][SIGN_ELEMENTS[sign]]
     } == ELEMENT_COLLISION_SIGNS
     assert {sign for sign in SIGNS if len(_expected(sign)) == 2} == TWO_SITUATION_SIGNS
     assert all(len(_expected(sign)) >= 2 for sign in SIGNS)
@@ -198,3 +197,68 @@ def test_the_extra_situations_rest_on_the_sun_factor_alone(sign: str) -> None:
         assert len(situation.factor_refs) == 1
         assert situation.house is None
         assert situation is own or situation.rank < own.rank
+
+
+def _days_of_cards(sign: str, days: int) -> list[tuple[int, str, str, str]]:
+    """(day_index, situation, headline, scene) for ``days`` days from START."""
+
+    planner, renderer = ReadingPlanner(), DeterministicVietnameseRenderer()
+    out = []
+    for offset in range(days):
+        local_date = START + timedelta(days=offset)
+        plan = planner.plan(
+            _source(sign),
+            purpose=ReadingPurpose.DAILY_NOTE,
+            editorial_seed=local_date.isoformat(),
+            daily_variety=_variety(local_date),
+        )
+        card = renderer.render(plan)
+        blueprint = card.semantic_blueprint
+        assert blueprint is not None
+        issue = blueprint.mechanism_key.removeprefix("psychology:")
+        out.append((day_index(local_date), issue, card.hook, card.manifestation))
+    return out
+
+
+@pytest.mark.parametrize("sign", SIGNS)
+def test_a_situation_shows_all_its_headlines_and_scenes_before_one_comes_back(sign: str) -> None:
+    # A situation served every k-th day walks one fixed order by appearance (d // k), so any n
+    # appearances in a row show n different lines. By calendar day it met only every k-th position
+    # of each reshuffled cycle and repeated a headline after about n / 2 appearances.
+    k = len(_expected(sign))
+    cards = _days_of_cards(sign, 6 * 3 * 3)
+    by_issue: dict[str, list[tuple[int, str, str]]] = {}
+    for index, issue, headline, scene in cards:
+        by_issue.setdefault(issue, []).append((index // k, headline, scene))
+    assert set(by_issue) == _expected(sign)
+    for issue, seen in by_issue.items():
+        # Appearances are consecutive counts: one per k days, nothing skipped.
+        assert [step for step, _, _ in seen] == list(range(seen[0][0], seen[0][0] + len(seen)))
+        for part, size in ((1, 6), (2, 8)):
+            lines = [entry[part] for entry in seen]
+            for start in range(len(lines) - size + 1):
+                window = lines[start : start + size]
+                assert len(set(window)) == size, (sign, issue, part)
+            # ...and exactly every n appearances it starts over in the same order.
+            assert all(lines[i] == lines[i + size] for i in range(len(lines) - size))
+
+
+def _repeats_within_a_week(cards: list[tuple[int, str, str, str]]) -> int:
+    return sum(
+        1
+        for i, (_, issue, headline, _) in enumerate(cards)
+        if any(c[1] == issue and c[2] == headline for c in cards[max(0, i - 6) : i])
+    )
+
+
+@pytest.mark.parametrize("sign", ["gemini", "libra", "aries", "scorpio"])
+def test_headlines_come_back_less_often_than_with_calendar_day_rotation(
+    sign: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    by_appearance = _repeats_within_a_week(_days_of_cards(sign, 58))
+    monkeypatch.setattr(daily_psychology, "_occurrence_index", lambda plan, pool: None)
+    by_calendar_day = _repeats_within_a_week(_days_of_cards(sign, 58))
+
+    # A headline now comes back only after the situation's other five: 12 or 18 days later.
+    assert by_appearance == 0
+    assert by_calendar_day > 0

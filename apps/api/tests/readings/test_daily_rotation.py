@@ -28,6 +28,7 @@ from app.domains.readings.daily_rotation import (
     daily_variety_seed,
     day_index,
     derive_variety_key,
+    round_robin_slot,
     top_k_slot,
 )
 from app.domains.readings.models import (
@@ -79,6 +80,20 @@ def test_every_axis_changes_every_day_including_cycle_boundaries(size: int) -> N
     assert all(a != b for a, b in pairwise(values))
     for start in range(0, len(values), size):
         assert sorted(values[start : start + size]) == list(range(size))
+
+
+@pytest.mark.parametrize("size", [1, 2, 6, 8])
+def test_round_robin_brings_a_value_back_exactly_every_n_steps(size: int) -> None:
+    seed = daily_variety_seed(KEY, OWNER_A, "catalog-x")
+    values = [
+        round_robin_slot(seed, "headline:quick-reply", size, step) for step in range(size * 9)
+    ]
+
+    assert sorted(values[:size]) == list(range(size))
+    assert all(values[i] == values[i + size] for i in range(len(values) - size))
+    assert size == 1 or all(a != b for a, b in pairwise(values))
+    with pytest.raises(ValueError):
+        round_robin_slot(seed, "headline:quick-reply", size, -1)
 
 
 def test_cycles_are_reshuffled_and_a_single_value_axis_stays_put() -> None:

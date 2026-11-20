@@ -101,6 +101,19 @@ def axis_slot(seed: str, axis: str, n: int, index: int) -> int:
     return cycle_order(seed, axis, index // n, n)[index % n]
 
 
+def round_robin_slot(seed: str, axis: str, n: int, step: int) -> int:
+    """Value of ``axis`` at ``step`` of one fixed per-person order, walked round-robin.
+
+    Any ``n`` steps in a row are all different, and a value comes back exactly every ``n`` steps
+    (no cycle boundary where a value can return after two steps, as with ``axis_slot``). Used
+    where a step is one appearance of a situation, not a calendar day.
+    """
+
+    if step < 0:
+        raise ValueError("step must not be negative")
+    return cycle_order(seed, axis, 0, n)[step % n]
+
+
 def top_k_slot(index: int, pool_size: int) -> int:
     return index % min(pool_size, DAILY_TOP_K) if pool_size else 0
 
