@@ -327,8 +327,16 @@ _RULES: tuple[_Rule, ...] = (
         ("tạm biệt", "từ biệt"),
     ),
     _rule(
-        r"\b(?P<key>di xa)(?: \.)? (?:mai mai|vinh vien|(?:va )?(?:khong|chang) (?:bao gio )?"
-        r"(?:quay lai|tro lai|tro ve|ve nua))(?=\s*(?:$|\.|(?:nua|dau|luon|bai|nhe|day)\b))"
+        # "đã đi xa mãi mãi" is about someone who has died (grief), not a plan.
+        r"(?<!\bda )\b(?P<key>di xa)(?: \.)? (?:mai mai|vinh vien|"
+        r"(?:va )?(?:khong|chang) (?:bao gio )?(?:quay lai|tro lai|tro ve|ve nua))"
+        # The farewell may end the sentence, end on a particle, or say what it leaves behind:
+        # "… mãi mãi rồi", "… khỏi cuộc đời này", "… để không ai phải lo nữa" (#795 handoff, 20.11).
+        r"(?=\s*(?:$|\.|(?:nua|dau|luon|bai|nhe|nha|day|roi|thoi|vay|a|ah|ha|ne|r|ri|lun)\b|"
+        r"khoi (?:cuoc doi|cuoc song|doi|the gian|the gioi|tran gian|trai dat|day|moi nguoi|tat ca|"
+        r"moi thu|ca nha|gia dinh)\b|"
+        r"de (?:khong (?:ai|con ai)|moi nguoi|ca nha|gia dinh|bo me|ai cung|khoi)\b|"
+        r"(?:ma )?(?:khong|chang) (?:ai|can ai) (?:biet|tim|lo|nho)\b))"
         # Moving away for good is not a farewell: "đi xa, không quay lại, chuyển hẳn vào Nam".
         r"(?!.*\b(?:chuyen (?:han|nha|vao|ra|den|toi)|du hoc|lap nghiep|vao nam|ra bac|ve que)\b)",
         ("đi xa",),

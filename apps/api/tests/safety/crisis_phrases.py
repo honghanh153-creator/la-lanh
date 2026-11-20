@@ -133,6 +133,12 @@ POSITIVES: tuple[str, ...] = (
     "Mình muốn ngủ mãi mãi",
     "Chắc mình không sống nổi tới ngày mai",
     "Tối nay mình sẽ đi xa mãi mãi",
+    # A farewell followed by more words (missed before 20.11, #795 handoff).
+    "Tối nay mình sẽ đi xa mãi mãi rồi",
+    "Tối nay mình sẽ đi xa mãi mãi để không ai phải lo nữa",
+    "Mình sẽ đi xa mãi mãi khỏi cuộc đời này",
+    "Em sẽ đi xa mãi mãi thôi",
+    "Mình đi xa mãi mãi mà không ai biết đâu",
     "Sống tiếp cũng chẳng có ý nghĩa gì",
     "mình chẳng muốn tồn tại trên đời này nữa",
     "bye cuộc đời, mình out khỏi trái đất luôn",
@@ -310,6 +316,9 @@ NEGATIVES: tuple[str, ...] = (
     "Không có mình thì nhóm làm bài nhanh hơn",
     "Chết rồi, mai thi mà chưa học gì",
     "Mình sẽ đi xa, không quay lại nữa đâu, chuyển hẳn vào Nam",
+    "Mình muốn đi xa mãi mãi khỏi cái thành phố ồn ào này",
+    "Bà mình đã đi xa mãi mãi rồi, mình nhớ bà quá",
+    "Ông nội đã đi xa mãi mãi",
     "Unable to sleep, should I quit coffee?",
     "Nhân 19 tuổi, học trung cấp Cơ khí ở một huyện của Tây Ninh",
 )
