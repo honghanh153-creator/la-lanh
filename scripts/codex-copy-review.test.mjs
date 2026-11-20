@@ -145,6 +145,19 @@ test('rejected copy does not fill every later batch; edited text is reviewed aga
   assert.ok(batchFor(edited, readRejected(file)).some(e => e.id === 'q.0'), 'an edited sentence comes back for review');
 });
 
+test('copy a finished feature waits on (lighter actions) goes first, the rest keeps registry order', () => {
+  const big = { version: 'copy-registry/v1', entries: [
+    ...Array.from({ length: batchSize + 5 }, (_, i) => ({ id: `daily.bundle.q.${i}.headline`, category: 'reading', text: `Câu thử ${i}.`, status: 'pending' })),
+    { id: 'lighter.action.01', category: 'reading', text: 'Câu nhẹ thử một.', status: 'pending' },
+    { id: 'lighter.issue.q.01', category: 'reading', text: 'Câu nhẹ thử hai.', status: 'pending' },
+    { id: 'rewrite.headline.q.01.direct', category: 'reading', text: 'Câu viết lại thử.', status: 'pending' },
+  ] };
+  const batch = batchFor(big).map(e => e.id);
+  assert.deepEqual(batch.slice(0, 4), ['lighter.action.01', 'lighter.issue.q.01', 'rewrite.headline.q.01.direct', 'daily.bundle.q.0.headline']);
+  assert.equal(batch.length, batchSize);
+  assert.equal(batch.at(-1), `daily.bundle.q.${batchSize - 4}.headline`);
+});
+
 test('one daily batch holds at most batchSize entries, so the PR body stays readable', () => {
   const big = { entries: Array.from({ length: batchSize + 30 }, (_, i) => ({ id: `r.${i}`, category: 'reading', text: `Câu thử ${i}.`, status: 'pending' })) };
   assert.equal(batchFor(big).length, batchSize);
