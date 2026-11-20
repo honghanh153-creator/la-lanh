@@ -4,6 +4,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import { acceptBasicBirthConsent, enableHistoryRetention, createGuest, getSession, isGuestSessionUnavailable } from "../../shared/api/client";
+import { CRISIS_CHECK_DISCLOSURE } from "../../shared/config/crisisCheckDisclosure";
+import { MOOD_LIGHTER_TASK_NOTE } from "../../shared/config/moodLighterTaskNote";
 import { OPENAI_ABUSE_RETENTION_NOTICE, OPENAI_REWRITE_SCOPE_NOTICE } from "../../shared/config/externalRewriteDisclosure";
 import { SESSION_RESTART_REQUIRED_KEY } from "../../shared/session/sessionIdentity";
 import { RADAR_PENDING_REQUEST_KEY } from "../radar/radarOptions";
@@ -72,10 +74,11 @@ export function ConsentPage() {
           <article><Sparkle aria-hidden="true" /><div><strong>Dùng để làm gì?</strong><p>Tính Mặt Trời và tạo Lá Khai Sinh cùng note cá nhân hóa.</p></div></article>
           <article><ShieldCheck aria-hidden="true" /><div><strong>Chưa cần tài khoản</strong><p>Không cần số điện thoại hay email. Hồ sơ khách hết hạn sau 30 ngày không hoạt động. Mỗi lần dùng tính năng riêng tư hợp lệ sẽ kéo dài thời hạn này.</p></div></article>
           <article><ShieldCheck aria-hidden="true" /><div><strong>Đăng nhập là tuỳ chọn</strong><p>Khi Google đã bật, bạn có thể đăng nhập để mở lại cùng hồ sơ trên máy khác. Hồ sơ tài khoản giữ tối đa 365 ngày không hoạt động; phiên mỗi thiết bị là 30 ngày. Đăng xuất chỉ thu hồi phiên máy đó, không xoá hồ sơ.</p></div></article>
-          <article><Trash aria-hidden="true" /><div><strong>Lịch sử có thời hạn riêng</strong><p>Khi đồng ý, note ngày tự động chỉ hiện tối đa 24 giờ từ lúc tạo, kèm mood của ngày đó, và có thể được xoá sớm hơn ở đợt dọn dữ liệu định kỳ. Note đang gắn với việc nhỏ chờ nhìn lại, phản hồi hoặc link chia sẻ còn hạn được giữ ẩn tới khi các mục đó hết hạn. Lịch sử khác giữ tối đa 30 ngày. Không kéo dài khi xem lại. Bấm Lưu để giữ một note lâu hơn. Chart, bản đọc hiện tại và note đã lưu giữ cùng hồ sơ. Hồ sơ cũ chưa bật chính sách này có thể chọn đồng ý trong Mình; có đủ 30 ngày để lưu note trước lần dọn đầu tiên.</p></div></article>
+          <article><Trash aria-hidden="true" /><div><strong>Lịch sử có thời hạn riêng</strong><p>Khi đồng ý, note ngày tự động chỉ hiện tối đa 24 giờ từ lúc tạo, kèm mood của ngày đó, và có thể được xoá sớm hơn ở đợt dọn dữ liệu định kỳ. Note đang gắn với việc nhỏ chờ nhìn lại, phản hồi hoặc link chia sẻ còn hạn được giữ ẩn tới khi các mục đó hết hạn. Lịch sử khác giữ tối đa 30 ngày. Không kéo dài khi xem lại. Bấm Lưu để giữ một note lâu hơn. Chart, bản đọc hiện tại và note đã lưu giữ cùng hồ sơ. Hồ sơ cũ chưa bật chính sách này có thể chọn đồng ý trong Mình; có đủ 30 ngày để lưu note trước lần dọn đầu tiên.</p><p className="mood-lighter-note">{MOOD_LIGHTER_TASK_NOTE}</p></div></article>
           <article><Trash aria-hidden="true" /><div><strong>Bạn luôn có quyền xóa</strong><p>Xem, tải bản sao, sửa, rút đồng ý hoặc xóa toàn bộ trong mục Mình. Dữ liệu trên máy có thể mất nếu gỡ app.</p></div></article>
         </div>
         {isDetail ? <>
+          <p className="privacy-plain crisis-check-note">{CRISIS_CHECK_DISCLOSURE}</p>
           <h2 className="consent-detail-title">Chi tiết thêm</h2>
           <div className="consent-details">
             <details className="consent-detail"><summary>Đăng nhập Google nhận gì?</summary><p>Google và Supabase xử lý mã định danh, email và thông tin hồ sơ cơ bản như tên, ảnh đại diện để xác thực. Lá Lành lưu mã tài khoản đã xác minh và email che một phần, không lưu ảnh đại diện. App không xin quyền đọc Gmail, danh bạ hay lịch. Đăng nhập không tự bật AI và không cấp quyền dùng dữ liệu của người khác.</p></details>

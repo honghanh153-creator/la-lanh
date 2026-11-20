@@ -5,7 +5,8 @@ import { stat } from "node:fs/promises";
 import { createServer, request as requestUpstream } from "node:http";
 import { homedir, tmpdir } from "node:os";
 import { extname, join, normalize, resolve, sep } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
+import { isMain } from "./is-main.mjs";
 
 const MIME_TYPES = {
   ".css": "text/css; charset=utf-8",
@@ -57,6 +58,48 @@ export function prepareQaDatabase({
     cleanup: null,
     storagePath: directory,
   };
+}
+
+// For a caller that reads a child's output: stop the child and wait until its output pipes are
+// closed. "exit" is too early. A process the child started (the launcher starts the API) inherits
+// the same pipes and can still write its shutdown lines after the child itself has gone; "close"
+// comes only when every writer has finished. Call this right after spawn, so "close" is never
+// missed; the returned function may be called more than once. A child that never closes its
+// output is killed and the wait rejects, so the caller cannot read half a log and call it whole.
+export function drainOnStop(child) {
+  const closed = new Promise((resolveClosed) => child.once("close", resolveClosed));
+  return async ({ timeoutMs = 20_000 } = {}) => {
+    if (child.exitCode === null && child.signalCode === null) child.kill("SIGTERM");
+    let timer;
+    const late = new Promise((_, reject) => {
+      timer = setTimeout(() => {
+        child.kill("SIGKILL");
+        reject(new Error(`tiến trình con chưa đóng đầu ra sau ${timeoutMs} ms`));
+      }, timeoutMs);
+    });
+    try {
+      await Promise.race([closed, late]);
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+}
+
+// The launcher's own shutdown: ask the API to stop and resolve when it has exited, so its last
+// log lines are written before the launcher goes. An API that ignores the request is killed.
+export function stopChild(child, { graceMs = 10_000 } = {}) {
+  return new Promise((resolveStopped) => {
+    if (child.exitCode !== null || child.signalCode !== null) {
+      resolveStopped();
+      return;
+    }
+    const force = setTimeout(() => child.kill("SIGKILL"), graceMs);
+    child.once("exit", () => {
+      clearTimeout(force);
+      resolveStopped();
+    });
+    child.kill("SIGTERM");
+  });
 }
 
 const SECURITY_HEADERS = {
@@ -280,8 +323,17 @@ async function startCli() {
     if (api.exitCode === null) api.kill("SIGTERM");
     qaDatabase.cleanup?.();
   };
-  process.once("SIGINT", () => { stop(); process.exit(0); });
-  process.once("SIGTERM", () => { stop(); process.exit(0); });
+  // Leave only after the API has exited: it shares this process's output, and a caller that
+  // reads the log must get the API's shutdown lines too.
+  let leaving = null;
+  const leave = () => {
+    leaving ??= stopChild(api).then(() => {
+      qaDatabase.cleanup?.();
+      process.exit(0);
+    });
+  };
+  process.on("SIGINT", leave);
+  process.on("SIGTERM", leave);
 
   try {
     await waitForApi(apiOrigin, api);
@@ -299,7 +351,7 @@ async function startCli() {
   }
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
+if (isMain(import.meta.url)) {
   startCli().catch((error) => {
     console.error(error instanceof Error ? error.message : String(error));
     process.exitCode = 1;

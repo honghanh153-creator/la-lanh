@@ -25,7 +25,9 @@ from app.domains.experiments.models import (
 )
 from app.domains.experiments.tables import DailyExperimentRow
 from app.domains.guest.tables import ConsentRow, GuestSessionRow
+from app.domains.readings.lighter_action import lighter_action_for, lighter_experiment_for
 from app.domains.readings.models import (
+    LIGHTER_ACTION_MAX_CHARS,
     BackgroundLens,
     ExperimentProjection,
     PlanMode,
@@ -60,7 +62,7 @@ class PostgresExperimentRepository:
         expected_version: int | None,
     ) -> DailyExperiment:
         async with self._sessions() as session, session.begin():
-            projection = await self._require_owned_active_target(session, draft)
+            projection, lighter_action = await self._require_owned_active_target(session, draft)
             await self._delete_expired_for_guest(session, draft.guest_id, draft.created_at)
             current = await self._open_row(session, draft.guest_id, lock=True)
             if current is not None and self._same_target(current, draft):
@@ -102,6 +104,7 @@ class PostgresExperimentRepository:
                 background_lens=draft.background_lens,
                 action_key=draft.action_key,
                 outcome=None,
+                lighter_action=lighter_action,
             )
             try:
                 async with session.begin_nested():
@@ -178,6 +181,7 @@ class PostgresExperimentRepository:
                 background_lens=lens,
                 action_key=action_key,
                 outcome=outcome,
+                lighter_action=self._lighter_action(row),
             )
             await session.flush([row])
             return await self._record(session, row)
@@ -204,7 +208,9 @@ class PostgresExperimentRepository:
         self,
         session: AsyncSession,
         draft: ExperimentDraft,
-    ) -> ExperimentProjection:
+    ) -> tuple[ExperimentProjection, str | None]:
+        """The projection the draft's key names, plus the lighter action's text if it is that."""
+
         owner_id = await session.scalar(
             select(GuestSessionRow.id).where(GuestSessionRow.id == draft.guest_id).with_for_update()
         )
@@ -268,9 +274,19 @@ class PostgresExperimentRepository:
         projection = experiment_projection_for(
             revision.id, candidate.micro_action, blueprint=candidate.semantic_blueprint
         )
-        if projection.action_key != draft.action_key:
-            raise ExperimentTargetNotFound
-        return projection
+        if projection.action_key == draft.action_key:
+            return projection, None
+        # The lighter action offered with this same revision (#627) may be kept instead.
+        # Same sentence the card showed: the light action of the card's own Daily issue (#699).
+        lighter_action = lighter_action_for(
+            revision.id,
+            candidate.semantic_blueprint.mechanism_key if candidate.semantic_blueprint else None,
+        )
+        if lighter_action is not None:
+            lighter = lighter_experiment_for(revision.id, lighter_action)
+            if lighter.action_key == draft.action_key:
+                return lighter, lighter_action
+        raise ExperimentTargetNotFound
 
     async def _record(self, session: AsyncSession, row: DailyExperimentRow) -> DailyExperiment:
         revision_row = await session.scalar(
@@ -285,10 +301,17 @@ class PostgresExperimentRepository:
         candidate = revision.evaluation.publishable_candidate
         if candidate is None:
             raise ExperimentTargetNotFound
-        projection = experiment_projection_for(
-            revision.id, candidate.micro_action, blueprint=candidate.semantic_blueprint
-        )
         lens, action_key, outcome = self._payload(row)
+        lighter_action = self._lighter_action(row)
+        # A kept lighter action carries its own text, so it still reads back after the
+        # sentence leaves the registry.
+        projection = (
+            lighter_experiment_for(revision.id, lighter_action)
+            if lighter_action is not None
+            else experiment_projection_for(
+                revision.id, candidate.micro_action, blueprint=candidate.semantic_blueprint
+            )
+        )
         if action_key != projection.action_key:
             raise ValueError("stored experiment action does not match its accepted revision")
         return self._record_from_projection(row, projection, outcome=outcome, lens=lens)
@@ -409,35 +432,52 @@ class PostgresExperimentRepository:
         background_lens: BackgroundLens,
         action_key: str,
         outcome: ExperimentOutcome | None,
+        lighter_action: str | None = None,
     ) -> str:
-        payload = json.dumps(
-            {
-                "action_key": action_key,
-                "background_lens": background_lens.value,
-                "outcome": outcome.value if outcome is not None else None,
-            },
-            separators=(",", ":"),
-            sort_keys=True,
-        ).encode()
-        if len(payload) > 256:
+        fields: dict[str, str | None] = {
+            "action_key": action_key,
+            "background_lens": background_lens.value,
+            "outcome": outcome.value if outcome is not None else None,
+        }
+        limit = 256
+        if lighter_action is not None:
+            if not 1 <= len(lighter_action) <= LIGHTER_ACTION_MAX_CHARS:
+                raise ValueError("lighter action exceeds its bounded contract")
+            # Catalog copy, not the person's words; stored so the kept action reads back.
+            fields["lighter_action"] = lighter_action
+            limit = 1024
+        payload = json.dumps(fields, separators=(",", ":"), sort_keys=True).encode()
+        if len(payload) > limit:
             raise ValueError("experiment payload exceeds its bounded contract")
         return self._envelope.encrypt(payload, context=_payload_context(row_id))
 
-    def _payload(
-        self, row: DailyExperimentRow
-    ) -> tuple[BackgroundLens, str, ExperimentOutcome | None]:
+    def _payload_fields(self, row: DailyExperimentRow) -> dict[str, Any]:
         payload = json.loads(
             self._envelope.decrypt(
                 row.payload_ciphertext,
                 context=_payload_context(row.id),
             )
         )
-        if not isinstance(payload, dict) or set(payload) != {
-            "action_key",
-            "background_lens",
-            "outcome",
-        }:
+        required = {"action_key", "background_lens", "outcome"}
+        if not isinstance(payload, dict) or set(payload) - {"lighter_action"} != required:
             raise ValueError("invalid encrypted experiment payload")
+        return payload
+
+    def _lighter_action(self, row: DailyExperimentRow) -> str | None:
+        """The kept lighter action's text, or ``None`` when the card's own action was kept."""
+
+        payload = self._payload_fields(row)
+        if "lighter_action" not in payload:
+            return None
+        text = payload["lighter_action"]
+        if not isinstance(text, str) or not 1 <= len(text) <= LIGHTER_ACTION_MAX_CHARS:
+            raise ValueError("invalid encrypted experiment lighter action")
+        return text
+
+    def _payload(
+        self, row: DailyExperimentRow
+    ) -> tuple[BackgroundLens, str, ExperimentOutcome | None]:
+        payload = self._payload_fields(row)
         action_key = payload["action_key"]
         if not isinstance(action_key, str) or len(action_key) != 64:
             raise ValueError("invalid encrypted experiment action key")

@@ -29,7 +29,7 @@ This file records the baseline inherited from 2026-09-01 and the selected update
 - Dark is the closest expression of the selected reference; light uses the same hierarchy and components on a mist-lilac ground.
 - Glass is functional: use it for controls, disclosures, locked layers and navigation. Reading/note surfaces stay substantially opaque.
 - Be Vietnam Pro là font duy nhất; không quá năm type token và không dùng handwriting font.
-- `Vibe · <3–5 chữ>` is the compact Sun-only label; `Aura · <3–5 chữ>` is reserved for a valid deeper NatalChart.
+- The compact persona label is the personality name alone, `<3–5 chữ>`, with no `Vibe ·` or `Aura ·` prefix (owner decision 15.11.2026, PR #503; replaces the prefixed labels of this baseline). The Sun-only name set and the deeper-NatalChart (Aura) name set stay separate in the server contract (`persona_mode`).
 - Mood prompt is exactly “Hôm nay bạn thấy sao?”; never call mood “Vibe”.
 - Factual placements, chart depth, precision and source versions remain available in provenance/detail.
 

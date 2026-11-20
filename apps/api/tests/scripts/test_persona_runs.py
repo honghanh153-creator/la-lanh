@@ -1,0 +1,105 @@
+"""Persona runs: baselines rebuild from their .gz transcripts; workers leave no database."""
+
+import json
+import shutil
+import sys
+from pathlib import Path
+from typing import Any
+
+import pytest
+
+from scripts import persona_report, persona_sim
+
+RUNS = persona_report.QA / "runs"
+
+
+def test_the_1000_baseline_transcript_loads_from_its_gz_copy(tmp_path: Path) -> None:
+    """Full rebuild of this run takes ~100 s, so the suite checks the load path and row count;
+    the 100-persona run below is rebuilt in full through the same code."""
+
+    src = RUNS / "baseline-1000-2026-11-14"
+    shutil.copy(src / "transcript.jsonl.gz", tmp_path / "transcript.jsonl.gz")
+    rows = persona_report.load_jsonl(tmp_path / "transcript.jsonl")
+    meta = json.loads((src / "meta.json").read_text(encoding="utf-8"))
+    assert len(rows) == meta["rows"] == 29000
+
+
+@pytest.mark.parametrize(("run", "personas"), [("baseline-2026-11-14", "personas-100.json")])
+def test_committed_baselines_rebuild_from_the_compressed_transcript(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, run: str, personas: str
+) -> None:
+    src = RUNS / run
+    dst = tmp_path / run
+    dst.mkdir()
+    for name in ("meta.json", "transcript.jsonl.gz"):
+        shutil.copy(src / name, dst / name)  # a fresh checkout has no plain transcript.jsonl
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "persona_report",
+            "--run",
+            str(dst),
+            "--personas",
+            str(persona_report.QA / personas),
+            "--title",
+            run,
+        ],
+    )
+    persona_report.main()
+    for name in ("report.md", "metrics.json"):
+        assert (dst / name).read_text(encoding="utf-8") == (src / name).read_text(encoding="utf-8")
+
+
+def test_pct_is_not_rounded_before_the_threshold_check() -> None:
+    assert persona_report.pct(1999, 2000) == pytest.approx(99.95)
+    assert persona_report.fmt(persona_report.pct(1999, 2000)) == "100%"
+
+
+def test_worker_removes_its_temporary_database(monkeypatch: pytest.MonkeyPatch) -> None:
+    seen: list[str] = []
+
+    def fake_run(persona: dict[str, Any], db_url: str, labels: dict[str, str]) -> list[Any]:
+        path = Path(db_url.removeprefix("sqlite+aiosqlite:///"))
+        path.write_text("x")
+        seen.append(str(path.parent))
+        return [{"persona": persona["id"]}]
+
+    monkeypatch.setattr(persona_sim, "_install_pick_observer", lambda: None)
+    monkeypatch.setattr(persona_sim, "_labels", dict)
+    monkeypatch.setattr(persona_sim, "run_persona", fake_run)
+    assert persona_sim._worker([{"id": "P001"}]) == [{"persona": "P001"}]
+    assert seen and not Path(seen[0]).exists()
+
+
+def test_the_simulation_runs_the_daily_rotation_production_runs(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # 17.11.2026: production has run the per-person rotation since 19.10, but the simulation
+    # left it unset and the nightly report measured the old one-situation rotation.
+    root = Path(__file__).resolve().parents[4]
+    example = (root / "infra" / "hetzner" / "app.env.example").read_text(encoding="utf-8")
+    assert (
+        f"\nLA_LANH_DAILY_VARIETY_FROM={persona_sim.PRODUCTION_DAILY_VARIETY_FROM.isoformat()}\n"
+        in example
+    )
+    receipt = (
+        root / "docs" / "reviews" / "production-release-2026-10-18" / "receipt.md"
+    ).read_text(encoding="utf-8")
+    assert (
+        f"LA_LANH_DAILY_VARIETY_FROM={persona_sim.PRODUCTION_DAILY_VARIETY_FROM.isoformat()}"
+        in receipt
+    )
+
+    seen: dict[str, Any] = {}
+
+    def fake_create_app(settings: Any) -> Any:
+        seen["daily_variety_from"] = settings.daily_variety_from
+        raise RuntimeError("stop before serving")
+
+    import app.main
+
+    monkeypatch.setattr(app.main, "create_app", fake_create_app)
+    with pytest.raises(RuntimeError, match="stop before serving"):
+        persona_sim._client("sqlite+aiosqlite:///:memory:")
+    assert seen["daily_variety_from"] == persona_sim.PRODUCTION_DAILY_VARIETY_FROM

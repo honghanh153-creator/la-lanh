@@ -115,7 +115,7 @@ flowchart TD
 | `card_title` | 18–56 ký tự; không all-caps toàn bộ nếu không phải style label. |
 | `card_body` | 80–180 ký tự; tối đa 3 dòng ở 9:16; không overflow ở 320px. |
 | `note_date_label` | Có thể hiển thị “Note hôm nay” hoặc ngày tháng, không hiển thị DOB. |
-| `persona_label` | `Vibe · <3–5 chữ>` hoặc `Aura · <3–5 chữ>` lấy nguyên từ note snapshot; factual placements không đưa lên card mặc định nhưng còn trong provenance của Note. |
+| `persona_label` | `<3–5 chữ>` (chỉ tên tính cách, không tiền tố `Vibe ·`/`Aura ·` từ 15.11.2026, xem [README](README.md)) lấy nguyên từ note snapshot; factual placements không đưa lên card mặc định nhưng còn trong provenance của Note. |
 | `display_name` | Optional, chỉ khi user bật; sanitize ký tự control; max 24 ký tự. |
 | `watermark` | Bắt buộc, nhỏ, không dùng public id. |
 

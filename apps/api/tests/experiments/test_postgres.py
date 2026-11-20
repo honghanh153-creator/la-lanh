@@ -13,7 +13,9 @@ from app.domains.astro.models import ChartInput, TimePrecision
 from app.domains.birth.models import BirthSnapshotRecord
 from app.domains.birth.postgres import PostgresBirthRepository
 from app.domains.birth.tables import BirthProfileRow, ChartSnapshotRow
+from app.domains.content import copy_approval
 from app.domains.daily.tables import DailyNoteRow
+from app.domains.experiments.errors import ExperimentTargetNotFound
 from app.domains.experiments.models import (
     DailyExperiment,
     ExperimentDraft,
@@ -27,7 +29,17 @@ from app.domains.experiments.postgres import (
 from app.domains.experiments.tables import DailyExperimentRow
 from app.domains.guest.tables import ConsentRow, GuestSessionRow
 from app.domains.readings.application import ReadingApplicationService
-from app.domains.readings.models import BackgroundLens, ExperimentProjection, ReadingPurpose
+from app.domains.readings.lighter_action import (
+    ISSUE_LIGHT_PREFIX,
+    LIGHTER_ACTION_PREFIX,
+    lighter_experiment_for,
+)
+from app.domains.readings.models import (
+    BackgroundLens,
+    ExperimentProjection,
+    LighterActionProjection,
+    ReadingPurpose,
+)
 from app.domains.readings.postgres import PostgresReadingRepository
 from app.infrastructure.crypto import AesGcmEnvelopeCipher, StaticDataKeyProvider
 
@@ -43,6 +55,7 @@ class ExperimentTarget:
     daily_note_id: UUID
     revision_id: UUID
     projection: ExperimentProjection
+    lighter: LighterActionProjection | None = None
 
 
 @pytest.fixture
@@ -176,6 +189,7 @@ async def _create_target(
         daily_note_id=daily_note_id,
         revision_id=reading.active.revision_id,
         projection=experiment,
+        lighter=reading.active.lighter_action,
     )
 
 
@@ -229,6 +243,139 @@ async def test_payload_is_encrypted_without_action_lens_or_outcome_canaries(stor
         ExperimentOutcome.HELPFUL.value,
     ):
         assert plaintext_canary not in row.payload_ciphertext
+
+
+# The general list and the light actions written per Daily issue (#699), by entry id.
+LIGHTER_COPY = {
+    key: entry.text
+    for key, entry in copy_approval.load_registry().items()
+    if key.startswith((LIGHTER_ACTION_PREFIX, ISSUE_LIGHT_PREFIX))
+}
+LIGHTER_TEXTS = tuple(LIGHTER_COPY.values())
+ISSUE_LIGHT_TEXTS = tuple(
+    text for key, text in LIGHTER_COPY.items() if key.startswith(ISSUE_LIGHT_PREFIX)
+)
+LATER_TEXT = "Rót một cốc nước và uống chậm."
+
+
+def _use_lighter_copy(
+    monkeypatch: pytest.MonkeyPatch, *, approved: bool, one_more: bool = False
+) -> None:
+    """The checked-in lighter sentences, all approved or all pending (plus a later one)."""
+
+    copy = dict(LIGHTER_COPY)
+    if one_more:
+        copy[f"{LIGHTER_ACTION_PREFIX}99"] = LATER_TEXT
+        copy[f"{ISSUE_LIGHT_PREFIX}quick-reply.99"] = LATER_TEXT + " Rồi nghỉ."
+    entries: list[dict[str, str]] = []
+    for entry_id, text in copy.items():
+        entry = {
+            "id": entry_id,
+            "category": "reading",
+            "text": text,
+            "status": "pending",
+        }
+        if approved:
+            entry.update(
+                status="approved",
+                approver="codex",
+                date="2026-11-17",
+                digest=copy_approval.copy_digest(text),
+            )
+        entries.append(entry)
+    registry = copy_approval.parse_registry(
+        {"version": copy_approval.REGISTRY_VERSION, "entries": entries}
+    )
+    monkeypatch.setattr(copy_approval, "_runtime_registry", lambda: registry)
+
+
+@pytest.mark.asyncio
+async def test_lighter_action_is_offered_kept_and_read_back(  # type: ignore[no-untyped-def]
+    storage, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """#627: the card keeps its own action; the lighter one is a second, keepable choice."""
+
+    database, envelope, repository = storage
+    _use_lighter_copy(monkeypatch, approved=True)
+    target = await _create_target(database, envelope)
+    lighter = target.lighter
+    assert lighter is not None and lighter.experiment is not None
+    # The card has a Daily issue, so its light action is one written for that issue (#699).
+    assert lighter.action in ISSUE_LIGHT_TEXTS and lighter.weight == "light"
+    assert lighter.action != target.projection.action
+    assert lighter.experiment.action_key != target.projection.action_key
+
+    # Other sentences are approved between reading the card and keeping: the card's offer and
+    # its key stay the same (review of #634), so the server still accepts that key below.
+    _use_lighter_copy(monkeypatch, approved=True, one_more=True)
+
+    chosen = await repository.choose_with_consent(
+        ExperimentDraft(
+            id=uuid4(),
+            guest_id=target.guest_id,
+            daily_note_id=target.daily_note_id,
+            revision_id=target.revision_id,
+            background_lens=BackgroundLens.WORK,
+            action_key=lighter.experiment.action_key,
+            created_at=NOW,
+            expires_at=NOW + timedelta(days=30),
+        ),
+        consent_version="action-experiment-v1",
+        expected_experiment_id=None,
+        expected_version=None,
+    )
+    assert chosen.projection == lighter.experiment
+
+    async with database.sessions() as session:
+        row = await session.get(DailyExperimentRow, chosen.id)
+    assert row is not None and lighter.action not in row.payload_ciphertext
+
+    # The kept action still reads back after its sentence leaves the registry.
+    _use_lighter_copy(monkeypatch, approved=False)
+    current = await repository.current(target.guest_id, now=NOW + timedelta(minutes=1))
+    assert current is not None and current.projection == lighter.experiment
+    reflected = await repository.reflect(
+        target.guest_id,
+        experiment_id=chosen.id,
+        expected_version=chosen.version,
+        outcome=ExperimentOutcome.HELPFUL,
+        now=NOW + timedelta(minutes=5),
+    )
+    assert reflected is not None
+    assert reflected.projection.action == lighter.action
+    assert reflected.outcome is ExperimentOutcome.HELPFUL
+
+
+@pytest.mark.asyncio
+async def test_pending_lighter_action_is_not_offered_and_cannot_be_kept(  # type: ignore[no-untyped-def]
+    storage, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    database, envelope, repository = storage
+    _use_lighter_copy(monkeypatch, approved=False)
+    target = await _create_target(database, envelope)
+    assert target.lighter is None
+
+    for text in LIGHTER_TEXTS:
+        forged = lighter_experiment_for(target.revision_id, text)
+        with pytest.raises(ExperimentTargetNotFound):
+            await repository.choose_with_consent(
+                ExperimentDraft(
+                    id=uuid4(),
+                    guest_id=target.guest_id,
+                    daily_note_id=target.daily_note_id,
+                    revision_id=target.revision_id,
+                    background_lens=BackgroundLens.WORK,
+                    action_key=forged.action_key,
+                    created_at=NOW,
+                    expires_at=NOW + timedelta(days=30),
+                ),
+                consent_version="action-experiment-v1",
+                expected_experiment_id=None,
+                expected_version=None,
+            )
+    # The card's own action is kept exactly as before.
+    kept = await _choose(repository, target)
+    assert kept.projection == target.projection
 
 
 @pytest.mark.asyncio

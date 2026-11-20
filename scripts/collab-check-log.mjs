@@ -14,6 +14,9 @@ export const keepLogs = 30;
 export const staleGuardMs = 30 * 60000;
 export const checkLockPath = () => join(stateDir, 'check.lock');
 export const guardLockPath = () => join(stateDir, 'test-guard.lock');
+// Owner 16.11.2026 (5-fix package item 3b, step D2): two guard slots, so at most two agents' heavy test
+// runs go at once, each with its own ports (collab-heavy-slots.mjs). Slot 0 keeps the old file name.
+export const guardLockPaths = () => [guardLockPath(), join(stateDir, 'test-guard-1.lock')];
 export const guardWaitMs = 5 * 60000;
 
 const alive = pid => { if (!Number.isInteger(pid) || pid <= 0) return false; try { process.kill(pid, 0); return true; } catch { return false; } };
@@ -78,8 +81,11 @@ export function guardHolder(path = guardLockPath(), { now = Date.now, staleMs = 
   return now() - at > staleMs ? null : (pid || -1);
 }
 
-// The author check waits for an agent's guarded tests to finish, at most `limitMs`.
-export function waitForGuard({ limitMs = guardWaitMs, holder = () => guardHolder(), sleep = ms => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms), now = Date.now, stepMs = 5000 } = {}) {
+// The author check (and the nightly persona run) still runs alone: it waits until both slots are free.
+export const anyGuardHolder = (paths = guardLockPaths()) => paths.map(p => guardHolder(p)).find(Boolean) ?? null;
+
+// The author check waits for the agents' guarded tests to finish, at most `limitMs`.
+export function waitForGuard({ limitMs = guardWaitMs, holder = () => anyGuardHolder(), sleep = ms => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms), now = Date.now, stepMs = 5000 } = {}) {
   const until = now() + limitMs;
   for (;;) {
     const pid = holder();
@@ -109,4 +115,20 @@ export function takeGuardLock({ checkHolder = () => lockHolder(checkLockPath()),
   // A check that started in the gap between the two looks wins; the guard steps back.
   if (checkHolder()) { rmSync(path, { force: true }); return { status: 'check' }; }
   return { status: 'ok', release: () => { if (lockHolder(path) === process.pid) rmSync(path, { force: true }); } };
+}
+
+// D2: the first free slot. A dead holder's slot is never reclaimed (#258 r3); the other slot is still
+// used, and the guard refuses with the stale path only when no slot is free.
+// Returns { status: 'ok', slot, release } | { status: 'check' } | { status: 'held', pids } | { status: 'stale', pid, path }.
+export function takeGuardSlot({ checkHolder = () => lockHolder(checkLockPath()), paths = guardLockPaths() } = {}) {
+  let stale = null;
+  const pids = [];
+  for (const [slot, path] of paths.entries()) {
+    const got = takeGuardLock({ checkHolder, path });
+    if (got.status === 'ok') return { ...got, slot };
+    if (got.status === 'check') return got;
+    if (got.status === 'stale') stale ??= got;
+    else pids.push(got.pid);
+  }
+  return stale ?? { status: 'held', pids };
 }

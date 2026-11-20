@@ -183,12 +183,12 @@ export function AuraCutoverPage() {
           </section>
 
           <section className="choice-panel aura-receipt" aria-labelledby="aura-receipt-title">
-            <p className="eyebrow"><MoonStars aria-hidden="true" /> Receipt mở khóa</p>
+            <p className="eyebrow"><MoonStars aria-hidden="true" /> Lớp vừa mở</p>
             <h2 id="aura-receipt-title">Những lớp được xác nhận</h2>
             <ul>
               {(transition.unlock_layers ?? []).map((layer) => <li key={layer}><Check aria-hidden="true" /> {unlockLabels[layer] ?? "Một lớp diễn giải được xác nhận"}</li>)}
             </ul>
-            <small>Receipt này chỉ là mô tả lớp đã được tính; nó không thay thế quyền quyết định của bạn.</small>
+            <small>Phần này chỉ mô tả lớp đã được tính; nó không thay thế quyền quyết định của bạn.</small>
           </section>
 
           {preview ? <AuraPreview content={preview} /> : (
@@ -216,7 +216,7 @@ function AuraPreview({ content }: { content: ReadingContent }) {
   return (
     <section className="choice-panel aura-preview uv-night" aria-labelledby="aura-preview-title">
       <NightSky moon planet stars={4} />
-      <p className="eyebrow">Preview Note Aura</p>
+      <p className="eyebrow">Xem trước Note Aura</p>
       <h2 id="aura-preview-title">{content.sections.hook}</h2>
       <p>{content.sections.thesis}</p>
       <div className="aura-preview__line"><strong>Ngoài đời có thể trông như…</strong><span>{content.sections.manifestation}</span></div>

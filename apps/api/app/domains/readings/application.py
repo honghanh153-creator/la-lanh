@@ -29,6 +29,7 @@ from app.domains.readings.daily_rotation import (
     day_index,
 )
 from app.domains.readings.gates import evaluate_candidate
+from app.domains.readings.lighter_action import lighter_action_projection
 from app.domains.readings.models import (
     AuraTransitionProjection,
     AuraUnlockLayer,
@@ -941,6 +942,9 @@ def _content_projection(
             transit=candidate.transit,
             micro_action=candidate.micro_action,
             companion=_companion_line(candidate, projection.purpose),
+            companion_roast=candidate.companion_roast
+            if projection.purpose is ReadingPurpose.DAILY_NOTE
+            else None,
         ),
         evidence=ReadingEvidenceProjection(
             title=candidate.evidence.title,
@@ -950,6 +954,19 @@ def _content_projection(
         disclaimer=candidate.disclaimer,
         created_at=revision.created_at,
         experiment=experiment,
+        lighter_action=(
+            lighter_action_projection(
+                revision.id,
+                keepable=experiment is not None,
+                mechanism_key=(
+                    candidate.semantic_blueprint.mechanism_key
+                    if candidate.semantic_blueprint
+                    else None
+                ),
+            )
+            if projection.purpose is ReadingPurpose.DAILY_NOTE
+            else None
+        ),
     )
 
 

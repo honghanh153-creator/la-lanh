@@ -1,45 +1,28 @@
 // Run one Codex review of a PR head, apply the owner's P2 policy, and post the verdict.
-// Usage: node scripts/codex-review.mjs --pr N [--auto]
+// Usage: node scripts/codex-review.mjs --pr N [--auto] [--over-cap "<owner words>"]
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import { acquireLock } from './collab-lock.mjs';
-import { DeadlineError, agentMarker, boundedTimeout, blockingP2, clean, isOwnPr, dayStatePath, integration, isSha, makeGh, readJson, repo, stateDir, trustedComments, vnNow, writeJson } from './collab-trust.mjs';
-import { codexDailyCap, prTurn } from './collab-turn.mjs';
+import { agentMarker, parseVerdict, parseVerdictSeal, bindReceipt, boundedTimeout, clean, cutoffAt, cutoffMs, dayStatePath, DeadlineError, hhmmOf, integration, isOwnPr, isSha, lastStartAt, makeGh, planOpensAt, readJson, repo, reviewState, signReceipt, stateDir, trustedComments, verdictSeal, vnNow, writeJson } from './collab-trust.mjs';
+import { prTurn } from './collab-turn.mjs';
+import { dayCap } from './collab-trust.mjs';
 import { groupExec } from './collab-heal.mjs';
+import { applyPolicy, isBlocking, ownerHolds, validateOutput } from './collab-review-policy.mjs';
+import { answerStillHolds, coveredKinds, sealedAnswers } from './collab-owner-answer.mjs';
+import { isMain } from './is-main.mjs';
+import { auditReserve } from './collab-audit.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const promptPath = join(here, '..', 'docs', 'operations', 'codex-review-prompt.md');
 export const schemaPath = join(here, 'codex-review-schema.json');
 export const codexBin = process.env.CODEX_BIN || '/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex';
 export const codexModel = 'gpt-6.1-sol';
-export const maxAutoRequestChanges = 2;
-const severities = ['P0', 'P1', 'P2', 'P3'];
-const categories = ['privacy', 'security', 'user_copy', 'correctness', 'test', 'docs', 'other'];
-
-export const isBlocking = f => f.severity === 'P0' || f.severity === 'P1' || (f.severity === 'P2' && blockingP2.has(f.category));
-
-export function validateOutput(out, head) {
-  const bad = message => { throw new Error(`Codex output rejected: ${message}`); };
-  if (!out || typeof out !== 'object') bad('not an object');
-  if (!['APPROVE', 'REQUEST_CHANGES'].includes(out.verdict)) bad('verdict');
-  if (out.sha !== head) bad(`sha ${clean(out.sha, 60)} is not head ${head}`);
-  if (typeof out.complete !== 'boolean' || typeof out.summary !== 'string' || !Array.isArray(out.findings)) bad('shape');
-  for (const f of out.findings) {
-    if (!severities.includes(f?.severity) || !categories.includes(f?.category) || typeof f.file !== 'string' || typeof f.title !== 'string') bad('finding shape');
-  }
-  return out;
-}
-
-// The script may only make a verdict stricter, never more lenient.
-export function applyPolicy(out) {
-  const blocking = out.findings.filter(isBlocking);
-  const verdict = out.verdict === 'REQUEST_CHANGES' || blocking.length || !out.complete ? 'REQUEST_CHANGES' : 'APPROVE';
-  const fixForward = verdict === 'APPROVE' ? out.findings.filter(f => f.severity === 'P2') : [];
-  return { verdict, blocking, fixForward, escalated: verdict !== out.verdict };
-}
+// The policy lives in collab-review-policy.mjs so the night audit checks receipts with the same rule.
+export { applyPolicy, isBlocking, ownerHolds, validateOutput } from './collab-review-policy.mjs';
+export const releaseLabel = 'owner-release-check';
 
 export function fillPrompt(template, values) {
   // Single pass, so a placeholder inside PR text is never expanded.
@@ -62,20 +45,35 @@ const cell = (text, limit = 900) => clean(text, limit).replace(/\\/g, '\\\\').re
 // A detail may list every occurrence of one class (prompt rule S2); keep the whole list (fix-forward #238).
 const detailCell = text => cell(text, 6000);
 
-export function renderVerdict({ pr, out, policy, round, range, digest, fixIssue }) {
+// `base`: the collab/integration tip when the review started (P1-A); `receipt`: the local receipt id (P1-B).
+export function renderVerdict({ pr, out, policy, round, range, digest, fixIssue, base = null, receipt = null, answeredBy = new Map() }) {
   const rows = out.findings.map(f => `| ${f.severity} | ${f.category} | \`${cell(f.file)}${f.line ? `:${f.line}` : ''}\` | ${cell(f.title)}: ${detailCell(f.detail)} | ${isBlocking(f) ? 'có' : 'không'} |`);
   return [
     `Review verdict: ${policy.verdict} @ ${pr.headRefOid}`,
     'Reviewer: Codex (auto, scripts/codex-review.mjs)',
-    `Round: auto-${round} · range \`${cell(range)}\`${out.complete ? '' : ' · **review chưa đủ, chuyển owner**'}${policy.escalated ? ' · verdict được script nâng theo chính sách P2' : ''}`,
+    `Round: auto-${round} · range \`${cell(range)}\`${out.complete ? '' : ' · **review chưa đủ, Claude tách PR cho đủ review**'}${policy.escalated ? ' · verdict được script nâng theo chính sách P2' : ''}`,
     '',
     clean(out.summary, 3000),
     '',
     ...(rows.length ? ['| Mức | Loại | Vị trí | Vấn đề | Chặn merge |', '|---|---|---|---|---|', ...rows, ''] : ['Không có phát hiện.', '']),
+    ...ownerRows(out, answeredBy),
     ...(fixIssue ? [`Fix-forward: #${fixIssue}`, ''] : []),
     `Output SHA-256: \`${digest}\``,
-    `${agentMarker} codex-auto-review sha=${pr.headRefOid} p2=${policy.fixForward.length} -->`,
+    `Base lúc review: \`${integration}\` @ ${isSha(base) ? `\`${base.slice(0, 12)}\`` : 'không rõ'}`,
+    verdictSeal({ head: pr.headRefOid, p2: policy.fixForward.length, base, receipt }),
   ].join('\n');
+}
+
+const kindText = { cost_access: 'chi phí, dịch vụ hoặc quyền truy cập mới', release: 'phát hành', sensitive_copy: 'chữ privacy/consent/crisis/safety', data_collection: 'bật thu dữ liệu cá nhân mới' };
+function ownerRows(out, answeredBy = new Map()) {
+  const { actions } = ownerHolds(out);
+  if (!actions.length) return [];
+  const when = a => {
+    const by = answeredBy.get(a.kind);
+    return by ? `đã có câu trả lời của owner: ${cell(by.answer)} @ \`${by.sha.slice(0, 12)}\`` : a.hold === 'merge' ? 'merge' : 'phát hành';
+  };
+  return ['**Cần owner** (4 loại việc của owner):', '', '| Loại | Bằng chứng | Chờ owner trước |', '|---|---|---|',
+    ...actions.map(a => `| ${kindText[a.kind]} | ${cell(a.evidence)} | ${when(a)} |`), ''];
 }
 
 function git(args, cwd, run, left = () => Infinity) {
@@ -122,35 +120,85 @@ export function runReview(number, options = {}) {
   // Reclaim of a dead or 45-minute-old lock runs under the reclaim mutex (collab-lock.mjs, Codex #258).
   const release = acquireLock(join(stateDir, 'review.lock'), { staleMs: 45 * 60000 });
   if (!release) return { status: 'busy', reason: 'một review khác đang chạy' };
-  try { return reviewOnce(number, options); }
-  catch (error) { if (error instanceof DeadlineError) return { status: 'refused', reason: 'hết giờ (23:55) trong lúc review' }; throw error; }
-  finally { release(); }
+  // The cost record is written only when Codex really started, not for refusals (approved, held, budget).
+  let codexStarted = null;
+  let result;
+  try { result = reviewOnce(number, { ...options, onCodexStart: () => { codexStarted = Date.now(); } }); return result; }
+  catch (error) { if (error instanceof DeadlineError) return { status: 'refused', reason: `hết giờ (${hhmmOf(cutoffAt)}) trong lúc review` }; throw error; }
+  finally {
+    release();
+    // Per-PR cost proxy for collab-pr-metrics.mjs (owner 08.11.2026): one line per Codex invocation.
+    if (codexStarted !== null) try { appendFileSync(join(stateDir, 'review-runs.jsonl'), `${JSON.stringify({ pr: Number(number), at: new Date(codexStarted).toISOString(), ms: Date.now() - codexStarted, status: result?.status ?? 'error' })}\n`); } catch {}
+  }
+}
+
+// #586: the owner's words for --over-cap. Empty, blank (also after control characters are removed)
+// or another option ("--over-cap --pr 7") is no quote; the text is trimmed before it is shortened,
+// with no length cut before the check (#588: a 100 001-blank value became the truncation marker).
+export function overCapWords(raw) {
+  const text = String(raw ?? '').replace(/[\u0000-\u0008\u000b-\u001f\u007f\u2028\u2029]/g, '').trim();
+  return !text || text.startsWith('--') ? '' : clean(text, 300);
+}
+
+// P1 on #590 (16.11.2026): an incomplete review is never the baseline of a delta re-review. Once a
+// review stopped short, the next one reads the whole change; otherwise splitting a PR by removing half
+// would leave the kept, never-read half to a delta review that only checks what changed. The local
+// review log (keyed by the verdict's receipt) is the only trusted record. Without it (a review logged
+// before the field existed, or on another machine) the review counts as incomplete: the posted text is
+// editable and the receipt does not cover it (Codex r2 on #590), so the cost is one full review.
+export const incompleteMark = 'review chưa đủ';
+export function reviewWasComplete(comment, logs = readReviewLogs()) {
+  const sha = comment?.verdict?.sha ?? parseVerdict(comment?.body)?.sha;
+  const receipt = sha ? parseVerdictSeal(comment?.body, sha)?.receipt : null;
+  const record = receipt ? logs.find(l => l?.receipt === receipt) : null;
+  return record?.complete === true;
+}
+function readReviewLogs(dir = join(stateDir, 'logs')) {
+  let names = [];
+  try { names = readdirSync(dir).filter(n => /^review-.*\.json$/.test(n)); } catch { return []; }
+  return names.map(n => readJson(join(dir, n), null)).filter(Boolean);
 }
 
 // Time kept after Codex for the git check and up to five gh calls (60 s each) that publish the result.
 export const reviewFinalizeReserveMs = 5 * 60000;
 
-function reviewOnce(number, { auto = false, gh: ghIn = makeGh(), run = execFileSync, now = vnNow(), clock = vnNow, readOut, nowMs = Date.now } = {}) {
-  // Scheduled runs: every gh and git call ends by 23:55 (minus 15 s cleanup); direct runs keep fixed caps.
-  const cutoff = Date.parse(`${now.date}T23:55:00+07:00`) - 15000;
+function reviewOnce(number, { auto = false, overCap = null, gh: ghIn = makeGh(), run = execFileSync, now = vnNow(), clock = vnNow, readOut, nowMs = Date.now, onCodexStart = () => {} } = {}) {
+  // Scheduled runs: every gh and git call ends by cutoffAt (minus 15 s cleanup); direct runs keep fixed caps.
+  const cutoff = cutoffMs(now.date) - 15000;
   const left = auto && Number.isFinite(cutoff) ? () => cutoff - nowMs() : () => Infinity;
   const gh = ghIn.withDeadline?.(left) ?? ghIn;
   const pr = gh.pr(number);
   const head = pr.headRefOid;
   if (!isSha(head)) throw new Error('PR head SHA unavailable.');
+  // P1-A: the verdict records the integration tip it was reviewed against; without it the APPROVE
+  // could never be compared with a later base, so no review starts.
+  const reviewedBase = pr.baseTipOid;
+  if (!isSha(reviewedBase)) return { status: 'refused', reason: `không đọc được SHA hiện tại của ${integration}` };
   // prTurn holds fork/outside PRs; checked here too so a direct call never reviews one.
   if (!isOwnPr(pr)) return { status: 'refused', reason: 'PR không phải của owner hoặc từ fork' };
   const turn = prTurn(pr);
   if (turn.turn !== 'codex-review') return { status: 'refused', reason: `lượt hiện tại là ${turn.turn}: ${turn.reason}` };
   const dayPath = dayStatePath(now.date);
   const day = readJson(dayPath, { codexRuns: 0, failures: 0 });
-  if (auto && day.codexRuns >= codexDailyCap) return { status: 'refused', reason: `hết ${codexDailyCap} lượt Codex tự động hôm nay` };
+  // #571 (16.11.2026): a manual run counts against the same cap as the loop. On 15.11 two manual
+  // reviews took the day to 81 of 80 and spent the night audit's reserve. Past the cap only an
+  // explicit --over-cap with the owner's words runs, and those words are kept in the day state.
+  const cap = dayCap(day) - auditReserve;
+  if (day.codexRuns >= cap) {
+    const words = auto ? '' : overCapWords(overCap);
+    if (!words) return { status: 'refused', reason: auto ? `hết ${cap} lượt Codex tự động hôm nay (1 lượt giữ cho soát đêm)` : `hết ${cap} lượt Codex hôm nay (1 lượt giữ cho soát đêm); chạy tay vượt trần cần --over-cap "<lời owner>"` };
+    const cur = readJson(dayPath, day);
+    writeJson(dayPath, { ...cur, overCapLog: [...(cur.overCapLog ?? []), { at: new Date(nowMs()).toISOString(), pr: number, codexRuns: cur.codexRuns ?? 0, quote: words }] });
+  }
 
   const trusted = trustedComments(pr.comments);
-  const priorAuto = trusted.filter(c => c.auto && c.verdict).at(-1);
+  // Only a signed earlier review narrows the re-review to a delta: an unsigned one could be forged to
+  // point Codex at a harmless range (P1-B).
+  const priorAuto = reviewState(pr).sealed.filter(c => c.auto && c.verdict).at(-1);
+  const priorIncomplete = Boolean(priorAuto) && !reviewWasComplete(priorAuto);
   const dir = prepareClone(number, head, run, left);
   let deltaFrom = null;
-  if (priorAuto && priorAuto.verdict.sha !== head) {
+  if (priorAuto && !priorIncomplete && priorAuto.verdict.sha !== head) {
     try { git(['merge-base', '--is-ancestor', priorAuto.verdict.sha, head], dir, run, left); deltaFrom = priorAuto.verdict.sha; } catch {}
   }
   const mergeBase = git(['merge-base', `origin/${integration}`, head], dir, run, left);
@@ -172,7 +220,9 @@ function reviewOnce(number, { auto = false, gh: ghIn = makeGh(), run = execFileS
       ? mergesBase
         ? `Re-review: the previous automatic review was at \`${deltaFrom}\`, and the delta merges \`${integration}\` in. Read \`.git/la-lanh-review-delta.patch\` closely: it is \`git diff ${deltaFrom}..${head}\` limited to this PR's own files, including conflict resolutions and confirm each earlier blocking finding is fixed. Files changed only by the merged \`${integration}\` were reviewed in their own PRs: do not read them and do not mark the review incomplete because of them.`
         : `Re-review: the previous automatic review was at \`${deltaFrom}\`. Read \`git diff ${deltaFrom}..${head}\` closely and confirm each earlier blocking finding is fixed; skim the rest.`
-      : 'First automatic review of this PR: read the full change.',
+      : priorIncomplete
+        ? 'The previous automatic review did not read the whole change: read the full change now, not only what changed since.'
+        : 'First automatic review of this PR: read the full change.',
     TITLE: clean(pr.title, 300), BODY: clean(pr.body, 12000), PRIOR: priorAuto ? clean(priorAuto.body, 8000) : 'None.',
   });
 
@@ -180,14 +230,15 @@ function reviewOnce(number, { auto = false, gh: ghIn = makeGh(), run = execFileS
   const outPath = join(stateDir, 'logs', `codex-${stamp}.json`);
   mkdirSync(dirname(outPath), { recursive: true });
   // Fetching can be slow, so read the clock again right before Codex starts (fix-forward #131).
-  // Scheduled runs start nothing after 23:30 and stop by 23:55; direct runs get 30 minutes.
+  // Scheduled runs start nothing from lastStartAt and stop by cutoffAt; direct runs get 30 minutes.
   const startAt = clock();
   const startMinute = startAt.hour * 60 + startAt.minute;
-  if (auto && (startMinute < 8 * 60 + 50 || startMinute >= 23 * 60 + 30)) return { status: 'refused', reason: 'ngoài giờ chạy tự động (sau 23:30)' };
+  if (auto && (startMinute < planOpensAt || startMinute >= lastStartAt)) return { status: 'refused', reason: `ngoài giờ chạy tự động (sau ${hhmmOf(lastStartAt)})` };
   // Codex must end early enough that the verdict, labels and fix-forward issue still fit before
   // the Git/GitHub cutoff (#243); without that room, it does not start.
-  const untilCutoff = Math.min(((23 * 60 + 55) - startMinute) * 60000, left()) - reviewFinalizeReserveMs;
-  if (auto && untilCutoff < 60000) return { status: 'refused', reason: 'không đủ thời gian để đăng kết quả trước 23:55' };
+  const untilCutoff = Math.min((cutoffAt - startMinute) * 60000, left()) - reviewFinalizeReserveMs;
+  if (auto && untilCutoff < 60000) return { status: 'refused', reason: `không đủ thời gian để đăng kết quả trước ${hhmmOf(cutoffAt)}` };
+  onCodexStart();
   const result = runCodex({ dir, prompt, outPath, timeoutMs: auto ? Math.min(30 * 60000, untilCutoff) : 30 * 60000, run });
   if (result.status === 'limit') return { status: 'limit', reason: result.error };
   writeJson(dayPath, { ...readJson(dayPath, day), codexRuns: (readJson(dayPath, day).codexRuns ?? 0) + 1 });
@@ -196,12 +247,15 @@ function reviewOnce(number, { auto = false, gh: ghIn = makeGh(), run = execFileS
   if (git(['rev-parse', 'HEAD'], dir, run, left) !== head) throw new Error('Review clone moved while Codex was reading; verdict not posted.');
 
   const rawOut = readOut ? readOut(outPath) : readFileSync(outPath, 'utf8');
-  const out = validateOutput(JSON.parse(rawOut), head);
+  const out = validateOutput(JSON.parse(rawOut), head, { requireOwnerActions: true });
   const policy = applyPolicy(out);
   const digest = createHash('sha256').update(rawOut).digest('hex');
 
   // Head must not have moved while Codex was reading.
-  if (gh.pr(number).headRefOid !== head) return { status: 'stale', reason: 'head đổi trong lúc review; lượt sau review lại' };
+  // Codex r2 on #637: the owner answers are read from this fresh copy too, so an answer edited or
+  // deleted while Codex was reading no longer counts.
+  const after = gh.pr(number);
+  if (after.headRefOid !== head) return { status: 'stale', reason: 'head đổi trong lúc review; lượt sau review lại' };
 
   let fixIssue = null;
   if (policy.fixForward.length) {
@@ -213,27 +267,54 @@ function reviewOnce(number, { auto = false, gh: ghIn = makeGh(), run = execFileS
     if (!fixIssue) throw new Error('Fix-forward issue was not created; verdict not posted.');
   }
 
-  const priorRequests = trusted.filter(c => c.auto && c.verdict?.verdict === 'REQUEST_CHANGES').length;
-  const round = trusted.filter(c => c.auto && c.verdict).length + 1;
-  const body = renderVerdict({ pr, out, policy, round, range: deltaFrom ? `${deltaFrom.slice(0, 7)}..${head.slice(0, 7)}` : `${mergeBase.slice(0, 7)}..${head.slice(0, 7)}`, digest, fixIssue });
-  gh.comment('pr', pr.number, body);
-  const needsOwner = policy.verdict === 'REQUEST_CHANGES' && (!out.complete || priorRequests + 1 >= maxAutoRequestChanges);
+  // Owner 16.11.2026 (5-fix package, item 1): a review never sends a PR to the owner by itself. A
+  // second REQUEST_CHANGES stays claude-fix (Claude fixes, checks, Codex re-reviews; the proportionality
+  // stop defers, splits or closes work, never bypasses a blocking finding), and an incomplete review is
+  // REQUEST_CHANGES for Claude to split the PR. needs-owner is only for the owner's four kinds, which
+  // Codex names in owner_actions (A2): a merge hold adds needs-owner (the merge gate refuses it), a
+  // release hold for pending sensitive copy adds owner-release-check and lets the PR merge.
+  // P1 on #591: the labels go on before the verdict is posted, so a failed label call never leaves a
+  // usable APPROVE without its hold; it throws and nothing is posted. A label without a verdict only
+  // holds more.
+  // #611 (17.11.2026): a kind the owner has answered on this PR (a sealed owner-answer comment whose
+  // content is unchanged since) adds no label; a kind she has not answered still holds.
+  const holdsAll = ownerHolds(out);
+  const answeredBy = holdsAll.actions.length
+    ? coveredKinds(sealedAnswers({ ...after, number: pr.number }), sha => answerStillHolds({ sha, head, dir, git: (args, cwd) => git(args, cwd, run, left) }))
+    : new Map();
+  const isOpen = a => !answeredBy.has(a.kind);
+  const holdsNow = { actions: holdsAll.actions, merge: holdsAll.merge.filter(isOpen), release: holdsAll.release.filter(isOpen) };
+  const answered = holdsAll.actions.filter(a => !isOpen(a)).map(a => ({ kind: a.kind, answer: answeredBy.get(a.kind).answer, sha: answeredBy.get(a.kind).sha, url: answeredBy.get(a.kind).url }));
+  const needsOwner = holdsNow.merge.length > 0;
   if (needsOwner) {
-    ensureLabel(gh, 'needs-owner', 'D93F0B', 'Vòng tự động dừng, chờ owner');
+    ensureLabel(gh, 'needs-owner', 'D93F0B', 'Chờ owner: 4 loại việc của owner');
     gh.raw(['pr', 'edit', String(pr.number), '--repo', repo, '--add-label', 'needs-owner']);
   }
-  writeJson(join(stateDir, 'logs', `review-${stamp}.json`), { pr: pr.number, head, verdict: policy.verdict, digest, fixIssue, needsOwner, at: new Date().toISOString() });
-  return { status: 'posted', verdict: policy.verdict, blocking: policy.blocking.length, fixIssue, needsOwner };
+  if (holdsNow.release.length) {
+    ensureLabel(gh, releaseLabel, 'C5DEF5', 'Chữ privacy/consent/crisis/safety chờ owner duyệt trước phát hành');
+    gh.raw(['pr', 'edit', String(pr.number), '--repo', repo, '--add-label', releaseLabel]);
+  }
+
+  const round = trusted.filter(c => c.auto && c.verdict).length + 1;
+  // P1-B: the receipt is written before the comment, so every posted verdict has one.
+  const receipt = signReceipt({ kind: 'verdict', pr: pr.number, head, base: reviewedBase, result: policy.verdict, p2: policy.fixForward.length });
+  const body = renderVerdict({ pr, out, policy, round, answeredBy, range: deltaFrom ? `${deltaFrom.slice(0, 7)}..${head.slice(0, 7)}` : `${mergeBase.slice(0, 7)}..${head.slice(0, 7)}`, digest, fixIssue, base: reviewedBase, receipt });
+  const posted = gh.comment('pr', pr.number, body);
+  // Bound to the new comment's id: a later copy of this verdict never counts (replay, #456 auto-1).
+  if (!bindReceipt({ kind: 'verdict', pr: pr.number, id: receipt, url: posted })) process.stderr.write(`codex-review: receipt ${receipt} not bound to a comment id; the verdict will not count\n`);
+  writeJson(join(stateDir, 'logs', `review-${stamp}.json`), { pr: pr.number, head, base: reviewedBase, verdict: policy.verdict, complete: out.complete, ownerActions: holdsNow.actions, answered, receipt, digest, fixIssue, needsOwner, at: new Date().toISOString() });
+  return { status: 'posted', verdict: policy.verdict, blocking: policy.blocking.length, fixIssue, needsOwner, ownerRelease: holdsNow.release.length > 0, answered: answered.map(a => a.kind) };
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (isMain(import.meta.url)) {
   const args = process.argv.slice(2);
   const number = Number(args[args.indexOf('--pr') + 1]);
   if (!args.includes('--pr') || !Number.isInteger(number) || number <= 0) {
-    process.stderr.write('Usage: node scripts/codex-review.mjs --pr N [--auto]\n'); process.exit(2);
+    process.stderr.write('Usage: node scripts/codex-review.mjs --pr N [--auto] [--over-cap "<owner words>"]\n'); process.exit(2);
   }
+  const overCap = args.includes('--over-cap') ? args[args.indexOf('--over-cap') + 1] ?? '' : null;
   try {
-    const result = runReview(number, { auto: args.includes('--auto') });
+    const result = runReview(number, { auto: args.includes('--auto'), overCap });
     process.stdout.write(`${JSON.stringify(result)}\n`);
     if (result.status !== 'posted') process.exitCode = 3;
   } catch (error) { process.stderr.write(`codex-review failed: ${clean(error.message, 500)}\n`); process.exitCode = 1; }

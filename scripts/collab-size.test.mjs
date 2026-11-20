@@ -58,11 +58,15 @@ test('#254: an oversized PR with an existing author check goes back to Claude, n
   const { renderCheck } = await import('./collab-check.mjs');
   const { prTurn } = await import('./collab-turn.mjs');
   const head = 'c'.repeat(40);
-  const owner = b => ({ authorAssociation: 'OWNER', createdAt: '2026-11-07T01:00:00Z', body: b });
-  const checked = owner(renderCheck({ head, status: 'PASS', exitCode: 0, seconds: 1, date: 'x' }));
-  const approved = { ...owner(`Review verdict: APPROVE @ ${head}\nReviewer: Codex`), createdAt: '2026-11-07T02:00:00Z' };
+  const trust = await import('./collab-trust.mjs');
+  const { asPosted } = await import('./collab-test-post.mjs');
+  const owner = b => asPosted(trust, { authorAssociation: 'OWNER', createdAt: '2026-11-07T01:00:00Z', body: b });
+  // Signed for PR 11 on the live base, as the scripted check and review paths post them (P1-A/P1-B).
+  const base = 'e'.repeat(40);
+  const checked = owner(renderCheck({ head, base, receipt: trust.signReceipt({ kind: 'check', pr: 11, head, base, result: 'PASS' }), status: 'PASS', exitCode: 0, seconds: 1, date: 'x' }));
+  const approved = { ...owner(`Review verdict: APPROVE @ ${head}\nReviewer: Codex\n${trust.verdictSeal({ head, p2: 0, base, receipt: trust.signReceipt({ kind: 'verdict', pr: 11, head, base, result: 'APPROVE' }) })}`), createdAt: '2026-11-07T02:00:00Z' };
   const big = [{ path: 'scripts/b.mjs', additions: 401, deletions: 0 }];
-  const pr = extra => ({ number: 11, title: 'ops(collab): x', author: { login: 'honghanh153-creator' }, isCrossRepository: false, isDraft: false, baseRefName: 'collab/integration', headRefOid: head, mergeable: 'MERGEABLE', labels: [], createdAt: '2026-11-07T00:00:00Z', body, files: big, ...extra });
+  const pr = extra => ({ number: 11, title: 'ops(collab): x', author: { login: 'honghanh153-creator' }, isCrossRepository: false, isDraft: false, baseRefName: 'collab/integration', headRefOid: head, baseTipOid: base, mergeable: 'MERGEABLE', labels: [], createdAt: '2026-11-07T00:00:00Z', body, files: big, ...extra });
   for (const comments of [[checked], [checked, approved]]) {
     const t = prTurn(pr({ comments }));
     assert.equal(t.turn, 'claude-fix');
@@ -70,4 +74,52 @@ test('#254: an oversized PR with an existing author check goes back to Claude, n
   }
   assert.equal(prTurn(pr({ comments: [checked], body: `${body}Size-exception: tách sẽ hỏng contract\n` })).turn, 'codex-review');
   assert.equal(prTurn(pr({ comments: [checked, approved], files: [{ path: 'scripts/b.mjs', additions: 40, deletions: 0 }] })).turn, 'merge');
+});
+
+test('mass deletion holds the PR until the owner labels it', async () => {
+  const { deletionProblem } = await import('./collab-size.mjs');
+  const gone = n => Array.from({ length: n }, (_, i) => ({ path: `apps/web/f${i}.ts`, additions: 0, deletions: 5, changeType: 'DELETED' }));
+  assert.equal(deletionProblem({ files: gone(10) }), null);
+  assert.match(deletionProblem({ files: gone(11) }), /xoá 11 file/);
+  assert.equal(deletionProblem({ files: gone(11), labels: [{ name: 'owner-ok-deletion' }] }), null);
+  assert.match(deletionProblem({ files: [{ path: 'a.ts', additions: 100, deletions: 600 }] }), /xoá 600 dòng/);
+  assert.equal(deletionProblem({ files: [{ path: 'a.ts', additions: 400, deletions: 600 }] }), null);
+  assert.equal(deletionProblem({ files: [{ path: 'pnpm-lock.yaml', additions: 0, deletions: 5000 }] }), null);
+});
+
+test('deleted files are counted by status, not by line counts (Codex #354 P2)', async () => {
+  const { deletionProblem, isDeletedFile } = await import('./collab-size.mjs');
+  const binaries = Array.from({ length: 11 }, (_, i) => ({ path: `apps/web/public/i${i}.png`, additions: 0, deletions: 0, changeType: 'DELETED' }));
+  assert.match(deletionProblem({ files: binaries }), /xoá 11 file/);
+  const trimmed = Array.from({ length: 11 }, (_, i) => ({ path: `apps/web/f${i}.ts`, additions: 0, deletions: 1, changeType: 'MODIFIED' }));
+  assert.equal(deletionProblem({ files: trimmed }), null);
+  assert.ok(isDeletedFile({ status: 'D' }) && isDeletedFile({ changeType: 'DELETED' }));
+  assert.ok(!isDeletedFile({ changeType: 'MODIFIED' }) && !isDeletedFile({ additions: 0, deletions: 9 }));
+});
+
+test('the CI deletion guard reads file status from git (Codex #354 P2)', async () => {
+  const { execFileSync, spawnSync } = await import('node:child_process');
+  const { mkdtempSync, writeFileSync, rmSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const dir = mkdtempSync(join(tmpdir(), 'collab-size-del-'));
+  const git = (...a) => execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@example.invalid', '-c', 'commit.gpgsign=false', ...a], { cwd: dir, encoding: 'utf8' }).trim();
+  try {
+    git('init', '-q');
+    for (let i = 0; i < 11; i++) { writeFileSync(join(dir, `bin ${i}.png`), Buffer.from([0, 1, 2, i])); writeFileSync(join(dir, `f${i}.ts`), 'a\nb\n'); }
+    git('add', '-A'); git('commit', '-qm', 'base');
+    const base = git('rev-parse', 'HEAD');
+    for (let i = 0; i < 11; i++) writeFileSync(join(dir, `f${i}.ts`), 'a\n');
+    git('commit', '-qam', 'trim');
+    const trimmed = git('rev-parse', 'HEAD');
+    for (let i = 0; i < 11; i++) rmSync(join(dir, `bin ${i}.png`));
+    git('commit', '-qam', 'drop');
+    const dropped = git('rev-parse', 'HEAD');
+    const cli = (b, h) => spawnSync(process.execPath, [fileURLToPath(new URL('./collab-size.mjs', import.meta.url)), '--deletion', b, h, '[]'], { cwd: dir, encoding: 'utf8' });
+    assert.equal(cli(base, trimmed).status, 0);
+    const held = cli(trimmed, dropped);
+    assert.equal(held.status, 1);
+    assert.match(held.stdout, /xoá 11 file/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
 });

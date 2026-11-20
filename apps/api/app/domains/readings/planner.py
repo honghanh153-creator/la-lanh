@@ -212,14 +212,34 @@ class ReadingPlanner:
                 chart, purpose, background_lens, editorial_seed, daily_variety
             )
         self._validate_transits(chart, transits)
+        if (
+            chart.time_precision is TimePrecision.APPROXIMATE
+            and purpose is ReadingPurpose.DAILY_NOTE
+            and chart.config.tradition is Tradition.WESTERN
+            and transits is None
+        ):
+            # 17.11.2026 (#626): an approximate birth time gets a Daily built from the same
+            # time-stable placements as its other readings (#143 E1), instead of an empty LIMITED
+            # plan that served one situation for every day. No transit, aspect, house, angle or
+            # Moon fact is used; public precision stays approximate.
+            stable = self._stable_placements(chart, purpose)
+            selected, hero_refs = self._select_natal(stable, purpose, editorial_seed)
+            if hero_refs:
+                return self._daily_plan(
+                    chart,
+                    None,
+                    stable,
+                    selected,
+                    hero_refs,
+                    background_lens=background_lens,
+                    editorial_seed=editorial_seed,
+                    daily_variety=daily_variety,
+                )
         if chart.time_precision is not TimePrecision.EXACT:
             approximate = (
                 self._approximate_plan(chart, purpose, background_lens, editorial_seed)
                 if chart.time_precision is TimePrecision.APPROXIMATE
                 and purpose is not ReadingPurpose.DAILY_NOTE
-                # Jyotish frames carry no evidence for a lone placement yet; Jyotish keeps the
-                # limited reading (no 503 since #144) until its frame does.
-                and chart.config.tradition is Tradition.WESTERN
                 else None
             )
             return approximate or self._limited_plan(
@@ -377,12 +397,7 @@ class ReadingPlanner:
         # keep only their sign and aspects are left out (an aspect also references both
         # placements, which may have been removed). Houses, angles, nakshatra and graha drishti
         # are left out too.
-        stable_bodies = {body.value for body in time_stable_bodies(chart)}
-        stable = tuple(
-            factor.model_copy(update={"evidence_refs": (factor.id,)})
-            for factor in self._natal_candidates(chart, purpose)
-            if factor.kind is FactorKind.PLANET_PLACEMENT and factor.subjects[0] in stable_bodies
-        )
+        stable = self._stable_placements(chart, purpose)
         selected, hero_refs = self._select_natal(stable, purpose, editorial_seed)
         if not hero_refs:
             return None
@@ -397,6 +412,18 @@ class ReadingPlanner:
             composition=self._composition(has_transit=False),
             background_lens=background_lens,
             editorial_seed=editorial_seed,
+        )
+
+    def _stable_placements(
+        self, chart: NatalChart, purpose: ReadingPurpose
+    ) -> tuple[DerivedFactor, ...]:
+        """Placements proven stable across an approximate time window (#143 E1): sign only."""
+
+        stable_bodies = {body.value for body in time_stable_bodies(chart)}
+        return tuple(
+            factor.model_copy(update={"evidence_refs": (factor.id,)})
+            for factor in self._natal_candidates(chart, purpose)
+            if factor.kind is FactorKind.PLANET_PLACEMENT and factor.subjects[0] in stable_bodies
         )
 
     def _limited_plan(

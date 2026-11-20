@@ -1,8 +1,13 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 
+import { CRISIS_CHECK_DISCLOSURE } from "../../shared/config/crisisCheckDisclosure";
+import { MOOD_LIGHTER_TASK_NOTE } from "../../shared/config/moodLighterTaskNote";
 import { OPENAI_ABUSE_RETENTION_NOTICE, OPENAI_REWRITE_SCOPE_NOTICE } from "../../shared/config/externalRewriteDisclosure";
 import { ConsentPage } from "./ConsentPage";
 
@@ -17,6 +22,40 @@ describe("ConsentPage privacy details", () => {
       </QueryClientProvider>,
     );
   }
+
+  it("shows the owner-approved crisis check sentence, word for word (15.11, \"D duyệt\")", () => {
+    renderPrivacyPage();
+
+    const note = screen.getByText(CRISIS_CHECK_DISCLOSURE);
+    expect(note.tagName).toBe("P");
+    expect(note.closest("details")).toBeNull();
+    expect(note).toHaveTextContent("không được lưu lại và không gửi cho ai khác");
+    expect(note).toHaveTextContent("có thể nhận nhầm hoặc bỏ sót");
+    expect(note).not.toHaveTextContent(/mọi câu/i);
+
+    const registry = JSON.parse(readFileSync(join(process.cwd(), "../api/app/domains/content/copy_registry.json"), "utf8")) as {
+      entries: { id: string; category: string; text: string; status: string; approver?: string; date?: string }[];
+    };
+    const entry = registry.entries.find((item) => item.id === "privacy.crisis-check-disclosure");
+    expect(entry).toMatchObject({ category: "privacy", status: "approved", approver: "owner", date: "2026-11-15", text: CRISIS_CHECK_DISCLOSURE });
+  });
+
+  it("shows the owner-approved mood sentence next to the note and mood retention text, word for word (17.11, item S)", () => {
+    renderPrivacyPage();
+
+    const note = screen.getByText(MOOD_LIGHTER_TASK_NOTE);
+    expect(note.tagName).toBe("P");
+    expect(note.closest("article")).toHaveTextContent("Lịch sử có thời hạn riêng");
+    expect(note).toHaveTextContent("dành cho bạn");
+    expect(note).not.toHaveTextContent("trên máy bạn");
+
+    const registry = JSON.parse(readFileSync(join(process.cwd(), "../api/app/domains/content/copy_registry.json"), "utf8")) as {
+      entries: { id: string; category: string; text: string; status: string; approver?: string; date?: string }[];
+    };
+    const entry = registry.entries.find((item) => item.id === "privacy.mood-lighter-task");
+    expect(entry).toMatchObject({ category: "privacy", status: "approved", approver: "owner", date: "2026-11-17", text: MOOD_LIGHTER_TASK_NOTE });
+    expect(MOOD_LIGHTER_TASK_NOTE).toBe("Mood bạn chọn cũng dùng để gợi ý việc nhỏ nhẹ hơn trong ngày, dành cho bạn.");
+  });
 
   it("gives network users a visible link to the corresponding source", () => {
     renderPrivacyPage();

@@ -1400,6 +1400,14 @@ def apply_daily_psychology(
             if ref in allowed_refs
         )
     )[:12]
+    if plan.precision is TimePrecision.APPROXIMATE:
+        # #665 (US-03 AC22): a lens may change the scene, never the evidence. An approximate
+        # Daily rests on sign-only placements, and a lens can pick a situation resting on another
+        # one; listing every placement of the plan (the same for every lens) keeps the evidence
+        # unchanged while still naming the placement the situation rests on.
+        selected_refs = tuple(factor.id for factor in plan.factors if factor.id in allowed_refs)[
+            :12
+        ]
     # Disclosure order is canonical, not editorial priority. A changed lens may
     # change true supporting facts, but never merely reorder the same facts.
     evidence_refs = (
@@ -1447,7 +1455,8 @@ def daily_issue_meaning(mechanism_key: str | None) -> str:
     """The shared catalog meaning of a Daily situation, without the chart-selected personal
     sentence that ``core_meaning`` starts with. Luna payloads use this so they carry no direct
     chart facts. The issue itself is still chosen from the chart (coarse; on a date-only reading it
-    maps one-to-one to the Sun sign, see ``SUN_ISSUES``)."""
+    is the Sun sign's own situation or, on rotated plans, its element's: never finer than the Sun
+    sign, see ``SUN_ISSUES`` and ``PLACEMENT_ISSUES["sun"]``)."""
 
     prefix = "psychology:"
     if not mechanism_key or not mechanism_key.startswith(prefix):

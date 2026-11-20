@@ -41,7 +41,7 @@ describe("BirthCardPage", () => {
     const image = await screen.findByRole("img", { name: /Mặt Trời Song Tử · Khí/ });
     fireEvent.load(image);
     expect(screen.getByRole("heading", { name: "Lá Khai Sinh · Mặt Trời Song Tử" })).toBeInTheDocument();
-    expect(image.getAttribute("alt")).toContain("Vibe · Lanh");
+    expect(image.getAttribute("alt")).toContain("Lanh");
     expect(screen.getByRole("button", { name: /Tải PNG/ })).toBeEnabled();
 
     const svg = decodeURIComponent(image.getAttribute("src") ?? "");

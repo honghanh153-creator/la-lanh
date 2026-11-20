@@ -1,18 +1,24 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
+// Incident 18.11.2026: a merge reservation written by one tick test must not steer the next.
+test.beforeEach(async () => (await import('./collab-reservation.mjs'))._resetReservation());
 
 process.env.LA_LANH_COLLAB_HOME = mkdtempSync(join(tmpdir(), 'collab-status-'));
 const trust = await import('./collab-trust.mjs');
+const { asPosted } = await import('./collab-test-post.mjs');
 const { boardMarker, ownerNotes, plainTitle, postOwnerNotes, renderBoard, sentNoteKeys, upsertBoard } = await import('./collab-status.mjs');
 const { openOpsAlert, opsAlert, resolveOpsAlert, tick } = await import('./collab-turn.mjs');
+const { renderCheck } = await import('./collab-check.mjs');
 
 const A = 'a'.repeat(40);
+// The live tip of collab/integration in every fixture (P1-A).
+const BASE = 'e'.repeat(40);
 const now = { date: '2026-11-01', hour: 14, minute: 5 };
 const own = { author: { login: 'honghanh153-creator' }, isCrossRepository: false };
-const pr = extra => ({ number: 7, title: 'feat(tarot): x', state: 'OPEN', isDraft: false, baseRefName: 'collab/integration', headRefName: 'b', headRefOid: A, labels: [], createdAt: '2026-10-30T00:00:00Z', comments: [], ...own, ...extra });
+const pr = extra => ({ number: 7, title: 'feat(tarot): x', state: 'OPEN', isDraft: false, baseRefName: 'collab/integration', headRefName: 'b', headRefOid: A, baseTipOid: BASE, labels: [], createdAt: '2026-10-30T00:00:00Z', comments: [], ...own, ...extra });
 
 test('the board says the state, when it was updated and what waits on the owner', () => {
   const body = renderBoard({ now, status: 'running', doing: 'author check #7', expectMinutes: 90, area: 'content', codexRuns: 3,
@@ -26,7 +32,7 @@ test('the board says the state, when it was updated and what waits on the owner'
   assert.match(renderBoard({ now, status: 'ran' }), /cũ hơn 20 phút/);
   assert.match(body, /\| #7 \| content \| claude-check \|/);
   assert.match(body, /Chờ owner: #139\./);
-  assert.match(body, /Codex hôm nay: 3\/32/);
+  assert.match(body, new RegExp(`Codex hôm nay: 3/${trust.codexDailyCap}`));
   assert.doesNotThrow(() => trust.assertAgentBody(body));
   assert.match(renderBoard({ now, status: 'closed' }), /NGOÀI GIỜ/);
   assert.match(renderBoard({ now, status: 'error', error: 'thiếu công cụ trên PATH: pnpm' }), /LỖI[\s\S]*thiếu công cụ/);
@@ -122,7 +128,10 @@ test('#145 r2: a review waiting at the daily Codex cap shows a budget stop, not 
   const date = '2026-11-13';
   trust.writeJson(trust.dayStatePath(date), { codexRuns: trust.codexDailyCap });
   const comments = [{ authorAssociation: 'OWNER', createdAt: `${date}T01:50:00Z`, body: `${trust.agentMarker} daily-plan date=${date} -->` }];
-  const checked = pr({ number: 9, comments: [{ authorAssociation: 'OWNER', createdAt: `${date}T02:00:00Z`, body: `Author check: PASS @ ${A}\n${trust.agentMarker} x -->` }] });
+  // A signed PASS on the live base (P1-A/P1-B), so the PR waits for review.
+  const base = 'e'.repeat(40);
+  const seal = trust.checkSeal({ head: A, base, receipt: trust.signReceipt({ kind: 'check', pr: 9, head: A, base, result: 'PASS' }) });
+  const checked = pr({ number: 9, baseTipOid: base, comments: [asPosted(trust, { authorAssociation: 'OWNER', createdAt: `${date}T02:00:00Z`, body: `Author check: PASS @ ${A}\n${seal}` })] });
   const gh = {
     pr: () => checked, openPrs: () => [checked], raw: () => '', comment: () => {},
     json: args => (args[0] === 'issue' && args[1] === 'list' ? [{ number: 50, title: 'Kế hoạch chạy tự động hằng ngày' }] : { comments }),
@@ -146,12 +155,17 @@ const noteGh = (date, open, comments = [planComment(date)]) => {
 };
 let cacheN = 0;
 const notifier = gh => { const cachePath = join(trust.stateDir, `notes-${cacheN++}.json`); return (notes, comments) => postOwnerNotes(gh, 50, notes, comments, { cachePath }); };
-const approved = sha => [{ authorAssociation: 'OWNER', createdAt: '2026-11-01T00:00:00Z', body: `Author check: PASS @ ${sha}\n${trust.agentMarker} x -->` },
-  { authorAssociation: 'OWNER', createdAt: '2026-11-01T00:01:00Z', body: `Review verdict: APPROVE @ ${sha}` }];
+// Merge evidence needs a local receipt for this PR, head and base (P1-B), as the real check and review paths write it.
+const approved = (sha, n) => {
+  const receipt = (kind, result) => trust.signReceipt({ kind, pr: n, head: sha, base: BASE, result, p2: 0 });
+  return [{ authorAssociation: 'OWNER', createdAt: '2026-11-01T00:00:00Z', body: renderCheck({ head: sha, status: 'PASS', base: BASE, receipt: receipt('check', 'PASS'), exitCode: 0, seconds: 1, date: 'x' }) },
+    { authorAssociation: 'OWNER', createdAt: '2026-11-01T00:01:00Z', body: [`Review verdict: APPROVE @ ${sha}`, 'Reviewer: Codex (auto, scripts/codex-review.mjs)', '', trust.verdictSeal({ head: sha, p2: 0, base: BASE, receipt: receipt('verdict', 'APPROVE') })].join('\n') }]
+    .map(c => asPosted(trust, c));
+};
 
 test('merges post one new comment per tick, one plain line each, and a re-run never posts twice', () => {
   const date = '2026-12-01';
-  const open = [pr({ number: 11, title: 'feat(daily): clearer mood note', comments: approved(A) }), pr({ number: 12, title: 'fix(radar): shorter hint', comments: approved(A) })];
+  const open = [pr({ number: 11, title: 'feat(daily): clearer mood note', comments: approved(A, 11) }), pr({ number: 12, title: 'fix(radar): shorter hint', comments: approved(A, 12) })];
   const gh = noteGh(date, open);
   const notify = notifier(gh);
   const run = minute => tick({ gh, now: { date, hour: 15, minute }, merge: () => ({ status: 'merged' }), review: () => ({}), notify });
@@ -197,9 +211,9 @@ test('a PR newly labelled needs-owner posts once; a new head that needs the owne
   assert.equal(gh.posted.length, 2);
 });
 
-test('the digest posts once near 12:00 and 22:00 with done, doing, waiting, next and the metrics', () => {
+test('owner notes post once per event, with no slot digest at 14:00 or 22:00 (owner 16.11)', () => {
   const date = '2026-12-04';
-  const open = [pr({ number: 31, title: 'content(daily): calmer start', comments: approved(A) }), pr({ number: 32, title: 'content(tarot): plain card', headRefName: 'agent/claude/x' }),
+  const open = [pr({ number: 31, title: 'content(daily): calmer start', comments: approved(A, 31) }), pr({ number: 32, title: 'content(tarot): plain card', headRefName: 'agent/claude/x' }),
     pr({ number: 33, title: 'feat(radar): fewer words', labels: [{ name: 'needs-owner' }] })];
   const gh = noteGh(date, open);
   const notify = notifier(gh);
@@ -207,34 +221,72 @@ test('the digest posts once near 12:00 and 22:00 with done, doing, waiting, next
   const merge = n => { open.splice(open.findIndex(p => p.number === n), 1); return { status: 'merged' }; };
   trust.writeJson(trust.dayStatePath(date), { codexRuns: 0, failures: 0, planned: [31, 32] });
   const run = (hour, minute) => tick({ gh, now: { date, hour, minute }, merge, check: () => ({ status: 'FAIL' }), review: () => ({}), notify, metrics });
-  run(11, 50);
-  const beforeNoon = gh.posted.length;
-  assert.ok(!gh.posted.some(b => /Tóm tắt/.test(b)), 'no digest before 12:00');
-  run(12, 5);
-  run(12, 15);
-  const digests = gh.posted.filter(b => /Tóm tắt 12:00/.test(b));
-  assert.equal(digests.length, 1, 'one digest per slot');
-  assert.ok(gh.posted.length - beforeNoon === 1);
-  const lines = digests[0].split('\n');
-  assert.deepEqual(lines.slice(0, 6), [
-    '**Tóm tắt 12:00**',
-    '- Xong: 1/2 việc đã chọn hôm nay; đã gộp 1 PR.',
-    '- Đang làm: plain card (#32).',
-    '- Chờ bạn: fewer words (#33).',
-    '- Tiếp theo: Claude chọn việc kế tiếp từ backlog khi có chỗ.',
-    '- Bộ Daily phục vụ được: 1/3 bộ.',
-  ]);
-  assert.ok(lines.length <= 12, 'short');
-  run(13, 30);
+  run(13, 50);
+  run(14, 5);
+  run(14, 15);
   run(22, 10);
-  assert.equal(gh.posted.filter(b => /Tóm tắt 22:00/.test(b)).length, 1);
+  assert.ok(!gh.posted.some(b => /Tóm tắt/.test(b)), 'no slot digest: the 14:00/22:00 owner reports are the summaries');
+  assert.equal(gh.posted.filter(b => /Đã gộp vào integration: calmer start \(#31\)\./.test(b)).length, 1, 'a merge is announced once');
+  assert.equal(gh.posted.filter(b => /Cần bạn xem: fewer words \(#33\)\./.test(b)).length, 1, 'a needs-owner PR is announced once');
   assert.ok(gh.posted.every(b => !/REQUEST_CHANGES|APPROVE|claude-fix|codex-review|[0-9a-f]{40}/.test(b)), 'no codes');
 });
 
+// The launchd tick as it runs: runTick with its real snapshot, work and incident sources over a
+// fake gh. Two reviewed PRs of task issue #12 merge at the 14:05 tick.
+const productionTick = (date, { metrics = () => null } = {}) => {
+  const B = 'b'.repeat(40);
+  // Signed PASS and APPROVE for each PR (#456 P1-B), as the real check and review paths post them.
+  const open = [pr({ number: 41, title: 'feat(daily): shorter card', headRefOid: A, body: 'Việc: #12\nTiêu chí đạt: TC1', comments: approved(A, 41) }),
+    pr({ number: 42, title: 'feat(daily): clearer hint', headRefOid: B, body: 'Việc: #12\nTiêu chí đạt: TC2', comments: approved(B, 42) })];
+  const done = [];
+  const gh = noteGh(date, open, []);
+  const base = gh.json;
+  // Synthetic task issue #12 with two criteria; the merged PRs are what gh pr list returns.
+  gh.json = args => args[0] === 'issue' && args[1] === 'view' && args[2] === '12' ? { body: '## Tiêu chí đạt\n\n- [ ] Thẻ ngắn hơn\n- [ ] Gợi ý rõ hơn\n' }
+    : args[0] === 'pr' && args[1] === 'list' ? done
+    : args[0] === 'issue' && args.includes('ops-alert') ? []
+    : args[0] === 'api' ? { object: { sha: 'c'.repeat(40) } } : base(args);
+  const merge = n => { const [p] = open.splice(open.findIndex(x => x.number === n), 1); done.push({ ...p, state: 'MERGED', mergedAt: `${date}T05:00:00Z` }); return { status: 'merged' }; };
+  const run = async (hour, minute) => (await import('./collab-tick.mjs')).runTick(gh, () => [], { run: given => tick({ ...given, now: { date, hour, minute }, merge, check: () => ({ status: 'FAIL' }), review: () => ({}),
+    board: () => {}, log: () => {}, watchdog: () => {}, health: () => [], copyBatch: null, metrics, notify: notifier(gh) }) });
+  return { gh, done, run };
+};
+
+// Owner 16.11.2026 (5-fix package, item 4): one report per slot. The 14:00/22:00 owner reports are
+// the only summaries; the launchd tick posts merges, a failure streak and needs-owner, no digest.
+// The dates are past days: the snapshot cut-off is the real clock.
+test('owner 16.11: the production tick posts no 14:00 or 22:00 digest, only the merge notes', async () => {
+  const { snapshotPath } = await import('./collab-snapshot.mjs');
+  const date = '2026-11-04';
+  const { gh, done, run } = productionTick(date);
+  await run(8, 52);
+  await run(14, 5);
+  await run(22, 5);
+  assert.deepEqual(done.map(p => p.number), [41, 42]);
+  assert.ok(!gh.posted.some(b => /Tóm tắt/.test(b)), 'no slot digest: the owner report is the one summary');
+  assert.ok(gh.posted.some(b => /Đã gộp vào integration: shorter card \(#41\)\./.test(b)), 'merges are still announced');
+  assert.throws(() => readFileSync(snapshotPath(date, '14'), 'utf8'), /ENOENT/, 'the tick no longer takes the slot snapshot; the owner report does');
+});
+
+// L11 (Codex r1 on #496, P1): the slot snapshot, which the 14:00/22:00 owner report prints, counts
+// items by their criteria. Two merged PRs of one item used to read "Xong: 2/2 việc".
+test('L11: the slot snapshot the owner report reads counts two merged PRs of one item as one item, not two', async () => {
+  const { takeSnapshot, renderSnapshot, realSources } = await import('./collab-snapshot.mjs');
+  const date = '2026-11-03';
+  const { gh, done, run } = productionTick(date);
+  assert.equal((await run(8, 52)).status, 'plan-made');
+  await run(14, 5);
+  assert.deepEqual(done.map(p => p.number), [41, 42]);
+  const text = renderSnapshot(takeSnapshot({ slot: '14', date, sources: realSources(gh, date) })).join('\n');
+  assert.match(text, /^- Việc đạt tiêu chí: 1\/1 việc đã chọn đạt đủ tiêu chí\.$/m, 'two PRs of one item are one finished item');
+  assert.match(text, /^- Đã gộp vào integration hôm nay: 2 PR \(số PR, không phải số việc\)\.$/m);
+  assert.doesNotMatch(text, /Xong: 2\/2/, 'merged PRs are not finished items');
+});
+
 test('notes are plain, carry the agent marker and never use the owner reply words', () => {
-  const now = { date: '2026-12-05', hour: 12, minute: 1 };
+  const now = { date: '2026-12-05', hour: 14, minute: 1 };
   const notes = ownerNotes({ now, merged: [{ number: 1, title: 'Duyệt: tricky title' }], failures: 2, streakAt: '11:40', turns: [{ number: 2, turn: 'hold', reason: 'needs-owner', title: 'Giữ đúng', head: A }] });
-  assert.deepEqual(notes.map(n => n.key), ['merged-1', 'stuck-2026-12-05-1140', `owner-2-${A.slice(0, 7)}`, 'digest-2026-12-05-12']);
+  assert.deepEqual(notes.map(n => n.key), ['merged-1', 'stuck-2026-12-05-1140', `owner-2-${A.slice(0, 7)}`], 'no 14:00 digest (owner 16.11)');
   const gh = { comment: (kind, n, body) => trust.assertAgentBody(body) };
   assert.doesNotThrow(() => postOwnerNotes(gh, 50, notes, [], { cachePath: join(trust.stateDir, 'plain.json') }));
   assert.equal(plainTitle('feat(home)!: calmer start'), 'calmer start');

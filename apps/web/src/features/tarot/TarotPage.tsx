@@ -16,6 +16,7 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 
 import {
   ApiProblem,
+  crisisNoticeFrom,
   currentSessionEpoch,
   createTarotGuest,
   deleteTarotSession,
@@ -30,6 +31,7 @@ import {
 } from "../../shared/api/client";
 import { SESSION_RESTART_REQUIRED_KEY } from "../../shared/session/sessionIdentity";
 import { BrandMark } from "../../shared/ui/BrandMark";
+import { CrisisNotice } from "../../shared/ui/CrisisNotice";
 import { NightSky } from "../../shared/ui/NightSky";
 import { ReadingDisclaimer } from "../../shared/ui/ReadingDisclaimer";
 import { TarotCardArt, TarotCardBack } from "./TarotCardArt";
@@ -200,6 +202,9 @@ export function TarotPage() {
   const [question, setQuestion] = useState(initialQuestion);
   const recommendation = useMemo(() => recommendSpread(question), [question]);
   const questionTooShort = question.trim().length < 8;
+  // A short question still goes to the server when tapped: the crisis check runs there before
+  // the 8-character minimum, so "tự tử" gets the support notice instead of a locked button.
+  const questionEmpty = question.trim().length === 0;
   const [spreadOverride, setSpreadOverride] = useState<TarotSpread | null>(null);
   const spread = spreadOverride ?? recommendation;
   const selectedSpreadCopy = SPREAD_COPY[spread];
@@ -209,6 +214,7 @@ export function TarotPage() {
   const finishReveal = useCallback(() => setRevealSessionId(null), []);
   useEffect(() => () => finishReveal(), [sessionId, finishReveal]);
   const [reframe, setReframe] = useState<{ explanation: string; question: string } | null>(null);
+  const [crisis, setCrisis] = useState<string | null>(null);
   const motion = useTarotMotion();
   const [flight, setFlight] = useState<PickFlight | null>(null);
   const endFlight = useCallback(() => setFlight(null), []);
@@ -244,6 +250,7 @@ export function TarotPage() {
         ...(vibe === "roast" ? { voice: vibe } : {}),
       });
     },
+    onMutate: () => setCrisis(null),
     onSuccess: (created) => {
       startKey.reset();
       setReframe(null);
@@ -255,6 +262,13 @@ export function TarotPage() {
         void navigate("/welcome?restart=1", { replace: true, state: { sessionChanged: true } });
         return;
       }
+      // Self-harm language: no reading and no session; the server sent its notice instead.
+      const notice = crisisNoticeFrom(error);
+      if (notice) {
+        setReframe(null);
+        setCrisis(notice);
+        return;
+      }
       if (error instanceof ApiProblem && error.code === "TAROT_QUESTION_REFRAME_REQUIRED") {
         const suggested = error.details.suggested_reframe;
         const explanation = error.details.explanation;
@@ -264,6 +278,9 @@ export function TarotPage() {
       }
     },
   });
+  // The server checked a short question and found nothing to flag: show the length hint, not a
+  // network error.
+  const shortRejected = questionTooShort && start.error instanceof ApiProblem && start.error.code === "INPUT_INVALID";
 
   const select = useMutation({
     mutationFn: ({ active, index }: { active: TarotSession; index: number }) => (
@@ -416,6 +433,7 @@ export function TarotPage() {
               setQuestion(event.target.value);
               setSpreadOverride(null);
               setReframe(null);
+              if (start.error instanceof ApiProblem && start.error.code === "INPUT_INVALID") start.reset();
             }}
             placeholder="Ví dụ: Mình nên nói rõ hay chờ thêm?"
             rows={3}
@@ -474,16 +492,17 @@ export function TarotPage() {
         {reframe ? <aside className="tarot-reframe" role="alert"><strong>Đổi góc một chút để bài không nói hộ bạn.</strong><p>{reframe.explanation}</p><button onClick={() => { setQuestion(reframe.question); setSpreadOverride(null); setReframe(null); }} type="button">Dùng câu: “{reframe.question}”</button></aside> : null}
       </section>
 
-      {start.isError && !reframe ? <p className="tarot-error" role="alert">Chưa xòe bài được. Câu hỏi vẫn ở đây; kiểm tra mạng rồi thử lại.</p> : null}
+      {crisis ? <CrisisNotice className="tarot-error" text={crisis} /> : null}
+      {start.isError && !reframe && !crisis && !shortRejected ? <p className="tarot-error" role="alert">Chưa xòe bài được. Câu hỏi vẫn ở đây; kiểm tra mạng rồi thử lại.</p> : null}
       <footer className="tarot-start-actions">
         <button
           aria-describedby={questionTooShort && !start.isPending ? "tarot-start-hint" : undefined}
           className="tarot-primary"
-          disabled={start.isPending || questionTooShort}
+          disabled={start.isPending || questionEmpty}
           onClick={() => start.mutate()}
           type="button"
         ><Sparkle aria-hidden="true" />{start.isPending ? "Đang khóa bộ bài…" : `Xòe ${spread === "one_card" ? "1" : spread === "three_card" ? "3" : "5"} lá`}<ArrowRight aria-hidden="true" /></button>
-        {questionTooShort && !start.isPending ? <p className="tarot-start-hint" id="tarot-start-hint">Nhập câu hỏi từ 8 ký tự trở lên, hoặc chọn một gợi ý ở “Mình chưa biết hỏi gì”.</p> : null}
+        {questionTooShort && !start.isPending ? <p className="tarot-start-hint" id="tarot-start-hint" role={shortRejected ? "alert" : undefined}>Nhập câu hỏi từ 8 ký tự trở lên, hoặc chọn một gợi ý ở “Mình chưa biết hỏi gì”.</p> : null}
         <p><LockKey aria-hidden="true" /> Không cần đăng nhập · chỉ gửi khi bạn bấm Xòe bài · mã hóa tối đa 30 ngày · không vào analytics.</p>
       </footer>
       <button

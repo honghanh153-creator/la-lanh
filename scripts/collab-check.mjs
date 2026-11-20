@@ -3,15 +3,17 @@
 //        node scripts/collab-check.mjs --pr N --clone   (dedicated clone ~/.cache/la-lanh-collab/author)
 //        node scripts/collab-check.mjs --guard          (private-data scan of this branch, for pre-push)
 // One check on the machine at a time: two checks share the API and e2e ports and give false receipts.
+import { guardListState } from './collab-hooks.mjs';
 import { spawnSync, execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
-import { agentMarker, boundedTimeout, clean, integration, isOwnPr, isSha, makeGh, repo, stateDir, vnNow } from './collab-trust.mjs';
+import { bindReceipt, boundedTimeout, checkSeal, clean, cutoffAt, cutoffMs, hhmmOf, integration, isOwnPr, isSha, lastStartAt, makeGh, planOpensAt, repo, signReceipt, stateDir, vnNow } from './collab-trust.mjs';
 import { withFileLock } from './collab-lock.mjs';
+import { mayTouch, readClaim, sessionId, withPrLock } from './collab-pr-claim.mjs';
 import { preflightFailure, readPreflight, recordPreflight, runPreflight } from './collab-preflight.mjs';
 import { runGroup, syncWithIntegration } from './collab-heal.mjs';
 import { checkSteps, failDetails, guardWaitMs, openCheckLog, waitForGuard } from './collab-check-log.mjs';
+import { isMain } from './is-main.mjs';
 
 // A heavy test process anywhere on the machine, matched on the program actually running.
 // `pgrep -f` matched any command line that merely mentioned these words, including the agent
@@ -26,9 +28,15 @@ export const heavyPatterns = [
   /^(\S*\/)?node\s+\S*(vitest|playwright)\S*(\s|$)/,
   /^(\S*\/)?python[\d.]*\s+(\S*\/pytest(\s|$)|-m\s+pytest)/,
   /^(\S*\/)?uv\s+run\b.*\spytest(\s|$)/,
+  // The nightly fake-user run (scripts/personas-nightly.mjs): up to 8 simulator processes.
+  /^(\S*\/)?python[\d.]*\s+-m\s+scripts\.persona_sim(\s|$)/,
+  /^(\S*\/)?uv\s+run\b.*\sscripts\.persona_sim(\s|$)/,
 ];
 export const isHeavy = args => heavyPatterns.some(pattern => pattern.test(String(args).trim()));
-export function machineBusy(run = execFileSync) {
+export function machineBusy(run = execFileSync, { exceptUnder = [] } = {}) {
+  // D2 (owner 16.11): a guarded job does not count the other guard slot's own test processes; it
+  // still sees every other heavy process (an author check, the persona run, an unguarded run).
+  if (exceptUnder.length) return busyOutside(run, exceptUnder);
   let table = '';
   try { table = String(run('ps', ['-Ao', 'pid=,args='], { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 })); } catch { return null; }
   for (const line of table.split('\n')) {
@@ -38,11 +46,22 @@ export function machineBusy(run = execFileSync) {
   return null;
 }
 
+function busyOutside(run, roots) {
+  let table = '';
+  try { table = String(run('ps', ['-Ao', 'pid=,ppid=,args='], { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 })); } catch { return null; }
+  const rows = table.split('\n').map(line => /^\s*(\d+)\s+(\d+)\s+(.*)$/.exec(line)).filter(Boolean).map(m => ({ pid: Number(m[1]), ppid: Number(m[2]), args: m[3] }));
+  const parent = new Map(rows.map(r => [r.pid, r.ppid]));
+  const skip = new Set(roots.map(Number));
+  const under = pid => { for (let p = pid, hops = 0; p > 1 && hops < 64; p = parent.get(p), hops += 1) if (skip.has(p)) return true; return false; };
+  const hit = rows.find(r => r.pid !== process.pid && isHeavy(r.args) && !under(r.pid));
+  return hit ? `${hit.pid} ${hit.args}`.slice(0, 120) : null;
+}
+
 // Process-group runner (kills the whole tree at the deadline, stuck beat after 30 min): collab-heal.mjs.
 export { runGroup };
 
-// Automatic checks start nothing after 23:30 and end by 23:55 (plan §3.1); direct runs get 90 minutes.
-// The budget ends at the exact 23:55:00 instant minus the cleanup reserve, so SIGTERM, the grace
+// Automatic checks start nothing from lastStartAt and end by cutoffAt (plan §3.1, hours in collab-trust.mjs);
+// direct runs get 90 minutes. The budget ends at the exact cutoff instant minus the cleanup reserve, so SIGTERM, the grace
 // period and SIGKILL all finish before the cutoff (#140).
 export const cleanupReserveMs = 15000;
 // After pnpm check: two git calls and one gh comment (fixed 60 s) must still fit before the Git/GitHub
@@ -52,9 +71,9 @@ export function checkBudgetMs({ auto, clock = vnNow, nowMs = Date.now }) {
   if (!auto) return 90 * 60000;
   const t = clock();
   const minute = t.hour * 60 + t.minute;
-  if (minute < 8 * 60 + 50 || minute >= 23 * 60 + 30) return 0;
-  const byMinute = Math.min(90, 23 * 60 + 55 - minute) * 60000;
-  const cutoff = Date.parse(`${t.date}T23:55:00+07:00`);
+  if (minute < planOpensAt || minute >= lastStartAt) return 0;
+  const byMinute = Math.min(90, cutoffAt - minute) * 60000;
+  const cutoff = cutoffMs(t.date);
   const exact = Number.isFinite(cutoff) ? cutoff - nowMs() : byMinute;
   return Math.max(0, Math.min(byMinute, exact) - cleanupReserveMs);
 }
@@ -142,15 +161,42 @@ export function ciCheck(gh, head) {
   if (!isSha(head)) throw new Error('head SHA unavailable');
   const runs = (gh.json(['api', `repos/${repo}/actions/workflows/pr-check.yml/runs?head_sha=${head}&per_page=20`]).workflow_runs ?? [])
     .filter(r => r.head_sha === head && String(r.path ?? '').split('@')[0] === ciWorkflow)
-    .sort((a, b) => String(b.created_at ?? '').localeCompare(String(a.created_at ?? '')) || Number(b.run_attempt ?? 0) - Number(a.run_attempt ?? 0));
-  const run = runs[0];
-  if (!run || run.status !== 'completed') return { state: 'pending', url: run?.html_url ?? '' };
+    // #719: equal creation times (labels added in the same second) fall back to the run id, so the
+    // newest run is picked the same way every time.
+    .sort((a, b) => String(b.created_at ?? '').localeCompare(String(a.created_at ?? '')) || Number(b.id ?? 0) - Number(a.id ?? 0) || Number(b.run_attempt ?? 0) - Number(a.run_attempt ?? 0));
+  // #630 (17.11): editing a PR body starts a second run for the same head and GitHub cancels one of
+  // them; the cancelled run is not a result. The newest run that was not cancelled decides (an
+  // unfinished one means pending); only cancelled runs means pending too, never a FAIL with a receipt.
+  const run = runs.find(r => !(r.status === 'completed' && r.conclusion === 'cancelled'));
+  if (!run || run.status !== 'completed') return { state: 'pending', url: run?.html_url ?? runs[0]?.html_url ?? '' };
   const jobs = (gh.json(['api', `repos/${repo}/actions/runs/${Number(run.id)}/jobs?filter=latest&per_page=100`]).jobs ?? [])
     .filter(j => j.name === 'check' && j.head_sha === head && Number(j.run_id) === Number(run.id));
   const job = jobs[0];
   if (!job) return { state: 'FAIL', conclusion: 'missing', url: run.html_url ?? '' };
   if (job.status !== 'completed') return { state: 'pending', url: job.html_url ?? '' };
-  return { state: job.conclusion === 'success' ? 'PASS' : 'FAIL', conclusion: String(job.conclusion ?? 'unknown'), url: job.html_url ?? '' };
+  const state = job.conclusion === 'success' ? 'PASS' : 'FAIL';
+  // #508: the run id, attempt and the job's own end time let the tick spot a green re-run.
+  return { state, conclusion: String(job.conclusion ?? 'unknown'), url: job.html_url ?? '', base: state === 'PASS' ? testedBase(gh, job, head) : null,
+    runId: Number(run.id), attempt: Number(run.run_attempt ?? 1), completedAt: String(job.completed_at ?? '') };
+}
+
+// P1-A: the `pull_request` run tests refs/pull/N/merge as it was when the run started. The check
+// job writes the merge commit's parents as a notice annotation (pr-check.yml, "Record the tested
+// base"); the first parent is the base that was tested. Neither the PR's baseRefOid nor the run's
+// pull_requests[].base.sha is that commit. No annotation, another head, or two different bases:
+// the base is unknown and the PASS is not evidence.
+export const testedBaseTitle = 'pr-check-tested-base';
+export function testedBase(gh, job, head) {
+  const id = Number(/\/check-runs\/(\d+)$/.exec(String(job?.check_run_url ?? ''))?.[1] ?? job?.id);
+  if (!Number.isInteger(id) || id <= 0) return null;
+  try {
+    const notes = gh.json(['api', `repos/${repo}/check-runs/${id}/annotations?per_page=100`]);
+    const bases = new Set((Array.isArray(notes) ? notes : [])
+      .filter(n => n?.title === testedBaseTitle)
+      .map(n => /^base=([0-9a-f]{40}) head=([0-9a-f]{40})$/.exec(String(n.message ?? '').trim()))
+      .filter(m => m && m[2] === head).map(m => m[1]));
+    return bases.size === 1 ? [...bases][0] : null;
+  } catch { return null; }
 }
 
 // CI mode keeps only the metadata preflight (body, level, size). ruff and mypy read config and
@@ -159,19 +205,20 @@ export const clonePreflight = (source, { spawn, exists } = {}) => (source === 'c
   ? p => runPreflight(p)
   : (p, dir, left) => runPreflight(p, { cwd: dir, left, ...(spawn ? { spawn } : {}), ...(exists ? { exists } : {}) }));
 
-export function renderCheck({ head, status, exitCode, seconds, date, guard = null, details = [], ci = null }) {
+export function renderCheck({ head, status, exitCode, seconds, date, guard = null, details = [], ci = null, base = null, receipt = null }) {
   return [
     `Author check: ${status} @ ${head}`,
     '',
     ci
       ? `Nguồn: CI \`pr-check / check\` · ${clean(ci.conclusion, 40)} · ${date}. Mã của PR không chạy trên Mac. ${clean(ci.url, 200)}`
       : `Lệnh: \`pnpm check\` · exit ${exitCode} · ${seconds}s · ${date}. Chạy trên checkout sạch, \`HEAD == ${head.slice(0, 12)}\`.`,
+    `Base đã thử: \`${integration}\` @ ${isSha(base) ? `\`${base.slice(0, 12)}\`` : 'không rõ (không dùng được để merge)'}.`,
     ...(ci && ci.conclusion === 'cancelled' ? ['CI bị huỷ và chưa có lượt mới ở head này: chạy lại job (`gh run rerun <run> --failed`) hoặc push lại, không phải lỗi code.'] : []),
     ...(guard?.length ? [`**Chặn: dữ liệu riêng tư** trong danh sách cục bộ của owner xuất hiện ở ${guard.slice(0, 20).map(h => `\`${clean(h, 120)}\``).join(', ')}. Không chạy \`pnpm check\`. Thay bằng dữ liệu giả, sửa cả lịch sử nhánh nếu nằm trong commit.`] : []),
     ...(status === 'FAIL' && details.length ? ['', ...details, ''] : []),
     status === 'PASS' ? 'Đây là bằng chứng của tác giả, không thay review.' : 'Lượt tiếp theo là Claude sửa.',
     '',
-    `${agentMarker} author-check sha=${head} -->`,
+    checkSeal({ head, base, receipt }),
   ].join('\n');
 }
 
@@ -221,32 +268,67 @@ export function privateHits(pr, git, terms, ranges = [[`origin/${integration}..H
   } catch { return ['lịch sử nhánh không đọc được']; }
 }
 
-function checkOnce(number, { gh, cwd, git, spawn, now, busy, budget, terms = readGuardTerms, preflight = null, waitGuard = waitForGuard, source = 'local', ci = ciCheck }) {
+function checkOnce(number, { gh, cwd, git, spawn, now, busy, budget, terms = readGuardTerms, preflight = null, waitGuard = waitForGuard, source = 'local', ci = ciCheck, waiting = false }) {
   const pr = gh.pr(number);
   if (!isOwnPr(pr)) return { status: 'refused', reason: 'PR không phải của owner hoặc từ fork: không chạy code của nó' };
   const head = git(['rev-parse', 'HEAD']);
   if (!isSha(pr.headRefOid) || head !== pr.headRefOid) return { status: 'refused', reason: `HEAD ${head.slice(0, 12)} không phải head của PR ${String(pr.headRefOid).slice(0, 12)}` };
   if (git(['status', '--porcelain'])) return { status: 'refused', reason: 'checkout có thay đổi chưa commit' };
+  // P1-A: a check is evidence only for the integration commit already inside the head (the auto
+  // sync merges it in for agent branches). A branch behind it goes to Claude, nothing runs.
+  let base;
+  try { base = git(['rev-parse', `origin/${integration}`]); } catch { base = ''; }
+  if (!isSha(base)) return { status: 'refused', reason: `không đọc được origin/${integration}` };
+  // L14: a PR waiting behind the front of its area is not synced (sync=false), so being behind is
+  // its normal state, not a failure for Claude to fix. It waits; the sync comes when it is the front.
+  try { git(['merge-base', '--is-ancestor', base, 'HEAD']); }
+  catch {
+    if (waiting) {
+      // 17.11.2026: a PR another session holds is never synced by the machine (#597), so "when it is
+      // the front" was wrong for it: #614 showed that line for 12+ ticks while an idle session held it.
+      // The reason names the holder and how the claim ends.
+      const held = readClaim(pr.number ?? number);
+      const claimed = held && (held.unreadable || held.session !== sessionId());
+      const why = claimed
+        ? held.unreadable ? 'claim của PR không đọc được; sửa file claim rồi đồng bộ'
+          : `phiên ${clean(String(held.session), 64)} đang giữ PR từ ${clean(String(held.at ?? '?'), 30)}: phiên đó đồng bộ, hoặc thả claim (collab-pr-claim.mjs --release ${pr.number ?? number})`
+        : 'đồng bộ khi tới lượt đầu hàng';
+      return { status: source === 'ci' ? 'ci-pending' : 'waiting', reason: `chưa chứa ${integration} mới nhất (${base.slice(0, 7)}): ${why}`, ...(claimed ? { claimedBy: held.unreadable ? null : held.session } : {}) };
+    }
+    return { status: 'preflight', reasons: [`nhánh chưa chứa ${integration} mới nhất (${base.slice(0, 7)}): merge ${integration} vào nhánh rồi push`] };
+  }
+  const prNumber = pr.number ?? number;
+  // P1-B: the local receipt is written before the comment, so every posted result has one; after
+  // posting it is bound to the new comment's id, so a later copy of the comment never counts.
+  const post = (status, extra) => {
+    const receipt = signReceipt({ kind: 'check', pr: prNumber, head, base: extra.base, result: status });
+    const url = gh.comment('pr', prNumber, renderCheck({ head, status, ...extra, receipt }));
+    if (!bindReceipt({ kind: 'check', pr: prNumber, id: receipt, url })) process.stderr.write(`collab-check: receipt ${receipt} not bound to a comment id; the result will not count\n`);
+  };
   const other = source === 'ci' ? null : busy();
   if (other) return { status: 'busy', reason: `máy đang chạy check khác: ${clean(other, 120)}` };
   const timeoutMs = budget();
-  if (timeoutMs <= 0) return { status: 'refused', reason: 'ngoài giờ chạy tự động (sau 23:30)' };
+  if (timeoutMs <= 0) return { status: 'refused', reason: `ngoài giờ chạy tự động (sau ${hhmmOf(lastStartAt)})` };
   const started = now();
   const guard = privateHits(pr, git, terms);
   if (guard.length) {
-    gh.comment('pr', pr.number, renderCheck({ head, status: 'FAIL', exitCode: 'guard', seconds: 0, date: new Date(started).toISOString(), guard }));
+    post('FAIL', { exitCode: 'guard', seconds: 0, date: new Date(started).toISOString(), guard, base });
     return { status: 'FAIL', guard };
   }
   // Fix A (04.11.2026): template and changed-Python lint first. Nothing is posted; the tick
   // records the reasons and the PR goes to claude-fix without spending the 15-minute check.
-  // The lint is bounded by the same deadline, and the budget is read again before pnpm (K: 23:55).
+  // The lint is bounded by the same deadline, and the budget is read again before pnpm (K: cutoffAt).
   const pre = preflight?.(pr, cwd, budget);
-  if (budget() <= 0) return { status: 'refused', reason: 'hết giờ sau preflight (sau 23:30)' };
+  if (budget() <= 0) return { status: 'refused', reason: `hết giờ sau preflight (sau ${hhmmOf(lastStartAt)})` };
   if (pre?.status === 'FAIL') return { status: 'preflight', reasons: pre.reasons, ...(pre.bodyHash ? { bodyHash: pre.bodyHash } : {}) };
   if (source === 'ci') {
     const result = ci(gh, head);
     if (result.state === 'pending') return { status: 'ci-pending', reason: 'CI pr-check chưa xong ở head này' };
-    gh.comment('pr', pr.number, renderCheck({ head, status: result.state, ci: result, date: new Date(started).toISOString() }));
+    // A PASS is evidence only for the base the run merged, and only when that is the live tip.
+    if (result.state === 'PASS' && (!isSha(result.base) || result.base !== pr.baseTipOid)) {
+      return { status: 'ci-pending', reason: isSha(result.base) ? `CI đã thử base ${result.base.slice(0, 7)}, ${integration} nay ở ${String(pr.baseTipOid ?? '?').slice(0, 7)}` : 'CI không ghi base đã thử: chờ lượt CI mới' };
+    }
+    post(result.state, { ci: result, date: new Date(started).toISOString(), base: isSha(result.base) ? result.base : null });
     return { status: result.state, ci: result.conclusion };
   }
   // Agent tests run through collab-test-guard.mjs; wait up to 5 minutes for them (05.11.2026),
@@ -254,7 +336,7 @@ function checkOnce(number, { gh, cwd, git, spawn, now, busy, budget, terms = rea
   const guarded = waitGuard({ limitMs: Math.min(guardWaitMs, budget()) });
   if (guarded) return { status: 'busy', reason: `test của agent đang chạy qua collab-test-guard (pid ${guarded})` };
   const left = budget();
-  if (left <= 0) return { status: 'refused', reason: 'hết giờ khi chờ test của agent (sau 23:30)' };
+  if (left <= 0) return { status: 'refused', reason: `hết giờ khi chờ test của agent (sau ${hhmmOf(lastStartAt)})` };
   const out = openCheckLog(pr.number, head);
   // CI=1: Playwright starts its own preview server instead of reusing one left by another checkout.
   let result;
@@ -271,7 +353,7 @@ function checkOnce(number, { gh, cwd, git, spawn, now, busy, budget, terms = rea
     // No log line is published (#258 r3): the receipt names the step and the local log file only.
     details = failDetails({ output, steps, logPath: out.keep() });
   } else out.drop();
-  gh.comment('pr', pr.number, renderCheck({ head, status, exitCode, details, seconds: Math.round((now() - started) / 1000), date: new Date(started).toISOString() }));
+  post(status, { exitCode, details, seconds: Math.round((now() - started) / 1000), date: new Date(started).toISOString(), base });
   return { status, exitCode, dirty };
 }
 
@@ -320,7 +402,7 @@ export function runCheckInClone(number, { gh = makeGh(), run = execFileSync, aut
   if (!isSha(pr.headRefOid)) throw new Error('PR head SHA unavailable.');
   // Never fetch, build or run a PR that is not the owner's own branch (fork or outside author).
   if (!isOwnPr(pr)) return { status: 'refused', reason: 'PR không phải của owner hoặc từ fork: không chạy code của nó' };
-  if (checkBudgetMs({ auto, clock }) <= 0) return { status: 'refused', reason: 'ngoài giờ chạy tự động (sau 23:30)' };
+  if (checkBudgetMs({ auto, clock }) <= 0) return { status: 'refused', reason: `ngoài giờ chạy tự động (sau ${hhmmOf(lastStartAt)})` };
   const held = heldPreflight({ ...pr, number: pr.number ?? number }, rest.held);
   if (held) return held;
   const source = rest.source ?? checkSource();
@@ -339,19 +421,31 @@ export function runCheckInClone(number, { gh = makeGh(), run = execFileSync, aut
     // Every gh and git call after the clone is bounded by the same deadline (05.11.2026).
     const ghD = gh.withDeadline?.(leftMs) ?? gh;
     const gitD = args => git(args, cwd, run, boundedTimeout(600000, leftMs));
-    const synced = syncWithIntegration(pr, { git: (args, ms) => git(args, cwd, run, ms), gh: ghD, left: leftMs });
+    // L14: the tick passes sync=false for every PR except the front of its area queue; a manual
+    // `--clone` run keeps the old behaviour.
+    // One session per PR (owner 16.11): nobody but the holding session syncs a claimed PR, the tick
+    // (no session) and another session's manual run included (LA_LANH_SESSION names the session).
+    // Such a PR waits like one behind the front (L14); being behind is not a failure for Claude.
+    // Codex r1 on #597: the check of the claim and the whole sync (merge and push) run under the
+    // PR's lock, so no session takes the PR while its branch is written; a busy lock means wait.
+    let synced = null;
+    if (rest.sync !== false) {
+      const held = withPrLock(number, () => (mayTouch(number, rest.session ?? sessionId()).ok ? { synced: syncWithIntegration(pr, { git: (args, ms) => git(args, cwd, run, ms), gh: ghD, left: leftMs }) } : { claimed: true }), { waitMs: 0 });
+      if (held.ok === false || held.claimed) rest.sync = false;
+      else synced = held.synced;
+    }
     if (synced) return synced;
     // The clock is read again after the clone and install, which can take minutes.
     // pnpm stops early enough that the receipt still fits inside leftMs (#243).
     const budget = () => Math.min(checkBudgetMs({ auto, clock, nowMs }), deadlineMs - nowMs() - cleanupReserveMs - finalizeReserveMs);
-    const result = checkOnce(number, { gh: ghD, cwd, git: gitD, spawn: rest.spawn ?? spawnSync, now: rest.now ?? (() => Date.now()), busy: rest.busy ?? machineBusy, terms: rest.terms ?? readGuardTerms, budget, source, ci: rest.ci ?? ciCheck, preflight: rest.preflight === undefined ? clonePreflight(source) : rest.preflight });
+    const result = checkOnce(number, { gh: ghD, cwd, git: gitD, spawn: rest.spawn ?? spawnSync, now: rest.now ?? (() => Date.now()), busy: rest.busy ?? machineBusy, terms: rest.terms ?? readGuardTerms, budget, source, ci: rest.ci ?? ciCheck, preflight: rest.preflight === undefined ? clonePreflight(source) : rest.preflight, waiting: rest.sync === false });
     // A lint failure is recorded too, keyed by head, so the next tick routes the PR to claude-fix.
     if (result?.status === 'preflight') (rest.held?.record ?? recordPreflight)(number, pr.headRefOid, { status: 'FAIL', reasons: result.reasons ?? [], ...(result.bodyHash ? { bodyHash: result.bodyHash } : {}) });
     return result;
   });
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (isMain(import.meta.url)) {
   const args = process.argv.slice(2);
   // `--busy`: the one shared answer to "is a heavy check running?" for agents and schedules.
   if (args.includes('--busy')) {
@@ -367,7 +461,9 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     const input = process.stdin.isTTY ? '' : readFileSync(0, 'utf8');
     const ranges = input.trim() ? prePushRanges(input) : [['HEAD', '--not', '--remotes=origin']];
     const hits = privateHits({}, run, readGuardTerms, ranges);
-    process.stdout.write(hits.length ? `private-guard: chặn, dữ liệu riêng tư ở ${hits.join(', ')}\n` : 'private-guard: ok\n');
+    // L30: no list is not "ok". The push is not blocked (owner's call); the line says nothing was scanned.
+    const listMissing = !hits.length && guardListState(guardPath()) === 'missing';
+    process.stdout.write(hits.length ? `private-guard: chặn, dữ liệu riêng tư ở ${hits.join(', ')}\n` : listMissing ? 'private-guard: list missing (không có danh sách mục cấm, không quét gì)\n' : 'private-guard: ok\n');
     process.exit(hits.length ? 1 : 0);
   }
   const number = Number(args[args.indexOf('--pr') + 1]);

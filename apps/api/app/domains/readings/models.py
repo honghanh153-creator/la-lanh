@@ -553,6 +553,13 @@ class SemanticBlueprint(BaseModel):
     daily_meaning: DailyMeaningBrief | None = None
 
 
+# A deterministic candidate that carries an approved extra pair of Lá: both voices are stored
+# (``companion`` and ``companion_roast``, Codex r1 on #657). v3, not v2: a v2 reader (Luna
+# cards) has no ``companion_roast`` and forbids extra fields. Rollback floor:
+# luna-rewrite-release-runbook.md.
+COMPANION_CANDIDATE_SCHEMA_VERSION = "reading-candidate/v3"
+
+
 class ReadingCandidate(BaseModel):
     """Typed renderer output evaluated locally before it may be published."""
 
@@ -569,9 +576,13 @@ class ReadingCandidate(BaseModel):
     evidence: EvidenceDisclosure
     disclaimer: str = SHORT_DISCLAIMER
     semantic_blueprint: "SemanticBlueprint | None" = None
-    # Lá's line after a Luna-written Daily card. Deterministic cards leave it empty and
-    # take the authored line from the companion catalog at read time.
+    # Lá's line when it is not the authored first line of the issue: Luna's line, or an
+    # approved extra line picked for the day (#626). Otherwise empty, and the authored line
+    # comes from the companion catalog at read time.
     companion: str | None = Field(default=None, max_length=200)
+    # The roast wording of an approved extra pair, stored with its direct line so an opened card
+    # keeps both voices when the pair is edited or withdrawn later (#657). Empty otherwise.
+    companion_roast: str | None = Field(default=None, max_length=200)
 
     @model_serializer(mode="wrap")
     def _omit_empty_companion(self, handler: SerializerFunctionWrapHandler) -> Any:
@@ -580,8 +591,10 @@ class ReadingCandidate(BaseModel):
         # still open every deterministic revision. Only Luna cards that carry a line
         # use reading-candidate/v2; see docs/operations/luna-rewrite-release-runbook.md.
         data = handler(self)
-        if isinstance(data, dict) and data.get("companion") is None:
-            data.pop("companion", None)
+        if isinstance(data, dict):
+            for key in ("companion", "companion_roast"):
+                if data.get(key) is None:
+                    data.pop(key, None)
         return data
 
     @property
@@ -754,6 +767,22 @@ class ExperimentProjection(BaseModel):
     permission: str = Field(min_length=1, max_length=240)
 
 
+LIGHTER_ACTION_MAX_CHARS = 120
+
+
+class LighterActionProjection(BaseModel):
+    """A lighter thing to do, offered next to the card's own action (#627).
+
+    The card and its action never change; the reader's device decides which one to show.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    action: str = Field(min_length=1, max_length=LIGHTER_ACTION_MAX_CHARS)
+    weight: Literal["light"] = "light"
+    experiment: ExperimentProjection | None = None
+
+
 class AuraTransitionProjection(BaseModel):
     """Evidence-derived profile transition without shadow active/available depth fields."""
 
@@ -777,6 +806,9 @@ class ReadingSectionsProjection(BaseModel):
     micro_action: str
     # What Lá says next to a Daily card (null for other purposes).
     companion: str | None = None
+    # The stored roast wording of that line, when the card stored one (#657). Used only to
+    # voice the card; never sent over the API.
+    companion_roast: str | None = Field(default=None, exclude=True)
 
 
 class ReadingEvidenceProjection(BaseModel):
@@ -803,6 +835,8 @@ class ReadingContentProjection(BaseModel):
     disclaimer: str
     created_at: datetime
     experiment: ExperimentProjection | None = None
+    # Daily only, and only while approved lighter actions exist.
+    lighter_action: LighterActionProjection | None = None
 
 
 class AvailableReadingUpdate(BaseModel):

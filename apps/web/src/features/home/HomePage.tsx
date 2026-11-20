@@ -9,15 +9,14 @@ import {
   User,
   X,
 } from "@phosphor-icons/react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { onlineManager, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 
 import {
   checkInMood,
   getBirthSupplement,
   getContextualReading,
-  getCurrentMood,
   getDailyNote,
   getResonanceStatus,
   isGuestSessionUnavailable,
@@ -28,6 +27,8 @@ import {
   type ResonanceChoice,
   type SignalContext,
 } from "../../shared/api/client";
+import { applySavedMood, dailyMoodKey, readDailyMood, resetDailyActionChoice, useDailyActionView, type DailyActionChoice } from "../../shared/hooks/useDailyActionView";
+import { currentSessionEpoch, sessionGeneration } from "../../shared/session/sessionIdentity";
 import { useReadingUpdateActivation } from "../../shared/hooks/useReadingUpdateActivation";
 import { chartDataRevision } from "../../shared/storage/clearChartDerivedData";
 import {
@@ -35,6 +36,7 @@ import {
   captureMoodIntent,
   keepPendingMood,
   prunePendingMood,
+  retireOlderPendingMood,
   takePendingMood,
   type MoodIntent,
 } from "../../shared/storage/pendingMood";
@@ -51,6 +53,7 @@ import { useOnboardingMotion } from "../../shared/ui/onboardingMotion";
 import { AppNav } from "../../shared/ui/AppNav";
 import { AppSheet } from "../../shared/ui/AppSheet";
 import { BrandMark } from "../../shared/ui/BrandMark";
+import { SHOW_LIGHTER_ACTION, SHOW_ORIGINAL_ACTION } from "../../shared/ui/ReadingContent";
 import { ReadingUpdateGift } from "../../shared/ui/ReadingUpdateGift";
 import { WHY_TODAY_ID } from "../../shared/ui/readingLabels";
 import { ResonanceFeedback } from "../../shared/ui/ResonanceFeedback";
@@ -67,6 +70,7 @@ import "./home-vitality.css";
 
 const RITUAL_KEY = "la-lanh-daily-ritual-v1";
 const UNLOCK_SNOOZE_KEY = "la-lanh-birth-supplement-snooze-until";
+const MOOD_MUTATION_KEY = ["mood-checkin"] as const;
 
 /** True once per note date: the first open of the day plays the unfold ritual. */
 function useDailyRitual(noteDate: string | undefined): boolean {
@@ -89,6 +93,8 @@ const moods: readonly { value: MoodValue; emoji: string; hint: string }[] = [
   { value: "Căng", emoji: "😵‍💫", hint: "Đầu đang quay, người đang gồng" },
   { value: "Lạc trôi", emoji: "🥴", hint: "Chưa biết mình đang ở nhịp nào" },
 ];
+/** Verbatim from US-04 AC-GWT-01. */
+const MOOD_QUESTION = "Hôm nay bạn thấy sao?";
 const isMoodValue = (value: unknown): value is MoodValue => moods.some((item) => item.value === value);
 
 export function HomePage() {
@@ -121,8 +127,8 @@ export function HomePage() {
   const activeReading = note?.reading_projection?.active;
   const availableUpdate = note?.reading_projection?.available_update;
   const moodQuery = useQuery({
-    queryKey: ["daily-note-mood", note?.id],
-    queryFn: ({ signal }) => getCurrentMood(note!.id, signal),
+    queryKey: dailyMoodKey(note?.id),
+    queryFn: ({ signal }) => readDailyMood(queryClient, note!.id, signal),
     enabled: Boolean(note?.id),
   });
   const supplementQuery = useQuery({
@@ -136,7 +142,23 @@ export function HomePage() {
     enabled: Boolean(note?.id),
     retry: false,
   });
-  const [mood, setMood] = useState<MoodValue | null>(null);
+  // Two separate things, never copied into each other:
+  // - the saved mood: the newest row the server has given this device for this note (the mood
+  //   query, keyed by note id). Every answer about the mood (first read, refetch, the answer to a
+  //   save) goes through one ordering rule, `newerMoodRow`: it is applied only if it is not older,
+  //   by the server's own time, than the row already applied. Answers arriving out of order (a
+  //   slow save from before Home was reopened, a slow read) therefore cannot put an older mood back.
+  // - the unsaved pick: a mood picked here whose save is pending or failed, with its note id.
+  // The control shows the unsaved pick while there is one, otherwise the saved mood. A Home left
+  // open past midnight gets the next day's note; both are keyed by note, so yesterday's mood does
+  // not follow it (US-04 AC12).
+  const [unsavedPick, setUnsavedPick] = useState<{ noteId: string; value: MoodValue } | null>(null);
+  const savedMood = moodQuery.data?.mood ?? null;
+  const unsavedMood = unsavedPick && unsavedPick.noteId === note?.id ? unsavedPick.value : null;
+  const mood = unsavedMood ?? savedMood;
+  // The lighter action follows the saved mood only (#627): never while a pick for this note is
+  // unsaved, whatever the saved mood is at that moment.
+  const actionView = useDailyActionView(note?.id, activeReading, unsavedMood ? null : savedMood);
   const moonLabel = useMemo(() => moonPhase().label, []);
   const ritual = useDailyRitual(note?.note_date);
   const [moodSheetOpen, setMoodSheetOpen] = useState(false);
@@ -217,27 +239,72 @@ export function HomePage() {
     onError: () => setMessage("Phản hồi chưa gửi được. Không có lựa chọn nào được lưu trên máy."),
   });
 
+  // Capture time of the newest mood choice shown on screen: an older replay or a late completion
+  // never takes the screen back from a newer choice (Codex #449).
+  const latestMoodAt = useRef(0);
   const moodMutation = useMutation({
+    // The key lets the reconnect resend see a check-in still on its way. Requests are not queued:
+    // the server stamps each save when it writes it and every answer goes through applySavedMood,
+    // so the last written save is the saved mood (#627).
+    mutationKey: MOOD_MUTATION_KEY,
     // The owner and first-capture time travel with the choice, so a late callback can neither
     // relabel it under a new session nor renew its deadline (audit P04).
     mutationFn: ({ mood: value }: { mood: MoodValue; intent: MoodIntent }) => {
       if (!note) throw new Error("Missing daily note");
       return checkInMood(note.id, value);
     },
-    onMutate: ({ mood: value }) => {
+    onMutate: ({ mood: value, intent }) => {
       const previous = mood;
-      setMood(value);
+      // An older replay never takes the screen back from a newer pick (Codex #449).
+      const newest = intent.savedAt >= latestMoodAt.current;
+      if (note) {
+        // Offline, this request pauses in memory and onError never runs, so a reload before
+        // reconnecting would lose both this choice and the older one retired below (Codex auto-3
+        // on #449, US-04 AC07). Persist it first; the reconnect resend skips while a check-in is
+        // in flight, and a success acknowledges it. Online, nothing changes.
+        if (!onlineManager.isOnline()) keepPendingMood(note.id, value, intent);
+        retireOlderPendingMood(note.id, intent);
+        if (newest) setUnsavedPick({ noteId: note.id, value });
+        // A mood read already on its way is older than this pick; drop it.
+        void queryClient.cancelQueries({ queryKey: dailyMoodKey(note.id) });
+      }
       setMoodSheetOpen(false);
-      setMessage("Đang lưu cảm xúc này cho bạn…");
-      return { previous };
+      if (newest) {
+        latestMoodAt.current = intent.savedAt;
+        setLineDismissed(false);
+        setMessage("Đang lưu cảm xúc này cho bạn…");
+      }
+      // The pick belongs to the note on screen now; a later callback must not file it under the
+      // next day's note if the day changes while the request is on its way (US-04 AC12).
+      return { previous, noteId: note?.id, revision: chartDataRevision(queryClient), generation: sessionGeneration(), ownerEpoch: currentSessionEpoch() };
     },
-    onSuccess: (payload, { intent }) => {
-      if (note) acknowledgePendingMood(note.id, intent);
-      setMood(payload.mood);
+    onSuccess: (payload, { intent }, context) => {
+      acknowledgePendingMood(payload.daily_note_id, intent);
+      // After a session change or a data wipe this answer belongs to nobody on screen.
+      if (
+        context.revision !== chartDataRevision(queryClient)
+        || context.generation !== sessionGeneration()
+        || context.ownerEpoch !== currentSessionEpoch()
+      ) return;
+      // Apply the answer through the ordering rule: if a newer row is already applied (a later
+      // save answered first, or another tab's save was read meanwhile), this answer changes
+      // nothing. Then read the mood again: that replaces any read still on its way (which started
+      // before this answer and could carry "no mood" from before the save) with a fresh one.
+      const accepted = applySavedMood(queryClient, payload);
+      void queryClient.invalidateQueries({ queryKey: dailyMoodKey(payload.daily_note_id) });
+      // A rejected (older) answer changed nothing, so it must not undo the reader's own choice of
+      // which action to see either.
+      if (accepted) resetDailyActionChoice(queryClient, payload.daily_note_id);
+      // An older pick answering while a newer one on this screen still waits must not clear that
+      // newer pick or replace its message (Codex #449).
+      if (intent.savedAt < latestMoodAt.current) return;
+      // Saved: the pick for that note is no longer unsaved; the control reads the saved mood.
+      setUnsavedPick((current) => (current?.noteId === payload.daily_note_id ? null : current));
       setMessage(laMoodReaction(payload.mood, vibe));
     },
-    onError: (_error, { mood: value, intent }) => {
-      if (note) keepPendingMood(note.id, value, intent);
+    onError: (_error, { mood: value, intent }, context) => {
+      if (context?.noteId) keepPendingMood(context.noteId, value, intent);
+      if (intent.savedAt < latestMoodAt.current) return;
       setMessage("Đã giữ cảm xúc trên máy. Lá Lành sẽ đồng bộ khi có mạng.");
     },
   });
@@ -248,14 +315,23 @@ export function HomePage() {
   });
 
   useEffect(() => {
-    if (moodQuery.data?.mood) setMood(moodQuery.data.mood);
-  }, [moodQuery.data]);
-
-  useEffect(() => {
     prunePendingMood();
-    if (!note || !navigator.onLine) return;
-    const pending = takePendingMood(note.id, isMoodValue);
-    if (pending) moodMutation.mutate(pending);
+    if (!note) return;
+    const noteId = note.id;
+    // takePendingMood removes the stored choice before it is sent, so repeated `online` events
+    // cannot send it twice; a failed resend is queued again by onError for the next reconnect.
+    // A check-in that is still queued or paused offline is the newest choice: it resumes on its
+    // own, so nothing older is replayed beside it (Codex #449).
+    const resendPendingMood = () => {
+      if (!navigator.onLine) return;
+      prunePendingMood();
+      if (queryClient.isMutating({ mutationKey: MOOD_MUTATION_KEY }) > 0) return;
+      const pending = takePendingMood(noteId, isMoodValue);
+      if (pending) moodMutation.mutate(pending);
+    };
+    resendPendingMood();
+    window.addEventListener("online", resendPendingMood);
+    return () => window.removeEventListener("online", resendPendingMood);
   }, [note]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (noteQuery.isLoading) return <HomeLoading />;
@@ -329,9 +405,7 @@ export function HomePage() {
           {motionPaused ? <Play aria-hidden="true" size={19} /> : <Pause aria-hidden="true" size={19} />}
         </button>
       } />
-      <HomeValueHero date={note.note_date} moon={moonLabel} whyPath={activeReading?.sections.transit ? `${dailyContextPath("/note/today", context)}#${WHY_TODAY_ID}` : undefined}>
-        <MoodPicker mood={mood} onOpenChange={setMoodSheetOpen} onSelect={(value) => { tapFeedback(); moodMutation.mutate({ mood: value, intent: captureMoodIntent() }); }} open={moodSheetOpen} pending={moodMutation.isPending} />
-      </HomeValueHero>
+      <HomeValueHero date={note.note_date} moon={moonLabel} whyPath={activeReading?.sections.transit ? `${dailyContextPath("/note/today", context)}#${WHY_TODAY_ID}` : undefined} />
 
       {noteQuery.isError ? (
         <p className="cache-status" role="status">
@@ -344,6 +418,7 @@ export function HomePage() {
       {activeReading ? (
         <HomeDailySignal
           activeReading={activeReading}
+          actionView={actionView}
           detailPath={dailyContextPath("/note/today", context)}
           decoration={noteDecoration}
           toolbar={quickActions}
@@ -365,7 +440,13 @@ export function HomePage() {
         </section>
       )}
 
-      <HomeCompanion line={lineDismissed ? null : homeCompanionLine({ vibe, companion: activeReading?.sections.companion }).text} onDismissLine={() => setLineDismissed(true)}>
+      {/* US-04 AC-GWT-01 / US-03 AC21: a secondary check-in after the Note, never before it. */}
+      <section aria-labelledby="home-mood-title" className="home-mood-check">
+        <h2 id="home-mood-title">{MOOD_QUESTION}</h2>
+        <MoodPicker mood={mood} onOpenChange={setMoodSheetOpen} onSelect={(value) => { tapFeedback(); moodMutation.mutate({ mood: value, intent: captureMoodIntent() }); }} open={moodSheetOpen} pending={moodMutation.isPending} />
+      </section>
+
+      <HomeCompanion line={lineDismissed ? null : homeCompanionLine({ vibe, companion: activeReading?.sections.companion, mood }).text} onDismissLine={() => setLineDismissed(true)}>
         {showGift && availableUpdate && note.reading_projection ? (
           <ReadingUpdateGift
             activeMode={activeReading?.mode}
@@ -436,20 +517,20 @@ function MoodPicker({
       <button
         aria-expanded={open}
         aria-haspopup="dialog"
-        aria-label={selected ? `Mood hôm nay: ${selected.value}` : "Chọn mood hôm nay"}
+        aria-label={selected ? `Cảm giác hôm nay: ${selected.value}` : "Chọn cảm giác hôm nay"}
         className="mood-quick-trigger"
         onClick={() => onOpenChange(true)}
         type="button"
       >
         <span aria-hidden="true">{selected ? <span className="mood-quick-trigger__emoji">{selected.emoji}</span> : <Smiley weight="regular" size={22} />}</span>
-        <span aria-hidden="true" className="mood-quick-trigger__label">{selected?.value ?? "Chọn mood"}</span>
+        <span aria-hidden="true" className="mood-quick-trigger__label">{selected?.value ?? "Chọn"}</span>
       </button>
       <AppSheet
         closeDisabled={pending}
         eyebrow="Check-in riêng"
         onClose={() => onOpenChange(false)}
         open={open}
-        title="Hôm nay bạn đang ở mood nào?"
+        title={MOOD_QUESTION}
       >
         <div className="mood-sheet__options">
           {moods.map((option) => (
@@ -520,11 +601,13 @@ function HomeValueHero({ date, moon, whyPath, children }: { date?: string; moon?
 
 function HomeDailySignal({
   activeReading,
+  actionView,
   detailPath,
   decoration,
   toolbar,
 }: {
   activeReading: NonNullable<DailyNote["reading_projection"]>["active"];
+  actionView: DailyActionChoice;
   detailPath: string;
   decoration: ReactNode;
   toolbar: ReactNode;
@@ -532,7 +615,9 @@ function HomeDailySignal({
   if (!activeReading) return null;
   const experiment = activeReading.experiment;
   const body = activeReading.sections.manifestation || activeReading.sections.thesis;
-  const action = experiment?.action || activeReading.sections.micro_action;
+  // The lighter action replaces what is shown, never the note itself (US-04 AC14).
+  const lighter = actionView.lighterShown ? activeReading.lighter_action : null;
+  const action = lighter?.action || experiment?.action || activeReading.sections.micro_action;
 
   return (
     <section aria-label="Note hôm nay" className="home-daily-signal">
@@ -550,6 +635,11 @@ function HomeDailySignal({
               <Sparkle aria-hidden="true" className="home-advice-star" weight="fill" />
               <span>Thử một việc nhỏ</span>
               <p>{action}</p>
+              {actionView.canSwitch ? (
+                <button className="text-button home-daily-signal__lighter-switch" onClick={actionView.switchAction} type="button">
+                  {actionView.lighterShown ? SHOW_ORIGINAL_ACTION : SHOW_LIGHTER_ACTION}
+                </button>
+              ) : null}
             </aside>
           ) : null}
           <footer className="home-note-footer"><Link to={detailPath}>Đọc đầy đủ<ArrowRight aria-hidden="true" weight="bold" /></Link>{toolbar}</footer>
