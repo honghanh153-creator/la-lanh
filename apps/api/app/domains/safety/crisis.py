@@ -120,7 +120,9 @@ _GONE_FOR_GOOD = (
     r"khoi (?:cuoc doi|cuoc song|doi|the gian|the gioi|tran gian|trai dat|day|moi nguoi|tat ca|"
     r"moi thu|ca nha|gia dinh)\b|"
     r"de (?:khong (?:ai|con ai)|moi nguoi|ca nha|gia dinh|bo me|ai cung|khoi)\b|"
-    r"(?:ma )?(?:khong|chang) (?:ai|can ai) (?:biet|tim|lo|nho)\b))"
+    r"(?:ma )?(?:khong|chang) (?:ai|can ai) (?:biet|tim|lo|nho)\b|"
+    # "… mãi mãi khi con đọc những dòng này": the moment someone else finds out.
+    r"(?:khi|luc) (?:(?:cac )?(?:con|chau|em)|anh|chi|bo|me|ba|ong|moi nguoi|ca nha)\b))"
     # Moving away for good is not a farewell: "đi xa, không quay lại, chuyển hẳn vào Nam".
     r"(?!.*\b(?:chuyen (?:han|nha|vao|ra|den|toi)|du hoc|lap nghiep|vao nam|ra bac|ve que)\b)"
 )
@@ -132,8 +134,9 @@ _SOMEONE_ELSE = (
 )
 # That person as the subject of "đã đi xa": "bà", "ông nội", "ba mình", "bạn thân của mình",
 # "mẹ cũng". It is matched against the words of the clause that end right before "đã", so
-# nothing else may stand between the person and "đã". ``whose`` is the writer owning the
-# relative ("bà mình", "mẹ con"): that person cannot be the writer.
+# nothing else may stand between the person and "đã". ``whose`` is who the relative belongs
+# to ("bà mình", "mẹ con"). Owned by "mình/tôi", that person cannot be the writer. Owned by
+# "con/cháu/em", it can: a parent writing to their child says "mẹ của con" for themself.
 _GRIEF_SUBJECT = re.compile(
     rf"(?:^| )(?P<who>{_SOMEONE_ELSE})(?: (?:noi|ngoai|ruot|nuoi|ca|hai|ut))?"
     rf"(?P<whose> (?:cua )?{_SELF})?(?: (?:cung|vua|moi))?$"
@@ -165,24 +168,32 @@ _SOMEONE_ELSE_FORMS = frozenset(
 # A parent or grandparent also writes "mẹ", "bố", "bà nội" for themself. A relative named
 # without an owner is the writer when the text reads as a letter to the people left behind
 # (review round 3 of #808): "Khi con đọc những dòng này, mẹ đã đi xa mãi mãi".
-# "Khi/lúc ..." counts unless what follows puts it in the past ("khi mình còn nhỏ").
+# "Khi/lúc ..." counts unless what follows puts it in the past ("khi mình còn nhỏ") or asks
+# "khi nào". A sign in a clause where the writer is "mình/tôi", or is being told something
+# ("ai cũng bảo mình đừng buồn"), is the writer's own grief and does not count (round 4).
+_ONLY_WRITER = frozenset({"toi", "minh", "tao", "to", "tui"})
+_ONLY_WRITER_FORMS = frozenset({"tôi", "mình", "tao", "tớ", "tui"})
+# Typed without accents, "to" is "big" far more often than "tớ".
+_ONLY_WRITER_BARE = _ONLY_WRITER - {"to"}
+_TOLD_FORMS = frozenset({"bảo", "khuyên", "dặn", "nhắn"})
+_TOLD_BARE = frozenset({"bao", "khuyen", "dan", "nhan"})
 _PAST_FRAME = (
     r"(?:con (?:nho|be|tre)|len (?:\d+|muoi|chin|tam|bay|sau|bon|hai|lop|cap)|"
     r"moi (?:sinh|len|vao)|\d+ tuoi|hoc (?:lop|cap)|nam (?:ngoai|truoc|do|ay)|chua)"
 )
 _LETTER_WHEN = re.compile(
-    r"\b(?P<when>khi|luc)\b(?! (?:ay|nay|truoc|xua|nho|be)\b)"
+    r"\b(?P<when>khi|luc)\b(?! (?:ay|nay|nao|truoc|xua|nho|be)\b)"
     rf"(?!(?: [^\s.]+){{0,6}}? {_PAST_FRAME}\b)"
 )
 _LETTER_WHEN_FORMS = frozenset({"khi", "lúc"})
 # Speaking to a child ("Con ơi, ...", "Cháu à, ...") or to those who stay ("con đừng buồn",
-# "ở lại mạnh giỏi", "thư này").
+# "ở lại mạnh giỏi", "nhớ giữ gìn", "thư này"). "Giữ gìn kỷ vật" is not a goodbye.
 _LETTER_SIGN = re.compile(
-    r"(?:^|\. )(?:cac )?(?:con|chau|em)(?: (?:yeu|gai|trai))?(?: (?:a|oi|ah|nhe))? \."
+    r"(?:^|(?<=\. ))(?:cac )?(?:con|chau|em)(?: (?:yeu|gai|trai))?(?: (?:a|oi|ah|nhe))? \."
     r"|\b(?:con|chau|em) (?:oi|a)\b"
     r"|\bdung (?:buon|khoc|tim|trach|lo)\b"
     r"|\bo lai (?:manh gioi|binh an|vui|khoe|song)\b"
-    r"|\bgiu gin\b"
+    r"|\bgiu gin(?: \S+)? suc khoe\b|\b(?:nho|hay|phai) giu gin\b"
     r"|\b(?:thu|dong|tin nhan|loi nhan) nay\b"
 )
 # Words that put "đã đi xa mãi mãi" in a time that has not come yet.
@@ -608,13 +619,29 @@ _ALREADY_GONE = _rule(rf"\bda {_GONE_FOR_GOOD}", ("đi xa",))
 def _reads_as_letter(accented: str, folded: str) -> bool:
     """The text speaks to the people left behind, so "mẹ", "bố", "bà" can be the writer."""
 
-    if _LETTER_SIGN.search(folded):
-        return True
+    for match in _LETTER_SIGN.finditer(folded):
+        clause_start = folded.rfind(".", 0, match.start()) + 1
+        if not _writer_speaks(accented, folded, clause_start, match.start()):
+            return True
     for match in _LETTER_WHEN.finditer(folded):
         start, end = match.span("when")
         typed = accented[start:end]
         # "áp lực" and "không khí" are not "lúc" and "khi".
-        if typed == folded[start:end] or typed in _LETTER_WHEN_FORMS:
+        if typed != folded[start:end] and typed not in _LETTER_WHEN_FORMS:
+            continue
+        clause_end = folded.find(".", end)
+        if not _writer_speaks(accented, folded, end, len(folded) if clause_end < 0 else clause_end):
+            return True
+    return False
+
+
+def _writer_speaks(accented: str, folded: str, start: int, end: int) -> bool:
+    """These words hold "mình/tôi", or someone telling the writer something ("bảo")."""
+
+    for typed, plain in zip(accented[start:end].split(), folded[start:end].split(), strict=True):
+        if typed in _ONLY_WRITER_FORMS or typed in _TOLD_FORMS:
+            return True
+        if typed == plain and (plain in _ONLY_WRITER_BARE or plain in _TOLD_BARE):
             return True
     return False
 
@@ -627,7 +654,9 @@ def _already_gone(accented: str, folded: str) -> bool:
     words right before its "đã" name another person. A relative named anywhere else does not
     count ("Khi mẹ thức dậy con đã đi xa mãi mãi"; "Mẹ đã đi xa từ sáng còn mình đã đi xa
     mãi mãi"), and a relative named without an owner is the writer when the text reads as a
-    letter ("Khi con đọc những dòng này, mẹ đã đi xa mãi mãi").
+    letter ("Khi con đọc những dòng này, mẹ đã đi xa mãi mãi"). So is a relative owned by
+    "con/cháu/em" (round 4): "Con ơi, mẹ của con đã đi xa mãi mãi" is a parent's letter, and
+    "Mẹ con đã đi xa mãi mãi rồi, con nhớ mẹ" has no sign of one.
     """
 
     for match in _ALREADY_GONE.matches(accented, folded):
@@ -643,9 +672,10 @@ def _already_gone(accented: str, folded: str) -> bool:
             typed not in _SOMEONE_ELSE_FORMS
         ):
             return True
-        owned = subject.group("whose") is not None
+        whose = subject.group("whose")
+        the_writers = whose is not None and whose.split()[-1] in _ONLY_WRITER
         named_as_other = subject.group("who").startswith(("nguoi ", "ban "))
-        if not owned and not named_as_other and _reads_as_letter(accented, folded):
+        if not the_writers and not named_as_other and _reads_as_letter(accented, folded):
             return True
     return False
 
