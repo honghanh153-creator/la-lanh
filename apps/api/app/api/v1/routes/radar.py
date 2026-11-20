@@ -11,9 +11,13 @@ from app.domains.guest.errors import CsrfRejected, GuestDomainError
 from app.domains.guest.service import GuestSessionService
 from app.domains.identity.models import OwnerIdentity
 from app.domains.identity.service import OwnerIdentityService, OwnerSessionUnavailable
+from app.domains.radar.consent_drafts import invite_first_sentences
 from app.domains.radar.models import RadarInviteView, RadarMode, RadarReceivedView, RadarStatus
 from app.domains.radar.service import (
+    AUTHORIZED_DATE_INPUT_VERSION,
+    AUTHORIZED_INPUT_VERSION,
     CONSENT_VERSION,
+    DATE_CONSENT_VERSION,
     RECEIPT_TTL,
     RadarChartRequired,
     RadarConflict,
@@ -81,22 +85,28 @@ def _creation_problem(
     )
 
 
+# Hợp gu AL1 (20.11.2026) adds Đồng nghiệp and Gia đình.
+RadarContext = Literal["crush", "friend", "partner", "someone", "coworker", "family"]
+
+
 class RadarCreateRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     recipient_label: str = Field(min_length=1, max_length=40)
-    context: Literal["crush", "friend", "partner", "someone"]
+    context: RadarContext
     voice: RelationshipVoice = RelationshipVoice.STRAIGHT_WARM
 
 
 class RadarPrivateCheckRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     recipient_label: str = Field(min_length=1, max_length=40)
-    context: Literal["crush", "friend", "partner", "someone"]
+    context: RadarContext
     voice: RelationshipVoice = RelationshipVoice.STRAIGHT_WARM
     birth_date: date
-    birth_time_mode: Literal["exact", "unknown"] = "exact"
+    # "date_only" (AL1): only the date, no time and no place; accepted only with the
+    # radar-authorized-input-v2 attestation while the invite-first consent is on.
+    birth_time_mode: Literal["exact", "unknown", "date_only"] = "exact"
     birth_time_local: str | None = Field(default=None, pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")
-    place_id: str = Field(min_length=2, max_length=80)
+    place_id: str | None = Field(default=None, min_length=2, max_length=80)
     consent_version: str = Field(min_length=1, max_length=64)
     authorization_attested: bool
 
@@ -106,6 +116,12 @@ class RadarPrivateCheckRequest(BaseModel):
             raise ValueError("exact birth time requires birth_time_local")
         if self.birth_time_mode == "unknown" and self.birth_time_local is not None:
             raise ValueError("unknown birth time must not include birth_time_local")
+        if self.birth_time_mode == "date_only" and (
+            self.birth_time_local is not None or self.place_id is not None
+        ):
+            raise ValueError("date_only must not include a birth time or place")
+        if self.birth_time_mode != "date_only" and self.place_id is None:
+            raise ValueError("a birth time mode other than date_only requires place_id")
         return self
 
 
@@ -128,7 +144,8 @@ class PublicRadarInviteResponse(BaseModel):
     voice: str
     expires_at: datetime
     consent_version: str = CONSENT_VERSION
-    requires_exact_birth_profile: bool = True
+    # AL1: a birth date is enough; a fuller profile gives a fuller reading.
+    requires_exact_birth_profile: bool = False
     privacy_note: str = (
         "Người mời không nhìn thấy ngày, giờ hoặc nơi sinh của bạn. "
         "Kết quả chỉ mở sau khi bạn tự nhập và đồng ý."
@@ -139,6 +156,24 @@ class RadarAcceptRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     request_id: UUID
     consent_version: str = Field(min_length=1, max_length=64)
+
+
+class RadarDateAcceptRequest(BaseModel):
+    """The one-field invite (AL1): B's own birth date and B's consent, nothing else."""
+
+    model_config = ConfigDict(extra="forbid")
+    request_id: UUID
+    birth_date: date
+    consent_version: str = Field(min_length=1, max_length=64)
+
+
+class RadarConsentOptionsResponse(BaseModel):
+    """Whether the invite-first consent screens are live, with their owner-approved sentences."""
+
+    invite_first: bool
+    sentences: dict[str, str] = Field(default_factory=dict)
+    authorized_input_version: str
+    date_consent_version: str
 
 
 class RadarBoundActionRequest(BaseModel):
@@ -543,6 +578,75 @@ async def accept_invite(
             "mode": RadarMode.CONSENTED_INVITE,
             **result.result,
         }
+    )
+
+
+@public_router.post("/public/radar/current/accept-date", response_model=PublicRadarResultResponse)
+async def accept_invite_with_date(
+    body: RadarDateAcceptRequest,
+    request: Request,
+    response: Response,
+    token: Annotated[str | None, Cookie(alias=RADAR_COOKIE)] = None,
+) -> PublicRadarResultResponse | Response:
+    """AL1 one-field invite. 404 while the invite-first consent is off or unapproved.
+
+    No guest session: the capability cookie (SameSite=Lax, path-bound), the trusted Origin and the
+    bound ``request_id`` guard the action, as for decline and invite-link withdrawal. The token is
+    single use: completing it moves the invite out of ``pending`` under a row lock.
+    """
+
+    _safe_public(response)
+    service = _service(request)
+    if not service.invite_first_enabled:
+        return Response(status_code=404, headers=dict(response.headers))
+    settings = request.app.state.settings
+    try:
+        require_trusted_origin(request, trusted_origins(request))
+        result = await service.accept_with_date(
+            token or "",
+            birth_date=body.birth_date,
+            consent_version=body.consent_version,
+            expected_request_id=body.request_id,
+        )
+    except CsrfRejected:
+        return Response(status_code=403, headers=dict(response.headers))
+    except RadarChartRequired:
+        return Response(status_code=404, headers=dict(response.headers))
+    except RadarError:
+        return Response(status_code=422, headers=dict(response.headers))
+    response.set_cookie(
+        RADAR_RECEIPT_COOKIE,
+        token_cookie_value(result.receipt_token),
+        httponly=True,
+        secure=settings.guest_cookie_secure,
+        samesite="strict",
+        max_age=int(RECEIPT_TTL.total_seconds()),
+        path="/v1/public/radar/receipt",
+    )
+    response.delete_cookie(RADAR_COOKIE, path="/v1/public/radar")
+    return PublicRadarResultResponse.model_validate(
+        {
+            "request_id": result.request_id,
+            "mode": RadarMode.CONSENTED_INVITE,
+            **result.result,
+        }
+    )
+
+
+@public_router.get("/public/radar/consent-options", response_model=RadarConsentOptionsResponse)
+async def consent_options(request: Request, response: Response) -> RadarConsentOptionsResponse:
+    """No personal data; tells the web which consent screens it may show (AL1)."""
+
+    _safe_public(response)
+    service = _service(request)
+    sentences = invite_first_sentences() if service.invite_first_enabled else None
+    return RadarConsentOptionsResponse(
+        invite_first=sentences is not None,
+        sentences=sentences or {},
+        authorized_input_version=(
+            AUTHORIZED_DATE_INPUT_VERSION if sentences is not None else AUTHORIZED_INPUT_VERSION
+        ),
+        date_consent_version=DATE_CONSENT_VERSION,
     )
 
 

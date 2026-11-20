@@ -12308,6 +12308,60 @@
    "approver": "owner",
    "date": "2026-11-20",
    "digest": "6dc5147648cfcd160ad621f9adb355a9729c9ed19830f00cb14e2a6fa79f654d"
+  },
+  {
+   "id": "privacy.radar.invite-first.owner-invite-heading",
+   "category": "privacy",
+   "text": "Cách chắc nhất: gửi link để người ấy tự nhập ngày sinh.",
+   "status": "pending"
+  },
+  {
+   "id": "privacy.radar.invite-first.owner-invite-body",
+   "category": "privacy",
+   "text": "Người ấy chỉ cần nhập ngày sinh của mình và bấm đồng ý. Lá không lưu ngày sinh đó. Kết quả giữ 30 ngày, ai trong hai bạn cũng xoá được.",
+   "status": "pending"
+  },
+  {
+   "id": "privacy.radar.invite-first.owner-attest-label",
+   "category": "privacy",
+   "text": "Mình đã hỏi và người này đồng ý cho mình dùng ngày sinh của họ.",
+   "status": "pending"
+  },
+  {
+   "id": "privacy.radar.invite-first.owner-attest-help",
+   "category": "privacy",
+   "text": "Chỉ tick khi bạn đã hỏi chính người đó. Thấy ngày sinh trên mạng không có nghĩa là họ đã đồng ý.",
+   "status": "pending"
+  },
+  {
+   "id": "privacy.radar.invite-first.owner-date-only-storage",
+   "category": "privacy",
+   "text": "Ngày sinh bạn nhập chỉ dùng để xem lần này và không được lưu. Kết quả được mã hoá, giữ 24 giờ rồi tự xoá. Bạn có thể xoá sớm hơn.",
+   "status": "pending"
+  },
+  {
+   "id": "privacy.radar.invite-first.recipient-heading",
+   "category": "privacy",
+   "text": "Có người muốn xem hai bạn hợp nhau ở đâu.",
+   "status": "pending"
+  },
+  {
+   "id": "privacy.radar.invite-first.recipient-body",
+   "category": "privacy",
+   "text": "Bạn chỉ cần nhập ngày sinh của mình. Lá dùng nó cho đúng lần xem này, không lưu lại và không gửi cho người mời.",
+   "status": "pending"
+  },
+  {
+   "id": "privacy.radar.invite-first.recipient-consent",
+   "category": "privacy",
+   "text": "Tôi đồng ý dùng ngày sinh của mình để Lá xem lần này. Tôi và người mời cùng nhận bản đọc, giữ 30 ngày. Tôi rút lại được bất cứ lúc nào.",
+   "status": "pending"
+  },
+  {
+   "id": "privacy.radar.invite-first.recipient-decline",
+   "category": "privacy",
+   "text": "Không muốn thì bạn cứ đóng trang. Lá không báo cho người mời là bạn đã mở link.",
+   "status": "pending"
   }
  ],
  "version": "copy-registry/v1"
