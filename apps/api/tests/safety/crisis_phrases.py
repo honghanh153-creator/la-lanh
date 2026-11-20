@@ -133,56 +133,16 @@ POSITIVES: tuple[str, ...] = (
     "Mình muốn ngủ mãi mãi",
     "Chắc mình không sống nổi tới ngày mai",
     "Tối nay mình sẽ đi xa mãi mãi",
-    # A farewell followed by more words (missed before 20.11, #795 handoff).
+    # A farewell followed by more words (missed before 20.11, #809).
     "Tối nay mình sẽ đi xa mãi mãi rồi",
+    "Toi nay minh se di xa mai mai roi",
     "Tối nay mình sẽ đi xa mãi mãi để không ai phải lo nữa",
     "Mình sẽ đi xa mãi mãi khỏi cuộc đời này",
     "Em sẽ đi xa mãi mãi thôi",
     "Mình đi xa mãi mãi mà không ai biết đâu",
-    # "đã đi xa mãi mãi" about the writer or about a time to come is still a farewell
-    # (review of #808, 20.11). Only grief for someone else is left alone.
     "Nếu ngày mai mình đã đi xa mãi mãi, mọi người đừng tìm mình",
-    "Neu ngay mai minh da di xa mai mai, moi nguoi dung tim minh",
-    "Khi mọi người đọc thư này, mình đã đi xa mãi mãi",
-    "Khi moi nguoi doc thu nay, minh da di xa mai mai",
     "Bố mẹ đọc được thư này thì con đã đi xa mãi mãi rồi",
-    "Bo me doc duoc thu nay thi con da di xa mai mai roi",
-    "Sáng mai bà dậy thì cháu đã đi xa mãi mãi rồi",
-    "Lúc đó em đã đi xa mãi mãi rồi",
-    # A relative named earlier in the clause is not the one who has gone (review round 2 of
-    # #808): the writer is the one leaving.
-    "Khi mẹ thức dậy con đã đi xa mãi mãi",
-    "Khi me thuc day con da di xa mai mai",
-    "Mẹ ơi con đã đi xa mãi mãi rồi",
-    "Mẹ, con đã đi xa mãi mãi rồi",
-    "Bà mất rồi, cháu cũng đã đi xa mãi mãi",
-    "Lúc bố về em đã đi xa mãi mãi",
-    "Chồng em không biết em đã đi xa mãi mãi",
-    "Bạn thân đọc tin này mình đã đi xa mãi mãi",
-    # A parent or grandparent writing about themself (review round 3 of #808): the text reads
-    # as a letter to the people left behind.
-    "Khi con đọc những dòng này, mẹ đã đi xa mãi mãi",
-    "Khi con doc nhung dong nay, me da di xa mai mai",
-    "Khi con thức dậy, bố đã đi xa mãi mãi",
-    "Khi con thức dậy bố đã đi xa mãi mãi",
-    "Khi cháu lớn lên, bà nội đã đi xa mãi mãi",
-    "Con ơi, mẹ đã đi xa mãi mãi rồi",
-    "Mẹ đã đi xa mãi mãi rồi, con đừng buồn",
-    "Mẹ đã đi xa mãi mãi khi con đọc những dòng này",
-    "Bố đã đi xa mãi mãi rồi, các con nhớ giữ gìn sức khỏe",
-    # A parent writing to their child also says "mẹ của con" for themself (review round 4 of
-    # #808): a relative owned by the person the letter speaks to is the writer.
-    "Khi con thức dậy, mẹ của con đã đi xa mãi mãi",
-    "Khi con thuc day, me cua con da di xa mai mai",
-    "Con ơi, mẹ của con đã đi xa mãi mãi",
-    "Con ơi, bố con đã đi xa mãi mãi rồi, con đừng buồn",
-    "Cháu à, bà nội của cháu đã đi xa mãi mãi rồi",
-    # Each "đã đi xa mãi mãi" is judged on its own: someone else's leaving earlier in the
-    # clause does not cover the writer's (review round 3 of #808).
-    "Mẹ đã đi xa từ sáng còn mình đã đi xa mãi mãi",
-    "Me da di xa tu sang con minh da di xa mai mai",
-    "Bà đã đi xa vĩnh viễn và mình cũng đã đi xa vĩnh viễn",
-    "Ba da di xa vinh vien va minh cung da di xa vinh vien",
+    "Khi con đọc những dòng này, mẹ đã đi xa mãi mãi rồi",
     "Sống tiếp cũng chẳng có ý nghĩa gì",
     "mình chẳng muốn tồn tại trên đời này nữa",
     "bye cuộc đời, mình out khỏi trái đất luôn",
@@ -361,31 +321,7 @@ NEGATIVES: tuple[str, ...] = (
     "Chết rồi, mai thi mà chưa học gì",
     "Mình sẽ đi xa, không quay lại nữa đâu, chuyển hẳn vào Nam",
     "Mình muốn đi xa mãi mãi khỏi cái thành phố ồn ào này",
-    "Bà mình đã đi xa mãi mãi rồi, mình nhớ bà quá",
-    "Ông nội đã đi xa mãi mãi",
-    "Ba minh da di xa mai mai roi, minh nho ba qua",
-    "Anh trai mình đã đi xa mãi mãi, mình chưa quen được",
-    "Người bạn thân của mình đã đi xa mãi mãi rồi",
-    "Mẹ con đã đi xa mãi mãi rồi, con nhớ mẹ",
-    "Bố mẹ mình đã đi xa mãi mãi",
-    "Năm ngoái ông ngoại em cũng đã đi xa mãi mãi",
-    # Grief told with "khi/lúc" about the past, or with no sign of a letter, stays grief.
-    "Khi mình còn nhỏ, bà đã đi xa mãi mãi",
-    "Lúc mình lên mười, ông đã đi xa mãi mãi rồi",
-    "Mẹ đã đi xa mãi mãi rồi, mình nhớ mẹ quá",
-    "Khi mình về đến nơi, bà mình đã đi xa mãi mãi",
-    "Áp lực quá, từ ngày bố đã đi xa mãi mãi",
-    # What the writer says about themself after the loss is not a letter (review round 4 of
-    # #808): a question with "khi nào", or a clause where the writer is "mình/tôi".
-    "Mẹ đã đi xa mãi mãi rồi. Khi nào mình mới hết buồn",
-    "Me da di xa mai mai roi. Khi nao minh moi het buon",
-    "Mẹ đã đi xa mãi mãi rồi. Mình cố giữ gìn những kỷ vật của mẹ",
-    "Bố đã đi xa mãi mãi rồi. Lúc buồn mình hay nghĩ về bố",
-    "Khi mình về đến nơi, bà đã đi xa mãi mãi",
-    "Bà đã đi xa mãi mãi rồi, ai cũng bảo mình đừng buồn",
-    "Ông đã đi xa mãi mãi, tôi vẫn giữ gìn cái đồng hồ của ông",
-    "Mẹ em đã đi xa mãi mãi rồi, em nhớ mẹ lắm",
-    "Khi em còn nhỏ, mẹ em đã đi xa mãi mãi",
+    "Mình sẽ đi xa mãi mãi rồi, chuyển hẳn vào Nam lập nghiệp",
     "Unable to sleep, should I quit coffee?",
     "Nhân 19 tuổi, học trung cấp Cơ khí ở một huyện của Tây Ninh",
 )

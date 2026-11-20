@@ -25,7 +25,6 @@ from __future__ import annotations
 
 import re
 import unicodedata
-from collections.abc import Iterator
 from dataclasses import dataclass
 
 from app.domains.content.copy_approval import copy_text
@@ -110,98 +109,6 @@ _SLOWLY_TAIL = (
     r"quen|thu|lam quen|on|sap|xep|ke|chia|giai|sua|thay|doi|cho minh|cho em)\b)"
 )
 
-# "đi xa mãi mãi" as a farewell (the key is "đi xa").
-_GONE_FOR_GOOD = (
-    r"(?P<key>di xa)(?: \.)? (?:mai mai|vinh vien|"
-    r"(?:va )?(?:khong|chang) (?:bao gio )?(?:quay lai|tro lai|tro ve|ve nua))"
-    # The farewell may end the sentence, end on a particle, or say what it leaves behind:
-    # "… mãi mãi rồi", "… khỏi cuộc đời này", "… để không ai phải lo nữa" (#795 handoff, 20.11).
-    r"(?=\s*(?:$|\.|(?:nua|dau|luon|bai|nhe|nha|day|roi|thoi|vay|a|ah|ha|ne|r|ri|lun)\b|"
-    r"khoi (?:cuoc doi|cuoc song|doi|the gian|the gioi|tran gian|trai dat|day|moi nguoi|tat ca|"
-    r"moi thu|ca nha|gia dinh)\b|"
-    r"de (?:khong (?:ai|con ai)|moi nguoi|ca nha|gia dinh|bo me|ai cung|khoi)\b|"
-    r"(?:ma )?(?:khong|chang) (?:ai|can ai) (?:biet|tim|lo|nho)\b|"
-    # "… mãi mãi khi con đọc những dòng này": the moment someone else finds out.
-    r"(?:khi|luc) (?:(?:cac )?(?:con|chau|em)|anh|chi|bo|me|ba|ong|moi nguoi|ca nha)\b))"
-    # Moving away for good is not a farewell: "đi xa, không quay lại, chuyển hẳn vào Nam".
-    r"(?!.*\b(?:chuyen (?:han|nha|vao|ra|den|toi)|du hoc|lap nghiep|vao nam|ra bac|ve que)\b)"
-)
-# Someone other than the writer. Words a writer also uses for themself (anh, chị, em, con, cháu)
-# count only with a second word that makes them a relative.
-_SOMEONE_ELSE = (
-    r"(?:ba|ong|bo|me|cha|vo|chong|thay|bac|chu|cau|thim|nguoi (?:ay|do|than|yeu|ban)|"
-    r"ban (?:than|minh|toi|em|ay)|anh trai|chi gai|em trai|em gai|con trai|con gai)"
-)
-# That person as the subject of "đã đi xa": "bà", "ông nội", "ba mình", "bạn thân của mình",
-# "mẹ cũng". It is matched against the words of the clause that end right before "đã", so
-# nothing else may stand between the person and "đã". ``whose`` is who the relative belongs
-# to ("bà mình", "mẹ con"). Owned by "mình/tôi", that person cannot be the writer. Owned by
-# "con/cháu/em", it can: a parent writing to their child says "mẹ của con" for themself.
-_GRIEF_SUBJECT = re.compile(
-    rf"(?:^| )(?P<who>{_SOMEONE_ELSE})(?: (?:noi|ngoai|ruot|nuoi|ca|hai|ut))?"
-    rf"(?P<whose> (?:cua )?{_SELF})?(?: (?:cung|vua|moi))?$"
-)
-# The accented spellings of the first word of ``who``; "bỏ", "câu" or "bạc" is not a relative.
-_SOMEONE_ELSE_FORMS = frozenset(
-    {
-        "bà",
-        "ba",
-        "ông",
-        "bố",
-        "mẹ",
-        "cha",
-        "vợ",
-        "chồng",
-        "thầy",
-        "bác",
-        "chú",
-        "cậu",
-        "thím",
-        "người",
-        "bạn",
-        "anh",
-        "chị",
-        "em",
-        "con",
-    }
-)
-# A parent or grandparent also writes "mẹ", "bố", "bà nội" for themself. A relative named
-# without an owner is the writer when the text reads as a letter to the people left behind
-# (review round 3 of #808): "Khi con đọc những dòng này, mẹ đã đi xa mãi mãi".
-# "Khi/lúc ..." counts unless what follows puts it in the past ("khi mình còn nhỏ") or asks
-# "khi nào". A sign in a clause where the writer is "mình/tôi", or is being told something
-# ("ai cũng bảo mình đừng buồn"), is the writer's own grief and does not count (round 4).
-_ONLY_WRITER = frozenset({"toi", "minh", "tao", "to", "tui"})
-_ONLY_WRITER_FORMS = frozenset({"tôi", "mình", "tao", "tớ", "tui"})
-# Typed without accents, "to" is "big" far more often than "tớ".
-_ONLY_WRITER_BARE = _ONLY_WRITER - {"to"}
-_TOLD_FORMS = frozenset({"bảo", "khuyên", "dặn", "nhắn"})
-_TOLD_BARE = frozenset({"bao", "khuyen", "dan", "nhan"})
-_PAST_FRAME = (
-    r"(?:con (?:nho|be|tre)|len (?:\d+|muoi|chin|tam|bay|sau|bon|hai|lop|cap)|"
-    r"moi (?:sinh|len|vao)|\d+ tuoi|hoc (?:lop|cap)|nam (?:ngoai|truoc|do|ay)|chua)"
-)
-_LETTER_WHEN = re.compile(
-    r"\b(?P<when>khi|luc)\b(?! (?:ay|nay|nao|truoc|xua|nho|be)\b)"
-    rf"(?!(?: [^\s.]+){{0,6}}? {_PAST_FRAME}\b)"
-)
-_LETTER_WHEN_FORMS = frozenset({"khi", "lúc"})
-# Speaking to a child ("Con ơi, ...", "Cháu à, ...") or to those who stay ("con đừng buồn",
-# "ở lại mạnh giỏi", "nhớ giữ gìn", "thư này"). "Giữ gìn kỷ vật" is not a goodbye.
-_LETTER_SIGN = re.compile(
-    r"(?:^|(?<=\. ))(?:cac )?(?:con|chau|em)(?: (?:yeu|gai|trai))?(?: (?:a|oi|ah|nhe))? \."
-    r"|\b(?:con|chau|em) (?:oi|a)\b"
-    r"|\bdung (?:buon|khoc|tim|trach|lo)\b"
-    r"|\bo lai (?:manh gioi|binh an|vui|khoe|song)\b"
-    r"|\bgiu gin(?: \S+)? suc khoe\b|\b(?:nho|hay|phai) giu gin\b"
-    r"|\b(?:thu|dong|tin nhan|loi nhan) nay\b"
-)
-# Words that put "đã đi xa mãi mãi" in a time that has not come yet.
-_TIME_TO_COME = (
-    r"(?:neu|gia su|lo nhu|ngay mai|sang mai|toi mai|mai|toi nay|dem nay|tuan sau|thang sau|"
-    r"sau nay|den luc|luc do|khi do|se|sap|thi|thu nay|doc duoc)"
-)
-
 
 @dataclass(frozen=True)
 class _Rule:
@@ -222,9 +129,7 @@ class _Rule:
     plain_span: bool = False
     plain: tuple[str, ...] = ()
 
-    def matches(self, accented: str, folded: str) -> Iterator[re.Match[str]]:
-        """Every match whose key is typed the way the rule accepts."""
-
+    def hit(self, accented: str, folded: str) -> bool:
         for match in self.pattern.finditer(folded):
             if any(
                 accented[slice(*match.span(group))] != match.group(group) for group in self.plain
@@ -236,12 +141,10 @@ class _Rule:
                 if self.bare and (
                     not self.plain_span or accented[match.start() : match.end()] == match.group(0)
                 ):
-                    yield match
+                    return True
             elif typed in self.forms:
-                yield match
-
-    def hit(self, accented: str, folded: str) -> bool:
-        return next(self.matches(accented, folded), None) is not None
+                return True
+        return False
 
 
 def _forms(*parts: str | tuple[str, ...]) -> tuple[str, ...]:
@@ -423,12 +326,20 @@ _RULES: tuple[_Rule, ...] = (
         r"(?:theo cach (?:cua )?(?:minh|rieng)|lan cuoi|mai mai)\b",
         ("tạm biệt", "từ biệt"),
     ),
-    # "đi xa mãi mãi". "Đã đi xa mãi mãi" is read by ``_already_gone`` and by the rule below.
-    _rule(rf"(?<!\bda )\b{_GONE_FOR_GOOD}", ("đi xa",)),
-    # "Đã đi xa mãi mãi" said about a time to come is a farewell whoever the subject is ("Nếu
-    # ngày mai mình đã đi xa mãi mãi, mọi người đừng tìm mình"; "Bố mẹ đọc được thư này thì
-    # con đã đi xa mãi mãi rồi").
-    _rule(rf"\b{_TIME_TO_COME}\b(?: \S+){{0,8}}? da {_GONE_FOR_GOOD}", ("đi xa",)),
+    _rule(
+        r"\b(?P<key>di xa)(?: \.)? (?:mai mai|vinh vien|(?:va )?(?:khong|chang) (?:bao gio )?"
+        r"(?:quay lai|tro lai|tro ve|ve nua))"
+        # The farewell may end the sentence, end on a particle, or say what it leaves behind:
+        # "… mãi mãi rồi", "… khỏi cuộc đời này", "… để không ai phải lo nữa" (#809).
+        r"(?=\s*(?:$|\.|(?:nua|dau|luon|bai|nhe|nha|day|roi|thoi|vay|a|ah|ha|ne|r|ri|lun)\b|"
+        r"khoi (?:cuoc doi|cuoc song|doi|the gian|the gioi|tran gian|trai dat|day|moi nguoi|"
+        r"tat ca|moi thu|ca nha|gia dinh)\b|"
+        r"de (?:khong (?:ai|con ai)|moi nguoi|ca nha|gia dinh|bo me|ai cung|khoi)\b|"
+        r"(?:ma )?(?:khong|chang) (?:ai|can ai) (?:biet|tim|lo|nho)\b))"
+        # Moving away for good is not a farewell: "đi xa, không quay lại, chuyển hẳn vào Nam".
+        r"(?!.*\b(?:chuyen (?:han|nha|vao|ra|den|toi)|du hoc|lap nghiep|vao nam|ra bac|ve que)\b)",
+        ("đi xa",),
+    ),
     # A "last time" next to a farewell sign: giving things away, letters, nothing after today.
     _rule(
         r"^(?=.*\blan cuoi\b).*\b(?P<key>(?:cho|tang) het do(?: dac)?\b|"
@@ -611,75 +522,6 @@ def _wants_to_die(accented: str, folded: str) -> bool:
     return False
 
 
-# --- "đã đi xa mãi mãi": the writer's farewell or grief for someone else -------------------
-
-_ALREADY_GONE = _rule(rf"\bda {_GONE_FOR_GOOD}", ("đi xa",))
-
-
-def _reads_as_letter(accented: str, folded: str) -> bool:
-    """The text speaks to the people left behind, so "mẹ", "bố", "bà" can be the writer."""
-
-    for match in _LETTER_SIGN.finditer(folded):
-        clause_start = folded.rfind(".", 0, match.start()) + 1
-        if not _writer_speaks(accented, folded, clause_start, match.start()):
-            return True
-    for match in _LETTER_WHEN.finditer(folded):
-        start, end = match.span("when")
-        typed = accented[start:end]
-        # "áp lực" and "không khí" are not "lúc" and "khi".
-        if typed != folded[start:end] and typed not in _LETTER_WHEN_FORMS:
-            continue
-        clause_end = folded.find(".", end)
-        if not _writer_speaks(accented, folded, end, len(folded) if clause_end < 0 else clause_end):
-            return True
-    return False
-
-
-def _writer_speaks(accented: str, folded: str, start: int, end: int) -> bool:
-    """These words hold "mình/tôi", or someone telling the writer something ("bảo")."""
-
-    for typed, plain in zip(accented[start:end].split(), folded[start:end].split(), strict=True):
-        if typed in _ONLY_WRITER_FORMS or typed in _TOLD_FORMS:
-            return True
-        if typed == plain and (plain in _ONLY_WRITER_BARE or plain in _TOLD_BARE):
-            return True
-    return False
-
-
-def _already_gone(accented: str, folded: str) -> bool:
-    """Whether a "đã đi xa mãi mãi" in the text is the writer's farewell, not grief.
-
-    "Bà mình đã đi xa mãi mãi rồi" is grief, not a plan, and gets a reading. Each "đã đi xa
-    mãi mãi" is judged on its own (review round 3 of #808): it is left alone only when the
-    words right before its "đã" name another person. A relative named anywhere else does not
-    count ("Khi mẹ thức dậy con đã đi xa mãi mãi"; "Mẹ đã đi xa từ sáng còn mình đã đi xa
-    mãi mãi"), and a relative named without an owner is the writer when the text reads as a
-    letter ("Khi con đọc những dòng này, mẹ đã đi xa mãi mãi"). So is a relative owned by
-    "con/cháu/em" (round 4): "Con ơi, mẹ của con đã đi xa mãi mãi" is a parent's letter, and
-    "Mẹ con đã đi xa mãi mãi rồi, con nhớ mẹ" has no sign of one.
-    """
-
-    for match in _ALREADY_GONE.matches(accented, folded):
-        clause_start = folded.rfind(".", 0, match.start()) + 1
-        lead = len(folded) - len(folded[clause_start:].lstrip())
-        before = folded[lead : match.start()].rstrip()
-        subject = _GRIEF_SUBJECT.search(before)
-        if subject is None:
-            return True
-        who_start = lead + subject.start("who")
-        typed = accented[who_start : lead + subject.end("who")].split()[0]
-        if typed != folded[who_start : who_start + len(typed)] and (
-            typed not in _SOMEONE_ELSE_FORMS
-        ):
-            return True
-        whose = subject.group("whose")
-        the_writers = whose is not None and whose.split()[-1] in _ONLY_WRITER
-        named_as_other = subject.group("who").startswith(("nguoi ", "ban "))
-        if not the_writers and not named_as_other and _reads_as_letter(accented, folded):
-            return True
-    return False
-
-
 def detect_crisis(text: str) -> bool:
     """True when ``text`` reads as self-harm or suicide intent."""
 
@@ -687,7 +529,5 @@ def detect_crisis(text: str) -> bool:
         return False
     accented, folded = normalize(text)
     if _wants_to_die(accented, folded):
-        return True
-    if _already_gone(accented, folded):
         return True
     return any(rule.hit(accented, folded) for rule in _RULES)
