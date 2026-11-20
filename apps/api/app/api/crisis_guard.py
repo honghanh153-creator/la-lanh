@@ -24,11 +24,18 @@ PROBLEM_MEDIA_TYPE = "application/problem+json"
 
 
 class CrisisContentUnsupported(Exception):
-    """The submitted text reads as self-harm or suicide intent. Deliberately carries no text."""
+    """The submitted text reads as self-harm or suicide intent. Deliberately carries no text.
+
+    ``notice_id`` names the owner-approved notice for the surface (Tarot's when ``None``).
+    """
+
+    def __init__(self, notice_id: str | None = None) -> None:
+        super().__init__()
+        self.notice_id = notice_id
 
 
-def crisis_problem_body() -> dict[str, Any]:
-    notice = crisis_notice()
+def crisis_problem_body(notice_id: str | None = None) -> dict[str, Any]:
+    notice = crisis_notice(notice_id)
     return {
         "type": "about:blank",
         "title": "Content is not supported",
@@ -38,7 +45,9 @@ def crisis_problem_body() -> dict[str, Any]:
     }
 
 
-def crisis_guard(*fields: str) -> Callable[[Request], Awaitable[None]]:
+def crisis_guard(
+    *fields: str, notice_id: str | None = None
+) -> Callable[[Request], Awaitable[None]]:
     """A dependency that checks these top-level JSON string fields before validation."""
 
     async def guard(request: Request) -> None:
@@ -51,15 +60,16 @@ def crisis_guard(*fields: str) -> Callable[[Request], Awaitable[None]]:
         for field in fields:
             value = body.get(field)
             if isinstance(value, str) and detect_crisis(value):
-                raise CrisisContentUnsupported
+                raise CrisisContentUnsupported(notice_id)
 
     return guard
 
 
-async def crisis_response(_request: Request, _error: Exception) -> JSONResponse:
+async def crisis_response(_request: Request, error: Exception) -> JSONResponse:
+    notice_id = error.notice_id if isinstance(error, CrisisContentUnsupported) else None
     return JSONResponse(
         status_code=422,
-        content=crisis_problem_body(),
+        content=crisis_problem_body(notice_id),
         media_type=PROBLEM_MEDIA_TYPE,
         headers={"Cache-Control": "no-store, max-age=0"},
     )

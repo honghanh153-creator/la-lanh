@@ -11453,6 +11453,816 @@
    "category": "reading",
    "text": "Khi căng, bạn dễ tin người quá nhanh hoặc giúp quá sức mình.",
    "status": "pending"
+  },
+  {
+   "id": "month.theme.work.sun",
+   "category": "reading",
+   "text": "Tháng này công việc hợp để cho người khác thấy rõ bạn đang làm gì và muốn đi tiếp hướng nào.",
+   "status": "pending"
+  },
+  {
+   "id": "month.act.work.sun",
+   "category": "reading",
+   "text": "Viết ba dòng về việc bạn đã làm xong gần đây và gửi cho người cần biết.",
+   "status": "pending"
+  },
+  {
+   "id": "month.say.work.sun",
+   "category": "reading",
+   "text": "Phần này mình đã làm xong, tháng tới mình muốn nhận thêm phần kia.",
+   "status": "pending"
+  },
+  {
+   "id": "month.theme.work.mercury",
+   "category": "reading",
+   "text": "Tháng này công việc xoay quanh chuyện nói và viết cho rõ: một tin nhắn mập mờ dễ thành hiểu lầm.",
+   "status": "pending"
+  },
+  {
+   "id": "month.act.work.mercury",
+   "category": "reading",
+   "text": "Đọc lại một tin nhắn công việc quan trọng trước khi gửi, ghi rõ hạn và ai phụ trách.",
+   "status": "pending"
+  },
+  {
+   "id": "month.say.work.mercury",
+   "category": "reading",
+   "text": "Cho mình hỏi lại cho chắc: việc này cần xong trước hôm nào, và ai duyệt?",
+   "status": "pending"
+  },
+  {
+   "id": "month.theme.work.venus",
+   "category": "reading",
+   "text": "Tháng này công việc dễ chịu hơn khi bạn làm cùng người khác và cảm ơn cụ thể.",
+   "status": "pending"
+  },
+  {
+   "id": "month.act.work.venus",
+   "category": "reading",
+   "text": "Nhắn cảm ơn một đồng nghiệp đã giúp bạn, nói rõ họ giúp việc gì.",
+   "status": "pending"
+  },
+  {
+   "id": "month.say.work.venus",
+   "category": "reading",
+   "text": "Cảm ơn bạn hôm trước đã gỡ giúp phần đó, nhờ vậy mình kịp hạn.",
+   "status": "pending"
+  },
+  {
+   "id": "month.theme.work.mars",
+   "category": "reading",
+   "text": "Tháng này công việc có nhiều sức đẩy nhưng cũng dễ nóng: bạn muốn làm nhanh, người khác muốn làm kỹ.",
+   "status": "pending"
+  },
+  {
+   "id": "month.act.work.mars",
+   "category": "reading",
+   "text": "Chọn một việc đang dở, tách ra một bước làm được trong 30 phút và làm luôn.",
+   "status": "pending"
+  },
+  {
+   "id": "month.say.work.mars",
+   "category": "reading",
+   "text": "Mình muốn xong phần này trước cuối tuần, bạn thấy chỗ nào cần kiểm thêm không?",
+   "status": "pending"
+  },
+  {
+   "id": "month.theme.work.jupiter",
+   "category": "reading",
+   "text": "Tháng này công việc hợp để hỏi thêm cơ hội hoặc học thêm một việc mới, miễn là không ôm quá sức.",
+   "status": "pending"
+  },
+  {
+   "id": "month.act.work.jupiter",
+   "category": "reading",
+   "text": "Ghi ra một việc bạn muốn được thử ở chỗ làm và hỏi người phụ trách cần chuẩn bị gì.",
+   "status": "pending"
+  },
+  {
+   "id": "month.say.work.jupiter",
+   "category": "reading",
+   "text": "Mình muốn thử làm phần này, mình cần chuẩn bị gì để được giao?",
+   "status": "pending"
+  },
+  {
+   "id": "month.theme.work.saturn",
+   "category": "reading",
+   "text": "Tháng này công việc cần sắp lại cho gọn: việc nào của mình, việc nào nên nhờ người khác hoặc xin dời.",
+   "status": "pending"
+  },
+  {
+   "id": "month.act.work.saturn",
+   "category": "reading",
+   "text": "Ghi ra các việc bạn đang ôm, chọn một việc nhờ người khác hoặc xin dời hạn.",
+   "status": "pending"
+  },
+  {
+   "id": "month.say.work.saturn",
+   "category": "reading",
+   "text": "Mình đang có ba việc cùng hạn, bạn muốn mình làm việc nào trước?",
+   "status": "pending"
+  },
+  {
+   "id": "month.theme.work.moon",
+   "category": "reading",
+   "text": "Tháng này tâm trạng ở chỗ làm lên xuống nhiều hơn thường lệ; hôm mệt thì việc nhỏ cũng thấy nặng.",
+   "status": "pending"
+  },
+  {
+   "id": "month.act.work.moon",
+   "category": "reading",
+   "text": "Làm việc khó nhất vào lúc trong ngày bạn thấy tỉnh nhất.",
+   "status": "pending"
+  },
+  {
+   "id": "month.say.work.moon",
+   "category": "reading",
+   "text": "Hôm nay mình hơi đuối, mình làm phần chính trước rồi báo lại sau nhé.",
+   "status": "pending"
+  },
+  {
+   "id": "month.theme.money.sun",
+   "category": "reading",
+   "text": "Tháng này hợp để nhìn thẳng vào chuyện tiền: biết rõ mình đang có bao nhiêu thì đỡ lo hơn.",
+   "status": "pending"
+  },
+  {
+   "id": "month.act.money.sun",
+   "category": "reading",
+   "text": "Ghi ra số tiền đang có và các khoản phải trả từ giờ tới cuối tháng.",
+   "status": "pending"
+  },
+  {
+   "id": "month.say.money.sun",
+   "category": "reading",
+   "text": "Tháng này mình đang giữ chi tiêu, lần sau mình đi cùng nhé.",
+   "status": "pending"
+  },
+  {
+   "id": "month.theme.money.mercury",
+   "category": "reading",
+   "text": "Tháng này chuyện tiền cần ghi chép và hỏi cho rõ: hóa đơn, giá, điều khoản dễ có chỗ bị sót.",
+   "status": "pending"
+  },
+  {
+   "id": "month.act.money.mercury",
+   "category": "reading",
+   "text": "Đọc lại một hóa đơn hoặc tin chuyển khoản gần đây, kiểm lại số tiền.",
+   "status": "pending"
+  },
+  {
+   "id": "month.say.money.mercury",
+   "category": "reading",
+   "text": "Cho mình hỏi lại: khoản này đã gồm hết phí chưa?",
+   "status": "pending"
+  },
+  {
+   "id": "month.theme.money.venus",
+   "category": "reading",
+   "text": "Tháng này tiền dễ đi vào những thứ làm mình vui ngay; tiêu vậy không sai, chỉ cần đặt trước một mức.",
+   "status": "pending"
+  },
+  {
+   "id": "month.act.money.venus",
+   "category": "reading",
+   "text": "Đặt một mức tiền cho các khoản tiêu vui trong tuần này và ghi vào điện thoại.",
+   "status": "pending"
+  },
+  {
+   "id": "month.say.money.venus",
+   "category": "reading",
+   "text": "Món này mình thích, để mình về xem lại tiền rồi quyết.",
+   "status": "pending"
+  },
+  {
+   "id": "month.theme.money.mars",
+   "category": "reading",
+   "text": "Tháng này tiền dễ ra nhanh vì quyết vội; khoản nào bị giục chốt gấp thì nên chờ thêm một ngày.",
+   "status": "pending"
+  },
+  {
+   "id": "month.act.money.mars",
+   "category": "reading",
+   "text": "Với khoản nào trên mức bạn tự đặt, chờ 24 giờ rồi mới trả tiền.",
+   "status": "pending"
+  },
+  {
+   "id": "month.say.money.mars",
+   "category": "reading",
+   "text": "Cho mình suy nghĩ tới mai rồi báo lại nhé.",
+   "status": "pending"
+  },
+  {
+   "id": "month.theme.money.jupiter",
+   "category": "reading",
+   "text": "Tháng này hợp để tính đường tăng thu, như nhận thêm việc hay bán thêm món, miễn là không hứa quá sức.",
+   "status": "pending"
+  },
+  {
+   "id": "month.act.money.jupiter",
+   "category": "reading",
+   "text": "Ghi ra một cách kiếm thêm mà bạn làm được ngay với thời gian đang có.",
+   "status": "pending"
+  },
+  {
+   "id": "month.say.money.jupiter",
+   "category": "reading",
+   "text": "Mình nhận thêm phần việc này được không, và trả công thế nào?",
+   "status": "pending"
+  },
+  {
+   "id": "month.theme.money.saturn",
+   "category": "reading",
+   "text": "Tháng này chuyện tiền cần một khung rõ: khoản nào bắt buộc, khoản nào bớt được.",
+   "status": "pending"
+  },
+  {
+   "id": "month.act.money.saturn",
+   "category": "reading",
+   "text": "Chia các khoản tháng này thành hai cột, bắt buộc và bớt được, rồi gạch một khoản ở cột sau.",
+   "status": "pending"
+  },
+  {
+   "id": "month.say.money.saturn",
+   "category": "reading",
+   "text": "Tháng này mình đang bớt chi, lần này mình xin không tham gia nhé.",
+   "status": "pending"
+  },
+  {
+   "id": "month.theme.money.moon",
+   "category": "reading",
+   "text": "Tháng này tiền dễ đi theo tâm trạng: lúc buồn hay mệt thì muốn mua cho đỡ.",
+   "status": "pending"
+  },
+  {
+   "id": "month.act.money.moon",
+   "category": "reading",
+   "text": "Khi muốn mua lúc đang mệt, ghi món đó vào danh sách và xem lại sau hai ngày.",
+   "status": "pending"
+  },
+  {
+   "id": "month.say.money.moon",
+   "category": "reading",
+   "text": "Mình đang mệt nên chưa quyết, để mình xem lại sau.",
+   "status": "pending"
+  },
+  {
+   "id": "month.theme.love.sun",
+   "category": "reading",
+   "text": "Tháng này chuyện tình cảm hợp để bạn nói rõ mình muốn gì, thay vì chờ người kia đoán.",
+   "status": "pending"
+  },
+  {
+   "id": "month.act.love.sun",
+   "category": "reading",
+   "text": "Viết ra một điều bạn muốn có trong mối quan hệ này, bằng một câu ngắn.",
+   "status": "pending"
+  },
+  {
+   "id": "month.say.love.sun",
+   "category": "reading",
+   "text": "Mình muốn tụi mình gặp nhau đều hơn, bạn thấy sao?",
+   "status": "pending"
+  },
+  {
+   "id": "month.theme.love.mercury",
+   "category": "reading",
+   "text": "Tháng này chuyện tình cảm xoay quanh cách nói chuyện: tin nhắn ngắn dễ bị hiểu sai giọng.",
+   "status": "pending"
+  },
+  {
+   "id": "month.act.love.mercury",
+   "category": "reading",
+   "text": "Có chuyện quan trọng thì hẹn gọi điện hoặc gặp, đừng chỉ nhắn tin.",
+   "status": "pending"
+  },
+  {
+   "id": "month.say.love.mercury",
+   "category": "reading",
+   "text": "Chuyện này mình muốn nói trực tiếp, tối nay bạn gọi được không?",
+   "status": "pending"
+  },
+  {
+   "id": "month.theme.love.venus",
+   "category": "reading",
+   "text": "Tháng này chuyện tình cảm hợp với những việc nhỏ dễ thương: một lời khen thật, một buổi đi chơi đơn giản.",
+   "status": "pending"
+  },
+  {
+   "id": "month.act.love.venus",
+   "category": "reading",
+   "text": "Rủ người bạn quý làm một việc nhỏ cùng nhau, như đi ăn hay đi dạo.",
+   "status": "pending"
+  },
+  {
+   "id": "month.say.love.venus",
+   "category": "reading",
+   "text": "Cuối tuần này mình đi ăn món bạn thích nhé?",
+   "status": "pending"
+  },
+  {
+   "id": "month.theme.love.mars",
+   "category": "reading",
+   "text": "Tháng này chuyện tình cảm dễ va chạm vì ai cũng muốn theo ý mình; thấy nóng thì dừng trước khi nói tiếp.",
+   "status": "pending"
+  },
+  {
+   "id": "month.act.love.mars",
+   "category": "reading",
+   "text": "Khi thấy mình bắt đầu nóng, xin dừng 15 phút rồi mới nói tiếp.",
+   "status": "pending"
+  },
+  {
+   "id": "month.say.love.mars",
+   "category": "reading",
+   "text": "Mình đang hơi nóng, cho mình 15 phút rồi mình nói tiếp nhé.",
+   "status": "pending"
+  },
+  {
+   "id": "month.theme.love.jupiter",
+   "category": "reading",
+   "text": "Tháng này chuyện tình cảm hợp để mở lòng thêm một chút: gặp người mới, hoặc làm điều mới cùng người quen.",
+   "status": "pending"
+  },
+  {
+   "id": "month.act.love.jupiter",
+   "category": "reading",
+   "text": "Nhận lời một buổi gặp mặt, hoặc rủ người ấy tới một chỗ hai người chưa đi bao giờ.",
+   "status": "pending"
+  },
+  {
+   "id": "month.say.love.jupiter",
+   "category": "reading",
+   "text": "Chỗ này mình chưa thử bao giờ, bạn đi cùng mình không?",
+   "status": "pending"
+  },
+  {
+   "id": "month.theme.love.saturn",
+   "category": "reading",
+   "text": "Tháng này chuyện tình cảm cần nói chuyện nghiêm túc hơn: điều gì hai bên giữ được, điều gì chưa.",
+   "status": "pending"
+  },
+  {
+   "id": "month.act.love.saturn",
+   "category": "reading",
+   "text": "Chọn một chuyện hai người hay né, hẹn một lúc yên tĩnh để nói.",
+   "status": "pending"
+  },
+  {
+   "id": "month.say.love.saturn",
+   "category": "reading",
+   "text": "Có một chuyện mình muốn nói nghiêm túc, khi nào bạn rảnh mình nói nhé?",
+   "status": "pending"
+  },
+  {
+   "id": "month.theme.love.moon",
+   "category": "reading",
+   "text": "Tháng này cảm xúc trong chuyện tình cảm lên xuống nhanh; bạn dễ cần được quan tâm hơn thường lệ.",
+   "status": "pending"
+  },
+  {
+   "id": "month.act.love.moon",
+   "category": "reading",
+   "text": "Nói ra một điều nhỏ bạn cần khi buồn, như một cuộc gọi hay một cái ôm.",
+   "status": "pending"
+  },
+  {
+   "id": "month.say.love.moon",
+   "category": "reading",
+   "text": "Hôm nay mình hơi buồn, bạn gọi cho mình một chút được không?",
+   "status": "pending"
+  },
+  {
+   "id": "month.theme.family.sun",
+   "category": "reading",
+   "text": "Tháng này chuyện nhà hợp để bạn nói rõ lựa chọn của mình, nhẹ nhàng nhưng không né.",
+   "status": "pending"
+  },
+  {
+   "id": "month.act.family.sun",
+   "category": "reading",
+   "text": "Chọn một chuyện bạn đã quyết, nói với người nhà bằng một câu ngắn kèm lý do.",
+   "status": "pending"
+  },
+  {
+   "id": "month.say.family.sun",
+   "category": "reading",
+   "text": "Mình đã nghĩ kỹ chuyện này rồi, mọi người nghe mình nói hết đã nhé.",
+   "status": "pending"
+  },
+  {
+   "id": "month.theme.family.mercury",
+   "category": "reading",
+   "text": "Tháng này chuyện nhà xoay quanh cách nói: cùng một ý, nói lúc mệt dễ thành cãi nhau.",
+   "status": "pending"
+  },
+  {
+   "id": "month.act.family.mercury",
+   "category": "reading",
+   "text": "Gọi về nhà lúc cả hai bên đều rảnh, hỏi thăm người kia trước khi kể chuyện của mình.",
+   "status": "pending"
+  },
+  {
+   "id": "month.say.family.mercury",
+   "category": "reading",
+   "text": "Dạo này nhà mình thế nào? Mình gọi hỏi thăm chút.",
+   "status": "pending"
+  },
+  {
+   "id": "month.theme.family.venus",
+   "category": "reading",
+   "text": "Tháng này chuyện nhà dễ êm hơn nhờ những việc nhỏ: một bữa ăn chung, một món quà nhỏ.",
+   "status": "pending"
+  },
+  {
+   "id": "month.act.family.venus",
+   "category": "reading",
+   "text": "Rủ người nhà ăn chung một bữa, hoặc gửi một món nhỏ kèm lời nhắn.",
+   "status": "pending"
+  },
+  {
+   "id": "month.say.family.venus",
+   "category": "reading",
+   "text": "Mình gửi chút quà, cả nhà dùng cho vui nhé.",
+   "status": "pending"
+  },
+  {
+   "id": "month.theme.family.mars",
+   "category": "reading",
+   "text": "Tháng này chuyện nhà dễ căng khi ai cũng muốn người kia nghe mình; nói to không giải quyết được gì.",
+   "status": "pending"
+  },
+  {
+   "id": "month.act.family.mars",
+   "category": "reading",
+   "text": "Khi câu chuyện bắt đầu to tiếng, xin dừng và hẹn nói lại vào lúc khác.",
+   "status": "pending"
+  },
+  {
+   "id": "month.say.family.mars",
+   "category": "reading",
+   "text": "Giờ ai cũng đang mệt, mình nói lại chuyện này sau bữa tối nhé.",
+   "status": "pending"
+  },
+  {
+   "id": "month.theme.family.jupiter",
+   "category": "reading",
+   "text": "Tháng này hợp để gần lại với người nhà: hỏi han nhiều hơn, rủ nhau làm một việc chung.",
+   "status": "pending"
+  },
+  {
+   "id": "month.act.family.jupiter",
+   "category": "reading",
+   "text": "Hẹn một buổi gọi video hoặc về thăm, chọn trước một chuyện vui để kể.",
+   "status": "pending"
+  },
+  {
+   "id": "month.say.family.jupiter",
+   "category": "reading",
+   "text": "Cuối tuần này cả nhà gọi video một chút nhé.",
+   "status": "pending"
+  },
+  {
+   "id": "month.theme.family.saturn",
+   "category": "reading",
+   "text": "Tháng này chuyện nhà cần chia việc cho rõ: ai lo khoản nào, ai làm việc gì.",
+   "status": "pending"
+  },
+  {
+   "id": "month.act.family.saturn",
+   "category": "reading",
+   "text": "Ghi ra các việc nhà bạn đang gánh, chọn một việc nhờ người khác cùng làm.",
+   "status": "pending"
+  },
+  {
+   "id": "month.say.family.saturn",
+   "category": "reading",
+   "text": "Việc này một mình mình lo không xuể, mình chia nhau mỗi người một phần nhé?",
+   "status": "pending"
+  },
+  {
+   "id": "month.theme.family.moon",
+   "category": "reading",
+   "text": "Tháng này bạn dễ nhớ nhà, hoặc dễ để bụng hơn với lời người nhà nói.",
+   "status": "pending"
+  },
+  {
+   "id": "month.act.family.moon",
+   "category": "reading",
+   "text": "Gọi cho một người trong nhà mà bạn thấy dễ nói chuyện nhất.",
+   "status": "pending"
+  },
+  {
+   "id": "month.say.family.moon",
+   "category": "reading",
+   "text": "Mình nhớ nhà, gọi nói chuyện chút thôi.",
+   "status": "pending"
+  },
+  {
+   "id": "month.theme.study.sun",
+   "category": "reading",
+   "text": "Tháng này việc học hợp để chọn rõ một mục tiêu và dồn sức vào đó, thay vì cố đều mọi môn.",
+   "status": "pending"
+  },
+  {
+   "id": "month.act.study.sun",
+   "category": "reading",
+   "text": "Chọn một môn hoặc một bài quan trọng nhất tháng này và ghi ra vì sao nó quan trọng.",
+   "status": "pending"
+  },
+  {
+   "id": "month.say.study.sun",
+   "category": "reading",
+   "text": "Mình muốn làm tốt phần này, bạn góp ý giúp mình chỗ nào cần sửa nhé?",
+   "status": "pending"
+  },
+  {
+   "id": "month.theme.study.mercury",
+   "category": "reading",
+   "text": "Tháng này việc học hợp với ghi chép, hỏi bài và ôn lại; chỗ nào chưa hiểu thì nên hỏi sớm.",
+   "status": "pending"
+  },
+  {
+   "id": "month.act.study.mercury",
+   "category": "reading",
+   "text": "Ghi ra một chỗ bạn chưa hiểu và hỏi thầy cô hoặc bạn học ngay trong tuần.",
+   "status": "pending"
+  },
+  {
+   "id": "month.say.study.mercury",
+   "category": "reading",
+   "text": "Em chưa rõ phần này, thầy cô cho em thêm một ví dụ được không ạ?",
+   "status": "pending"
+  },
+  {
+   "id": "month.theme.study.venus",
+   "category": "reading",
+   "text": "Tháng này học dễ vào hơn khi có bạn học cùng hoặc có một góc ngồi dễ chịu.",
+   "status": "pending"
+  },
+  {
+   "id": "month.act.study.venus",
+   "category": "reading",
+   "text": "Rủ một người bạn ôn chung một buổi, hoặc dọn gọn góc học của bạn.",
+   "status": "pending"
+  },
+  {
+   "id": "month.say.study.venus",
+   "category": "reading",
+   "text": "Tối nay mình ôn chung một tiếng nhé, mỗi đứa giảng một phần.",
+   "status": "pending"
+  },
+  {
+   "id": "month.theme.study.mars",
+   "category": "reading",
+   "text": "Tháng này việc học có sức đẩy nhưng dễ nản nếu ôm nhiều; chia nhỏ thì làm được nhiều hơn.",
+   "status": "pending"
+  },
+  {
+   "id": "month.act.study.mars",
+   "category": "reading",
+   "text": "Chia bài lớn nhất thành các phần 30 phút và làm phần đầu tiên hôm nay.",
+   "status": "pending"
+  },
+  {
+   "id": "month.say.study.mars",
+   "category": "reading",
+   "text": "Phần này mình làm, phần kia bạn làm, tối mai mình ghép lại nhé.",
+   "status": "pending"
+  },
+  {
+   "id": "month.theme.study.jupiter",
+   "category": "reading",
+   "text": "Tháng này hợp để học thêm điều mới hoặc tìm hiểu một hướng đi, miễn là không bỏ dở việc đang học.",
+   "status": "pending"
+  },
+  {
+   "id": "month.act.study.jupiter",
+   "category": "reading",
+   "text": "Dành 20 phút tìm hiểu một khóa học hoặc một hướng bạn quan tâm, ghi lại một điều cần hỏi.",
+   "status": "pending"
+  },
+  {
+   "id": "month.say.study.jupiter",
+   "category": "reading",
+   "text": "Em muốn tìm hiểu thêm hướng này, thầy cô gợi ý giúp em nên bắt đầu từ đâu ạ?",
+   "status": "pending"
+  },
+  {
+   "id": "month.theme.study.saturn",
+   "category": "reading",
+   "text": "Tháng này việc học cần một lịch rõ ràng; mỗi ngày học một ít hiệu quả hơn dồn vào cuối.",
+   "status": "pending"
+  },
+  {
+   "id": "month.act.study.saturn",
+   "category": "reading",
+   "text": "Lập lịch ôn cho hai tuần tới, mỗi ngày một phần nhỏ, rồi dán ở chỗ dễ thấy.",
+   "status": "pending"
+  },
+  {
+   "id": "month.say.study.saturn",
+   "category": "reading",
+   "text": "Tối nay mình học tới chín giờ, xong mình trả lời bạn nhé.",
+   "status": "pending"
+  },
+  {
+   "id": "month.theme.study.moon",
+   "category": "reading",
+   "text": "Tháng này tâm trạng ảnh hưởng nhiều tới việc học; hôm mệt thì học ít mà đều vẫn hơn bỏ hẳn.",
+   "status": "pending"
+  },
+  {
+   "id": "month.act.study.moon",
+   "category": "reading",
+   "text": "Hôm nào thấy đuối, chỉ cần ôn 15 phút phần dễ nhất.",
+   "status": "pending"
+  },
+  {
+   "id": "month.say.study.moon",
+   "category": "reading",
+   "text": "Hôm nay mình hơi mệt, mình ôn nhẹ rồi nghỉ sớm.",
+   "status": "pending"
+  },
+  {
+   "id": "month.theme.mind.sun",
+   "category": "reading",
+   "text": "Tháng này bạn cần thấy mình được sống theo ý mình một chút, không chỉ chạy theo việc của người khác.",
+   "status": "pending"
+  },
+  {
+   "id": "month.act.mind.sun",
+   "category": "reading",
+   "text": "Dành 20 phút trong tuần cho một việc chỉ để bạn vui, không vì ai.",
+   "status": "pending"
+  },
+  {
+   "id": "month.say.mind.sun",
+   "category": "reading",
+   "text": "Tối nay mình có việc riêng, mai mình trả lời nhé.",
+   "status": "pending"
+  },
+  {
+   "id": "month.theme.mind.mercury",
+   "category": "reading",
+   "text": "Tháng này đầu óc dễ nghĩ nhiều, nghĩ đi nghĩ lại một chuyện.",
+   "status": "pending"
+  },
+  {
+   "id": "month.act.mind.mercury",
+   "category": "reading",
+   "text": "Viết ra điều đang làm bạn nghĩ nhiều, rồi ghi một bước nhỏ bạn làm được.",
+   "status": "pending"
+  },
+  {
+   "id": "month.say.mind.mercury",
+   "category": "reading",
+   "text": "Dạo này mình nghĩ nhiều quá, mình kể bạn nghe chút được không?",
+   "status": "pending"
+  },
+  {
+   "id": "month.theme.mind.venus",
+   "category": "reading",
+   "text": "Tháng này bạn dễ thấy nhẹ hơn nhờ những thứ dễ chịu nhỏ: nhạc hay, món ngon, một người bạn.",
+   "status": "pending"
+  },
+  {
+   "id": "month.act.mind.venus",
+   "category": "reading",
+   "text": "Làm một việc nhỏ khiến bạn dễ chịu mà không phải tiêu nhiều tiền.",
+   "status": "pending"
+  },
+  {
+   "id": "month.say.mind.venus",
+   "category": "reading",
+   "text": "Mình muốn đi dạo một chút, bạn đi cùng không?",
+   "status": "pending"
+  },
+  {
+   "id": "month.theme.mind.mars",
+   "category": "reading",
+   "text": "Tháng này bạn dễ bực và căng hơn thường lệ; cơn bực cần có chỗ xả.",
+   "status": "pending"
+  },
+  {
+   "id": "month.act.mind.mars",
+   "category": "reading",
+   "text": "Khi thấy bực, đi bộ nhanh hoặc vận động 15 phút trước khi trả lời ai.",
+   "status": "pending"
+  },
+  {
+   "id": "month.say.mind.mars",
+   "category": "reading",
+   "text": "Mình đang bực, để mình bình tĩnh rồi nói chuyện sau nhé.",
+   "status": "pending"
+  },
+  {
+   "id": "month.theme.mind.jupiter",
+   "category": "reading",
+   "text": "Tháng này hợp để nhìn rộng ra: chuyện đang làm bạn nặng lòng có thể nhỏ hơn bạn nghĩ.",
+   "status": "pending"
+  },
+  {
+   "id": "month.act.mind.jupiter",
+   "category": "reading",
+   "text": "Kể chuyện đang làm bạn lo cho một người bạn tin, hỏi họ nhìn từ ngoài thấy thế nào.",
+   "status": "pending"
+  },
+  {
+   "id": "month.say.mind.jupiter",
+   "category": "reading",
+   "text": "Mình kể bạn nghe chuyện này, bạn nhìn từ ngoài thấy thế nào?",
+   "status": "pending"
+  },
+  {
+   "id": "month.theme.mind.saturn",
+   "category": "reading",
+   "text": "Tháng này bạn dễ thấy nặng vai; nghỉ ngơi cũng là một việc cần làm, không phải lười.",
+   "status": "pending"
+  },
+  {
+   "id": "month.act.mind.saturn",
+   "category": "reading",
+   "text": "Chọn một buổi trong tuần không nhận thêm việc gì, chỉ để nghỉ.",
+   "status": "pending"
+  },
+  {
+   "id": "month.say.mind.saturn",
+   "category": "reading",
+   "text": "Tuần này mình kín lịch rồi, mình hẹn lại dịp khác nhé.",
+   "status": "pending"
+  },
+  {
+   "id": "month.theme.mind.moon",
+   "category": "reading",
+   "text": "Tháng này cảm xúc lên xuống nhanh hơn; buồn bất chợt không có nghĩa là có gì sai.",
+   "status": "pending"
+  },
+  {
+   "id": "month.act.mind.moon",
+   "category": "reading",
+   "text": "Mỗi tối ghi một dòng: hôm nay mình thấy thế nào.",
+   "status": "pending"
+  },
+  {
+   "id": "month.say.mind.moon",
+   "category": "reading",
+   "text": "Hôm nay mình thấy hơi chùng, mình nghỉ sớm một chút.",
+   "status": "pending"
+  },
+  {
+   "id": "month.reframe.outcome",
+   "category": "reading",
+   "text": "Lá không đoán được chuyện này sẽ ra sao. Đây là việc giúp bạn có thêm cơ hội.",
+   "status": "pending"
+  },
+  {
+   "id": "month.reframe.timing",
+   "category": "reading",
+   "text": "Lá không đoán ngày chuyện này xảy ra. Đây là việc bạn làm được từ bây giờ.",
+   "status": "pending"
+  },
+  {
+   "id": "month.reframe.should",
+   "category": "reading",
+   "text": "Lá không chọn thay bạn. Đây là điều giúp bạn tự cân nhắc.",
+   "status": "pending"
+  },
+  {
+   "id": "month.reframe.other_mind",
+   "category": "reading",
+   "text": "Lá không đoán được người khác nghĩ gì. Đây là việc bạn làm được ở phía mình.",
+   "status": "pending"
+  },
+  {
+   "id": "month.line.disclaimer",
+   "category": "reading",
+   "text": "Đây là một góc nhìn để bạn tự quyết, không phải điều chắc chắn sẽ xảy ra.",
+   "status": "pending"
+  },
+  {
+   "id": "month.line.window",
+   "category": "reading",
+   "text": "Làm lúc nào cũng được; khoảng này chỉ dễ hơn một chút.",
+   "status": "pending"
+  },
+  {
+   "id": "month.line.need_topic",
+   "category": "reading",
+   "text": "Lá chưa rõ câu này thuộc chuyện gì. Bạn chọn một mảng bên dưới nhé.",
+   "status": "pending"
+  },
+  {
+   "id": "consent.month.typed_question",
+   "category": "consent",
+   "text": "Câu bạn gõ chỉ dùng để Lá chọn mảng và cách trả lời ngay lúc này. Lá không lưu câu này, không ghi lại và không gửi cho ai.",
+   "status": "pending"
+  },
+  {
+   "id": "crisis.self_harm.notice.month",
+   "category": "crisis",
+   "text": "Mình rất tiếc vì bạn đang phải chịu điều này. Lá không thể hỗ trợ tình huống này. Nếu bạn có thể làm hại bản thân lúc này, hãy tìm một người bạn tin cậy ở cạnh và nhờ hỗ trợ khẩn cấp.",
+   "status": "pending"
   }
  ],
  "version": "copy-registry/v1"

@@ -83,6 +83,10 @@ def _policy(request: Request) -> AdmissionPolicy | None:
         return AdmissionPolicy("guest-create", per_peer=10, global_limit=120)
     if request.method == "POST" and path == "/v1/tarot/sessions":
         return AdmissionPolicy("tarot-session-create", per_peer=20, global_limit=240)
+    if request.method == "POST" and path == "/v1/month/answers":
+        return AdmissionPolicy("month-answer", per_peer=30, global_limit=360)
+    if request.method == "GET" and path in {"/v1/month/window", "/v1/month/overview"}:
+        return AdmissionPolicy("month-read", per_peer=60, global_limit=600)
     if request.method == "GET" and path == "/v1/human-tarot/availability":
         return AdmissionPolicy("human-tarot-availability", per_peer=120, global_limit=1200)
     if request.method == "POST" and path == "/v1/human-tarot/requests":

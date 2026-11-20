@@ -4087,6 +4087,335 @@
         "title": "MatchingReadinessResponse",
         "type": "object"
       },
+      "MonthAnswerRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "consent_version": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Consent Version"
+          },
+          "question": {
+            "anyOf": [
+              {
+                "maxLength": 280,
+                "minLength": 8,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Question"
+          },
+          "topic": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Topic"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "MonthAnswerRequest",
+        "type": "object"
+      },
+      "MonthAnswerResponse": {
+        "properties": {
+          "answer": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MonthAnswerView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "need_topic": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Need Topic"
+          },
+          "status": {
+            "enum": [
+              "answered",
+              "need_topic"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "MonthAnswerResponse",
+        "type": "object"
+      },
+      "MonthAnswerView": {
+        "properties": {
+          "act": {
+            "title": "Act",
+            "type": "string"
+          },
+          "answer_key": {
+            "title": "Answer Key",
+            "type": "string"
+          },
+          "basis": {
+            "$ref": "#/components/schemas/MonthBasis"
+          },
+          "disclaimer": {
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "month": {
+            "title": "Month",
+            "type": "string"
+          },
+          "reframe": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reframe"
+          },
+          "say": {
+            "title": "Say",
+            "type": "string"
+          },
+          "theme": {
+            "title": "Theme",
+            "type": "string"
+          },
+          "topic": {
+            "$ref": "#/components/schemas/Topic"
+          },
+          "topic_label": {
+            "title": "Topic Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "month",
+          "topic",
+          "topic_label",
+          "reframe",
+          "theme",
+          "act",
+          "say",
+          "basis",
+          "disclaimer",
+          "answer_key"
+        ],
+        "title": "MonthAnswerView",
+        "type": "object"
+      },
+      "MonthBasis": {
+        "properties": {
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "line": {
+            "title": "Line",
+            "type": "string"
+          }
+        },
+        "required": [
+          "line",
+          "detail"
+        ],
+        "title": "MonthBasis",
+        "type": "object"
+      },
+      "MonthConsent": {
+        "properties": {
+          "copy_id": {
+            "title": "Copy Id",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "version",
+          "copy_id",
+          "text"
+        ],
+        "title": "MonthConsent",
+        "type": "object"
+      },
+      "MonthOverviewItem": {
+        "properties": {
+          "area": {
+            "enum": [
+              "work",
+              "love",
+              "money",
+              "self"
+            ],
+            "title": "Area",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "line": {
+            "title": "Line",
+            "type": "string"
+          },
+          "try_text": {
+            "title": "Try Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "area",
+          "label",
+          "line",
+          "try_text"
+        ],
+        "title": "MonthOverviewItem",
+        "type": "object"
+      },
+      "MonthOverviewResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MonthOverviewItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "month": {
+            "title": "Month",
+            "type": "string"
+          }
+        },
+        "required": [
+          "month",
+          "items"
+        ],
+        "title": "MonthOverviewResponse",
+        "type": "object"
+      },
+      "MonthStatusResponse": {
+        "properties": {
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "consent": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MonthConsent"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "month": {
+            "title": "Month",
+            "type": "string"
+          },
+          "typed_questions": {
+            "title": "Typed Questions",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "available",
+          "typed_questions",
+          "month"
+        ],
+        "title": "MonthStatusResponse",
+        "type": "object"
+      },
+      "MonthWindowResponse": {
+        "properties": {
+          "basis": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Basis"
+          },
+          "end": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End"
+          },
+          "found": {
+            "title": "Found",
+            "type": "boolean"
+          },
+          "line": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Line"
+          },
+          "start": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start"
+          }
+        },
+        "required": [
+          "found"
+        ],
+        "title": "MonthWindowResponse",
+        "type": "object"
+      },
       "MoodRequest": {
         "additionalProperties": false,
         "properties": {
@@ -6916,6 +7245,18 @@
           "unknown"
         ],
         "title": "TimePrecision",
+        "type": "string"
+      },
+      "Topic": {
+        "enum": [
+          "work",
+          "money",
+          "love",
+          "family",
+          "study",
+          "mind"
+        ],
+        "title": "Topic",
         "type": "string"
       },
       "Tradition": {
@@ -12731,6 +13072,190 @@
         "summary": "Get Readiness",
         "tags": [
           "matching"
+        ]
+      }
+    },
+    "/v1/month/answers": {
+      "post": {
+        "operationId": "month_answer_v1_month_answers_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MonthAnswerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonthAnswerResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
+          },
+          "428": {
+            "description": "Precondition Required"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Month Answer",
+        "tags": [
+          "month-answers"
+        ]
+      }
+    },
+    "/v1/month/overview": {
+      "get": {
+        "operationId": "month_overview_v1_month_overview_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonthOverviewResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Month Overview",
+        "tags": [
+          "month-answers"
+        ]
+      }
+    },
+    "/v1/month/status": {
+      "get": {
+        "operationId": "month_status_v1_month_status_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonthStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Month Status",
+        "tags": [
+          "month-answers"
+        ]
+      }
+    },
+    "/v1/month/window": {
+      "get": {
+        "operationId": "month_window_v1_month_window_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "topic",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Topic"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonthWindowResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Month Window",
+        "tags": [
+          "month-answers"
         ]
       }
     },
