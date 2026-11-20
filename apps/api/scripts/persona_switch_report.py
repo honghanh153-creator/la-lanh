@@ -21,6 +21,7 @@ from typing import Any
 PRECISIONS = ("exact", "approximate", "date_only")
 LOW_MOOD = "Đuối"
 FIELDS = ("headline", "body", "action", "la_line")
+ISSUE_BY_HEADLINE: dict[str, str] = {}
 
 
 def norm(text: Any) -> str:
@@ -91,8 +92,13 @@ def per_persona(rows: list[dict[str, Any]], first_day: int, last_day: int) -> di
             "from_p1": fromp1,
             "first_repeat_day": first_repeat_day,
         }
-    # 14-day topic variety: distinct situations per 14-day window inside the range.
-    by_day = {r["day"]: r.get("situation") for r in rows if r.get("status") == 200}
+    # 14-day topic variety: distinct situations per 14-day window inside the range. The headline
+    # names its situation when the pick observer saw none (``--issue-map``).
+    by_day = {
+        r["day"]: r.get("situation") or ISSUE_BY_HEADLINE.get(norm(r.get("headline")))
+        for r in rows
+        if r.get("status") == 200
+    }
     windows = []
     for start in range(first_day, last_day - 12, 14):
         topics = {by_day.get(d) for d in range(start, start + 14)} - {None}
@@ -239,12 +245,22 @@ def main() -> None:
     parser.add_argument("--p1", required=True)
     parser.add_argument("--p2", action="append", default=[], help="name=dir")
     parser.add_argument("--json")
+    parser.add_argument("--issue-map", help="JSON {normalised headline: situation key}")
     args = parser.parse_args()
+    if args.issue_map:
+        ISSUE_BY_HEADLINE.update(json.loads(Path(args.issue_map).read_text(encoding="utf-8")))
     personas = json.loads(Path(args.personas).read_text(encoding="utf-8"))["personas"]
-    groups = {k: [p["id"] for p in personas if p["birth"]["precision"] == k] for k in PRECISIONS}
-    groups["all"] = [p["id"] for p in personas]
     p1 = load(Path(args.p1))
-    result: dict[str, Any] = {"phase1": {}, "phase2": {}}
+    # A persona the app refused at setup (e.g. under 18 on the phase-1 start date) has no history
+    # to carry over; it is left out and counted.
+    served = {r["persona"] for r in p1 if r.get("status") == 200}
+    groups = {
+        k: [p["id"] for p in personas if p["birth"]["precision"] == k and p["id"] in served]
+        for k in PRECISIONS
+    }
+    groups["all"] = [p["id"] for p in personas if p["id"] in served]
+    result_excluded = sorted({p["id"] for p in personas} - served)
+    result: dict[str, Any] = {"phase1": {}, "phase2": {}, "excluded": result_excluded}
     by1: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for r in p1:
         r.setdefault("phase", 1)
