@@ -41,7 +41,7 @@ Không bao gồm: báo trước sự kiện, "ngày xấu", bộ đếm câu h�
 | AC11 | Tính năng chỉ hiện khi mọi câu chữ đã được duyệt (`/v1/month/status.available`); chưa duyệt thì trả "chưa sẵn sàng", không trả nửa câu. | `test_api.py::test_status_*`, `test_pending_copy_answers_unavailable_not_half` |
 | AC12 | Lưu chủ động, mục riêng, xóa được; máy chủ tự tính lại câu trả lời, không nhận chữ từ máy khách; có trong xuất dữ liệu; xóa có nhật ký; xóa giờ/nơi sinh thì xóa theo. | `test_saved.py` |
 | AC13 | Nút trên Trang chủ cạnh "Rút Tarot"; nút ngày thu gọn sẵn; không nhắc, không đếm; không hiện câu trả lời trên Trang chủ; lời nhắc đầu tuần tắt sẵn. Nhãn giao diện `month.ui.*` cũng chờ duyệt; màn chỉ hiện khi duyệt đủ. | `apps/web/src/features/month/MonthAskPage.test.tsx`, `HomePage.test.tsx`, `monthCopy.test.ts` |
-| AC14 | 1000 người giả: không lọt câu khủng hoảng, không lẫn dữ liệu giữa người. | PR 4 |
+| AC14 | 1000 người giả: không lọt câu khủng hoảng, không lẫn dữ liệu giữa người. | `scripts/persona_month_check.py`, `qa/personas/runs/month-2026-11-20/` (135/135, báo nhầm 0/4228, lẫn dữ liệu 0) |
 
 ## Cách tính (tóm tắt)
 

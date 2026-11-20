@@ -1,0 +1,41 @@
+{
+ "git_head": "371fddbe0bbe270dcc74e77431494b7244f4eece",
+ "personas": 1000,
+ "by_precision": {
+  "approximate": 200,
+  "exact": 500,
+  "date_only": 300
+ },
+ "seconds": 138.6,
+ "database": "local SQLite per worker (synthetic, deleted with the temp dir)",
+ "copy": "month.* and the two owner drafts served as approved in memory for this run only",
+ "crisis": {
+  "inputs": 135,
+  "routed": 135,
+  "missed": 0,
+  "recall": 1.0
+ },
+ "false_alarms": {
+  "figurative_inputs": 205,
+  "figurative_flagged": 0,
+  "typed_questions": 4023,
+  "typed_flagged": 0,
+  "rate": 0.0
+ },
+ "typed": {
+  "answered": 3234,
+  "need_topic": 789,
+  "reframed": 1682,
+  "topics": {
+   "family": 601,
+   "love": 190,
+   "mind": 342,
+   "money": 431,
+   "study": 926,
+   "work": 744
+  }
+ },
+ "topic_answers": 6000,
+ "failures": {},
+ "failing_personas": []
+}
