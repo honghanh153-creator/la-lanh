@@ -968,6 +968,25 @@
    "closedBy": {
     "pr": 738
    }
+  },
+  {
+   "id": "L54",
+   "title": "Câu chữ mà một tính năng đã xong chỉ còn chờ (việc nhẹ ngày Đuối) được lô duyệt copy xét trước, không đứng sau hàng trăm câu khác (chạy thử người dùng cũ 20.11: 0/4715 ngày Đuối có việc nhẹ)",
+   "from": "chạy thử 1000 người dùng cũ 20.11 (#777), Codex auto-1 trên #780",
+   "who": "claude",
+   "due": "2026-11-21",
+   "status": "done",
+   "test": {
+    "file": "scripts/codex-copy-review.test.mjs",
+    "name": "copy a finished feature waits on (lighter actions) goes first, the rest keeps registry order"
+   },
+   "caller": {
+    "file": "scripts/codex-copy-review.mjs",
+    "contains": "const pending = batchFor(registry, rejectedFile ? readRejected(rejectedFile) : {});"
+   },
+   "closedBy": {
+    "pr": 780
+   }
   }
  ]
 }
