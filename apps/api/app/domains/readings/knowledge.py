@@ -977,8 +977,15 @@ def full_frame(plan: ReadingPlan) -> InterpretationFrame:
     else:
         aspect_name = None
         phase_copy = ""
+        # Two placements in one sign share one style: name it once, never "vừa X, vừa X"
+        # (new-user persona run 20.11.2026).
+        tendency = (
+            f"Bạn có xu hướng {sign_a.style}. "
+            if sign_a.style == sign_b.style
+            else f"Bạn vừa có xu hướng {sign_a.style}, vừa có xu hướng {sign_b.style}. "
+        )
         aspect_core = (
-            f"Bạn vừa có xu hướng {sign_a.style}, vừa có xu hướng {sign_b.style}. "
+            f"{tendency}"
             f"Điểm cần để ý là lúc bạn {planet_a.stress}, nhất là khi bạn cũng "
             f"{planet_b.stress}."
         )
@@ -1140,7 +1147,13 @@ def _lens_copy(
             InterpretiveLens.COMMUNICATION: "Khi nói chuyện, bạn",
             InterpretiveLens.GROWTH: "Khi thử cách làm mới, bạn",
         }.get(lens, "Bạn")
-        initiative = " khi bạn chủ động" if aspect_name == "sextile" else ""
+        # A need that already says "chủ động" would make the line circular
+        # ("giữ quyền chủ động … hỗ trợ nhau khi bạn chủ động"), so the clause is left out then.
+        initiative = (
+            " khi bạn chủ động"
+            if aspect_name == "sextile" and "chủ động" not in f"{hook_need_a} {hook_need_b}"
+            else ""
+        )
         hook = (
             f"{prefix} có thể {hook_need_a} mà vẫn {hook_need_b}. "
             f"Hai nhu cầu này hỗ trợ nhau{initiative}."
