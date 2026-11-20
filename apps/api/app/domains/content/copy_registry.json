@@ -10275,7 +10275,7 @@
   {
    "id": "la.issue.missing-context.04.roast",
    "category": "reading",
-   "text": "Tự hiểu một mình rồi lỡ hiểu sai thì mệt. Hỏi lại đi.",
+   "text": "Tự hiểu một mình rồi lỡ hiểu sai thì phiền. Hỏi lại đi.",
    "status": "pending"
   },
   {
@@ -10467,7 +10467,7 @@
   {
    "id": "la.issue.automatic-caretaking.04.roast",
    "category": "reading",
-   "text": "Pin còn mười phần trăm mà vẫn nhận thêm hả? Nói vừa sức thôi.",
+   "text": "Ai nhờ gì cũng gật hả? Nói vừa sức mình thôi.",
    "status": "pending"
   },
   {
@@ -10497,13 +10497,13 @@
   {
    "id": "la.issue.decision-fatigue.03.direct",
    "category": "reading",
-   "text": "Đang mệt thì để lựa chọn lớn tới lúc ngủ dậy.",
+   "text": "Gạch bớt những lựa chọn không hợp, chỉ giữ lại hai cái.",
    "status": "pending"
   },
   {
    "id": "la.issue.decision-fatigue.03.roast",
    "category": "reading",
-   "text": "Mệt rồi còn chọn tới chọn lui. Gạch bớt hai cái đi.",
+   "text": "Chọn tới chọn lui cả buổi rồi. Gạch bớt cho còn hai cái đi.",
    "status": "pending"
   },
   {
