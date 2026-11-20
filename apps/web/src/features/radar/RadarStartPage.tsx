@@ -19,7 +19,6 @@ import "./radar.css";
 import { RadarEraseSheet } from "./RadarEraseSheet";
 import { useRadarEraseTarget } from "./useRadarEraseTarget";
 import { RadarFlowSteps } from "./RadarFlowSteps";
-import { RadarPrecisionGate } from "./RadarPrecisionGate";
 import { RADAR_CONTEXT_OPTIONS, RADAR_VOICE_OPTIONS } from "./radarOptions";
 import { markRadarOwnerReturn } from "./radarOwnerReturn";
 import { RADAR_HISTORY_QUERY_KEY, useRadarOwnerBinding } from "./useRadarOwnerBinding";
@@ -152,9 +151,9 @@ export function RadarStartPage() {
 
     {owner.isError ? <section className="radar-public__card radar-owner-gate"><Sparkle /><h2>{owner.error instanceof ApiProblem && owner.error.status === 401 ? "Chart của bạn cần có trước." : "Chưa nối lại được phiên riêng."}</h2><p>{owner.error instanceof ApiProblem && owner.error.status === 401 ? "Chưa cần tài khoản. Tạo chart riêng, thêm giờ và nơi sinh rồi Lá đưa bạn quay lại đây để tạo link." : "Dữ liệu cũ vẫn được giữ kín. Kiểm tra mạng rồi thử nối lại nhé."}</p>{owner.error instanceof ApiProblem && owner.error.status === 401 ? <Link className="matching-primary" onClick={startOwnerProfile} to="/consent">Tạo chart của mình <ArrowRight /></Link> : <button className="matching-primary" onClick={owner.retry} type="button">Thử nối lại <ArrowRight /></button>}</section> : null}
 
-    {owner.isReady && precision === "needs_birth_time" ? <RadarPrecisionGate onStart={startOwnerProfile} /> : null}
 
-    {owner.isReady && precision === "ready" ? <form className="radar-create" onSubmit={submit}>
+    {/* AL1: a date-only owner can invite; the pair is then read from both birth dates. */}
+    {owner.isReady && precision !== "checking" ? <form className="radar-create" onSubmit={submit}>
       <label><span>Tên gọi của người ấy</span><input autoComplete="off" maxLength={40} onChange={(event) => setLabel(event.target.value)} placeholder="Ví dụ: Mèo, An, người hay seen…" required value={label} /></label>
       <fieldset><legend>Hai bạn đang là…</legend><div className="radar-contexts">{RADAR_CONTEXT_OPTIONS.map(([value, text]) => <button aria-pressed={context === value} className={context === value ? "is-selected" : ""} key={value} onClick={() => setContext(value)} type="button">{text}</button>)}</div></fieldset>
       <details className="radar-voice-disclosure"><summary>Giọng đọc · {RADAR_VOICE_OPTIONS.find(([value]) => value === voice)?.[1]}</summary><fieldset><legend>Bạn muốn Radar nói kiểu nào?</legend><div className="radar-voices">{RADAR_VOICE_OPTIONS.map(([value, title, description]) => <button aria-pressed={voice === value} className={voice === value ? "is-selected" : ""} key={value} onClick={() => setVoice(value)} type="button"><strong>{title}</strong><small>{description}</small></button>)}</div></fieldset></details>

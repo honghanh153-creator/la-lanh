@@ -215,7 +215,7 @@ export function RadarResultView({ result, onWithdraw, withdrawing = false, actio
         <p className="radar-tier__reason">{signature.summary}</p>
         <h1>{signature.headline}</h1>
         {result.metadata?.voice_label ? <small className="radar-reading-voice">Giọng đọc bạn chọn · {result.metadata.voice_label}</small> : null}
-        {result.metadata?.precision_note ? <small className="radar-reading-precision"><LockKey /> {result.metadata.precision_note}</small> : null}
+        {result.metadata?.basis_note ? <small className="radar-reading-precision"><LockKey /> {result.metadata.basis_note}</small> : null}{result.metadata?.precision_note ? <small className="radar-reading-precision"><LockKey /> {result.metadata.precision_note}</small> : null}
       </section>
       {signature.areas?.length ? <ul aria-label="Từng mảng" className="radar-areas">{signature.areas.map((area) => <li className={`is-${area.level}`} key={area.key}>
         <span>{area.label}</span><strong>{area.level_label}</strong>
@@ -244,7 +244,7 @@ export function RadarResultView({ result, onWithdraw, withdrawing = false, actio
       <h1>{signature.headline}</h1>
       <p>{signature.summary}</p>
       {result.metadata?.voice_label ? <small className="radar-reading-voice">Giọng đọc bạn chọn · {result.metadata.voice_label}</small> : null}
-      {result.metadata?.precision_note ? <small className="radar-reading-precision"><LockKey /> {result.metadata.precision_note}</small> : null}
+      {result.metadata?.basis_note ? <small className="radar-reading-precision"><LockKey /> {result.metadata.basis_note}</small> : null}{result.metadata?.precision_note ? <small className="radar-reading-precision"><LockKey /> {result.metadata.precision_note}</small> : null}
     </section>
 
     <section aria-labelledby="radar-map-title" className="radar-compatibility-map">

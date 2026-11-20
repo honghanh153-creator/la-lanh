@@ -9,6 +9,7 @@ import {
   claimOwner,
   createPrivateRadarCheck,
   getBirthSupplement,
+  getRadarConsentOptions,
   getSession,
   listRadarInvites,
   OWNER_SESSION_EPOCH_KEY,
@@ -26,6 +27,7 @@ vi.mock("../../shared/api/client", async (loadOriginal) => {
     createPrivateRadarCheck: vi.fn(),
     deleteRadarResult: vi.fn(),
     getBirthSupplement: vi.fn(),
+    getRadarConsentOptions: vi.fn(),
     listRadarInvites: vi.fn(),
     searchBirthPlaces: vi.fn(),
   };
@@ -43,6 +45,18 @@ function supplement(profileLevel: 1 | 2 | 3) {
     timezone_id: full ? "Asia/Ho_Chi_Minh" : null,
   } as Awaited<ReturnType<typeof getBirthSupplement>>;
 }
+
+const SWITCHED_OFF = { invite_first: false, sentences: {}, authorized_input_version: "radar-authorized-input-v1", date_consent_version: "radar-pair-date-v1" };
+// Test stand-ins only: the real sentences are owner-only and served by the server once approved.
+const APPROVED = {
+  invite_first: true,
+  sentences: {
+    "owner-invite-heading": "Câu mời A.", "owner-invite-body": "Câu mời B.", "owner-attest-label": "Câu tick.",
+    "owner-attest-help": "Câu dưới tick.", "owner-date-only-storage": "Câu lưu trữ.",
+  },
+  authorized_input_version: "radar-authorized-input-v2",
+  date_consent_version: "radar-pair-date-v1",
+};
 
 function renderPage(queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })) {
   return render(
@@ -77,6 +91,7 @@ describe("RadarPrivateStartPage", () => {
     vi.mocked(listRadarInvites).mockResolvedValue([]);
     vi.mocked(searchBirthPlaces).mockResolvedValue([]);
     vi.mocked(getBirthSupplement).mockResolvedValue(supplement(3));
+    vi.mocked(getRadarConsentOptions).mockResolvedValue(SWITCHED_OFF);
     scrollIntoView.mockReset();
     Object.defineProperty(Element.prototype, "scrollIntoView", {
       configurable: true,
@@ -140,7 +155,7 @@ describe("RadarPrivateStartPage", () => {
       </QueryClientProvider>,
     );
 
-    await user.type(await screen.findByLabelText("Tên gọi để bạn dễ nhớ"), "An");
+    await user.type(await screen.findByLabelText(/^Tên gọi để bạn dễ nhớ/), "An");
     await user.type(screen.getByLabelText("Ngày sinh — ngày"), "15");
     await user.type(screen.getByLabelText("Ngày sinh — tháng"), "03");
     await user.type(screen.getByLabelText("Ngày sinh — năm"), "1990");
@@ -153,7 +168,7 @@ describe("RadarPrivateStartPage", () => {
     await waitFor(() => expect(createPrivateRadarCheck).toHaveBeenCalledWith(expect.objectContaining({
       birth_time_mode: "unknown",
       birth_time_local: null,
-    }), expect.any(String)));
+    }), expect.any(String), undefined));
   });
 
   it("moves returning users to their Radar history from the result CTA", async () => {
@@ -175,7 +190,7 @@ describe("RadarPrivateStartPage", () => {
     render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
       <MemoryRouter><RadarPrivateStartPage /></MemoryRouter>
     </QueryClientProvider>);
-    await user.type(await screen.findByLabelText("Tên gọi để bạn dễ nhớ"), "QA");
+    await user.type(await screen.findByLabelText(/^Tên gọi để bạn dễ nhớ/), "QA");
     await user.type(screen.getByLabelText("Ngày sinh — ngày"), "15");
     await user.type(screen.getByLabelText("Ngày sinh — tháng"), "03");
     await user.type(screen.getByLabelText("Ngày sinh — năm"), "1990");
@@ -232,7 +247,7 @@ describe("RadarPrivateStartPage", () => {
     const cta = await screen.findByRole("link", { name: "Thêm giờ & nơi sinh của mình" });
     expect(cta).toHaveAttribute("href", "/birth-time");
     expect(screen.getByRole("heading", { name: "Radar cần chart đủ giờ và nơi sinh của bạn trước." })).toBeInTheDocument();
-    expect(screen.queryByLabelText("Tên gọi để bạn dễ nhớ")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/^Tên gọi để bạn dễ nhớ/)).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Ngày sinh — ngày")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^Xem hợp gu$/ })).not.toBeInTheDocument();
     await user.click(cta);
@@ -243,7 +258,7 @@ describe("RadarPrivateStartPage", () => {
     vi.mocked(getBirthSupplement).mockResolvedValue(supplement(3));
     renderPage();
 
-    expect(await screen.findByLabelText("Tên gọi để bạn dễ nhớ")).toBeInTheDocument();
+    expect(await screen.findByLabelText(/^Tên gọi để bạn dễ nhớ/)).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Thêm giờ & nơi sinh của mình" })).not.toBeInTheDocument();
   });
 
@@ -254,9 +269,9 @@ describe("RadarPrivateStartPage", () => {
 
     await waitFor(() => expect(resolve).not.toBeNull());
     expect(screen.getByText("Đang mở hồ sơ của bạn…")).toBeInTheDocument();
-    expect(screen.queryByLabelText("Tên gọi để bạn dễ nhớ")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/^Tên gọi để bạn dễ nhớ/)).not.toBeInTheDocument();
     resolve!(supplement(3));
-    expect(await screen.findByLabelText("Tên gọi để bạn dễ nhớ")).toBeInTheDocument();
+    expect(await screen.findByLabelText(/^Tên gọi để bạn dễ nhớ/)).toBeInTheDocument();
     expect(screen.queryByText("Đang mở hồ sơ của bạn…")).not.toBeInTheDocument();
   });
 
@@ -264,7 +279,7 @@ describe("RadarPrivateStartPage", () => {
     vi.mocked(getBirthSupplement).mockRejectedValue(new Error("Request timed out"));
     renderPage();
 
-    expect(await screen.findByLabelText("Tên gọi để bạn dễ nhớ")).toBeInTheDocument();
+    expect(await screen.findByLabelText(/^Tên gọi để bạn dễ nhớ/)).toBeInTheDocument();
     expect(screen.queryByText("Đang mở hồ sơ của bạn…")).not.toBeInTheDocument();
   });
 
@@ -278,7 +293,7 @@ describe("RadarPrivateStartPage", () => {
     vi.mocked(createPrivateRadarCheck).mockRejectedValue(new ApiProblem(409, "RADAR_CHART_REQUIRED", "chart"));
     renderPage();
 
-    await user.type(await screen.findByLabelText("Tên gọi để bạn dễ nhớ"), "QA");
+    await user.type(await screen.findByLabelText(/^Tên gọi để bạn dễ nhớ/), "QA");
     await user.type(screen.getByLabelText("Ngày sinh — ngày"), "15");
     await user.type(screen.getByLabelText("Ngày sinh — tháng"), "03");
     await user.type(screen.getByLabelText("Ngày sinh — năm"), "1990");
@@ -293,5 +308,62 @@ describe("RadarPrivateStartPage", () => {
     const stored = JSON.stringify({ ...sessionStorage }) + JSON.stringify({ ...localStorage });
     expect(stored).not.toContain("1990");
     expect(stored).not.toContain("vn-hanoi");
+  });
+
+  describe("invite-first consent (AL1, switched off by default)", () => {
+    it("keeps today's form while the server has the invite-first screens off", async () => {
+      renderPage();
+      expect(await screen.findByLabelText("Thành phố / tỉnh nơi sinh")).toBeInTheDocument();
+      expect(screen.queryByText("Câu mời A.")).not.toBeInTheDocument();
+      expect(screen.getByLabelText("Xác nhận đã được phép dùng thông tin sinh")).toBeInTheDocument();
+    });
+
+    it("leads with the invite and sends only the date when the server serves approved sentences", async () => {
+      vi.mocked(getRadarConsentOptions).mockResolvedValue(APPROVED);
+      vi.mocked(createPrivateRadarCheck).mockResolvedValue({ request_id: "r-1" } as Awaited<ReturnType<typeof createPrivateRadarCheck>>);
+      const user = userEvent.setup();
+      renderPage();
+
+      expect(await screen.findByRole("heading", { name: "Câu mời A." })).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: /Gửi link mời/ })).toHaveAttribute("href", "/radar/invite");
+      expect(screen.getByText("Câu lưu trữ.")).toBeInTheDocument();
+      expect(screen.getByText("Thêm giờ và nơi sinh (không bắt buộc)")).toBeInTheDocument();
+      expect(screen.queryByRole("link", { name: "Mời họ tự nhập" })).not.toBeInTheDocument();
+
+      await user.click(screen.getByRole("button", { name: "Đồng nghiệp" }));
+      await user.type(screen.getByLabelText("Ngày sinh — ngày"), "15");
+      await user.type(screen.getByLabelText("Ngày sinh — tháng"), "03");
+      await user.type(screen.getByLabelText("Ngày sinh — năm"), "1990");
+      await user.click(screen.getByLabelText("Câu tick."));
+      await user.click(screen.getByRole("button", { name: /^Xem hợp gu$/ }));
+
+      await waitFor(() => expect(createPrivateRadarCheck).toHaveBeenCalledWith(expect.objectContaining({
+        recipient_label: "Đồng nghiệp",
+        context: "coworker",
+        birth_date: expect.stringMatching(/^1990-03-\d{2}$/),
+        birth_time_mode: "date_only",
+        birth_time_local: null,
+        place_id: null,
+      }), expect.any(String), "radar-authorized-input-v2"));
+    });
+
+    it("lets a date-only owner in without asking for the other person's time or place", async () => {
+      vi.mocked(getRadarConsentOptions).mockResolvedValue(APPROVED);
+      vi.mocked(getBirthSupplement).mockResolvedValue(supplement(1));
+      renderPage();
+
+      expect(await screen.findByLabelText("Ngày sinh — ngày")).toBeInTheDocument();
+      expect(screen.queryByText("Thêm giờ và nơi sinh (không bắt buộc)")).not.toBeInTheDocument();
+      expect(screen.queryByLabelText("Thành phố / tỉnh nơi sinh")).not.toBeInTheDocument();
+      expect(screen.queryByRole("link", { name: "Thêm giờ & nơi sinh của mình" })).not.toBeInTheDocument();
+    });
+
+    it("sends a date-only owner to the invite while the screens are off", async () => {
+      vi.mocked(getBirthSupplement).mockResolvedValue(supplement(1));
+      renderPage();
+
+      expect(await screen.findByRole("link", { name: "Mời họ tự nhập" })).toHaveAttribute("href", "/radar/invite");
+      expect(screen.queryByLabelText("Ngày sinh — ngày")).not.toBeInTheDocument();
+    });
   });
 });

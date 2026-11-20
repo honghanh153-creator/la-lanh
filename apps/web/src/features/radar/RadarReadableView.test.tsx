@@ -125,6 +125,13 @@ describe("RadarResultView · radar-readable-v2", () => {
     expect(screen.queryByRole("heading", { level: 2, name: "Điều cần để ý" })).not.toBeInTheDocument();
     expect(screen.getByText("· 72")).toBeInTheDocument();
   });
+  // AL1: a result read from both birth dates says what it rests on, next to the headline.
+  it("says when a reading rests on the two birth dates only", () => {
+    const dated = { ...readable, metadata: { ...readable.metadata!, basis: "date_only" as const, basis_note: "Dựa vào: ngày sinh của hai bạn." } };
+    render(<MemoryRouter><RadarResultView ownerView result={dated} /></MemoryRouter>);
+    expect(screen.getByText("Dựa vào: ngày sinh của hai bạn.")).toBeInTheDocument();
+  });
+
   it("keeps the perspective's own receipts inside Xem thêm (#138)", () => {
     const withOverlay: RadarResult = {
       ...readable,

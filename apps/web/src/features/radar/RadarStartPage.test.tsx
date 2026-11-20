@@ -65,22 +65,17 @@ describe("RadarStartPage birth-precision gate", () => {
     vi.mocked(listRadarInvites).mockResolvedValue([]);
   });
 
-  it("shows the add-birth-time gate instead of the invite form to a date-only user", async () => {
+  // AL1 (owner, 20.11.2026): a date-only owner is not blocked; the pair is read from both birth dates.
+  it("shows the invite form to a date-only user", async () => {
     vi.mocked(getBirthSupplement).mockResolvedValue(supplement(1));
     renderInvitePage();
 
-    expect(await screen.findByRole("link", { name: "Thêm giờ & nơi sinh của mình" })).toHaveAttribute("href", "/birth-time");
-    expect(screen.queryByLabelText("Tên gọi của người ấy")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Tạo link mời/ })).not.toBeInTheDocument();
-  });
-
-  it("remembers invite mode when the gate sends the owner to add birth time", async () => {
-    vi.mocked(getBirthSupplement).mockResolvedValue(supplement(1));
-    const user = userEvent.setup();
-    renderInvitePage();
-
-    await user.click(await screen.findByRole("link", { name: "Thêm giờ & nơi sinh của mình" }));
-    expect(sessionStorage.getItem("la-lanh-radar-owner-start")).toBe("invite");
+    expect(await screen.findByLabelText("Tên gọi của người ấy")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Tạo link mời/ })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Thêm giờ & nơi sinh của mình" })).not.toBeInTheDocument();
+    expect(screen.getAllByRole("button", { pressed: false }).map((button) => button.textContent)).toEqual(
+      expect.arrayContaining(["Bạn bè", "Đồng nghiệp", "Người yêu", "Gia đình"]),
+    );
   });
 
   it("shows the invite form to a user with birth time and place", async () => {
