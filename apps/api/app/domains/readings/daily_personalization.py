@@ -21,7 +21,7 @@ from app.domains.readings.models import (
     SemanticArena,
 )
 
-PERSONALIZATION_VERSION = "daily-semantic-eligibility-v5"
+PERSONALIZATION_VERSION = "daily-semantic-eligibility-v6"
 
 # Sun-only angles follow the existing sign catalog's distinct stresses, not a
 # numeric offset into unrelated situations. They remain general editorial lenses.
@@ -52,6 +52,26 @@ PLACEMENT_ISSUES = {
     "uranus": ("changed-plan",) * 4,
     "neptune": ("missing-context",) * 4,
     "pluto": ("defend-old-choice",) * 4,
+}
+# US-21 AC07 (modality, "tính chất"): a birth date alone also gives the Sun sign's modality, which
+# is coarser than the sign. Cardinal signs start things and change the plan, fixed signs hold on
+# and keep things to themselves, mutable signs weigh many options. Ordered cardinal, fixed, mutable.
+# Chosen so that no sign is left with a single situation: the four signs whose own and element
+# situations coincide (aries, taurus, cancer, aquarius) each get a second one from their modality.
+SUN_MODALITY_ISSUES = ("changed-plan", "name-the-need", "decision-fatigue")
+SIGN_MODALITIES = {
+    "aries": 0,
+    "cancer": 0,
+    "libra": 0,
+    "capricorn": 0,
+    "taurus": 1,
+    "leo": 1,
+    "scorpio": 1,
+    "aquarius": 1,
+    "gemini": 2,
+    "virgo": 2,
+    "sagittarius": 2,
+    "pisces": 2,
 }
 SIGN_ELEMENTS = {
     "aries": 0,
@@ -306,6 +326,19 @@ def eligible_daily_situations(plan: ReadingPlan) -> tuple[SupportedSituation, ..
                         (factor.id,),
                         f"element-sun-{sign}",
                         (role_priority, 0, int(factor.strength * 4) - 1),
+                    )
+                )
+            # US-21 AC07: the sign's modality is a third situation on the same Sun factor, ranked
+            # below the element's. It is left out when it repeats one already in the pool.
+            modality_key = SUN_MODALITY_ISSUES[SIGN_MODALITIES[sign]]
+            if modality_key not in {key, element_key}:
+                situations.append(
+                    SupportedSituation(
+                        modality_key,
+                        PLACEMENT_MEANINGS[modality_key],
+                        (factor.id,),
+                        f"modality-sun-{sign}",
+                        (role_priority, 0, int(factor.strength * 4) - 2),
                     )
                 )
 

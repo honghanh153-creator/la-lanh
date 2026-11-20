@@ -1,4 +1,8 @@
-"""A birth date alone rotates two Daily situations, not one (#626, US-21 AC07)."""
+"""A birth date alone rotates two or three Daily situations, never one (#626, US-21 AC07).
+
+The Sun sign's own situation, its element's and its modality's (cardinal, fixed, mutable), all
+resting on the date-only Sun factor alone.
+"""
 
 from __future__ import annotations
 
@@ -12,7 +16,9 @@ from app.domains.astro.models import DateOnlySunResult, ZodiacSign
 from app.domains.readings.daily_personalization import (
     PLACEMENT_ISSUES,
     SIGN_ELEMENTS,
+    SIGN_MODALITIES,
     SUN_ISSUES,
+    SUN_MODALITY_ISSUES,
     eligible_daily_situations,
 )
 from app.domains.readings.daily_psychology import (
@@ -38,8 +44,11 @@ START = date(2026, 11, 1)
 DAYS = 29  # the persona run's window
 SEED = daily_variety_seed(KEY, OWNER, DAILY_PSYCHOLOGY_MATRIX_VERSION)
 SIGNS = tuple(SUN_ISSUES)
-# Signs whose own situation and their element's situation are the same one.
-SINGLE_SITUATION_SIGNS = {"aries", "taurus", "cancer", "aquarius"}
+# Signs whose own situation and their element's situation are the same one: before the modality
+# situation (US-21 AC07) these stayed on a single situation for the whole year.
+ELEMENT_COLLISION_SIGNS = {"aries", "taurus", "cancer", "aquarius"}
+# Signs where one of the three tables repeats another, so two situations rotate instead of three.
+TWO_SITUATION_SIGNS = {"aries", "taurus", "cancer", "scorpio", "aquarius"}
 
 
 def _source(sign: str, status: str = "certain") -> DateOnlySunResult:
@@ -80,27 +89,36 @@ def _month_of_issues(sign: str, *, rotated: bool = True, status: str = "certain"
 
 
 def _expected(sign: str) -> set[str]:
-    return {SUN_ISSUES[sign], PLACEMENT_ISSUES["sun"][SIGN_ELEMENTS[sign]]}
+    return {
+        SUN_ISSUES[sign],
+        PLACEMENT_ISSUES["sun"][SIGN_ELEMENTS[sign]],
+        SUN_MODALITY_ISSUES[SIGN_MODALITIES[sign]],
+    }
 
 
-def test_the_single_situation_signs_are_exactly_the_ones_the_tables_give() -> None:
-    assert {sign for sign in SIGNS if len(_expected(sign)) == 1} == SINGLE_SITUATION_SIGNS
+def test_every_sign_has_a_modality_and_the_tables_leave_no_sign_on_one_situation() -> None:
+    assert set(SIGN_MODALITIES) == set(SIGN_ELEMENTS) == set(SUN_ISSUES)
+    # Three signs per modality, the same as per element.
+    assert sorted(list(SIGN_MODALITIES.values()).count(m) for m in range(3)) == [4, 4, 4]
+    assert {
+        sign
+        for sign in SIGNS
+        if SUN_ISSUES[sign] == PLACEMENT_ISSUES["sun"][SIGN_ELEMENTS[sign]]
+    } == ELEMENT_COLLISION_SIGNS
+    assert {sign for sign in SIGNS if len(_expected(sign)) == 2} == TWO_SITUATION_SIGNS
+    assert all(len(_expected(sign)) >= 2 for sign in SIGNS)
 
 
-@pytest.mark.parametrize("sign", sorted(set(SIGNS) - SINGLE_SITUATION_SIGNS))
-def test_a_birth_date_alone_meets_two_situations_in_a_month(sign: str) -> None:
+@pytest.mark.parametrize("sign", SIGNS)
+def test_a_birth_date_alone_meets_every_situation_of_its_sign_in_a_month(sign: str) -> None:
     issues = _month_of_issues(sign)
 
-    # Before #626 this was one situation on all 29 days.
+    # Before #626 this was one situation on all 29 days; before the modality situation the four
+    # element-collision signs still were.
     assert set(issues) == _expected(sign)
-    assert len(set(issues)) == 2
-    # US-21 AC05: never a third day in a row; with two situations they take turns.
+    assert len(set(issues)) == (2 if sign in TWO_SITUATION_SIGNS else 3)
+    # US-21 AC05: never the same situation two days running when the pool has two or more.
     assert all(a != b for a, b in pairwise(issues))
-
-
-@pytest.mark.parametrize("sign", sorted(SINGLE_SITUATION_SIGNS))
-def test_a_sign_whose_element_gives_the_same_situation_stays_on_it(sign: str) -> None:
-    assert set(_month_of_issues(sign)) == {SUN_ISSUES[sign]}
 
 
 @pytest.mark.parametrize("sign", SIGNS)
@@ -109,7 +127,7 @@ def test_plans_without_the_daily_rotation_keep_the_signs_own_situation(sign: str
 
 
 @pytest.mark.parametrize("sign", SIGNS)
-def test_plans_without_the_daily_rotation_get_no_element_situation(sign: str) -> None:
+def test_plans_without_the_daily_rotation_get_no_element_or_modality_situation(sign: str) -> None:
     plan = ReadingPlanner().plan(
         _source(sign),
         purpose=ReadingPurpose.DAILY_NOTE,
@@ -158,12 +176,12 @@ def test_no_lens_brings_the_element_situation_in_without_rotation(
     assert _unrotated_issue(sign, lens) in {SUN_ISSUES[sign], FALLBACK_ISSUE_KEY}
 
 
-def test_a_sun_on_a_sign_border_still_gets_no_sign_or_element_situation() -> None:
+def test_a_sun_on_a_sign_border_still_gets_no_sign_element_or_modality_situation() -> None:
     assert set(_month_of_issues("pisces", status="candidates")) == {FALLBACK_ISSUE_KEY}
 
 
 @pytest.mark.parametrize("sign", SIGNS)
-def test_the_second_situation_rests_on_the_sun_factor_alone(sign: str) -> None:
+def test_the_extra_situations_rest_on_the_sun_factor_alone(sign: str) -> None:
     plan = ReadingPlanner().plan(
         _source(sign),
         purpose=ReadingPurpose.DAILY_NOTE,

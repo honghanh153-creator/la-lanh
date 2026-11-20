@@ -16,7 +16,9 @@ from app.domains.readings.daily_personalization import (
     PLACEMENT_MEANINGS,
     REPAIR_REPLY_MEANING,
     SIGN_ELEMENTS,
+    SIGN_MODALITIES,
     SUN_ISSUES,
+    SUN_MODALITY_ISSUES,
     SupportedSituation,
     eligible_daily_situations,
 )
@@ -1094,6 +1096,8 @@ def daily_content_fingerprint() -> str:
                 "placements": PLACEMENT_ISSUES,
                 "placement_meanings": PLACEMENT_MEANINGS,
                 "sign_elements": SIGN_ELEMENTS,
+                "sign_modalities": SIGN_MODALITIES,
+                "sun_modality_issues": SUN_MODALITY_ISSUES,
                 "sun_issues": SUN_ISSUES,
                 "body_domains": BODY_DOMAINS,
                 "house_arenas": {house: asdict(context) for house, context in HOUSE_ARENAS.items()},
@@ -1455,8 +1459,8 @@ def daily_issue_meaning(mechanism_key: str | None) -> str:
     """The shared catalog meaning of a Daily situation, without the chart-selected personal
     sentence that ``core_meaning`` starts with. Luna payloads use this so they carry no direct
     chart facts. The issue itself is still chosen from the chart (coarse; on a date-only reading it
-    is the Sun sign's own situation or, on rotated plans, its element's: never finer than the Sun
-    sign, see ``SUN_ISSUES`` and ``PLACEMENT_ISSUES["sun"]``)."""
+    is the Sun sign's own situation or, on rotated plans, its element's or its modality's: never finer
+    than the Sun sign, see ``SUN_ISSUES``, ``PLACEMENT_ISSUES["sun"]`` and ``SUN_MODALITY_ISSUES``)."""
 
     prefix = "psychology:"
     if not mechanism_key or not mechanism_key.startswith(prefix):
