@@ -66,3 +66,88 @@ def test_repeats_count_against_the_whole_history_and_phase_one() -> None:
     assert headline["from_p1"] == 2
     summary = group({"p": stats}, ["p"])
     assert summary["headline"]["repeat_ever_pct"] == round(100 * 2 / 3, 1)
+
+
+def test_an_unsaved_older_mood_is_expected_gone_and_a_saved_one_stays(tmp_path: Path) -> None:
+    persona_sim._install_pick_observer()
+    db_url = f"sqlite+aiosqlite:///{tmp_path}/switch.db"
+    state: dict[str, Any] = {}
+    persona = _persona()
+    args = argparse.Namespace(
+        phase=1, start="2026-10-22", offset=0, days=3, save_every=2
+    )  # saves days 0 and 2; day 1 is neither saved nor the latest
+    persona_switch.run_persona(persona, db_url, {}, state, args)
+    memo = json.loads(json.dumps(state))
+    (row,) = persona_switch.run_persona(persona, db_url, {}, memo, _args(2, 3, 1))
+
+    carried = row["carryover"]
+    assert carried["mood_found"] == carried["mood_expected"] == 2
+    assert carried["mood_expired_expected"] == 1
+    assert carried["mood_expired_still_open"] == 0
+
+
+def _run(path: Path, rows: list[dict[str, Any]], offset: int, days: int) -> Path:
+    path.mkdir()
+    (path / "transcript.jsonl").write_text(
+        "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows), encoding="utf-8"
+    )
+    meta = {"git_head": "x", "offset": offset, "days": days}
+    (path / "meta.json").write_text(json.dumps(meta), encoding="utf-8")
+    return path
+
+
+def test_the_report_reads_phase_windows_and_keeps_unexpected_failures(
+    tmp_path: Path, monkeypatch: Any
+) -> None:
+    from scripts import persona_switch_report
+
+    personas = json.loads((ROOT / "qa/personas/personas-100.json").read_text(encoding="utf-8"))
+    ok, broken, refused = (p["id"] for p in personas["personas"][:3])
+
+    def day(pid: str, d: int, headline: str | None, status: int = 200, error: str = "") -> Any:
+        return {
+            "persona": pid,
+            "day": d,
+            "phase": 1 if d < 2 else 2,
+            "status": status,
+            "headline": headline,
+            "situation": "a",
+            "error": error,
+        }
+
+    p1 = _run(
+        tmp_path / "p1",
+        [
+            day(ok, 0, "A"),
+            day(ok, 1, "B"),
+            day(broken, 0, None, 500),
+            day(broken, 1, None, 500),
+            *(day(refused, d, None, 0, "HTTPStatusError: BIRTH_DATE_OUT_OF_RANGE") for d in (0, 1)),
+        ],
+        0,
+        2,
+    )
+    p2 = _run(tmp_path / "p2", [day(ok, 2, "A"), day(broken, 2, None, 500)], 2, 1)
+    out = tmp_path / "out.json"
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "x",
+            "--personas",
+            str(ROOT / "qa/personas/personas-100.json"),
+            "--p1",
+            str(p1),
+            "--p2",
+            f"new={p2}",
+            "--json",
+            str(out),
+        ],
+    )
+    persona_switch_report.main()
+    result = json.loads(out.read_text(encoding="utf-8"))
+
+    assert result["excluded"] == [refused]
+    groups = result["phase2"]["new"]["groups"]["all"]
+    assert groups["headline"]["repeat_ever_pct"] == 100.0  # day 2 repeats day 0
+    assert groups["error_days"] == 1  # the broken persona is still counted
+    assert result["phase1"]["groups"]["all"]["error_days"] == 2

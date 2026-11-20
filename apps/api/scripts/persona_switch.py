@@ -74,10 +74,21 @@ def _carryover(client: Any, headers: dict[str, str], memo: dict[str, Any]) -> di
     body = held.json() if held.status_code == 200 and held.content else None
     out["kept_expected"] = bool(memo.get("kept"))
     out["kept_found"] = isinstance(body, dict) and bool(body.get("id"))
-    moods = [client.get(f"/v1/daily-note/{n}/mood") for n in memo.get("mooded", [])[-5:]]
+    # A saved note keeps its mood; an unsaved note older than its day is gone with its mood
+    # (Codex auto-1 on #781). Expect the first, count the second separately.
+    saved_ids = set(memo.get("saved", []))
+    mooded = memo.get("mooded", [])
+    kept_moods = [n for n in mooded if n in saved_ids][-5:]
+    gone_moods = [n for n in mooded[:-1] if n not in saved_ids][-5:]
+    moods = [client.get(f"/v1/daily-note/{n}/mood") for n in kept_moods]
     out["mood_statuses"] = sorted({m.status_code for m in moods})
     out["mood_found"] = sum(1 for m in moods if m.status_code == 200 and m.content and m.json())
     out["mood_expected"] = len(moods)
+    older = [client.get(f"/v1/daily-note/{n}/mood") for n in gone_moods]
+    out["mood_expired_expected"] = len(older)
+    out["mood_expired_still_open"] = sum(
+        1 for m in older if m.status_code == 200 and m.content and m.json()
+    )
     tarot = [client.get(f"/v1/tarot/sessions/{s}") for s in memo.get("tarot", [])[-3:]]
     out["tarot_statuses"] = sorted({t.status_code for t in tarot})
     out["tarot_expected"] = len(tarot)
@@ -94,6 +105,7 @@ def _carryover(client: Any, headers: dict[str, str], memo: dict[str, Any]) -> di
             retention.status_code,
             overview.status_code,
             *[m.status_code for m in moods],
+            *[m.status_code for m in older],
             *[t.status_code for t in tarot],
         ]
     )
