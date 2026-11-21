@@ -139,3 +139,13 @@ def test_approved_rules_widen_the_needs_group_and_render_accepted_cards(
     need_after = sum("name-the-need" in issues for issues in after)
     assert need_after > need_before, (need_before, need_after)
     assert sum(map(len, after)) > sum(map(len, before))
+
+
+def test_approved_rules_widen_the_self_judgment_group(monkeypatch: pytest.MonkeyPatch) -> None:
+    group = {"comparison-loop", "perfect-before-start"}
+    before = [issues for chart in CHARTS for issues in _pool_issues(chart, 14)]
+    _approve_all(monkeypatch)
+    after = [issues for chart in CHARTS for issues in _pool_issues(chart, 14)]
+    assert sum(bool(group & issues) for issues in after) > sum(
+        bool(group & issues) for issues in before
+    )

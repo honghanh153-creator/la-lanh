@@ -228,6 +228,27 @@ REGISTRY_PAIR_RULES: tuple[RegistryPairRule, ...] = (
     RegistryPairRule(
         frozenset({"moon", "venus"}), "tense", "name-the-need", "situation.pair.moon-venus.tense"
     ),
+    # Group "self-judgment" (comparison-loop, perfect-before-start): eligible on 19% of
+    # persona-days. Frequent tense Sun contacts read as measuring oneself against others, and
+    # Pluto on Mercury as polishing words before letting them go.
+    RegistryPairRule(
+        frozenset({"chiron", "sun"}), "tense", "comparison-loop", "situation.pair.chiron-sun.tense"
+    ),
+    RegistryPairRule(
+        frozenset({"pluto", "sun"}), "tense", "comparison-loop", "situation.pair.pluto-sun.tense"
+    ),
+    RegistryPairRule(
+        frozenset({"jupiter", "sun"}),
+        "tense",
+        "comparison-loop",
+        "situation.pair.jupiter-sun.tense",
+    ),
+    RegistryPairRule(
+        frozenset({"mercury", "pluto"}),
+        "tense",
+        "perfect-before-start",
+        "situation.pair.mercury-pluto.tense",
+    ),
 )
 
 
