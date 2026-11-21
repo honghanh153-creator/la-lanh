@@ -248,11 +248,12 @@ def test_frames_keep_their_slots_and_codes() -> None:
 # ---------------------------------------------------------------- registry rewrites (journey 21.11)
 
 BLAME = re.compile(r"(?<!\w)(?:giấu|tránh|lừa|che)(?!\w)", re.IGNORECASE)
-SEVEN_SWORDS = "tarot.core.general.swords-7"
+SEVEN_SWORDS = phrasing.registry_id("general", "swords-7")
+PREFIX = SEVEN_SWORDS.removesuffix("general.swords-7")
 
 
 def _tarot_core_entries() -> list[CopyEntry]:
-    return [e for key, e in load_registry().items() if key.startswith(phrasing.REGISTRY_PREFIX)]
+    return [e for key, e in load_registry().items() if key.startswith(PREFIX)]
 
 
 def test_registry_rewrites_name_a_real_card_and_follow_the_overlay_rules() -> None:
@@ -260,7 +261,7 @@ def test_registry_rewrites_name_a_real_card_and_follow_the_overlay_rules() -> No
     entries = _tarot_core_entries()
     assert SEVEN_SWORDS in {entry.id for entry in entries}
     for entry in entries:
-        topic, card_id = entry.id.removeprefix(phrasing.REGISTRY_PREFIX).split(".")
+        topic, card_id = entry.id.removeprefix(PREFIX).split(".")
         sentence = entry.text
         label = (entry.id, sentence)
         assert topic in phrasing.CORE_SENTENCES and card_id in ids, label

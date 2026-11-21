@@ -23,7 +23,6 @@ from app.domains.content.copy_approval import copy_text
 from app.domains.tarot.models import TarotContext
 
 PHRASING_VERSION = "tarot-core-sentences-v1"
-REGISTRY_PREFIX = "tarot.core."
 
 _GENERAL: dict[str, str] = {
     "major-fool": "bạn có thể cho phép mình bắt đầu khi chưa có đủ mọi câu trả lời",
@@ -261,7 +260,14 @@ def core_sentence(card_id: str, topic: TarotContext | str, core: str) -> str:
     # Journey 21.11 (Codex): a core that reads as blaming the reader is rewritten through the copy
     # registry as ``tarot.core.<topic>.<card>``. It stays pending until Codex approves it, and until
     # then the sentence above is served unchanged.
-    return copy_text(f"{REGISTRY_PREFIX}{key}.{card_id}", sentence)
+    return copy_text(registry_id(key, card_id), sentence)
+
+
+def registry_id(topic: str, card_id: str) -> str:
+    """Copy registry id of a card core rewrite. A function, not a module constant: the fallback
+    approval pins every upper-case module value as a content table, and this is a key."""
+
+    return f"tarot.core.{topic}.{card_id}"
 
 
 def capitalized(text: str) -> str:
