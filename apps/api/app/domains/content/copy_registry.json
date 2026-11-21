@@ -12263,6 +12263,264 @@
    "category": "reading",
    "text": "Khi căng, bạn dễ tin người quá nhanh hoặc giúp quá sức mình.",
    "status": "pending"
+  },
+  {
+   "id": "situation.pair.moon-neptune.tense",
+   "category": "reading",
+   "text": "Bạn dễ thấy mình cần điều gì đó nhưng chưa gọi được tên.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.moon-uranus.tense",
+   "category": "reading",
+   "text": "Bạn dễ muốn có khoảng riêng nhưng chưa nói ra với ai.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.moon-saturn.tense",
+   "category": "reading",
+   "text": "Bạn quen tự lo nên dễ giữ trong lòng điều mình đang cần.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.moon-sun.tense",
+   "category": "reading",
+   "text": "Bạn dễ thấy việc mình muốn làm và điều mình cần đang kéo về hai phía.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.moon-venus.tense",
+   "category": "reading",
+   "text": "Bạn dễ chiều ý người khác rồi quên hỏi mình đang cần gì.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.chiron-sun.tense",
+   "category": "reading",
+   "text": "Bạn dễ để ý chỗ mình còn thiếu hơn là phần mình đã làm được.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.pluto-sun.tense",
+   "category": "reading",
+   "text": "Bạn dễ đòi hỏi mình rất cao khi thấy người khác làm tốt.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.jupiter-sun.tense",
+   "category": "reading",
+   "text": "Bạn dễ đặt kỳ vọng lớn rồi tự chê khi chưa theo kịp.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.mercury-pluto.tense",
+   "category": "reading",
+   "text": "Bạn dễ muốn nói thật kỹ nên cứ sửa mãi chưa gửi đi.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.mars-uranus.tense",
+   "category": "reading",
+   "text": "Bạn dễ bị cuốn sang việc mới ngay khi vừa nghĩ ra.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.mars-neptune.tense",
+   "category": "reading",
+   "text": "Bạn dễ thấy mệt vì chưa rõ nên dồn sức vào việc nào trước.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.mars-sun.tense",
+   "category": "reading",
+   "text": "Bạn dễ nhận thêm việc vì muốn chứng tỏ mình làm được.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.sun-uranus.tense",
+   "category": "reading",
+   "text": "Bạn dễ muốn đổi kế hoạch ngay khi thấy một cách khác hay hơn.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.uranus-venus.tense",
+   "category": "reading",
+   "text": "Bạn dễ muốn đổi một lời hẹn khi thấy mình bị gò bó.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.pluto-venus.tense",
+   "category": "reading",
+   "text": "Bạn dễ giữ chặt điều mình đã chọn, khó buông dù thấy chưa ổn.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.sun-venus.tense",
+   "category": "reading",
+   "text": "Bạn dễ nhường cho êm chuyện dù trong lòng chưa thật đồng ý.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.sun.aries.comparison-loop",
+   "category": "reading",
+   "text": "Bạn dễ muốn về nhất nên hay so mình với người đi nhanh hơn.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.sun.aries.too-many-open-loops",
+   "category": "reading",
+   "text": "Bạn dễ hăng hái mở việc mới trước khi xong việc cũ.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.sun.taurus.capacity-before-agreement",
+   "category": "reading",
+   "text": "Bạn dễ nhận lời vì ngại từ chối, rồi cố giữ lời đến mệt.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.sun.taurus.decision-fatigue",
+   "category": "reading",
+   "text": "Bạn dễ cân nhắc rất lâu trước khi chọn một hướng mới.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.sun.gemini.quick-reply",
+   "category": "reading",
+   "text": "Bạn dễ trả lời ngay khi vừa nghĩ ra, chưa kịp nghĩ hết.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.sun.gemini.missing-context",
+   "category": "reading",
+   "text": "Bạn dễ đoán nhanh ý người khác khi tin nhắn còn thiếu.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.sun.cancer.name-the-need",
+   "category": "reading",
+   "text": "Bạn dễ lo cho người khác trước rồi mới nhớ mình cần gì.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.sun.cancer.avoid-small-conflict",
+   "category": "reading",
+   "text": "Bạn dễ im lặng cho êm dù trong lòng chưa thoải mái.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.sun.leo.comparison-loop",
+   "category": "reading",
+   "text": "Bạn dễ muốn được ghi nhận nên để ý ai được khen hơn mình.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.sun.virgo.decision-fatigue",
+   "category": "reading",
+   "text": "Bạn dễ mệt vì cân nhắc từng chi tiết trước khi chọn.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.sun.libra.decision-fatigue",
+   "category": "reading",
+   "text": "Bạn dễ phân vân lâu vì thấy lựa chọn nào cũng có lý.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.sun.scorpio.defend-old-choice",
+   "category": "reading",
+   "text": "Bạn dễ giữ chặt điều mình đã quyết, khó đổi dù có thông tin mới.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.sun.scorpio.missing-context",
+   "category": "reading",
+   "text": "Bạn dễ đoán ý người khác hơn là hỏi thẳng.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.sun.sagittarius.repair-reply",
+   "category": "reading",
+   "text": "Bạn dễ nói thẳng cho nhanh rồi mới thấy câu đó hơi mạnh.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.sun.capricorn.comparison-loop",
+   "category": "reading",
+   "text": "Bạn dễ tự đặt chuẩn cao rồi thấy mình chưa đủ.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.sun.aquarius.changed-plan",
+   "category": "reading",
+   "text": "Bạn dễ muốn thử cách làm riêng dù cả nhóm đã có kế hoạch.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.sun.aquarius.specific-feedback",
+   "category": "reading",
+   "text": "Bạn dễ muốn góp ý thẳng nhưng còn nói khá chung.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.sun.pisces.avoid-small-conflict",
+   "category": "reading",
+   "text": "Bạn dễ chiều theo người khác để không làm ai buồn.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.jupiter-sun.coop",
+   "category": "reading",
+   "text": "Bạn dễ muốn kể điều mình làm tốt và mong được ghi nhận cụ thể.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.jupiter-mercury.coop",
+   "category": "reading",
+   "text": "Bạn có nhiều ý hay cùng lúc nên dễ muốn bắt đầu hết.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.jupiter-moon.coop",
+   "category": "reading",
+   "text": "Bạn dễ rộng lòng giúp người khác mà quên sức mình có hạn.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.sun-uranus.coop",
+   "category": "reading",
+   "text": "Bạn dễ có hứng thử cách làm mới cho một việc đã quen.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.moon-pluto.coop",
+   "category": "reading",
+   "text": "Bạn cảm nhận rất sâu nhưng ít khi nói ra mình cần gì.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.moon-saturn.coop",
+   "category": "reading",
+   "text": "Bạn có trách nhiệm với người thân nên dễ ôm thêm việc của họ.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.neptune-sun.coop",
+   "category": "reading",
+   "text": "Bạn dễ hòa theo không khí chung trước khi hỏi rõ ý mình.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.neptune-venus.coop",
+   "category": "reading",
+   "text": "Bạn dễ nghĩ tốt về người khác và tự lấp phần họ chưa nói rõ.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.mars-pluto.coop",
+   "category": "reading",
+   "text": "Bạn dễ dồn hết sức cho điều đã chọn, khó dừng lại xem lại.",
+   "status": "pending"
   }
  ],
  "version": "copy-registry/v1"
