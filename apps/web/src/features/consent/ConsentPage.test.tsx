@@ -72,7 +72,7 @@ describe("ConsentPage privacy details", () => {
 
   // Owner AP2/AQ1 (21.11.2026): the self-attested check is retired, so its "enter someone else's
   // data" block is gone; the still-true storage sentences stay word for word; the weekly note is
-  // the owner-approved sentence.
+  // the owner-approved sentence (replaced by AV1, 21.11.2026).
   it("drops the retired Hợp gu tick block and shows the owner-approved weekly note (AP2/AQ1)", () => {
     renderPrivacyPage();
     const registry = JSON.parse(readFileSync(join(process.cwd(), "../api/app/domains/content/copy_registry.json"), "utf8")) as {
@@ -81,9 +81,11 @@ describe("ConsentPage privacy details", () => {
     expect(screen.queryByText("Radar xem riêng")).not.toBeInTheDocument();
     expect(document.body.textContent).not.toMatch(/Việc bạn đánh dấu xác nhận|Chỉ nhập thông tin sinh của người khác/);
     expect(screen.getByText(/Hệ thống mã hoá tên gọi và kết quả trước khi lưu\./)).toBeInTheDocument();
-    const weekly = registry.entries.find((item) => item.id === "privacy.radar.weekly.optin-help");
+    const weekly = registry.entries.find((item) => item.id === "privacy.radar.weekly.privacy-page");
     expect(weekly).toMatchObject({ category: "privacy", status: "approved", approver: "owner", date: "2026-11-21" });
     expect(screen.getByText(weekly!.text)).toBeInTheDocument();
+    expect(weekly!.text.startsWith("Phần Hai bạn tuần này chỉ có khi người được mời tự tick")).toBe(true);
+    expect(document.body.textContent).not.toMatch(/Chỉ chọn khi người ấy đồng ý cho việc này/);
   });
 
   // Owner AT1 (21.11.2026): the card-link line, word for word, in its own block after "Hai bạn tuần này"

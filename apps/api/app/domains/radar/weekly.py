@@ -37,8 +37,9 @@ EASY_ANGLES = (0.0, 60.0, 120.0)
 WATCH_ANGLES = (90.0, 180.0)
 ORB = 3.0
 # "recipient-optin" is B's own box on the link page (owner AR1, 21.11.2026), the only way a pair
-# is kept. "optin-help" is the privacy-page line; "home-note" sits under the card on Hôm nay.
-PRIVACY_KEYS = ("optin-label", "optin-help", "home-note", "recipient-optin")
+# is kept. "privacy-page" is the /privacy line (owner AV1, 21.11.2026; replaced the AQ1 line
+# written for the sender); "home-note" sits under the card on Hôm nay.
+PRIVACY_KEYS = ("privacy-page", "home-note", "recipient-optin")
 
 
 @dataclass(frozen=True)

@@ -24,6 +24,13 @@ from app.main import create_app
 from tests.radar.test_reading import FORBIDDEN, JARGON
 
 ORIGIN = "http://127.0.0.1:5173"
+PRIVACY_PAGE = (
+    "Phần Hai bạn tuần này chỉ có khi người được mời tự tick ô giữ ngày sinh trên trang lời mời. "
+    "Người gửi không chọn thay được. Lá giữ ngày sinh của người được mời (không giờ, không nơi) "
+    "và tên gọi người gửi đặt, đã mã hoá, tối đa 90 ngày rồi tự xoá. Người gửi chỉ thấy chữ cái "
+    "đầu của tên, không thấy ngày sinh. Người gửi bấm tắt trên Hôm nay là xoá luôn cặp này. "
+    "Người được mời xoá được bằng cách rút kết quả hoặc mở lại link mời."
+)
 RECIPIENT_OPTIN = (
     "Giữ ngày sinh của tôi, đã mã hoá, tối đa 90 ngày để hai bạn xem phần mỗi tuần. "
     "Tôi xoá được bất cứ lúc nào."
@@ -72,12 +79,45 @@ def test_every_line_is_registered_and_plain() -> None:
         assert not [term for term in JARGON if term in low], entry.text
         assert not [term for term in FORBIDDEN if term in low], entry.text
     assert weekly.weekly_sentences() == {
-        "optin-label": "Giữ cặp này để mỗi tuần xem hai bạn tuần này.",
-        "optin-help": registry["privacy.radar.weekly.optin-help"].text,
+        # Owner AV1 (21.11.2026), word for word: the /privacy line.
+        "privacy-page": PRIVACY_PAGE,
         "home-note": "Chỉ hiện chữ cái đầu của tên. Bấm tắt là xoá luôn cặp này.",
         # Owner AR1 (21.11.2026), word for word: the invited person's own box.
         "recipient-optin": RECIPIENT_OPTIN,
     }
+
+
+def test_av1_replacements_are_owner_approved_word_for_word() -> None:
+    """Owner AV1 (21.11.2026): the "not stored" sentences now say B's own box is the exception;
+    the replaced AQ1 privacy line and the unused sender box label are retired."""
+
+    registry = load_registry()
+    expected = {
+        "privacy.radar.weekly.privacy-page": PRIVACY_PAGE,
+        "privacy.radar.invite-first.recipient-body": (
+            "Bạn chỉ cần nhập ngày sinh của mình. Lá dùng nó cho lần xem này và không gửi cho "
+            "người mời. Lá chỉ lưu lại nếu bạn tự chọn ô giữ ngày sinh bên dưới."
+        ),
+        "privacy.radar.invite-first.owner-invite-body": (
+            "Người ấy chỉ cần nhập ngày sinh của mình và bấm đồng ý. Lá không lưu ngày sinh đó, "
+            "trừ khi chính người ấy chọn giữ để hai bạn xem phần mỗi tuần. Kết quả giữ 30 ngày, "
+            "ai trong hai bạn cũng xoá được."
+        ),
+    }
+    for entry_id, text in expected.items():
+        entry = registry[entry_id]
+        assert (entry.text, entry.category, entry.status, entry.approver, entry.date) == (
+            text,
+            "privacy",
+            "approved",
+            "owner",
+            "2026-11-21",
+        )
+    for retired in ("privacy.radar.weekly.optin-help", "privacy.radar.weekly.optin-label"):
+        assert retired not in registry
+    texts = " ".join(entry.text for entry in registry.values())
+    assert "không lưu lại và không gửi cho người mời" not in texts
+    assert "Chỉ chọn khi người ấy đồng ý cho việc này" not in texts
 
 
 def test_week_starts_on_monday_and_the_card_is_deterministic() -> None:

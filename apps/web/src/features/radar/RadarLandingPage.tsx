@@ -7,9 +7,9 @@ import "../matching/matching.css";
 import "./radar.css";
 import { NightSky } from "../../shared/ui/NightSky";
 
-/** Owner-approved sentence 2 (AP2, 21.11.2026; privacy.radar.invite-first.owner-invite-body), word
- *  for word; a test keeps it equal to the copy registry. */
-export const INVITE_BODY = "Người ấy chỉ cần nhập ngày sinh của mình và bấm đồng ý. Lá không lưu ngày sinh đó. Kết quả giữ 30 ngày, ai trong hai bạn cũng xoá được.";
+/** Owner-approved sentence 2 as replaced by AV1 (21.11.2026; privacy.radar.invite-first.owner-invite-body),
+ *  word for word; a test keeps it equal to the copy registry. */
+export const INVITE_BODY = "Người ấy chỉ cần nhập ngày sinh của mình và bấm đồng ý. Lá không lưu ngày sinh đó, trừ khi chính người ấy chọn giữ để hai bạn xem phần mỗi tuần. Kết quả giữ 30 ngày, ai trong hai bạn cũng xoá được.";
 
 export function RadarLandingPage() {
   return <main className="app-page matching-page radar-page radar-landing-page">

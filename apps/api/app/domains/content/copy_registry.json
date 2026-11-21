@@ -12294,11 +12294,11 @@
   {
    "id": "privacy.radar.invite-first.owner-invite-body",
    "category": "privacy",
-   "text": "Người ấy chỉ cần nhập ngày sinh của mình và bấm đồng ý. Lá không lưu ngày sinh đó. Kết quả giữ 30 ngày, ai trong hai bạn cũng xoá được.",
+   "text": "Người ấy chỉ cần nhập ngày sinh của mình và bấm đồng ý. Lá không lưu ngày sinh đó, trừ khi chính người ấy chọn giữ để hai bạn xem phần mỗi tuần. Kết quả giữ 30 ngày, ai trong hai bạn cũng xoá được.",
    "status": "approved",
    "approver": "owner",
    "date": "2026-11-21",
-   "digest": "94fc96574392e77de8c9d4492098a004af82395c13a244955a05029de5007422"
+   "digest": "8e15cb26942d9bf131f9d3d91fec6c1c482f2b16217fbde8feb0185efcc7d76f"
   },
   {
    "id": "privacy.radar.invite-first.owner-date-only-storage",
@@ -12321,11 +12321,11 @@
   {
    "id": "privacy.radar.invite-first.recipient-body",
    "category": "privacy",
-   "text": "Bạn chỉ cần nhập ngày sinh của mình. Lá dùng nó cho đúng lần xem này, không lưu lại và không gửi cho người mời.",
+   "text": "Bạn chỉ cần nhập ngày sinh của mình. Lá dùng nó cho lần xem này và không gửi cho người mời. Lá chỉ lưu lại nếu bạn tự chọn ô giữ ngày sinh bên dưới.",
    "status": "approved",
    "approver": "owner",
    "date": "2026-11-21",
-   "digest": "28edceb77199f3fdd0cbe94118fb9b1088917d78c213a6594280f96c65a1a507"
+   "digest": "832cb14b8ec2f2e42f8fad57134fa4830c60e3147f0a0be3f033f96c59d25a3a"
   },
   {
    "id": "privacy.radar.invite-first.recipient-consent",
@@ -13516,22 +13516,13 @@
    "status": "pending"
   },
   {
-   "id": "privacy.radar.weekly.optin-label",
+   "id": "privacy.radar.weekly.privacy-page",
    "category": "privacy",
-   "text": "Giữ cặp này để mỗi tuần xem hai bạn tuần này.",
+   "text": "Phần Hai bạn tuần này chỉ có khi người được mời tự tick ô giữ ngày sinh trên trang lời mời. Người gửi không chọn thay được. Lá giữ ngày sinh của người được mời (không giờ, không nơi) và tên gọi người gửi đặt, đã mã hoá, tối đa 90 ngày rồi tự xoá. Người gửi chỉ thấy chữ cái đầu của tên, không thấy ngày sinh. Người gửi bấm tắt trên Hôm nay là xoá luôn cặp này. Người được mời xoá được bằng cách rút kết quả hoặc mở lại link mời.",
    "status": "approved",
    "approver": "owner",
    "date": "2026-11-21",
-   "digest": "a86ff8b1ae9d06f68c11343d0221674ae27f9c82db4a5f063dbdde3259a96094"
-  },
-  {
-   "id": "privacy.radar.weekly.optin-help",
-   "category": "privacy",
-   "text": "Lá sẽ lưu ngày sinh của người ấy, đã mã hoá, tối đa 90 ngày để tính phần mỗi tuần. Chỉ chọn khi người ấy đồng ý cho việc này. Bạn xoá được bất cứ lúc nào.",
-   "status": "approved",
-   "approver": "owner",
-   "date": "2026-11-21",
-   "digest": "5453bf1d75c5e13d85ab3bc6304698db0159338a89f185ce429d249db0a1d644"
+   "digest": "ec89d4560a65dfbc1384f35c4b151908c5908a8b76f9ed3aec68d16176ba304b"
   },
   {
    "id": "privacy.radar.weekly.home-note",

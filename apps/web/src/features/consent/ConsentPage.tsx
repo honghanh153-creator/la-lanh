@@ -10,8 +10,8 @@ import { OPENAI_ABUSE_RETENTION_NOTICE, OPENAI_REWRITE_SCOPE_NOTICE } from "../.
 import { SESSION_RESTART_REQUIRED_KEY } from "../../shared/session/sessionIdentity";
 import { RADAR_PENDING_REQUEST_KEY } from "../radar/radarOptions";
 
-/** Owner-approved (AQ1, 21.11.2026; privacy.radar.weekly.optin-help), word for word. */
-const RADAR_WEEKLY_NOTE = "Lá sẽ lưu ngày sinh của người ấy, đã mã hoá, tối đa 90 ngày để tính phần mỗi tuần. Chỉ chọn khi người ấy đồng ý cho việc này. Bạn xoá được bất cứ lúc nào.";
+/** Owner-approved (AV1, 21.11.2026; privacy.radar.weekly.privacy-page), word for word. */
+const RADAR_WEEKLY_NOTE = "Phần Hai bạn tuần này chỉ có khi người được mời tự tick ô giữ ngày sinh trên trang lời mời. Người gửi không chọn thay được. Lá giữ ngày sinh của người được mời (không giờ, không nơi) và tên gọi người gửi đặt, đã mã hoá, tối đa 90 ngày rồi tự xoá. Người gửi chỉ thấy chữ cái đầu của tên, không thấy ngày sinh. Người gửi bấm tắt trên Hôm nay là xoá luôn cặp này. Người được mời xoá được bằng cách rút kết quả hoặc mở lại link mời.";
 /** Owner-approved (AT1, 21.11.2026; privacy.radar.cards.privacy-page), word for word. */
 const RADAR_CARD_LINK_NOTE = "Nếu bạn gửi link xem thẻ Hợp gu, ai có link cũng xem được thẻ: bậc hợp, một câu về hai bạn và mối quan hệ, kèm chữ cái đầu của tên nếu bạn chọn. Thẻ không có ngày sinh hay tên thật. Link hết hạn cùng lúc với kết quả, bạn thu hồi được bất cứ lúc nào, và link mất khi kết quả bị xoá hoặc bị rút. Trang thẻ không cho trình duyệt lưu lại và không cho công cụ tìm kiếm ghi lại.";
 import { markRadarOwnerReturn, readRadarOwnerReturn } from "../radar/radarOwnerReturn";

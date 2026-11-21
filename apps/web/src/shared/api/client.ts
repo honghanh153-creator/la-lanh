@@ -241,7 +241,7 @@ export type RadarConsentOptions = {
   card_links?: boolean;
   /** Hợp gu C: "Hai bạn tuần này" and its owner-approved sentences (off by default). */
   weekly?: boolean;
-  weekly_sentences?: Partial<Record<"optin-label" | "optin-help" | "home-note" | "recipient-optin", string>>;
+  weekly_sentences?: Partial<Record<"privacy-page" | "home-note" | "recipient-optin", string>>;
 };
 export type RadarWeeklyItem = { id: string; context: string; initial?: string | null; week_of: string; easy?: string | null; watch?: string | null; try_line?: string | null; quiet?: string | null; expires_at: string };
 /** A Hợp gu card link as its owner sees it; never the token once created. */
