@@ -62,6 +62,39 @@ export function applySavedMood(client: QueryClient, row: MoodCheckIn): boolean {
   return accepted;
 }
 
+/**
+ * "Hôm nay chỉ muốn đọc" (#700): the reader folded the small-action box of this note away.
+ *
+ * Kept only in memory (the query cache), under the same family as the action view, so Home and the
+ * note page agree and every erase path that drops the action view drops it too. Never in storage,
+ * never sent anywhere, and not a statement about a kept action: nothing is kept or stopped by it.
+ * It is keyed by note, so the next day's note starts open again (US-04 AC12).
+ */
+export const dailyReadOnlyKey = (noteId: string | undefined) => [DAILY_ACTION_VIEW_KEY, "read-only", noteId] as const;
+
+export type ReadOnlyToday = { readOnly: boolean; toggle: () => void };
+
+export function useReadOnlyToday(noteId: string | undefined): ReadOnlyToday {
+  const client = useQueryClient();
+  const key = dailyReadOnlyKey(noteId);
+  const { data } = useQuery({
+    queryKey: key,
+    // Nothing to fetch. A refetch (a blanket invalidate) keeps what the reader chose; after a data
+    // wipe the entry is gone and the box simply starts open again.
+    queryFn: () => client.getQueryData<boolean>(key) ?? false,
+    initialData: false,
+    staleTime: Infinity,
+    enabled: Boolean(noteId),
+  });
+  const readOnly = Boolean(noteId) && data === true;
+  return {
+    readOnly,
+    toggle: () => {
+      if (noteId) client.setQueryData<boolean>(key, !readOnly);
+    },
+  };
+}
+
 type DailyActionView = {
   /** Set only when the reader pressed the switch. */
   choice?: "original" | "lighter";

@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { getCurrentMood, type MoodCheckIn, type MoodValue, type ReadingContent } from "../api/client";
 import { clearChartDerivedData } from "../storage/clearChartDerivedData";
-import { applySavedMood, dailyActionViewKey, dailyMoodKey, newerMoodRow, readDailyMood, resetDailyActionChoice, useDailyActionView } from "./useDailyActionView";
+import { applySavedMood, dailyActionViewKey, dailyMoodKey, dailyReadOnlyKey, newerMoodRow, readDailyMood, resetDailyActionChoice, useDailyActionView, useReadOnlyToday } from "./useDailyActionView";
 
 vi.mock("../api/client", async (original) => ({
   ...(await original<typeof import("../api/client")>()),
@@ -120,5 +120,72 @@ describe("useDailyActionView (#627)", () => {
     expect(JSON.stringify({ ...localStorage, ...sessionStorage })).not.toContain("Đuối");
     await act(async () => { await clearChartDerivedData(client); });
     await waitFor(() => expect(result.current.lighterShown).toBe(true));
+  });
+});
+
+describe("useReadOnlyToday (#700)", () => {
+  const NEXT_NOTE_ID = "00000000-0000-4000-8000-000000000002";
+
+  function setupReadOnly(noteId: string | null = NOTE_ID) {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const wrapper = ({ children }: { children: ReactNode }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+    const hook = renderHook(({ id }: { id: string | undefined }) => useReadOnlyToday(id), { wrapper, initialProps: { id: noteId ?? undefined } });
+    return { client, ...hook };
+  }
+
+  it("starts open, folds on a press and opens on the next", async () => {
+    const { result } = setupReadOnly();
+    expect(result.current.readOnly).toBe(false);
+    act(() => result.current.toggle());
+    await waitFor(() => expect(result.current.readOnly).toBe(true));
+    act(() => result.current.toggle());
+    await waitFor(() => expect(result.current.readOnly).toBe(false));
+  });
+
+  it("is shared by every screen of the same note, and does nothing without a note", async () => {
+    const { client, result } = setupReadOnly();
+    const wrapper = ({ children }: { children: ReactNode }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+    const otherScreen = renderHook(() => useReadOnlyToday(NOTE_ID), { wrapper });
+    act(() => result.current.toggle());
+    await waitFor(() => expect(otherScreen.result.current.readOnly).toBe(true));
+
+    const noNote = setupReadOnly(null);
+    act(() => noNote.result.current.toggle());
+    await act(async () => { await Promise.resolve(); });
+    expect(noNote.result.current.readOnly).toBe(false);
+    expect(noNote.client.getQueryCache().getAll().every((query) => query.state.data !== true)).toBe(true);
+  });
+
+  it("belongs to one note: the next day's note starts open again (US-04 AC12)", async () => {
+    const { result, rerender } = setupReadOnly();
+    act(() => result.current.toggle());
+    await waitFor(() => expect(result.current.readOnly).toBe(true));
+    rerender({ id: NEXT_NOTE_ID });
+    expect(result.current.readOnly).toBe(false);
+    // Yesterday's fold is not moved or copied to the new note.
+    rerender({ id: NOTE_ID });
+    expect(result.current.readOnly).toBe(true);
+  });
+
+  it("lives in memory only: no storage, no request, and it goes when chart-derived data is cleared", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    const stored = () => JSON.stringify({ ...localStorage, ...sessionStorage });
+    const before = stored();
+    const { client, result } = setupReadOnly();
+    act(() => result.current.toggle());
+    await waitFor(() => expect(result.current.readOnly).toBe(true));
+
+    expect(client.getQueryData(dailyReadOnlyKey(NOTE_ID))).toBe(true);
+    expect(stored()).toBe(before);
+    expect(fetchSpy).not.toHaveBeenCalled();
+    // It does not touch the lighter-action choice kept next to it.
+    expect(client.getQueryData(dailyActionViewKey(NOTE_ID))).toBeUndefined();
+    // A blanket refetch (Home does one when the day's note changes) does not open the box.
+    await act(async () => { await client.invalidateQueries(); });
+    expect(result.current.readOnly).toBe(true);
+
+    await act(async () => { await clearChartDerivedData(client); });
+    await waitFor(() => expect(result.current.readOnly).toBe(false));
+    fetchSpy.mockRestore();
   });
 });
