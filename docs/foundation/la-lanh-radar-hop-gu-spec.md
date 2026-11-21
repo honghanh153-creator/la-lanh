@@ -12,6 +12,13 @@ Radar giúp một người hiểu tương tác với người họ đã biết: 
 
 **“Check kín” nghĩa là:** Lá Lành không gửi link/thông báo cho người kia, không tạo hồ sơ cho họ và không đưa họ vào pool. “Kín” không có nghĩa là được phép dùng lén dữ liệu. Người nhập phải xác nhận người kia đã cho phép dùng thông tin sinh cho mục đích này.
 
+## 1a. Owner AP2 + AQ1 (21.11.2026), thay các phần dưới khi khác ý
+
+- **AP2:** bỏ hẳn ô tick "người này đã đồng ý" ở **mọi** lối, kể cả "Check kín" đang chạy. Hợp gu chỉ đọc một cặp khi người kia **tự nhập ngày sinh qua link** (lời mời một ô). `POST /v1/radar/private-checks` trả `410 RADAR_PRIVATE_CHECK_RETIRED` (`radar_self_attested_checks = false`, chỉ test bật để dựng kết quả); kết quả cũ vẫn mở và xoá được tới khi hết hạn (tối đa 24 giờ). `/radar/start` thành trang mời: câu 1–2 đã duyệt, nút "Gửi link mời", lịch sử kết quả cũ. Câu đã duyệt nguyên văn: 1, 2, 5–9 (`privacy.radar.invite-first.*`); câu 3–4 (chữ của ô tick) đã bỏ khỏi registry. Câu 5 đã duyệt nhưng hiện không có màn nào dùng.
+- **AQ1:** bật thẻ chia sẻ (`radar_share_card_links = true`) và "Hai bạn tuần này" (`radar_weekly_pairs = true`, 3 câu `privacy.radar.weekly.*` đã duyệt, giữ ngày sinh người kia đã mã hoá tối đa 90 ngày). Mặc định bật cho bản phát hành; merge `main` và deploy vẫn cần lệnh riêng của owner.
+- **Còn chờ owner:** lối vào của "Hai bạn tuần này". Lối duy nhất trước đây là form check riêng (đã bỏ); trang lời mời nói với người kia "không lưu lại", nên chưa có chỗ hợp lệ để giữ ngày sinh. Đề xuất: người kia tự chọn giữ trên trang lời mời bằng một câu mới do owner duyệt.
+- Trang đầu bỏ các câu không còn đúng ("không cần nhắn hay báo cho người ấy", thẻ "Không ai bị báo", khối "Không báo cho người ấy, nhưng vẫn cần họ cho phép"); bước 1 dùng câu 2 đã duyệt. Trang quyền riêng tư bỏ khối "Radar xem riêng", giữ nguyên văn bốn câu lưu trữ còn đúng trong khối "Hợp gu lưu gì", thêm khối "Hai bạn tuần này" bằng câu AQ1 số 2.
+
 ## 1b. AL1: chỉ cần ngày sinh (owner duyệt 20.11.2026)
 
 Owner chọn AL1 sau thử 100 người giả (34–45/100 tới được kết quả vì thiếu giờ sinh của chính mình hoặc nơi sinh của người kia; chỉ cần ngày sinh thì 96/100).

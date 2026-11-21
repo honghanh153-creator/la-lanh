@@ -26,6 +26,7 @@ from app.domains.radar.service import (
     RadarError,
     RadarInvalid,
     RadarLimitReached,
+    RadarRetired,
     RadarService,
 )
 from app.domains.radar.weekly import WEEKLY_VERSION, weekly_sentences
@@ -293,6 +294,8 @@ def _invite(view: RadarInviteView, share_url: str | None = None) -> RadarInviteR
 @router.post(
     "/radar/private-checks",
     response_model=RadarResultResponse,
+    # Owner AP2 (21.11.2026): retired; answers 410 RADAR_PRIVATE_CHECK_RETIRED.
+    deprecated=True,
     responses=RADAR_CREATE_ERRORS,
     dependencies=[Depends(crisis_guard("recipient_label"))],
 )
@@ -323,6 +326,17 @@ async def create_private_check(
         return Response(status_code=401)
     except GuestDomainError:
         return Response(status_code=403)
+    except RadarRetired:
+        return JSONResponse(
+            status_code=410,
+            content={
+                "type": "about:blank",
+                "title": "Private checks are retired",
+                "status": 410,
+                "code": "RADAR_PRIVATE_CHECK_RETIRED",
+            },
+            headers={"Cache-Control": "no-store"},
+        )
     except RadarChartRequired as error:
         return _creation_problem(error)
     except (RadarLimitReached, RadarConflict) as error:

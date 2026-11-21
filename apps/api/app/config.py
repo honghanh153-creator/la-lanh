@@ -105,19 +105,22 @@ class Settings(BaseSettings):
     # the owner turns it on (R2 kind 4: new personal-data collection ships switched off). Off,
     # only an exact-time profile is offered the action and the server refuses the others.
     keep_action_all_profiles: bool = False
-    # Hợp gu AL1 (owner, 20.11.2026): the invite-first consent. On, the start screen leads with a
-    # one-field invite link and the self-attested tick may cover the other person's birth date
-    # alone. It also needs every privacy.radar.invite-first.* sentence approved by the owner in
-    # the copy registry; until then the service keeps these paths closed even when this is on.
-    radar_invite_first_consent: bool = False
-    # Hợp gu AL1 direction C: revocable links to a frozen share card. A link discloses a pair
-    # summary to whoever holds it and keeps it as long as the result, so it ships off (R2 kind 4).
-    # The image card itself is drawn on the device and needs no switch.
-    radar_share_card_links: bool = False
+    # Hợp gu AL1 (owner, 20.11.2026) and AP2 (21.11.2026): the one-field invite link, where the
+    # other person types their own birth date, is the only way in. On by default for the release
+    # (owner AQ1/AP2); it still needs the owner-approved privacy.radar.invite-first.* sentences.
+    radar_invite_first_consent: bool = True
+    # Hợp gu AL1 direction C: revocable links to a frozen share card. Owner AQ1 (21.11.2026) turned
+    # it on with the release. The image card itself is drawn on the device and needs no switch.
+    radar_share_card_links: bool = True
     # Hợp gu AL1 direction C, "Hai bạn tuần này": keeping a pair stores the other person's birth
-    # date beyond the 24-hour check, which is new personal-data collection (R2 kind 4). Off; it
-    # also needs the owner's approval of every privacy.radar.weekly.* sentence.
-    radar_weekly_pairs: bool = False
+    # date (encrypted, at most 90 days). Owner AQ1 (21.11.2026) approved its three sentences and
+    # turned it on with the release.
+    radar_weekly_pairs: bool = True
+    # Owner AP2 (21.11.2026): no more "this person agreed" tick on any path; Hợp gu opens only when
+    # the other person types their own birth date through the link. New self-attested private
+    # checks are refused (410). Kept off, only so stored results stay readable and deletable until
+    # they expire and tests can still build them; turning it on needs a new owner decision.
+    radar_self_attested_checks: bool = False
 
     model_config = SettingsConfigDict(
         env_file=("../../.env", ".env"),

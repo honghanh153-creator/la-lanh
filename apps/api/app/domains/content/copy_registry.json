@@ -12265,33 +12265,6 @@
    "status": "pending"
   },
   {
-   "id": "privacy.radar.landing-no-notify",
-   "category": "privacy",
-   "text": "Không gửi link, không tạo hồ sơ cho người ấy, không đưa họ vào danh sách tìm người.",
-   "status": "approved",
-   "approver": "owner",
-   "date": "2026-11-20",
-   "digest": "d1dd7038eda02a1204f71ca407a9aaf1866c479010f28590b8a6572b42f1301b"
-  },
-  {
-   "id": "privacy.radar.landing-permission-heading",
-   "category": "privacy",
-   "text": "Không báo cho người ấy, nhưng vẫn cần họ cho phép",
-   "status": "approved",
-   "approver": "owner",
-   "date": "2026-11-20",
-   "digest": "f54b5c580cfd63ca172a9db0c330eb625e589b1e54bc1fd3e84350672eb3a300"
-  },
-  {
-   "id": "privacy.radar.consent-private-summary",
-   "category": "privacy",
-   "text": "Radar xem riêng",
-   "status": "approved",
-   "approver": "owner",
-   "date": "2026-11-20",
-   "digest": "7a0a46ee78981de3ffa67f4ccbac428f8832a8f2f4844bb2178b57a232afb79d"
-  },
-  {
    "id": "privacy.radar.consent-invite",
    "category": "privacy",
    "text": "Kết quả dùng link mời chỉ mở khi người nhận tự nhập dữ liệu và đồng ý. Link là quyền truy cập riêng, hãy gửi đúng người. Người nhận có thể rút đồng ý; người tạo có thể xoá kết quả. Xem riêng không có link công khai. Mỗi hồ sơ giữ tối đa 100 lần Radar, kể cả lời mời đã thu hồi; xoá một lần để tạo thêm.",
@@ -12313,55 +12286,64 @@
    "id": "privacy.radar.invite-first.owner-invite-heading",
    "category": "privacy",
    "text": "Cách chắc nhất: gửi link để người ấy tự nhập ngày sinh.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "owner",
+   "date": "2026-11-21",
+   "digest": "78333e5a607369502efadd1f13a9a111a57964e486b7b28fb163e281f5b7610f"
   },
   {
    "id": "privacy.radar.invite-first.owner-invite-body",
    "category": "privacy",
    "text": "Người ấy chỉ cần nhập ngày sinh của mình và bấm đồng ý. Lá không lưu ngày sinh đó. Kết quả giữ 30 ngày, ai trong hai bạn cũng xoá được.",
-   "status": "pending"
-  },
-  {
-   "id": "privacy.radar.invite-first.owner-attest-label",
-   "category": "privacy",
-   "text": "Mình đã hỏi và người này đồng ý cho mình dùng ngày sinh của họ.",
-   "status": "pending"
-  },
-  {
-   "id": "privacy.radar.invite-first.owner-attest-help",
-   "category": "privacy",
-   "text": "Chỉ tick khi bạn đã hỏi chính người đó. Thấy ngày sinh trên mạng không có nghĩa là họ đã đồng ý.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "owner",
+   "date": "2026-11-21",
+   "digest": "94fc96574392e77de8c9d4492098a004af82395c13a244955a05029de5007422"
   },
   {
    "id": "privacy.radar.invite-first.owner-date-only-storage",
    "category": "privacy",
    "text": "Ngày sinh bạn nhập chỉ dùng để xem lần này và không được lưu. Kết quả được mã hoá, giữ 24 giờ rồi tự xoá. Bạn có thể xoá sớm hơn.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "owner",
+   "date": "2026-11-21",
+   "digest": "b10dc7c27250d5a0ca59233f74fb40fd1a553140619489bc7c65223d775aa811"
   },
   {
    "id": "privacy.radar.invite-first.recipient-heading",
    "category": "privacy",
    "text": "Có người muốn xem hai bạn hợp nhau ở đâu.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "owner",
+   "date": "2026-11-21",
+   "digest": "9a115be0dbb2be940919635bee2cab9a392a669893f99be7f2aec53c087e8537"
   },
   {
    "id": "privacy.radar.invite-first.recipient-body",
    "category": "privacy",
    "text": "Bạn chỉ cần nhập ngày sinh của mình. Lá dùng nó cho đúng lần xem này, không lưu lại và không gửi cho người mời.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "owner",
+   "date": "2026-11-21",
+   "digest": "28edceb77199f3fdd0cbe94118fb9b1088917d78c213a6594280f96c65a1a507"
   },
   {
    "id": "privacy.radar.invite-first.recipient-consent",
    "category": "privacy",
    "text": "Tôi đồng ý dùng ngày sinh của mình để Lá xem lần này. Tôi và người mời cùng nhận bản đọc, giữ 30 ngày. Tôi rút lại được bất cứ lúc nào.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "owner",
+   "date": "2026-11-21",
+   "digest": "937bdfd71fbb1d7b9bb9cbe020386609a117d9a7daff02d51e96e1c1f55d3c38"
   },
   {
    "id": "privacy.radar.invite-first.recipient-decline",
    "category": "privacy",
    "text": "Không muốn thì bạn cứ đóng trang. Lá không báo cho người mời là bạn đã mở link.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "owner",
+   "date": "2026-11-21",
+   "digest": "c054b58f3b4803e609f7922ba31a49be76303f70a3e844785746e9f7c14cf385"
   },
   {
    "id": "radar.coworker.tier.very_easy",
@@ -13537,19 +13519,28 @@
    "id": "privacy.radar.weekly.optin-label",
    "category": "privacy",
    "text": "Giữ cặp này để mỗi tuần xem hai bạn tuần này.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "owner",
+   "date": "2026-11-21",
+   "digest": "a86ff8b1ae9d06f68c11343d0221674ae27f9c82db4a5f063dbdde3259a96094"
   },
   {
    "id": "privacy.radar.weekly.optin-help",
    "category": "privacy",
    "text": "Lá sẽ lưu ngày sinh của người ấy, đã mã hoá, tối đa 90 ngày để tính phần mỗi tuần. Chỉ chọn khi người ấy đồng ý cho việc này. Bạn xoá được bất cứ lúc nào.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "owner",
+   "date": "2026-11-21",
+   "digest": "5453bf1d75c5e13d85ab3bc6304698db0159338a89f185ce429d249db0a1d644"
   },
   {
    "id": "privacy.radar.weekly.home-note",
    "category": "privacy",
    "text": "Chỉ hiện chữ cái đầu của tên. Bấm tắt là xoá luôn cặp này.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "owner",
+   "date": "2026-11-21",
+   "digest": "4c3e71e16b796af77777c73c72dde31f3650eedacf9bd5cdf7d4cd77d22a4c73"
   }
  ],
  "version": "copy-registry/v1"

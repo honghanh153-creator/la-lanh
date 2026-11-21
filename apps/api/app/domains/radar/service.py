@@ -99,6 +99,10 @@ class RadarChartRequired(RadarError):
     pass
 
 
+class RadarRetired(RadarError):
+    """Self-attested private checks are retired (owner AP2, 21.11.2026)."""
+
+
 class RadarLimitReached(RadarError):
     pass
 
@@ -123,6 +127,7 @@ class RadarService:
         invite_first_consent: bool = False,
         share_card_links: bool = False,
         weekly_pairs: bool = False,
+        self_attested_checks: bool = False,
         erasure_journal: ErasureJournal | None = None,
     ) -> None:
         self._sessions = sessions
@@ -138,6 +143,7 @@ class RadarService:
         self._invite_first_consent = invite_first_consent
         self._share_card_links = share_card_links
         self._weekly_pairs = weekly_pairs
+        self._self_attested_checks = self_attested_checks
 
     @property
     def weekly_enabled(self) -> bool:
@@ -235,6 +241,10 @@ class RadarService:
         now: datetime | None = None,
         keep_weekly: bool = False,
     ) -> dict[str, Any]:
+        if not self._self_attested_checks:
+            # Owner AP2 (21.11.2026): no "this person agreed" tick on any path. A pair is read only
+            # when the other person types their own birth date through the link.
+            raise RadarRetired
         label = " ".join(recipient_label.split())
         if keep_weekly and not self.weekly_enabled:
             raise RadarInvalid

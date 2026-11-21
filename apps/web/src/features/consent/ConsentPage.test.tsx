@@ -62,12 +62,28 @@ describe("ConsentPage privacy details", () => {
     const registry = JSON.parse(readFileSync(join(process.cwd(), "../api/app/domains/content/copy_registry.json"), "utf8")) as {
       entries: { id: string; category: string; text: string; status: string; approver?: string; date?: string }[];
     };
-    for (const id of ["privacy.radar.consent-private-summary", "privacy.radar.consent-invite", "privacy.radar.consent-recipient"]) {
+    for (const id of ["privacy.radar.consent-invite", "privacy.radar.consent-recipient"]) {
       const entry = registry.entries.find((item) => item.id === id);
       expect(entry).toMatchObject({ category: "privacy", status: "approved", approver: "owner", date: "2026-11-20" });
       expect(screen.getByText(entry!.text)).toBeInTheDocument();
     }
     expect(document.body.textContent).not.toMatch(/[Cc]heck kín/);
+  });
+
+  // Owner AP2/AQ1 (21.11.2026): the self-attested check is retired, so its "enter someone else's
+  // data" block is gone; the still-true storage sentences stay word for word; the weekly note is
+  // the owner-approved sentence.
+  it("drops the retired Hợp gu tick block and shows the owner-approved weekly note (AP2/AQ1)", () => {
+    renderPrivacyPage();
+    const registry = JSON.parse(readFileSync(join(process.cwd(), "../api/app/domains/content/copy_registry.json"), "utf8")) as {
+      entries: { id: string; category: string; text: string; status: string; approver?: string; date?: string }[];
+    };
+    expect(screen.queryByText("Radar xem riêng")).not.toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/Việc bạn đánh dấu xác nhận|Chỉ nhập thông tin sinh của người khác/);
+    expect(screen.getByText(/Hệ thống mã hoá tên gọi và kết quả trước khi lưu\./)).toBeInTheDocument();
+    const weekly = registry.entries.find((item) => item.id === "privacy.radar.weekly.optin-help");
+    expect(weekly).toMatchObject({ category: "privacy", status: "approved", approver: "owner", date: "2026-11-21" });
+    expect(screen.getByText(weekly!.text)).toBeInTheDocument();
   });
 
   it("gives network users a visible link to the corresponding source", () => {

@@ -1,4 +1,4 @@
-"""Owner-only sentences of the Hợp gu invite-first consent (AL1, 20.11.2026).
+"""Owner-approved sentences of the Hợp gu invite-first consent (AL1 20.11, AP2 21.11.2026).
 
 The owner chose an invite-first design: the main path is a link where the other person types
 their own birth date; ticking "they allowed me" becomes the secondary path. Those screens are
@@ -18,12 +18,12 @@ from app.domains.content.copy_approval import approved_copy
 PREFIX = "privacy.radar.invite-first."
 
 # Registry id suffix → where the sentence is shown. The text lives only in the registry.
+# Owner AP2 (21.11.2026): sentences 1, 2, 5-9 approved word for word; the tick and its two
+# sentences (3, 4) are gone. Sentence 5 ("owner-date-only-storage") is approved but has no screen
+# while nobody types another person's date, so it is not required here.
 SENTENCE_KEYS = (
     "owner-invite-heading",  # start screen, main block title (A)
-    "owner-invite-body",  # start screen, main block text (A)
-    "owner-attest-label",  # start screen, secondary tick label (A)
-    "owner-attest-help",  # start screen, under the tick (A)
-    "owner-date-only-storage",  # start screen, what happens to the date A typed (A)
+    "owner-invite-body",  # start screen and landing, how the link works (A)
     "recipient-heading",  # one-field invite page title (B)
     "recipient-body",  # one-field invite page, why one date is enough (B)
     "recipient-consent",  # one-field invite page, consent tick (B)

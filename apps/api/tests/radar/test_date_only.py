@@ -22,6 +22,7 @@ from app.config import Settings
 from app.domains.astro.engine import NatalChartEngine
 from app.domains.astro.models import CalculationConfig, ChartInput
 from app.domains.birth.service import date_only_reduction
+from app.domains.content.copy_approval import load_registry
 from app.domains.radar import consent_drafts
 from app.domains.radar import reading as radar
 from app.domains.radar.reading import build_radar_reading
@@ -32,6 +33,7 @@ APPROVED = {key: f"Câu đã duyệt {index}." for index, key in enumerate(conse
 
 
 def _client(path: Path, *, invite_first: bool = False) -> TestClient:
+    # "Off" turns every AL1 switch off; the release defaults are tested on their own.
     app = create_app(
         Settings(
             environment="test",
@@ -39,6 +41,8 @@ def _client(path: Path, *, invite_first: bool = False) -> TestClient:
             cors_origins=[cast(Any, ORIGIN)],
             guest_cookie_secure=False,
             radar_invite_first_consent=invite_first,
+            radar_share_card_links=invite_first,
+            radar_weekly_pairs=invite_first,
         )
     )
     return TestClient(app, base_url=ORIGIN)
@@ -133,10 +137,71 @@ def test_new_context_uses_its_line_once_approved(monkeypatch: pytest.MonkeyPatch
     assert reading["pair_signature"]["tier"]["label"] == "Dễ làm chung"
 
 
-def test_invite_first_needs_every_sentence_approved(monkeypatch: pytest.MonkeyPatch) -> None:
-    assert consent_drafts.invite_first_sentences() is None  # drafts ship pending
-    monkeypatch.setattr(consent_drafts, "approved_copy", lambda entry_id: "Câu.")
-    assert set(consent_drafts.invite_first_sentences() or {}) == set(consent_drafts.SENTENCE_KEYS)
+def test_invite_first_serves_the_owner_approved_sentences(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Owner AP2 (21.11.2026) approved sentences 1, 2, 5-9 word for word; 3 and 4 (the tick) are
+    gone from the registry and from the screens."""
+
+    sentences = consent_drafts.invite_first_sentences()
+    assert sentences is not None and set(sentences) == set(consent_drafts.SENTENCE_KEYS)
+    assert sentences["recipient-heading"] == "Có người muốn xem hai bạn hợp nhau ở đâu."
+    registry = load_registry()
+    assert not [key for key in registry if "owner-attest" in key]
+    for key in consent_drafts.SENTENCE_KEYS:
+        entry = registry[f"{consent_drafts.PREFIX}{key}"]
+        assert (entry.status, entry.approver, entry.date) == ("approved", "owner", "2026-11-21")
+    monkeypatch.setattr(consent_drafts, "approved_copy", lambda entry_id: None)
+    assert consent_drafts.invite_first_sentences() is None
+
+
+def test_release_defaults_follow_ap2_and_aq1() -> None:
+    settings = Settings(environment="test", radar_self_attested_checks=False)
+    assert settings.radar_invite_first_consent is True
+    assert settings.radar_share_card_links is True
+    assert settings.radar_weekly_pairs is True
+    assert Settings.model_fields["radar_self_attested_checks"].default is False
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        {"birth_time_mode": "exact", "birth_time_local": "07:30", "place_id": "vn-hanoi",
+         "consent_version": "radar-authorized-input-v1"},
+        {"birth_time_mode": "date_only", "consent_version": "radar-authorized-input-v2"},
+    ],
+)  # fmt: skip
+def test_self_attested_private_checks_are_retired(tmp_path: Path, body: dict[str, str]) -> None:
+    app = create_app(
+        Settings(
+            environment="test",
+            database_url=f"sqlite+aiosqlite:///{tmp_path / 'retired.db'}",
+            cors_origins=[cast(Any, ORIGIN)],
+            guest_cookie_secure=False,
+            radar_self_attested_checks=False,
+        )
+    )
+    with TestClient(app, base_url=ORIGIN) as client:
+        headers = _guest(client, "radar-retired-owner-123456789", "1994-03-12")
+        refused = client.post(
+            "/v1/radar/private-checks",
+            headers=headers,
+            json={
+                "recipient_label": "Mèo",
+                "context": "crush",
+                "birth_date": "1996-07-21",
+                "authorization_attested": True,
+                **body,
+            },
+        )
+        assert refused.status_code == 410
+        assert refused.json()["code"] == "RADAR_PRIVATE_CHECK_RETIRED"
+        assert client.get("/v1/radar/requests?mode=private_check").json() == []
+        # The invite stays the way in.
+        invite = client.post(
+            "/v1/radar/requests",
+            headers=headers,
+            json={"recipient_label": "Mèo", "context": "crush"},
+        )
+        assert invite.status_code == 200
 
 
 def test_date_only_owner_is_sent_to_the_invite_while_switched_off(tmp_path: Path) -> None:
@@ -211,7 +276,10 @@ def test_switched_off_paths_stay_closed(tmp_path: Path) -> None:
         assert refused.status_code == 404
 
 
-def test_switch_alone_does_not_open_unapproved_paths(tmp_path: Path) -> None:
+def test_switch_alone_does_not_open_unapproved_paths(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(consent_drafts, "approved_copy", lambda entry_id: None)
     with _client(tmp_path / "switch-only.db", invite_first=True) as client:
         assert client.get("/v1/public/radar/consent-options").json()["invite_first"] is False
         service = cast(FastAPI, client.app).state.radar_service

@@ -49,16 +49,29 @@ def approved(monkeypatch: pytest.MonkeyPatch) -> None:
     )
 
 
-def test_every_line_is_registered_pending_and_plain() -> None:
+def test_every_line_is_registered_and_plain() -> None:
+    """Reading lines wait for Codex; the three opt-in sentences are owner-approved (AQ1, 21.11)."""
+
     registry = load_registry()
     for entry_id in weekly.registry_ids():
         entry = registry[entry_id]
-        assert entry.status == "pending"
-        assert entry.category == ("privacy" if entry_id.startswith("privacy.") else "reading")
+        if entry_id.startswith("privacy."):
+            assert (entry.category, entry.status, entry.approver, entry.date) == (
+                "privacy",
+                "approved",
+                "owner",
+                "2026-11-21",
+            )
+        else:
+            assert (entry.category, entry.status) == ("reading", "pending")
         low = entry.text.lower()
         assert not [term for term in JARGON if term in low], entry.text
         assert not [term for term in FORBIDDEN if term in low], entry.text
-    assert weekly.weekly_sentences() is None
+    assert weekly.weekly_sentences() == {
+        "optin-label": "Giữ cặp này để mỗi tuần xem hai bạn tuần này.",
+        "optin-help": registry["privacy.radar.weekly.optin-help"].text,
+        "home-note": "Chỉ hiện chữ cái đầu của tên. Bấm tắt là xoá luôn cặp này.",
+    }
 
 
 def test_week_starts_on_monday_and_the_card_is_deterministic() -> None:
@@ -151,7 +164,8 @@ def test_switched_off_keeps_nothing(tmp_path: Path) -> None:
             assert connection.execute("SELECT COUNT(*) FROM radar_weekly_pairs").fetchone()[0] == 0
 
 
-def test_switch_alone_does_not_open_it(tmp_path: Path) -> None:
+def test_switch_alone_does_not_open_it(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(weekly, "approved_copy", lambda entry_id: None)
     with _client(tmp_path / "switch.db", on=True) as client:
         assert cast(FastAPI, client.app).state.radar_service.weekly_enabled is False
         assert client.get("/v1/public/radar/consent-options").json()["weekly"] is False

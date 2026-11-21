@@ -1123,7 +1123,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Create Private Check */
+        /**
+         * Create Private Check
+         * @deprecated
+         */
         post: operations["create_private_check_v1_radar_private_checks_post"];
         delete?: never;
         options?: never;

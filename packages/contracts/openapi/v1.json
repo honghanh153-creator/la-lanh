@@ -13914,6 +13914,7 @@
     },
     "/v1/radar/private-checks": {
       "post": {
+        "deprecated": true,
         "operationId": "create_private_check_v1_radar_private_checks_post",
         "parameters": [
           {

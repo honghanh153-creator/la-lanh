@@ -514,17 +514,17 @@
     },
     {
       "id": "radar-start",
-      "title": "Hợp gu — xem riêng một người",
+      "title": "Hợp gu — mời một người (AP2: không còn ô tick)",
       "us": ["US-12"],
       "ac": ["US-12 AC01", "US-12 AC02", "US-12 AC05", "US-12 AC09", "US-12 AC10"],
       "routes": ["/radar/start"],
       "source_files": ["apps/web/src/features/radar/RadarPrivateStartPage.tsx", "apps/web/src/features/radar/RadarFlowSteps.tsx", "apps/web/src/features/radar/radarOptions.ts"],
       "user_path": ["Hợp gu", "Bấm Xem hợp gu với một người"],
       "owner_only": true,
-      "owner_only_reason": "Attestation for another person's birth data: only the owner writes or changes that copy.",
+      "owner_only_reason": "Shows the owner-approved invite sentences (AP2, 21.11.2026) served by the API; only the owner changes them.",
       "key_selectors": [
         { "role": "navigation", "name": "Tiến độ Radar" },
-        { "role": "button", "name": "Xem hợp gu" }
+        { "role": "link", "name": "Mời họ tự nhập" }
       ],
       "states": {
         "needs-chart": {
@@ -532,10 +532,10 @@
           "walk": [{ "goto": "/radar" }, { "click": { "role": "link", "name": "Xem hợp gu với một người", "exact": true } }],
           "ready": { "role": "heading", "name": "Chart của bạn cần có trước." }
         },
-        "form": {
+        "hub": {
           "fixture": "signed-in-deep",
           "walk": [{ "goto": "/radar/start" }],
-          "ready": { "role": "button", "name": "Xem hợp gu" }
+          "ready": { "role": "link", "name": "Mời họ tự nhập" }
         }
       }
     },
@@ -669,7 +669,7 @@
       "ac": ["US-13 AC01", "US-13 AC02", "US-13 AC05", "US-13 AC06", "US-13 AC07"],
       "routes": ["/radar/result/:requestId"],
       "source_files": ["apps/web/src/features/radar/RadarOwnerResultPage.tsx", "apps/web/src/features/radar/useRadarHistory.ts", "apps/web/src/features/radar/useRadarOwnerBinding.ts", "apps/web/src/features/radar/useRadarEraseTarget.ts"],
-      "user_path": ["Hợp gu", "Xem hợp gu với một người", "Nhập thông tin và bấm Xem hợp gu", "Màn kết quả"],
+      "user_path": ["Hợp gu", "Xem hợp gu với một người", "Gửi link mời, người ấy tự nhập ngày sinh", "Màn kết quả"],
       "owner_only": false,
       "key_selectors": [{ "role": "button", "name": "Xóa kết quả này" }],
       "states": {

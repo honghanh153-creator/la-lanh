@@ -5,15 +5,16 @@ import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 
-import { RadarLandingPage } from "./RadarLandingPage";
+import { INVITE_BODY, RadarLandingPage } from "./RadarLandingPage";
 
 describe("RadarLandingPage", () => {
   it("explains private pair matching without promising a discovery pool", () => {
     render(<MemoryRouter><RadarLandingPage /></MemoryRouter>);
 
     expect(screen.getByRole("heading", { name: "Xem hai bạn hợp nhau ở đâu." })).toBeInTheDocument();
-    expect(screen.getByText(/chỉ nhập thông tin sinh khi đã được người ấy cho phép/)).toBeInTheDocument();
-    expect(screen.getByText(/Không gửi link, không tạo hồ sơ/)).toBeInTheDocument();
+    // Owner AP2 (21.11.2026): the other person always types their own date through a link.
+    expect(screen.queryByText(/cho phép|Không gửi link|không cần nhắn hay báo/)).not.toBeInTheDocument();
+    expect(screen.getByText("Bạn gửi link cho người ấy")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Xem hợp gu với một người" })).toHaveAttribute("href", "/radar/start");
     expect(screen.queryByRole("navigation", { name: "Tiến độ Radar" })).not.toBeInTheDocument();
     expect(screen.queryByText(/năm lá úp/i)).not.toBeInTheDocument();
@@ -26,24 +27,17 @@ describe("RadarLandingPage", () => {
     render(<MemoryRouter><RadarLandingPage /></MemoryRouter>);
 
     expect(document.body.textContent).not.toMatch(/Check|chart|Radar|bắt sóng|rung động|lệch sóng|vào gu/);
-    // Owner approved AM1 (20.11.2026): the privacy copy uses the approved wording verbatim.
-    expect(screen.queryByText(/pool tìm kiếm|dùng lén dữ liệu/)).not.toBeInTheDocument();
-    expect(screen.getByText(/không đưa họ vào danh sách tìm người\./)).toBeInTheDocument();
-    expect(screen.getByText("Không báo cho người ấy, nhưng vẫn cần họ cho phép")).toBeInTheDocument();
-    expect(screen.getByText(/Ngày, giờ và nơi sinh chỉ dùng trong lúc tính/)).toBeInTheDocument();
-    expect(screen.getByText(/mà không cần nhắn hay báo cho người ấy/)).toBeInTheDocument();
+    expect(screen.queryByText(/pool tìm kiếm|dùng lén dữ liệu|Ngày, giờ và nơi sinh chỉ dùng trong lúc tính/)).not.toBeInTheDocument();
   });
 
-  it("shows the owner-approved privacy lines word for word (AM1, 20.11.2026)", () => {
+  it("shows the owner-approved invite sentence word for word (AP2, 21.11.2026)", () => {
     render(<MemoryRouter><RadarLandingPage /></MemoryRouter>);
     const registry = JSON.parse(readFileSync(join(process.cwd(), "../api/app/domains/content/copy_registry.json"), "utf8")) as {
       entries: { id: string; category: string; text: string; status: string; approver?: string; date?: string }[];
     };
-    for (const id of ["privacy.radar.landing-no-notify", "privacy.radar.landing-permission-heading"]) {
-      const entry = registry.entries.find((item) => item.id === id);
-      expect(entry).toMatchObject({ category: "privacy", status: "approved", approver: "owner", date: "2026-11-20" });
-      expect(screen.getByText(entry!.text)).toBeInTheDocument();
-    }
+    const entry = registry.entries.find((item) => item.id === "privacy.radar.invite-first.owner-invite-body");
+    expect(entry).toMatchObject({ category: "privacy", status: "approved", approver: "owner", date: "2026-11-21", text: INVITE_BODY });
+    expect(screen.getByText(INVITE_BODY)).toBeInTheDocument();
   });
 
   it("offers two clearly different ways back to old results", () => {
