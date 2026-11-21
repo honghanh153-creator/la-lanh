@@ -29,6 +29,14 @@ result honest:
   line replaced by a line that meets exactly one flag. They are mixed into every pass, kept out
   of the marks, and reported apart, so flags that agree only because no judge ever raises one
   are visible.
+
+Rubric v3 (the four scores come from counting days, then a table) adds two reading aids that
+are not marks:
+
+- ``count_mismatches``: how many records carry a score that the table does not give for the
+  day counts the judge wrote down. Scores are never corrected;
+- ``judge_breakdown``: each judge file against the other pass on the same personas, so a shift
+  of the mean can be read as one heavy-handed judge or as spread over all of them.
 """
 
 from __future__ import annotations
@@ -48,8 +56,11 @@ from scripts.persona_report import JUDGE_PROFILE_KEYS, PRECISION_VI, load_jsonl
 ROOT = Path(__file__).resolve().parents[3]
 QA = ROOT / "qa" / "personas"
 CONTROLS = QA / "stability" / "controls-v2.json"
-RUBRIC_VERSION = "app-judge-v2-2026-11-20"
+RUBRIC_VERSION = "app-judge-v3-2026-11-21"
 SCORES = ("understood", "less_alone", "peaceful", "want_return")
+# Rubric v3: "nothing written for me" reads as 2 for these two scores and as 3 for the others.
+NOTHING_IS_LOW = ("understood", "want_return")
+JUDGED_DAY_COUNT = 4
 SCORE_VI = {
     "understood": "Hiểu mình",
     "less_alone": "Bớt thấy một mình",
@@ -185,18 +196,22 @@ def split_for_pass(
     persona, because two people with one life story would give the planting away.
     """
 
+    if twins and batches < 2:
+        raise ValueError(
+            "Có ca cài sẵn thì cần từ 2 gói trở lên: một gói thì ca cài sẵn nằm chung với "
+            "người nó chép."
+        )
     seed = int.from_bytes(hashlib.sha256(f"{RUBRIC_VERSION}:{pass_name}".encode()).digest()[:8])
     order = list(packets)
     random.Random(seed).shuffle(order)  # noqa: S311 - a fixed reading order, not a secret
     out = [order[i::batches] for i in range(batches)]
-    if batches > 1:
-        for cid, source in (twins or {}).items():
-            for index, batch in enumerate(out):
-                ids = [p["persona"] for p in batch]
-                if cid in ids and source in ids:
-                    target = out[(index + 1) % batches]
-                    target.insert(len(target) // 2, batch.pop(ids.index(cid)))
-                    break
+    for cid, source in (twins or {}).items():
+        for index, batch in enumerate(out):
+            ids = [p["persona"] for p in batch]
+            if cid in ids and source in ids:
+                target = out[(index + 1) % batches]
+                target.insert(len(target) // 2, batch.pop(ids.index(cid)))
+                break
     return out
 
 
@@ -254,6 +269,82 @@ def control_summary(
     }
 
 
+def table_score(key: str, bad: int, good: int) -> int:
+    """Rubric v3: the score the table gives for a count of bad days and of good days."""
+
+    if key in NOTHING_IS_LOW:
+        if bad >= 2 or (bad == 1 and good == 0):
+            return 1
+        if bad == 1 or good == 0:
+            return 2
+        return 3 if good == 1 else 4 if good <= 3 else 5
+    if bad >= 2:
+        return 1
+    if bad == 1:
+        return 2 if good <= 1 else 3
+    return 3 if good == 0 else 4 if good <= 2 else 5
+
+
+def _day_counts(value: object) -> tuple[int, int] | None:
+    """``[bad days, good days]`` as the judge wrote it, or None when it is not usable."""
+
+    if not isinstance(value, list) or len(value) != 2:
+        return None
+    if any(isinstance(n, bool) or not isinstance(n, int) or n < 0 for n in value):
+        return None
+    bad, good = value
+    return (bad, good) if bad + good <= JUDGED_DAY_COUNT else None
+
+
+def count_mismatches(scores: Mapping[str, Mapping[str, Any]]) -> dict[str, list[str]]:
+    """Per score, the personas whose score is not what the table gives for their day counts.
+
+    A record without usable counts for a score is a mismatch too: nothing shows where its
+    score came from. Read-only: the scores stay as the judge gave them.
+    """
+
+    return {
+        key: [
+            pid
+            for pid, record in scores.items()
+            if (counts := _day_counts(record.get("counts", {}).get(key))) is None
+            or table_score(key, *counts) != record[key]
+        ]
+        for key in SCORES
+    }
+
+
+def judge_breakdown(
+    files: Mapping[str, Mapping[str, Mapping[str, Any]]],
+    other: Mapping[str, Mapping[str, Any]],
+    expected: Sequence[str],
+) -> list[dict[str, Any]]:
+    """Each judge file against the other pass, on the personas that file scored.
+
+    ``diff`` is this judge's mean minus the other pass's mean for the same people (signed), so
+    one judge who scores higher or lower than the rest stands out. Planted cases are left out.
+    """
+
+    rows: list[dict[str, Any]] = []
+    for label, scores in files.items():
+        both = [pid for pid in expected if pid in scores and pid in other]
+        rows.append(
+            {
+                "judge": label,
+                "personas": len(both),
+                "diff": {
+                    key: statistics.fmean(
+                        int(scores[pid][key]) - int(other[pid][key]) for pid in both
+                    )
+                    if both
+                    else None
+                    for key in SCORES
+                },
+            }
+        )
+    return rows
+
+
 def parse_scores(items: object) -> dict[str, dict[str, Any]]:
     """Validate one judge output: 4 whole scores 1-5 and 5 true/false flags per persona."""
 
@@ -282,19 +373,25 @@ def parse_scores(items: object) -> dict[str, dict[str, Any]]:
             if isinstance(quotes, dict)
             else {}
         )
+        counts = item.get("counts")
+        record["counts"] = dict(counts) if isinstance(counts, dict) else {}
         out[pid] = record
     return out
 
 
-def load_pass(paths: Iterable[str]) -> dict[str, dict[str, Any]]:
-    merged: dict[str, dict[str, Any]] = {}
+def load_pass_files(paths: Iterable[str]) -> list[dict[str, dict[str, Any]]]:
+    """One pass, one dict per judge file, in the order given; nobody is scored twice."""
+
+    files: list[dict[str, dict[str, Any]]] = []
+    seen: set[str] = set()
     for path in paths:
         scores = parse_scores(json.loads(Path(path).read_text(encoding="utf-8")))
-        twice = sorted(set(scores) & set(merged))
+        twice = sorted(set(scores) & seen)
         if twice:
             raise ValueError(f"{path}: personas already scored in this pass: {twice[:5]}")
-        merged.update(scores)
-    return merged
+        seen |= set(scores)
+        files.append(scores)
+    return files
 
 
 def weighted_kappa(pairs: Sequence[tuple[int, int]]) -> float | None:
@@ -516,6 +613,48 @@ def render_controls(
     return lines
 
 
+def render_reading_aids(
+    mismatches: Mapping[str, Mapping[str, Sequence[str]]],
+    breakdown: Sequence[Mapping[str, Any]],
+) -> list[str]:
+    """Rubric v3 reading aids (not marks): scores off the table, and judge-by-judge shifts."""
+
+    names = list(mismatches)
+    lines = [
+        "## Điểm có khớp số đếm không",
+        "",
+        "Số bài có điểm khác với điểm bảng tra cho ra từ số ngày xấu và ngày tốt giám khảo tự "
+        "ghi (bài thiếu số đếm cũng tính). Máy chỉ đếm, không sửa điểm. Có tính cả ca cài sẵn.",
+        "",
+        table("Điểm", *[PASS_VI[n].capitalize() for n in names]),
+        table(*["---"] * (1 + len(names))),
+        *[table(SCORE_VI[key], *[len(mismatches[n][key]) for n in names]) for key in SCORES],
+        "",
+        "## Từng giám khảo so với lượt kia",
+        "",
+        "Mỗi dòng là một tệp điểm (một giám khảo). Số là trung bình điểm của giám khảo đó trừ "
+        "trung bình lượt kia cho đúng những người đó. Dấu trừ là chấm thấp hơn lượt kia.",
+        "",
+        table("Giám khảo", "Số người", *[SCORE_VI[key] for key in SCORES]),
+        table(*["---"] * (2 + len(SCORES))),
+    ]
+    for row in breakdown:
+        lines.append(
+            table(
+                row["judge"],
+                row["personas"],
+                *[
+                    "—"
+                    if row["diff"][key] is None
+                    else f"{row['diff'][key]:+.2f}".replace(".", ",")
+                    for key in SCORES
+                ],
+            )
+        )
+    lines.append("")
+    return lines
+
+
 def render(
     run: Mapping[str, Any],
     again: Mapping[str, Any],
@@ -523,6 +662,7 @@ def render(
     notes: str | None,
     planted: Mapping[str, Any] | None = None,
     dropped: Mapping[str, Sequence[Sequence[str]]] | None = None,
+    aids: Sequence[str] = (),
 ) -> str:
     checks = stability_checks(again)
     passed = all(ok for _, _, ok in checks)
@@ -551,6 +691,7 @@ def render(
             "Hai giám khảo trên cùng 100 người", second, ("giám khảo 1", "giám khảo 2")
         )
     lines += render_controls(planted, dropped or {})
+    lines += aids
     lines += [
         "## Giới hạn",
         "",
@@ -610,14 +751,29 @@ def cmd_report(
     shown = {p["persona"]: p for p in [*packets, *planted]}
     expected = [p["id"] for p in personas]
     meta = json.loads((run / "meta.json").read_text(encoding="utf-8"))
-    passes = {"first": load_pass(first), "again": load_pass(again)}
+    by_file = {"first": load_pass_files(first), "again": load_pass_files(again)}
     if second:
-        passes["second"] = load_pass(second)
+        by_file["second"] = load_pass_files(second)
+    passes = {
+        name: {pid: record for scores in files for pid, record in scores.items()}
+        for name, files in by_file.items()
+    }
     # The quote rule runs before any comparison: a flag without its words is not a flag.
     dropped = {name: apply_quote_rule(scores, shown) for name, scores in passes.items()}
     cmp_again = compare(passes["first"], passes["again"], expected)
     cmp_second = compare(passes["first"], passes["second"], expected) if second else None
     planted_summary = control_summary(control_list, passes) if control_list else None
+    mismatches = {name: count_mismatches(scores) for name, scores in passes.items()}
+    # "first" is the other pass for everyone but itself; its own other pass is "again".
+    breakdown = [
+        row
+        for name, files in by_file.items()
+        for row in judge_breakdown(
+            {f"{PASS_VI[name]}, gói {i}": scores for i, scores in enumerate(files, start=1)},
+            passes["again" if name == "first" else "first"],
+            expected,
+        )
+    ]
     out.write_text(
         render(
             meta,
@@ -626,6 +782,7 @@ def cmd_report(
             notes.read_text(encoding="utf-8") if notes else None,
             planted_summary,
             dropped,
+            render_reading_aids(mismatches, breakdown),
         ),
         encoding="utf-8",
     )
@@ -638,6 +795,8 @@ def cmd_report(
                 "second": cmp_second,
                 "flags_dropped_without_quote": dropped,
                 "planted": planted_summary,
+                "score_off_table": mismatches,
+                "judge_breakdown": breakdown,
             },
             ensure_ascii=False,
             indent=1,
