@@ -24,6 +24,7 @@ from app.domains.readings.application import (
     ReadingApplicationService,
     ReadingContentRejected,
 )
+from app.domains.readings.knowledge import SYNTHESIS_WORDING_VERSION
 from app.domains.readings.models import (
     AuraUnlockLayer,
     BackgroundLens,
@@ -43,6 +44,7 @@ from app.domains.readings.renderers import (
     JYOTISH_MEANINGS_VERSION,
     DeterministicVietnameseRenderer,
 )
+from app.domains.readings.service import InsightReadingService
 
 NOW = datetime(2026, 9, 7, 4, 30, tzinfo=UTC)
 
@@ -1192,3 +1194,86 @@ async def test_stored_jyotish_reading_from_the_old_renderer_is_repaired_not_repl
     assert repaired.active.revision_id != first.active.revision_id
     assert repaired.active.sections.hook != old_hook
     assert repaired.available_update is None
+
+
+@pytest.mark.asyncio
+async def test_stored_synthesis_with_the_old_wording_reopens_as_a_new_revision() -> None:
+    """Codex r1 on #774: the wording fix (one style for two placements in one sign, no circular
+    "khi bạn chủ động") changes accepted text for an unchanged plan. A revision stored with the
+    old wording must not share a revision key with the new text, or reopening it would raise
+    ImmutableReadingConflictError."""
+
+    marker = f"+{SYNTHESIS_WORDING_VERSION}"
+
+    class OldWordingRenderer(DeterministicVietnameseRenderer):
+        def render(self, plan):  # type: ignore[no-untyped-def]
+            candidate = super().render(plan)
+            assert marker in candidate.renderer_version
+            assert candidate.semantic_blueprint is not None
+            old_hook = candidate.hook.replace("hỗ trợ nhau.", "hỗ trợ nhau khi bạn chủ động.")
+            return candidate.model_copy(
+                update={
+                    "hook": old_hook,
+                    "renderer_version": candidate.renderer_version.replace(marker, ""),
+                    "semantic_blueprint": candidate.semantic_blueprint.model_copy(
+                        update={"hook": old_hook}
+                    ),
+                }
+            )
+
+    engine = NatalChartEngine()
+    repository = MemoryReadingRepository()
+    guest_id = UUID("20000000-0000-4000-8000-000000000774")
+    profile_id = UUID("30000000-0000-4000-8000-000000000774")
+    snapshot = _exact_snapshot(guest_id, profile_id, engine)
+    # A synthetic chart whose Aura hero is a sextile with a "giữ quyền chủ động" need.
+    chart = engine.calculate_chart(
+        ChartInput(
+            utc_datetime=datetime(1990, 1, 15, 12, tzinfo=UTC),
+            latitude=10.8231,
+            longitude=106.6297,
+        )
+    )
+
+    first = await ReadingApplicationService(
+        repository, engine, renderer=OldWordingRenderer()
+    ).project(
+        guest_id=guest_id,
+        snapshot=snapshot,
+        purpose=ReadingPurpose.AURA,
+        chart=chart,
+        requested_at=NOW,
+    )
+    reopened = await ReadingApplicationService(repository, engine).project(
+        guest_id=guest_id,
+        snapshot=snapshot,
+        purpose=ReadingPurpose.AURA,
+        chart=chart,
+        requested_at=NOW,
+    )
+
+    assert first.active.sections.hook.endswith("hỗ trợ nhau khi bạn chủ động.")
+    # The new wording gets its own revision identity instead of colliding with the stored one
+    # (the in-memory repository returns the stored record for a known key; postgres would raise).
+    assert len(repository.revision_keys) == 2
+    new_wording = [
+        record
+        for record in repository.revision_keys.values()
+        if record.renderer_version.endswith(marker)
+    ]
+    assert len(new_wording) == 1
+    assert reopened is not None
+
+
+def test_a_reading_the_wording_fix_does_not_touch_keeps_its_revision_identity() -> None:
+    engine = NatalChartEngine()
+    chart = engine.calculate_chart(
+        ChartInput(
+            utc_datetime=datetime(1990, 1, 1, 12, tzinfo=UTC),
+            latitude=10.8231,
+            longitude=106.6297,
+        )
+    )
+    plan = InsightReadingService().plan(chart, purpose=ReadingPurpose.AURA)
+    candidate = DeterministicVietnameseRenderer().render(plan)
+    assert SYNTHESIS_WORDING_VERSION not in candidate.renderer_version
