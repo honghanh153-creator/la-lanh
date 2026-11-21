@@ -146,9 +146,9 @@ export function RadarStartPage() {
 
 
   return <main className="app-page matching-page radar-page radar-start">
-    <header className="matching-header"><button aria-label="Quay lại" className="radar-back" onClick={() => void navigate(-1)} type="button"><ArrowLeft /></button><BrandMark /><span className="matching-signal"><HeartStraight weight="fill" /> private</span></header>
+    <header className="matching-header"><button aria-label="Quay lại" className="radar-back" onClick={() => void navigate(-1)} type="button"><ArrowLeft /></button><BrandMark /><span className="matching-signal"><HeartStraight weight="fill" /> lời mời riêng</span></header>
     <RadarFlowSteps current={2} />
-    <section className="matching-hero matching-hero--compact"><p className="eyebrow">Radar 1:1</p><h1>Bạn muốn check ai?</h1><p>Chỉ nhập tên gọi để bạn dễ nhớ. Đừng nhập ngày sinh thay họ—link sẽ để chính họ tự quyết định.</p></section>
+    <section className="matching-hero matching-hero--compact"><p className="eyebrow">Hợp gu 1:1</p><h1>Bạn muốn mời ai?</h1><p>Chỉ nhập tên gọi để bạn dễ nhớ. Đừng nhập ngày sinh thay họ—link sẽ để chính họ tự quyết định.</p></section>
 
     {owner.isError ? <section className="radar-public__card radar-owner-gate"><Sparkle /><h2>{owner.error instanceof ApiProblem && owner.error.status === 401 ? "Chart của bạn cần có trước." : "Chưa nối lại được phiên riêng."}</h2><p>{owner.error instanceof ApiProblem && owner.error.status === 401 ? "Chưa cần tài khoản. Tạo chart riêng, thêm giờ và nơi sinh rồi Lá đưa bạn quay lại đây để tạo link." : "Dữ liệu cũ vẫn được giữ kín. Kiểm tra mạng rồi thử nối lại nhé."}</p>{owner.error instanceof ApiProblem && owner.error.status === 401 ? <Link className="matching-primary" onClick={startOwnerProfile} to="/consent">Tạo chart của mình <ArrowRight /></Link> : <button className="matching-primary" onClick={owner.retry} type="button">Thử nối lại <ArrowRight /></button>}</section> : null}
 
@@ -159,7 +159,7 @@ export function RadarStartPage() {
       <fieldset><legend>Hai bạn đang là…</legend><div className="radar-contexts">{RADAR_CONTEXT_OPTIONS.map(([value, text]) => <button aria-pressed={context === value} className={context === value ? "is-selected" : ""} key={value} onClick={() => setContext(value)} type="button">{text}</button>)}</div></fieldset>
       <details className="radar-voice-disclosure"><summary>Giọng đọc · {RADAR_VOICE_OPTIONS.find(([value]) => value === voice)?.[1]}</summary><fieldset><legend>Bạn muốn Radar nói kiểu nào?</legend><div className="radar-voices">{RADAR_VOICE_OPTIONS.map(([value, title, description]) => <button aria-pressed={voice === value} className={voice === value ? "is-selected" : ""} key={value} onClick={() => setVoice(value)} type="button"><strong>{title}</strong><small>{description}</small></button>)}</div></fieldset></details>
       <div className="radar-consent-note"><LockKey /><p><strong>Không cần dữ liệu của người kia ở bước này.</strong><br />Radar chỉ chạy khi họ tự hoàn thiện chart và đồng ý dùng cho lần check này.</p></div>
-      <button className="matching-primary" disabled={create.isPending || owner.isPending || !label.trim()} type="submit">{create.isPending ? "Đang tạo link riêng…" : "Tạo link bật Radar"}<ArrowRight /></button>
+      <button className="matching-primary" disabled={create.isPending || owner.isPending || !label.trim()} type="submit">{create.isPending ? "Đang tạo link riêng…" : "Tạo link mời"}<ArrowRight /></button>
     </form> : null}
     {(owner.isPending || (owner.isReady && precision === "checking")) && !owner.isError ? <section aria-live="polite" className="radar-owner-refresh"><Sparkle className="matching-pulse" /><p>Đang nối Radar với phiên chart hiện tại…</p></section> : null}
     {message && !owner.isError ? <p className="matching-message" role="status">{message}</p> : null}
@@ -175,7 +175,7 @@ export function RadarStartPage() {
 
 function statusText(status: RadarInvite["status"]) {
   if (status === "pending") return "Đang chờ người kia đồng ý";
-  if (status === "completed") return "Radar đã bắt được sóng";
+  if (status === "completed") return "Đã có kết quả";
   if (status === "withdrawn") return "Người kia đã rút dữ liệu";
   if (status === "expired") return "Link đã hết hạn";
   return "Link đã thu hồi";
