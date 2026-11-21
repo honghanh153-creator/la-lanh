@@ -87,7 +87,7 @@ describe("Radar results B received (P09 D2)", () => {
     renderAt("/radar/received");
 
     expect(await screen.findByRole("heading", { name: "Kết quả bạn đã nhận" })).toBeInTheDocument();
-    expect(screen.getByText("Hợp gu · Bạn thân")).toBeInTheDocument();
+    expect(screen.getByText("Hợp gu · Bạn bè")).toBeInTheDocument();
     expect(screen.getByText(/Còn mở đến 10:00, 19\/11/)).toBeInTheDocument();
     expect(screen.getByText(/Bạn không cần nhập lại ngày sinh/)).toBeInTheDocument();
 

@@ -908,6 +908,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/public/radar/consent-options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Consent Options
+         * @description No personal data; tells the web which consent screens it may show (AL1).
+         */
+        get: operations["consent_options_v1_public_radar_consent_options_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/public/radar/current": {
         parameters: {
             query?: never;
@@ -936,6 +956,30 @@ export interface paths {
         put?: never;
         /** Accept Invite */
         post: operations["accept_invite_v1_public_radar_current_accept_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/public/radar/current/accept-date": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accept Invite With Date
+         * @description AL1 one-field invite. 404 while the invite-first consent is off or unapproved.
+         *
+         *     No guest session: the capability cookie (SameSite=Lax, path-bound), the trusted Origin and the
+         *     bound ``request_id`` guard the action, as for decline and invite-link withdrawal. The token is
+         *     single use: completing it moves the invite out of ``pending`` under a row lock.
+         */
+        post: operations["accept_invite_with_date_v1_public_radar_current_accept_date_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3324,7 +3368,7 @@ export interface components {
             request_id: string;
             /**
              * Requires Exact Birth Profile
-             * @default true
+             * @default false
              */
             requires_exact_birth_profile: boolean;
             /** Voice */
@@ -3410,17 +3454,51 @@ export interface components {
              */
             request_id: string;
         };
+        /**
+         * RadarConsentOptionsResponse
+         * @description Whether the invite-first consent screens are live, with their owner-approved sentences.
+         */
+        RadarConsentOptionsResponse: {
+            /** Authorized Input Version */
+            authorized_input_version: string;
+            /** Date Consent Version */
+            date_consent_version: string;
+            /** Invite First */
+            invite_first: boolean;
+            /** Sentences */
+            sentences?: {
+                [key: string]: string;
+            };
+        };
         /** RadarCreateRequest */
         RadarCreateRequest: {
             /**
              * Context
              * @enum {string}
              */
-            context: "crush" | "friend" | "partner" | "someone";
+            context: "crush" | "friend" | "partner" | "someone" | "coworker" | "family";
             /** Recipient Label */
             recipient_label: string;
             /** @default straight_warm */
             voice: components["schemas"]["RelationshipVoice"];
+        };
+        /**
+         * RadarDateAcceptRequest
+         * @description The one-field invite (AL1): B's own birth date and B's consent, nothing else.
+         */
+        RadarDateAcceptRequest: {
+            /**
+             * Birth Date
+             * Format: date
+             */
+            birth_date: string;
+            /** Consent Version */
+            consent_version: string;
+            /**
+             * Request Id
+             * Format: uuid
+             */
+            request_id: string;
         };
         /** RadarInviteResponse */
         RadarInviteResponse: {
@@ -3479,16 +3557,16 @@ export interface components {
              * @default exact
              * @enum {string}
              */
-            birth_time_mode: "exact" | "unknown";
+            birth_time_mode: "exact" | "unknown" | "date_only";
             /** Consent Version */
             consent_version: string;
             /**
              * Context
              * @enum {string}
              */
-            context: "crush" | "friend" | "partner" | "someone";
+            context: "crush" | "friend" | "partner" | "someone" | "coworker" | "family";
             /** Place Id */
-            place_id: string;
+            place_id?: string | null;
             /** Recipient Label */
             recipient_label: string;
             /** @default straight_warm */
@@ -8487,6 +8565,26 @@ export interface operations {
             };
         };
     };
+    consent_options_v1_public_radar_consent_options_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarConsentOptionsResponse"];
+                };
+            };
+        };
+    };
     current_invite_v1_public_radar_current_get: {
         parameters: {
             query?: never;
@@ -8532,6 +8630,41 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["RadarAcceptRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicRadarResultResponse"];
+                };
+            };
+            /** @description Request input was rejected */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    accept_invite_with_date_v1_public_radar_current_accept_date_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                la_lanh_radar_invite?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RadarDateAcceptRequest"];
             };
         };
         responses: {

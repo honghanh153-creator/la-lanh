@@ -104,7 +104,7 @@ describe("Radar recipient flow", () => {
     renderFlow("/radar/continue");
 
     await user.click(await screen.findByRole("checkbox"));
-    await user.click(screen.getByRole("button", { name: "Đồng ý & bật Radar" }));
+    await user.click(screen.getByRole("button", { name: "Đồng ý & xem kết quả" }));
     expect(await screen.findByRole("heading", { name: result.headline })).toBeInTheDocument();
     expect(acceptRadarInvite).toHaveBeenCalledWith("request-a");
     expect(getRadarReceipt).toHaveBeenCalled();

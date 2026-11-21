@@ -1,17 +1,77 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { getPublicRadarInvite } from "../../shared/api/client";
+import { acceptRadarInviteWithDate, getPublicRadarInvite, getRadarConsentOptions } from "../../shared/api/client";
 import { PublicRadarPage } from "./PublicRadarPage";
 
 vi.mock("../../shared/api/client", async (original) => {
   const actual = await original<typeof import("../../shared/api/client")>();
-  return { ...actual, getPublicRadarInvite: vi.fn() };
+  return { ...actual, getPublicRadarInvite: vi.fn(), getRadarConsentOptions: vi.fn(), acceptRadarInviteWithDate: vi.fn() };
 });
 
+const invite = {
+  request_id: "request-1",
+  context: "coworker",
+  voice: "straight_warm",
+  expires_at: "2026-09-27T00:00:00Z",
+  consent_version: "radar-pair-v1",
+  requires_exact_birth_profile: false,
+  privacy_note: "private",
+} as const;
+
+function renderInvite() {
+  return render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+    <MemoryRouter initialEntries={["/radar/i/token"]}>
+      <Routes><Route element={<PublicRadarPage />} path="/radar/i/:token" /><Route element={<p>receipt page</p>} path="/radar/receipt" /></Routes>
+    </MemoryRouter>
+  </QueryClientProvider>);
+}
+
 describe("PublicRadarPage", () => {
+  beforeEach(() => {
+    vi.mocked(getRadarConsentOptions).mockResolvedValue({ invite_first: false, sentences: {}, authorized_input_version: "radar-authorized-input-v1", date_consent_version: "radar-pair-date-v1" });
+  });
+
+  // AL1: the one-field invite shows only with the server switch on and every sentence owner-approved.
+  it("asks only for the recipient's own birth date when the one-field invite is live", async () => {
+    vi.mocked(getPublicRadarInvite).mockResolvedValue(invite);
+    vi.mocked(getRadarConsentOptions).mockResolvedValue({
+      invite_first: true,
+      // Test stand-ins: the real sentences are owner-only and come from the server once approved.
+      sentences: { "recipient-heading": "Tiêu đề.", "recipient-body": "Thân bài.", "recipient-consent": "Câu đồng ý.", "recipient-decline": "Câu từ chối." },
+      authorized_input_version: "radar-authorized-input-v2",
+      date_consent_version: "radar-pair-date-v1",
+    });
+    vi.mocked(acceptRadarInviteWithDate).mockResolvedValue({} as Awaited<ReturnType<typeof acceptRadarInviteWithDate>>);
+    const user = userEvent.setup();
+    renderInvite();
+
+    expect(await screen.findByRole("heading", { name: "Tiêu đề." })).toBeInTheDocument();
+    expect(screen.getByText("Câu từ chối.")).toBeInTheDocument();
+    expect(screen.getAllByRole("textbox")).toHaveLength(3);
+    const submit = screen.getByRole("button", { name: /Đồng ý & xem kết quả/ });
+    expect(submit).toBeDisabled();
+    await user.type(screen.getByLabelText("Ngày sinh của bạn — ngày"), "21");
+    await user.type(screen.getByLabelText("Ngày sinh của bạn — tháng"), "07");
+    await user.type(screen.getByLabelText("Ngày sinh của bạn — năm"), "1996");
+    expect(submit).toBeDisabled();
+    await user.click(screen.getByRole("checkbox", { name: "Câu đồng ý." }));
+    await user.click(submit);
+
+    await waitFor(() => expect(acceptRadarInviteWithDate).toHaveBeenCalledWith("request-1", expect.stringMatching(/^1996-07-\d{2}$/), "radar-pair-date-v1"));
+    expect(await screen.findByText("receipt page")).toBeInTheDocument();
+  });
+
+  it("keeps the current invite page while the one-field invite is off", async () => {
+    vi.mocked(getPublicRadarInvite).mockResolvedValue(invite);
+    renderInvite();
+    expect(await screen.findByRole("link", { name: /Xem mình cần làm gì/ })).toBeInTheDocument();
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+  });
+
   it("shows purpose and privacy before collecting any recipient data", async () => {
     // An older API may still send the sender's private label; the page must never show it (issue #95).
     const staleInvite = {
