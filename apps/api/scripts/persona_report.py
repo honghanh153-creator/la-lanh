@@ -35,6 +35,7 @@ from scripts.persona_metrics import (
     population_curve,
     repeats_ever,
     repeats_within,
+    same_line_on_return,
     retention,
 )
 
@@ -125,6 +126,8 @@ def repetition(
     headline_repeat_days = 0
     personas_with_headline_repeat = 0
     la_repeat = la_days = 0
+    returns = returns_same = 0
+    headline_repeat_14 = headline_days = 0
     per_persona_la: list[float] = []
     n = 0
     for pid in ids:
@@ -136,6 +139,11 @@ def repetition(
         ]
         windows.extend(distinct_in_windows(sit, 14))
         heads = [r.get("headline") for r in rows]
+        back, same = same_line_on_return([r.get("situation") for r in rows], heads)
+        returns += back
+        returns_same += same
+        headline_repeat_14 += repeats_within(heads, 14)
+        headline_days += sum(1 for h in heads if h)
         rep = repeats_within(heads, 7)
         headline_repeat_days += rep
         personas_with_headline_repeat += rep > 0
@@ -154,6 +162,9 @@ def repetition(
         "headline_repeat_days": headline_repeat_days,
         "personas_with_headline_repeat": personas_with_headline_repeat,
         "la_line_repeat_pct": pct(la_repeat, la_days),
+        "headline_repeat_14d_pct": pct(headline_repeat_14, headline_days),
+        "situation_returns": returns,
+        "same_headline_on_return_pct": pct(returns_same, returns),
         "la_line_repeat_median_persona_pct": round(100 * statistics.median(per_persona_la), 1)
         if per_persona_la
         else None,
@@ -449,6 +460,13 @@ def verdict_rows(m: Mapping[str, Any]) -> list[tuple[str, str, str, bool | None]
             "Không lặp tiêu đề trong 7 ngày (0 ngày lặp)",
             f"{a['headline_repeat_days']} ngày lặp ở {a['personas_with_headline_repeat']} người",
             a["headline_repeat_days"] == 0,
+        ),
+        (
+            "Lặp lại",
+            "Chuyện quay lại mang tiêu đề mới (cùng tiêu đề lần trước ≤ 2%)",
+            f"{fmt(a['same_headline_on_return_pct'])} của {a['situation_returns']} lần quay lại; "
+            f"tiêu đề lặp trong 14 ngày {fmt(a['headline_repeat_14d_pct'])}",
+            (a["same_headline_on_return_pct"] or 0) <= 2.0,
         ),
         (
             "Lặp lại",

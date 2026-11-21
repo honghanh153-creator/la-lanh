@@ -15,6 +15,7 @@ from scripts.persona_metrics import (
     population_curve,
     repeats_ever,
     repeats_within,
+    same_line_on_return,
     signals,
 )
 from scripts.persona_validate import problems
@@ -618,3 +619,11 @@ def test_report_shows_spread_differing_days_and_each_judge(tmp_path: Path) -> No
     assert saved["score_spread"]["again"]["understood"] == [0, 0, 6, 6, 0]
     assert saved["day_marks_differ"]["Lượt 1 và lượt 2"]["understood"]["good_none"] == 6
     assert len(saved["judge_breakdown"]) == 4
+
+
+def test_same_line_on_return_counts_a_situation_that_brings_its_old_line() -> None:
+    # Research item 6 (21.11.2026): synthetic topics and lines only.
+    topics = ["a", "b", "a", "c", "a", None, "b"]
+    lines = ["x1", "y1", "x2", "z1", "x2", "q", "y1"]
+    assert same_line_on_return(topics, lines) == (3, 2)
+    assert same_line_on_return([], []) == (0, 0)

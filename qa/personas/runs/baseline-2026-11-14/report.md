@@ -6,6 +6,7 @@ Ngưỡng: `persona-thresholds-v1-2026-11-14` (qa/personas/thresholds.md). Code:
 | --- | --- | --- | --- |
 | Lặp lại | Số chuyện khác nhau mỗi 14 ngày ≥ 5 (mọi người, mọi khung) | 9.5% khung đạt; trung vị 1.0 | TRƯỢT |
 | Lặp lại | Không lặp tiêu đề trong 7 ngày (0 ngày lặp) | 1479 ngày lặp ở 86 người | TRƯỢT |
+| Lặp lại | Chuyện quay lại mang tiêu đề mới (cùng tiêu đề lần trước ≤ 2%) | 0.9% của 1989 lần quay lại; tiêu đề lặp trong 14 ngày 64.4% | ĐẠT |
 | Lặp lại | Lời của Lá lặp ≤ 20% số ngày | 94% | TRƯỢT |
 | Hợp mood | Ngày Đuối được việc nhẹ ≥ 90% | 10.2% (46/449) | TRƯỢT |
 | Hợp mood | Lời của Lá không trái mood (100%) | 0 ngày trái | ĐẠT |
