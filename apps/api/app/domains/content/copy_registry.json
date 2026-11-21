@@ -12317,6 +12317,24 @@
    "category": "reading",
    "text": "Bạn dễ muốn nói thật kỹ nên cứ sửa mãi chưa gửi đi.",
    "status": "pending"
+  },
+  {
+   "id": "situation.pair.mars-uranus.tense",
+   "category": "reading",
+   "text": "Bạn dễ bị cuốn sang việc mới ngay khi vừa nghĩ ra.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.mars-neptune.tense",
+   "category": "reading",
+   "text": "Bạn dễ thấy mệt vì chưa rõ nên dồn sức vào việc nào trước.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.mars-sun.tense",
+   "category": "reading",
+   "text": "Bạn dễ nhận thêm việc vì muốn chứng tỏ mình làm được.",
+   "status": "pending"
   }
  ],
  "version": "copy-registry/v1"
