@@ -994,7 +994,7 @@
    "from": "nhìn lại thử nghiệm 3+3 (#829), issue #828 mục 1 và 3",
    "who": "claude",
    "due": "2026-11-22",
-   "status": "open",
+   "status": "done",
    "test": {
     "file": "scripts/collab-audit.test.mjs",
     "name": "L55: a merge before signed receipts is judged by the rule of its time; after it an unsigned APPROVE still does not count"
@@ -1002,6 +1002,9 @@
    "caller": {
     "file": "scripts/collab-audit.mjs",
     "contains": "const last = verdictAtMerge(pr);"
+   },
+   "closedBy": {
+    "pr": 838
    }
   },
   {
@@ -1010,7 +1013,7 @@
    "from": "nhìn lại thử nghiệm 3+3 (#829), issue #828 mục 2",
    "who": "claude",
    "due": "2026-11-22",
-   "status": "open",
+   "status": "done",
    "test": {
     "file": "scripts/collab-audit-night.test.mjs",
     "name": "#828: a final judgement writes the disagreement it found into the log once; a re-run adds nothing"
@@ -1018,6 +1021,9 @@
    "caller": {
     "file": "scripts/collab-audit-night.mjs",
     "contains": "if (final && record.final && judgement?.result?.unrecorded?.items?.length) recordFound({ date, items: judgement.result.unrecorded.items });"
+   },
+   "closedBy": {
+    "pr": 838
    }
   }
  ]
