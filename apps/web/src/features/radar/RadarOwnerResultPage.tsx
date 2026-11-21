@@ -25,7 +25,7 @@ export function RadarOwnerResultPage() {
       void navigate(destination, { replace: true });
     },
   });
-  if (owner.isPending || query.isLoading) return <main className="matching-page matching-page--loading"><p>Đang mở lại tín hiệu…</p></main>;
+  if (owner.isPending || query.isLoading) return <main className="matching-page matching-page--loading"><p>Đang mở lại kết quả…</p></main>;
   if (owner.isError) return <main className="matching-page radar-public"><header className="matching-header"><BrandMark /></header><section className="radar-public__card"><h1>Chưa nối được đúng phiên chart.</h1><p>Kết quả không được hiển thị cho đến khi Radar xác nhận đúng người sở hữu.</p><button className="matching-primary" onClick={owner.retry} type="button">Thử nối lại</button><Link className="matching-secondary" to="/radar">Về Radar</Link></section></main>;
   if (query.isError && !query.data) return <main className="matching-page radar-public"><header className="matching-header"><BrandMark /></header><RadarFlowSteps current={3} /><section className="radar-public__card radar-missing-result"><h1>Kết quả này không còn khả dụng.</h1><p>Có thể bản đọc đã hết hạn hoặc đã được xóa. Bạn vẫn có thể bắt đầu một lần check mới.</p><button className="matching-secondary" onClick={() => void query.refetch()} type="button">Thử mở lại</button><Link className="matching-primary" to="/radar/start">Check một người khác</Link><Link className="matching-secondary" to="/radar">Về Radar Hợp Gu</Link></section></main>;
   if (!query.data) return null;

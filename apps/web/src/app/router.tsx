@@ -27,6 +27,7 @@ import { ResponseManagementPage } from "../features/la-chung/ResponseManagementP
 import { RetiredFeaturePage } from "../features/la-chung/RetiredFeaturePage";
 import { ResultPage } from "../features/la-chung/ResultPage";
 import { PublicRadarPage } from "../features/radar/PublicRadarPage";
+import { RadarCardPage } from "../features/radar/RadarCardPage";
 import { RadarContinuePage } from "../features/radar/RadarContinuePage";
 import { RadarLandingPage } from "../features/radar/RadarLandingPage";
 import { RadarOwnerResultPage } from "../features/radar/RadarOwnerResultPage";
@@ -130,6 +131,11 @@ export const appRoutes: RouteObject[] = [
   {
     path: "/radar/i/:token",
     element: <PublicRadarPage />,
+    errorElement: <RouteErrorPage />,
+  },
+  {
+    path: "/radar/the/:token",
+    element: <RadarCardPage />,
     errorElement: <RouteErrorPage />,
   },
 ];

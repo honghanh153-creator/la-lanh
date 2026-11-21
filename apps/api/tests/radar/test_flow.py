@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 
 from app.config import Settings
 from app.main import create_app
+from tests.leak_checks import leaked
 
 ORIGIN = "http://127.0.0.1:5173"
 
@@ -193,7 +194,7 @@ def test_private_radar_requires_both_people_and_supports_withdrawal(tmp_path: Pa
         _assert_no_raw_birth_data(result.json())
         assert "score" not in result.text.lower()
         assert "1996-07-21" not in result.text
-        assert "19:40" not in result.text
+        assert leaked(result.text, ("19:40",)) == []
         assert "vn-hanoi" not in result.text
         assert recipient.get(f"/v1/public/radar/{token}").status_code == 404
         receipt_result = recipient.get("/v1/public/radar/receipt")
@@ -326,12 +327,18 @@ def test_inflight_invite_accept_cannot_save_after_precision_erasure(
         chart_for_guest = service._chart
         pending_for_token = service._pending_by_token
 
+        erased: list[object] = []
+
         async def erase_after_chart(guest_id):  # type: ignore[no-untyped-def]
+            # The recipient's chart is read first. Its exact chart is computed, then the
+            # subject's time and place are erased once, before anything is locked or saved.
             chart = await chart_for_guest(guest_id)
-            target = guest_id
-            if withdraw_subject == "owner":
-                target = (await pending_for_token(token)).owner_guest_id
-            await birth.remove_supplement(target, remove_time=True, remove_place=True)
+            if not erased:
+                target = guest_id
+                if withdraw_subject == "owner":
+                    target = (await pending_for_token(token)).owner_guest_id
+                await birth.remove_supplement(target, remove_time=True, remove_place=True)
+                erased.append(target)
             return chart
 
         monkeypatch.setattr(service, "_chart", erase_after_chart)
@@ -340,6 +347,8 @@ def test_inflight_invite_accept_cannot_save_after_precision_erasure(
             headers={"Origin": ORIGIN, "X-CSRF-Token": recipient_csrf},
             json={"request_id": request_id, "consent_version": "radar-pair-v1"},
         )
+        # Either way the subject's profile changed after its source was read: the lock refuses,
+        # so nothing built from the stale chart is saved (AL1 keeps this for date-only reads).
         assert result.status_code == 409
         assert owner.get(f"/v1/radar/results/{request_id}").status_code == 404
         with sqlite3.connect(database) as connection:
@@ -431,7 +440,7 @@ def test_private_check_computes_without_persisting_other_person_birth_input(
         _assert_no_raw_birth_data(payload)
         assert "score" not in response.text.lower()
         assert "1996-07-21" not in response.text
-        assert "19:40" not in response.text
+        assert leaked(response.text, ("19:40",)) == []
         assert "vn-dak-lak" not in response.text
 
         with sqlite3.connect(database) as connection:
@@ -576,7 +585,8 @@ def test_private_check_with_unresolved_historical_offset_says_time_is_approximat
         _assert_no_raw_birth_data(payload)
 
 
-def test_owner_cannot_create_radar_without_exact_chart(tmp_path: Path) -> None:
+def test_date_only_owner_can_invite_but_not_without_profile(tmp_path: Path) -> None:
+    """AL1 (20.11.2026): an owner whose own profile has only a birth date is not blocked."""
     with _client(tmp_path / "radar-missing.db") as owner:
         guest = owner.post(
             "/v1/guest-sessions",
@@ -594,10 +604,29 @@ def test_owner_cannot_create_radar_without_exact_chart(tmp_path: Path) -> None:
         response = owner.post(
             "/v1/radar/requests",
             headers=headers,
-            json={"recipient_label": "Bạn", "context": "friend"},
+            json={"recipient_label": "Bạn", "context": "coworker"},
         )
 
-        assert response.status_code == 409
+        assert response.status_code == 200
+        assert response.json()["context"] == "coworker"
+
+        stranger = TestClient(owner.app, base_url=ORIGIN)
+        guest = stranger.post(
+            "/v1/guest-sessions",
+            json={
+                "consent_version": "birth-profile-v1",
+                "purpose": "birth_profile_basic",
+                "idempotency_key": "radar-no-profile-guest-123456",
+            },
+        )
+        no_profile_headers = {"Origin": ORIGIN, "X-CSRF-Token": guest.json()["csrf_token"]}
+        stranger.post("/v1/identity/claim", headers=no_profile_headers)
+        refused = stranger.post(
+            "/v1/radar/requests",
+            headers=no_profile_headers,
+            json={"recipient_label": "Bạn", "context": "friend"},
+        )
+        assert refused.status_code in {401, 409}
 
 
 def test_invite_actions_reject_stale_request_bindings(tmp_path: Path) -> None:
