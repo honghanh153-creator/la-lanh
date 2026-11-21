@@ -12467,6 +12467,60 @@
    "category": "reading",
    "text": "Bạn dễ chiều theo người khác để không làm ai buồn.",
    "status": "pending"
+  },
+  {
+   "id": "situation.pair.jupiter-sun.coop",
+   "category": "reading",
+   "text": "Bạn dễ muốn kể điều mình làm tốt và mong được ghi nhận cụ thể.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.jupiter-mercury.coop",
+   "category": "reading",
+   "text": "Bạn có nhiều ý hay cùng lúc nên dễ muốn bắt đầu hết.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.jupiter-moon.coop",
+   "category": "reading",
+   "text": "Bạn dễ rộng lòng giúp người khác mà quên sức mình có hạn.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.sun-uranus.coop",
+   "category": "reading",
+   "text": "Bạn dễ có hứng thử cách làm mới cho một việc đã quen.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.moon-pluto.coop",
+   "category": "reading",
+   "text": "Bạn cảm nhận rất sâu nhưng ít khi nói ra mình cần gì.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.moon-saturn.coop",
+   "category": "reading",
+   "text": "Bạn có trách nhiệm với người thân nên dễ ôm thêm việc của họ.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.neptune-sun.coop",
+   "category": "reading",
+   "text": "Bạn dễ hòa theo không khí chung trước khi hỏi rõ ý mình.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.neptune-venus.coop",
+   "category": "reading",
+   "text": "Bạn dễ nghĩ tốt về người khác và tự lấp phần họ chưa nói rõ.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.mars-pluto.coop",
+   "category": "reading",
+   "text": "Bạn dễ dồn hết sức cho điều đã chọn, khó dừng lại xem lại.",
+   "status": "pending"
   }
  ],
  "version": "copy-registry/v1"

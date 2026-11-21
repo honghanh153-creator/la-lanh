@@ -330,6 +330,62 @@ REGISTRY_PAIR_RULES: tuple[RegistryPairRule, ...] = (
         "avoid-small-conflict",
         "situation.pair.sun-venus.tense",
     ),
+    # Trines and sextiles (#841 follow-up): the most frequent cooperative transit contacts without
+    # a rule. Each reads as a strength that tips into a Daily situation, never as an event.
+    RegistryPairRule(
+        frozenset({"jupiter", "sun"}),
+        "coop",
+        "specific-feedback",
+        "situation.pair.jupiter-sun.coop",
+    ),
+    RegistryPairRule(
+        frozenset({"jupiter", "mercury"}),
+        "coop",
+        "too-many-open-loops",
+        "situation.pair.jupiter-mercury.coop",
+    ),
+    RegistryPairRule(
+        frozenset({"jupiter", "moon"}),
+        "coop",
+        "automatic-caretaking",
+        "situation.pair.jupiter-moon.coop",
+    ),
+    RegistryPairRule(
+        frozenset({"sun", "uranus"}),
+        "coop",
+        "changed-plan",
+        "situation.pair.sun-uranus.coop",
+    ),
+    RegistryPairRule(
+        frozenset({"moon", "pluto"}),
+        "coop",
+        "name-the-need",
+        "situation.pair.moon-pluto.coop",
+    ),
+    RegistryPairRule(
+        frozenset({"moon", "saturn"}),
+        "coop",
+        "capacity-before-agreement",
+        "situation.pair.moon-saturn.coop",
+    ),
+    RegistryPairRule(
+        frozenset({"neptune", "sun"}),
+        "coop",
+        "group-pressure",
+        "situation.pair.neptune-sun.coop",
+    ),
+    RegistryPairRule(
+        frozenset({"neptune", "venus"}),
+        "coop",
+        "missing-context",
+        "situation.pair.neptune-venus.coop",
+    ),
+    RegistryPairRule(
+        frozenset({"mars", "pluto"}),
+        "coop",
+        "defend-old-choice",
+        "situation.pair.mars-pluto.coop",
+    ),
 )
 
 
