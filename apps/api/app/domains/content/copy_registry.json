@@ -12335,6 +12335,30 @@
    "category": "reading",
    "text": "Bạn dễ nhận thêm việc vì muốn chứng tỏ mình làm được.",
    "status": "pending"
+  },
+  {
+   "id": "situation.pair.sun-uranus.tense",
+   "category": "reading",
+   "text": "Bạn dễ muốn đổi kế hoạch ngay khi thấy một cách khác hay hơn.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.uranus-venus.tense",
+   "category": "reading",
+   "text": "Bạn dễ muốn đổi một lời hẹn khi thấy mình bị gò bó.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.pluto-venus.tense",
+   "category": "reading",
+   "text": "Bạn dễ giữ chặt điều mình đã chọn, khó buông dù thấy chưa ổn.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.sun-venus.tense",
+   "category": "reading",
+   "text": "Bạn dễ nhường cho êm chuyện dù trong lòng chưa thật đồng ý.",
+   "status": "pending"
   }
  ],
  "version": "copy-registry/v1"
