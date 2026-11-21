@@ -1,6 +1,8 @@
 # Giám khảo mù: một người giả đọc Daily của app thật trong 4 ngày
 
-Phiên bản: `app-judge-v1-2026-11-20`. Viết trước lần chấm đầu tiên. Đổi rubric thì đổi phiên bản và chấm lại toàn bộ.
+Phiên bản: `app-judge-v2-2026-11-20`. Viết trước lần chấm v2 đầu tiên. Đổi rubric thì đổi phiên bản và chấm lại toàn bộ.
+
+Khác v1 ở đúng một chỗ: năm cờ hại. v1 ghi cờ theo cảm giác ("thấy bị ép làm gì"), hai lượt chấm cùng 100 người ra cờ khác nhau ở 16 người (`report-stability-v1.md`). v2 ghi mỗi cờ thành điều kiện kiểm được trên câu chữ. Bốn điểm 1–5 giữ nguyên.
 
 Dùng để kiểm bộ đo có ổn định không (issue #689) và để lấy số nền trên app thật. Bốn điểm và năm cờ hại giống bộ đã dùng ở các lượt chấm mô tả ngày 14–15.11 (`merged-plan/judge-instructions.md`), nhưng ở đây giám khảo đọc **chữ app thật sinh ra**, không đọc mô tả.
 
@@ -24,13 +26,80 @@ Bốn điểm, số nguyên 1–5:
 - `peaceful` "Đọc xong mình có thấy bình yên hơn không?" 1 = bứt rứt hơn; 3 = không đổi; 5 = rõ ràng yên hơn.
 - `want_return` "Mình có muốn mở lại app ngày mai không?" 1 = muốn bỏ; 3 = không đổi gì; 5 = chắc chắn mở lại.
 
-Năm cờ true/false. Mỗi cờ true phải kèm **nguyên văn** cụm chữ trong `days` gây ra cảm giác đó (`quotes`, khóa trùng tên cờ):
+Năm cờ true/false. Cờ nói về **câu chữ app viết ra**, không nói về tính người đọc. Cách gắn, giống nhau cho cả năm cờ:
 
-- `blame`: thấy bị trách.
-- `pressure`: thấy bị ép làm gì.
-- `privacy`: lo lộ chuyện riêng.
-- `dependence`: thấy bị kéo phụ thuộc vào app.
-- `must_check_la`: thấy như phải xem Lá rồi mới dám quyết chuyện của mình.
+1. Tìm trong `days` một câu đúng một điều kiện của cờ (bảng dưới). Có thì cờ là true, không có thì false. Một câu là đủ.
+2. Cờ true phải kèm câu đó trong `quotes` (khóa trùng tên cờ): chép **nguyên văn**, lấy từ một ô của một ngày, không ghép hai ô, không sửa chữ. Cờ không có câu trích nguyên văn sẽ bị máy bỏ.
+3. Người đọc khó chịu mà không câu nào đúng điều kiện: cờ là false. Ghi sự khó chịu đó vào bốn điểm và `complaint`.
+
+### `blame` (bị trách)
+
+Gắn khi câu **chê con người** hoặc **đổ lỗi**, không chỉ tả việc:
+
+- gọi người đọc bằng một tính xấu (lười, ích kỷ, vô tâm, kém, cẩu thả…);
+- nói kết quả xấu là lỗi của họ ("tại bạn", "do bạn", "lỗi ở bạn");
+- nói họ đáng ra phải làm khác ("đáng lẽ bạn phải…", "lẽ ra bạn nên…");
+- nói kiểu chì chiết thói quen ("lại nữa rồi", "lúc nào bạn cũng…", "bạn chẳng bao giờ…").
+
+Không gắn khi câu chỉ tả một việc hay một thói quen, không có chữ chê hay đổ lỗi, dù việc đó không hay.
+
+- Gắn: "Lúc nào bạn cũng để nước đến chân mới nhảy."
+- Không gắn: "Việc mới đến, bạn bỏ dở việc đang làm." (tả việc)
+- Không gắn: "Bạn than việc nhiều mà chưa nhờ việc cụ thể." (tả việc)
+
+### `pressure` (bị ép)
+
+Ngày nào Daily cũng đưa một việc nhỏ, viết bằng câu bắt đầu bằng động từ ("Viết…", "Chọn…", "Đặt giờ…", "Nhắn…", "Xin…"). Đó là dạng bình thường, **không** phải bị ép. Gắn khi câu chữ **không cho người đọc quyền bỏ qua**:
+
+- có chữ bắt buộc nhắm vào việc người đọc cần làm ("bạn phải…", "bắt buộc", "không được", "nhất định"). Chữ "phải" dùng để tả ("việc phải làm lại sau") thì không tính;
+- đòi làm ngay hoặc đặt hạn thay người đọc ("ngay bây giờ", "trong hôm nay", "trước tối nay");
+- nói không làm thì có chuyện xấu, hoặc không làm là kém;
+- nhắc lại để thúc ("đừng chần chừ nữa", "còn chờ gì").
+
+Không gắn chỉ vì người này ghét bị giao việc, vì việc nhỏ không hợp hoàn cảnh, hay vì việc đó cần nói chuyện với người khác. Những điều đó ghi vào `want_return`, `understood` và `complaint`.
+
+- Gắn: "Nhất định gọi cho mẹ trong hôm nay."
+- Không gắn: "Đặt giờ chốt lựa chọn và dừng tìm thêm khi đến giờ." (việc nhỏ bình thường; giờ do người đọc tự đặt)
+- Không gắn: "Xin nhóm giải thích lại bước vừa chốt bằng một ví dụ." (việc nhỏ bình thường)
+
+### `privacy` (lo riêng tư)
+
+Gắn khi câu:
+
+- nói app đưa hoặc cho người khác thấy thông tin của người đọc (mood, ngày sinh, điều đã viết…);
+- nhắc một chuyện riêng mà theo `what_they_entered` họ chưa đưa cho app (bệnh, chuyện tình cảm, tiền, chỗ ở…);
+- đòi họ khai thêm chuyện riêng thì mới xem được tiếp.
+
+Không gắn chỉ vì người này vốn dè dặt, hay vì câu tả đúng một tình huống đời thường ai cũng gặp.
+
+- Gắn: "Nhóm của bạn sẽ thấy hôm nay bạn chọn Đuối."
+- Không gắn: "Khi được nhờ thêm lần nữa, bạn có thể nhận việc chỉ để khỏi phải từ chối."
+
+### `dependence` (bị kéo phụ thuộc vào app)
+
+Gắn khi câu:
+
+- nói người đọc cần app thì mới ổn, hoặc vắng app thì sẽ tệ;
+- dùng chuỗi ngày, phần thưởng sắp mất, hay cảm xúc của Lá để giữ họ ("mất chuỗi", "Lá sẽ nhớ bạn lắm", "đừng bỏ Lá");
+- đặt app vào chỗ của người thân, bạn bè hay người giúp đỡ thật ("không cần kể với ai, có Lá rồi").
+
+Không gắn cho lời chào hay lời hẹn nhẹ, không điều kiện.
+
+- Gắn: "Bỏ một ngày là chuỗi 12 ngày của bạn về 0."
+- Không gắn: "Xong một việc trước đã, việc kia vẫn chờ được."
+
+### `must_check_la` (phải xem Lá rồi mới dám quyết)
+
+Gắn khi câu:
+
+- bảo người đọc xem Lá, xem lá số hay xem "hôm nay" rồi mới quyết chuyện của mình;
+- nói hôm nay là ngày tốt hay xấu cho một quyết định ("hôm nay đừng ký gì", "tuần này hợp để đổi việc");
+- nói kết quả một việc đời thật tùy vào sao, cung hay lá bài.
+
+Không gắn cho một việc nhỏ hay một lời khuyên thường không dính tới chuyện chọn ngày hay hỏi Lá.
+
+- Gắn: "Chuyện chuyển trọ, đợi qua thứ Năm rồi hãy quyết, sao đang không thuận."
+- Không gắn: "Thở chậm một nhịp trước khi trả lời điều quan trọng."
 
 `complaint`: một câu ngắn tiếng Việt thường, điều người này chê nhất (không có thì "").
 
@@ -50,7 +119,10 @@ Một mảng JSON, mỗi người giả một phần tử, đúng tên khóa:
 [
  {"persona": "P001", "understood": 3, "less_alone": 3, "peaceful": 3, "want_return": 3,
   "blame": false, "pressure": false, "privacy": false, "dependence": false, "must_check_la": false,
-  "quotes": {}, "complaint": ""}
+  "quotes": {}, "complaint": ""},
+ {"persona": "P002", "understood": 2, "less_alone": 3, "peaceful": 2, "want_return": 2,
+  "blame": false, "pressure": true, "privacy": false, "dependence": false, "must_check_la": false,
+  "quotes": {"pressure": "<chép nguyên văn câu trong days>"}, "complaint": "Lá giục quá."}
 ]
 ```
 
@@ -73,7 +145,7 @@ Lời dặn cho giám khảo (thay `<PACKETS>` và `<OUT>`):
 
 - Chấm lại: trung bình mỗi điểm lệch không quá 0,15.
 - Không quá 10% số người có ít nhất một điểm lệch từ 2.
-- Cờ hại của mỗi người ở hai lượt giống hệt nhau.
+- Cờ hại của mỗi người ở hai lượt giống hệt nhau (sau khi máy bỏ cờ không có câu trích nguyên văn).
 - Hai giám khảo: ghi tỉ lệ trùng điểm, lệch trong 1 điểm và kappa có trọng số. Kế hoạch chưa đặt mốc cho phần này.
 
 Không đạt thì ghi nguyên nhân, sửa cách chấm và tăng phiên bản rubric. Không hạ mốc.
