@@ -196,7 +196,8 @@ export type MatchingReadiness = components["schemas"]["MatchingReadinessResponse
 export type RadarInvite = {
   id: string;
   recipient_label: string;
-  context: "crush" | "friend" | "partner" | "someone";
+  /** AL1 (20.11.2026) adds coworker and family; "someone" stays for older results. */
+  context: "crush" | "friend" | "partner" | "someone" | "coworker" | "family";
   voice: RadarVoice;
   mode: "private_check" | "consented_invite";
   status: "pending" | "completed" | "revoked" | "withdrawn" | "expired";
@@ -222,11 +223,28 @@ export type RadarPrivateCheckInput = {
   context: RadarInvite["context"];
   voice: RadarVoice;
   birth_date: string;
-  birth_time_mode: "exact" | "unknown";
+  /** "date_only" (AL1): no time and no place; needs the invite-first attestation. */
+  birth_time_mode: "exact" | "unknown" | "date_only";
   birth_time_local: string | null;
-  place_id: string;
+  place_id: string | null;
   authorization_attested: boolean;
 };
+/** Which Hợp gu consent screens are live (AL1), with their owner-approved sentences only. */
+export type RadarConsentOptions = {
+  invite_first: boolean;
+  sentences: Partial<Record<RadarInviteFirstSentence, string>>;
+  authorized_input_version: string;
+  date_consent_version: string;
+  /** Hợp gu C: whether card links may be created (off by default). */
+  card_links?: boolean;
+};
+/** A Hợp gu card link as its owner sees it; never the token once created. */
+export type RadarCardLink = { id: string; status: "active" | "revoked" | "expired"; created_at: string; expires_at: string; share_url?: string | null };
+/** A Hợp gu card as anyone with the link sees it: no birth data, at most an initial. */
+export type PublicRadarCard = { version: string; context: string; tier: string; line: string; initial?: string | null };
+export type RadarInviteFirstSentence =
+  | "owner-invite-heading" | "owner-invite-body" | "owner-attest-label" | "owner-attest-help"
+  | "owner-date-only-storage" | "recipient-heading" | "recipient-body" | "recipient-consent" | "recipient-decline";
 /** What a link holder sees: never the private label the sender set (issue #95). */
 export type PublicRadarInvite = {
   request_id: string;
@@ -238,6 +256,8 @@ export type PublicRadarInvite = {
   privacy_note: string;
 };
 export type RadarResult = {
+  /** Owner views only (AL1): the relationship the owner chose. */
+  context?: RadarInvite["context"] | null;
   request_id?: string | null;
   recipient_label?: string | null;
   mode?: RadarInvite["mode"] | null;
@@ -354,6 +374,9 @@ export type RadarResult = {
     tier_calibration_version?: string;
     time_precision?: "exact" | "unknown";
     precision_note?: string;
+    /** AL1: "date_only" when both people were read from their birth dates. */
+    basis?: "date_only";
+    basis_note?: string;
   } | null;
   disclaimer: string;
 };
@@ -573,8 +596,8 @@ function cookieCapable(path: string, method = "GET"): boolean {
   if (identityOperation(path) || path === "/session/renew" || path === "/identity/claim") return true;
   // Capability cookies share the browser jar with profile transitions too.
   if (path.startsWith("/public/radar/")) {
-    return method === "GET" ? !["/public/radar/current", "/public/radar/receipt"].includes(path)
-      : ["/public/radar/current/accept", "/public/radar/current/decline", "/public/radar/receipt/withdraw"].includes(path);
+    return method === "GET" ? !["/public/radar/current", "/public/radar/receipt", "/public/radar/consent-options"].includes(path) && !path.startsWith("/public/radar/cards/")
+      : ["/public/radar/current/accept", "/public/radar/current/accept-date", "/public/radar/current/decline", "/public/radar/receipt/withdraw"].includes(path);
   }
   return method === "POST" && path.startsWith("/public/la-chung/")
     && (path.endsWith("/responses") || path.endsWith("/receipt/withdraw"));
@@ -1348,11 +1371,66 @@ export function createRadarInvite(input: {
   });
 }
 
-export function createPrivateRadarCheck(input: RadarPrivateCheckInput, idempotencyKey?: string): Promise<RadarResult> {
+/** "Hỏi về hai bạn" (Hợp gu B): pre-written questions answered from the stored reading. */
+export type RadarAskQuestions = { version: string; questions: { id: string; text: string }[] };
+export type RadarAskAnswer = {
+  version: string;
+  question_id: string;
+  question: string;
+  say: string;
+  why: string;
+  try_today?: string | null;
+  can_send: string;
+  refusal: boolean;
+  based_on?: { theme: string; label?: string | null; level_label: string; technical_note?: string | null; evidence_ids: string[] } | null;
+};
+
+export function getRadarAskQuestions(requestId: string, signal?: AbortSignal): Promise<RadarAskQuestions> {
+  return request<RadarAskQuestions>(`/radar/results/${encodeURIComponent(requestId)}/ask`, { signal });
+}
+
+export function getRadarAskAnswer(requestId: string, questionId: string, signal?: AbortSignal): Promise<RadarAskAnswer> {
+  return request<RadarAskAnswer>(`/radar/results/${encodeURIComponent(requestId)}/ask/${encodeURIComponent(questionId)}`, { signal });
+}
+
+export function createRadarCard(requestId: string, showInitial: boolean): Promise<RadarCardLink> {
+  return request<RadarCardLink>(`/radar/results/${encodeURIComponent(requestId)}/cards`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...csrfHeader() },
+    body: JSON.stringify({ show_initial: showInitial }),
+  });
+}
+
+export function listRadarCards(requestId: string, signal?: AbortSignal): Promise<RadarCardLink[]> {
+  return request<RadarCardLink[]>(`/radar/results/${encodeURIComponent(requestId)}/cards`, { signal });
+}
+
+export function revokeRadarCard(cardId: string): Promise<void> {
+  return request<void>(`/radar/cards/${encodeURIComponent(cardId)}/revoke`, { method: "POST", headers: csrfHeader() });
+}
+
+export function getPublicRadarCard(token: string, signal?: AbortSignal): Promise<PublicRadarCard> {
+  return request<PublicRadarCard>(`/public/radar/cards/${encodeURIComponent(token)}`, { signal });
+}
+
+export function getRadarConsentOptions(signal?: AbortSignal): Promise<RadarConsentOptions> {
+  return request<RadarConsentOptions>("/public/radar/consent-options", { signal });
+}
+
+/** AL1 one-field invite: B's own birth date and consent; only live when the server says so. */
+export function acceptRadarInviteWithDate(requestId: string, birthDate: string, consentVersion: string): Promise<RadarResult> {
+  return request<RadarResult>("/public/radar/current/accept-date", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ request_id: requestId, birth_date: birthDate, consent_version: consentVersion }),
+  });
+}
+
+export function createPrivateRadarCheck(input: RadarPrivateCheckInput, idempotencyKey?: string, consentVersion = "radar-authorized-input-v1"): Promise<RadarResult> {
   return request<RadarResult>("/radar/private-checks", {
     method: "POST",
     headers: { "Content-Type": "application/json", ...csrfHeader(), ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}) },
-    body: JSON.stringify({ ...input, consent_version: "radar-authorized-input-v1" }),
+    body: JSON.stringify({ ...input, consent_version: consentVersion }),
   });
 }
 

@@ -105,6 +105,15 @@ class Settings(BaseSettings):
     # the owner turns it on (R2 kind 4: new personal-data collection ships switched off). Off,
     # only an exact-time profile is offered the action and the server refuses the others.
     keep_action_all_profiles: bool = False
+    # Hợp gu AL1 (owner, 20.11.2026): the invite-first consent. On, the start screen leads with a
+    # one-field invite link and the self-attested tick may cover the other person's birth date
+    # alone. It also needs every privacy.radar.invite-first.* sentence approved by the owner in
+    # the copy registry; until then the service keeps these paths closed even when this is on.
+    radar_invite_first_consent: bool = False
+    # Hợp gu AL1 direction C: revocable links to a frozen share card. A link discloses a pair
+    # summary to whoever holds it and keeps it as long as the result, so it ships off (R2 kind 4).
+    # The image card itself is drawn on the device and needs no switch.
+    radar_share_card_links: bool = False
 
     model_config = SettingsConfigDict(
         env_file=("../../.env", ".env"),

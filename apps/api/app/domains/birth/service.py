@@ -4,6 +4,7 @@ from datetime import UTC, date, datetime, time
 from time import monotonic
 from typing import TypeVar
 from uuid import UUID, uuid4
+from zoneinfo import ZoneInfo
 
 from app.domains.astro.engine import NatalChartEngine
 from app.domains.astro.models import CalculationConfig, ChartInput, NatalChart, TimePrecision
@@ -520,6 +521,47 @@ class BirthChartService:
             chart = chart.model_copy(update={"houses": None, "angles": None})
         return chart
 
+    async def calculate_date_only_chart(
+        self,
+        *,
+        birth_date: date,
+        config: CalculationConfig,
+        now: datetime | None = None,
+        require_adult: bool = True,
+    ) -> NatalChart:
+        """A chart from a birth date alone, without persisting it (Hợp gu AL1, 20.11.2026).
+
+        The date is read as a Vietnamese calendar day: the chart is taken at local noon in
+        Asia/Ho_Chi_Minh with ``TimePrecision.UNKNOWN``, so the engine keeps a contact only when
+        it holds over the whole day (``DATE_DOMAIN_HALF_WIDTH_DAYS``). The Moon, its aspects,
+        houses and angles are removed because they cannot be known from a date.
+        """
+
+        if require_adult:
+            _require_adult_date(birth_date, now or datetime.now(UTC))
+        instant = datetime.combine(birth_date, time(hour=12), tzinfo=DATE_ONLY_TIMEZONE)
+        latitude, longitude = DATE_ONLY_REFERENCE_POINT
+        chart_input = ChartInput(
+            utc_datetime=instant.astimezone(UTC),
+            latitude=latitude,
+            longitude=longitude,
+            house_system=config.house_system,
+        )
+        chart = await self._run_compute(
+            lambda value: self._engine.calculate_chart(value, config), chart_input
+        )
+        return date_only_reduction(chart)
+
+    async def date_only_chart_for(self, guest_id: UUID, config: CalculationConfig) -> NatalChart:
+        """The date-only chart of a stored profile, whatever else the profile holds."""
+
+        stored = await self._repository.find_current(guest_id)
+        if stored is None:
+            raise BirthProfileNotFound
+        return await self.calculate_date_only_chart(
+            birth_date=self._stored_date(stored), config=config, require_adult=False
+        )
+
     async def remove_supplement(
         self, guest_id: UUID, *, remove_time: bool, remove_place: bool
     ) -> BirthSupplementState:
@@ -575,6 +617,30 @@ def _resolve_time(
         ApproxWindow.NIGHT: time(hour=23),
     }[approx_window]
     return midpoint, TimePrecision.APPROXIMATE
+
+
+# A date-only chart reads the date as a Vietnamese calendar day (Hợp gu AL1). The point only
+# fixes a geocentric chart input; houses and angles are removed, so it never reaches the reading.
+DATE_ONLY_TIMEZONE = ZoneInfo("Asia/Ho_Chi_Minh")
+DATE_ONLY_REFERENCE_POINT = (21.0285, 105.8542)
+
+
+def date_only_reduction(chart: NatalChart) -> NatalChart:
+    """Keep only what a birth date fixes: no Moon, Moon aspects, houses or angles."""
+
+    return chart.model_copy(
+        update={
+            "time_precision": TimePrecision.UNKNOWN,
+            "bodies": tuple(body for body in chart.bodies if body.body.value != "moon"),
+            "aspects": tuple(
+                aspect
+                for aspect in chart.aspects
+                if "moon" not in {aspect.body_a.value, aspect.body_b.value}
+            ),
+            "houses": None,
+            "angles": None,
+        }
+    )
 
 
 def _require_adult_date(birth_date: date, now: datetime) -> None:
