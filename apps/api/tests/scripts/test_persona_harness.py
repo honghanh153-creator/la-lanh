@@ -90,6 +90,21 @@ def test_topic_repeats_are_counted_over_served_situations_only() -> None:
     assert repetition({"P1": []}, ["P1"])["topic_repeat_3d_pct"] is None
 
 
+def test_a_returning_situation_is_checked_for_its_last_headline() -> None:
+    # #856: a situation that comes back should say something new, not repeat its last headline.
+    from scripts.persona_metrics import same_line_on_return
+    from scripts.persona_report import repetition
+
+    topics = ["a", "b", "a", "a", None, "b"]
+    heads = ["h1", "h2", "h1", "h3", "h4", "h5"]
+    assert same_line_on_return(topics, heads) == (3, 1)  # a back twice (same once), b back once
+    rows = {"P1": [{"situation": t, "headline": h} for t, h in zip(topics, heads, strict=True)]}
+    rep = repetition(rows, ["P1"])
+    assert rep["situation_returns"] == 3
+    assert rep["same_headline_on_return_pct"] == 100 / 3
+    assert rep["headline_repeat_14d_pct"] == 100 * 1 / 6
+
+
 def test_return_model_is_calibrated_and_moves_the_right_way() -> None:
     personas = _personas()
     k_h, alpha = calibrate(personas)
