@@ -9,7 +9,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 
 process.env.LA_LANH_COLLAB_HOME = mkdtempSync(join(tmpdir(), 'collab-loop-'));
 const trust = await import('./collab-trust.mjs');
-const { checksPerTick, ciFailAtHead, copyBatchAttempts, fileBlocker, planTurns, prTurn, tickGap, turnsFor, tick } = await import('./collab-turn.mjs');
+const { checksPerTick, ciFailAtHead, copyBatchAttempts, fileBlocker, laneStarveTicks, laneWork, nextStarved, planTurns, prTurn, reviewSlots, tickGap, turnsFor, tick } = await import('./collab-turn.mjs');
 const preflightMod = await import('./collab-preflight.mjs');
 const { renderBoard } = await import('./collab-status.mjs');
 const { committedTurns, copyReview, planMax, planMin, planState, renderPlan } = await import('./collab-plan.mjs');
@@ -724,6 +724,42 @@ test('r1: privacy and features wait for checks while content has machine work; a
   open.pop();
   const next = tick({ gh: plannedGh(open, date), now: { date, hour: 12, minute: 5 }, merge: n => { merged.push(n); return { status: 'merged' }; }, review: () => ({ status: 'posted' }) });
   assert.equal(next.area, 'privacy', 'a content PR waiting for Claude does not stall the machine');
+});
+
+// R7 lanes (21.11.2026). The tick worked one area at a time, so while content had any machine
+// work a process PR of another area never got a check or a review (#743 … #820 waited up to 3 days).
+test('R7: a process PR waiting for review gets a tick while content still has work', () => {
+  const date = '2026-11-05';
+  const open = [
+    pr({ number: 4, title: 'feat(tarot): needs a check' }),
+    pr({ number: 5, title: 'docs: something without an area', comments: [check(A)] }),
+  ];
+  const checked = [];
+  const reviewed = [];
+  const result = tick({ gh: plannedGh(open, date), now: { date, hour: 11, minute: 5 }, merge: () => ({}), check: n => { checked.push(n); return { status: 'FAIL' }; }, review: n => { reviewed.push(n); return { status: 'posted' }; } });
+  assert.equal(result.area, 'content', 'content still goes first inside the process lane');
+  assert.deepEqual(checked, [4]);
+  assert.deepEqual(reviewed, [5], 'the review of the PR of a later area runs in the same tick');
+});
+
+test('R7: lanes go incident → 7-week → Daily → process; a lane starved for two ticks goes first after incidents', () => {
+  const t = (number, turn, area = 'content') => ({ number, turn, area, key: `pr:${number}` });
+  const prs = [{ number: 2, labels: [{ name: 'ke-hoach-7-tuan' }] }, { number: 3, labels: [{ name: 'daily-lane' }] }];
+  const live = [t(4, 'claude-check', 'feature'), t(3, 'claude-check'), t(2, 'claude-check'), t(1, 'codex-review'), t(5, 'claude-check', 'ops')];
+  const keys = new Set(['pr:1']);
+  const plain = laneWork({ live, prs, incidentKeys: keys });
+  assert.deepEqual(plain.work.map(x => x.number), [1, 2, 3, 5, 4], 'incident, 7-week, Daily, then the process lane in area order');
+  assert.deepEqual(laneWork({ live, prs, incidentKeys: keys, starved: { process: laneStarveTicks - 1 } }).work.map(x => x.number), [1, 2, 3, 5, 4]);
+  const hungry = laneWork({ live, prs, incidentKeys: keys, starved: { process: laneStarveTicks } });
+  assert.deepEqual(hungry.work.map(x => x.number), [1, 5, 4, 2, 3], 'a starved process lane goes first after incidents');
+  assert.deepEqual(hungry.hungry, ['process']);
+  const { lanes, busy } = plain;
+  assert.deepEqual(nextStarved({ starved: { process: 1 }, lanes, busy, done: [{ pr: 2, check: { status: 'PASS' } }, { pr: 5, check: { status: 'waiting' } }] }), { plan7w: 0, daily: 1, process: 2 },
+    'a check left waiting behind integration did not serve the lane');
+  assert.deepEqual(nextStarved({ starved: { process: 3 }, lanes, busy, done: [{ pr: 4, review: { status: 'posted' } }] }).process, 0, 'served: back to zero');
+  const lane = x => (x.number > 3 ? 'process' : 'plan7w');
+  assert.deepEqual(reviewSlots([t(1), t(2), t(3), t(5)], lane).map(x => x.number), [1, 5, 2, 3], 'one of two review slots goes to the process lane');
+  assert.deepEqual(reviewSlots([t(5), t(2), t(4)], lane).map(x => x.number), [5, 2, 4], 'already in a slot: unchanged');
 });
 
 test('r2: every CLI entry loads and exits without hanging on an import cycle', () => {
@@ -1633,11 +1669,12 @@ test('#575: a PR waiting on Claude never holds another on a shared file; a 7-wee
   assert.equal(turns[503].reason, 'chờ PR #505 cùng file', 'two ready 7-week PRs: the earlier goes first');
   assert.equal(turns[500].reason, 'chờ PR #505 cùng file', 'a ready 7-week PR goes before an older ready PR of the same group');
   assert.equal(turns[404].reason, 'chờ PR #505 cùng file', 'the PR waiting on a fix now waits for the 7-week PR, then syncs and is fixed');
-  // A PR that can still merge holds as before, and a later group never holds an earlier one.
+  // A PR that can still merge holds as before. Since R7 (21.11) the lane decides before the area.
   const ready = pr({ number: 480, createdAt: '2026-11-09T00:00:00Z', headRefOid: head(480), files: reg, comments: [check(head(480))] });
   assert.equal(fileBlocker(p505, [ready, p505]), null, 'the 7-week PR goes first inside the group');
   const ops = pr({ number: 481, title: 'ops(collab): x', labels: [{ name: 'area:ops' }], createdAt: '2026-11-16T00:00:00Z', headRefOid: head(481), files: reg, comments: [] });
-  assert.equal(fileBlocker(p505, [ops, p505]), 481, 'an earlier group still goes first over a 7-week PR');
+  assert.equal(fileBlocker(p505, [ops, p505]), null, 'R7: an ops PR of the process lane no longer holds a 7-week PR');
+  assert.equal(fileBlocker(ops, [ops, p505]), 505, 'R7: the 7-week PR goes first on the shared file');
 });
 
 test('review 16.11: inside a group an incident, then 7-week and persona-fix PRs go before an older ordinary PR on a shared file', () => {
