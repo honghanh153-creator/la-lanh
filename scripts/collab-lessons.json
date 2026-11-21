@@ -987,6 +987,38 @@
    "closedBy": {
     "pr": 780
    }
+  },
+  {
+   "id": "L55",
+   "title": "Soát đêm xét mỗi lần merge theo luật đang chạy lúc merge: 23 PR merge trước khi có biên nhận ký (#456) bị đếm là thiếu review ngày 15.11, và L11, L13 bị báo thiếu bằng chứng (#828)",
+   "from": "nhìn lại thử nghiệm 3+3 (#829), issue #828 mục 1 và 3",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "open",
+   "test": {
+    "file": "scripts/collab-audit.test.mjs",
+    "name": "L55: a merge before signed receipts is judged by the rule of its time; after it an unsigned APPROVE still does not count"
+   },
+   "caller": {
+    "file": "scripts/collab-audit.mjs",
+    "contains": "const last = verdictAtMerge(pr);"
+   }
+  },
+  {
+   "id": "L56",
+   "title": "Gói bằng chứng soát đêm chứa đủ comment của một ngày bận; phần không vừa thì số ghi là cận dưới; bất đồng soát đêm tìm thấy được ghi vào sổ một lần (#828: 5/7 ngày thử nghiệm không đo được M1 và bất đồng; #738 ngày 19.11 không vào sổ)",
+   "from": "nhìn lại thử nghiệm 3+3 (#829), issue #828 mục 2",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "open",
+   "test": {
+    "file": "scripts/collab-audit-night.test.mjs",
+    "name": "#828: a final judgement writes the disagreement it found into the log once; a re-run adds nothing"
+   },
+   "caller": {
+    "file": "scripts/collab-audit-night.mjs",
+    "contains": "if (final && record.final && judgement?.result?.unrecorded?.items?.length) recordFound({ date, items: judgement.result.unrecorded.items });"
+   }
   }
  ]
 }
