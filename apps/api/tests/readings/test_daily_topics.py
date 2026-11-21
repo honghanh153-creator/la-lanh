@@ -118,3 +118,15 @@ def test_block_start_is_a_per_reader_phase_and_never_after_the_day() -> None:
 def test_the_module_has_no_clock_or_random() -> None:
     source = daily_topics.__loader__.get_source(daily_topics.__name__) or ""  # type: ignore[union-attr]
     assert "import random" not in source and "datetime" not in source
+
+
+@pytest.mark.parametrize("size", [2, 3, 4, 6])
+def test_a_steady_pool_keeps_its_rotation_across_block_boundaries(size: int) -> None:
+    """Codex P2 on #841: each block restarts with an empty history, yet a pool that stays the
+    same rotates without a break at the boundary, because the block length is a multiple of it."""
+
+    pool = POOL[:size]
+    block = schedule([pool] * SCHEDULE_BLOCK_DAYS)
+    days = block * 4  # four blocks, each recomputed from an empty history
+    assert all(days[i] == days[i - size] for i in range(size, len(days)))
+    assert _repeats_within(days, size) == 0

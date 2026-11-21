@@ -29,11 +29,7 @@ from app.domains.readings.daily_rotation import (
     daily_variety_seed,
     day_index,
 )
-from app.domains.readings.daily_topics import (
-    SCHEDULE_BLOCK_DAYS,
-    TOPIC_WINDOW_DAYS,
-    block_start,
-)
+from app.domains.readings.daily_topics import TOPIC_WINDOW_DAYS, block_start
 from app.domains.readings.gates import evaluate_candidate
 from app.domains.readings.lighter_action import lighter_action_projection
 from app.domains.readings.models import (
@@ -537,9 +533,9 @@ class ReadingApplicationService:
         Each earlier day is recomputed with the same choice and the history before it, from the
         chart, that day's transits and the reader's seed; nothing is read from storage or kept.
         Day D's history is therefore exactly the one D was served with. A date-only pool is the
-        same every day and walks a fixed order instead, so it needs no history. At most 13
-        recomputations per new Daily note (previous block plus the earlier days of this one); the
-        history kept in the plan is the last six days.
+        same every day and walks a fixed order instead, so it needs no history. The block starts
+        empty (``daily_topics``: no estimate of the previous block), so this is exact; at most 11
+        recomputations per new Daily note, and the plan keeps the last six days.
         """
 
         if not self._topic_schedule_applies(local_date):
@@ -555,22 +551,14 @@ class ReadingApplicationService:
         )
         today = day_index(local_date)
         first = local_date - timedelta(days=today - block_start(seed, today))
-        switch = self._daily_topic_schedule_from
-        # The previous block, recomputed without a history of its own, carries the window over
-        # the block start; the current block then runs on from it. Both are deterministic, so
-        # every day of the current block is recomputed exactly as it was served.
-        carry = await self._topic_run(
+        run = await self._topic_run(
             profile_id,
             chart,
-            max(first - timedelta(days=SCHEDULE_BLOCK_DAYS), switch),
-            first,
+            max(first, self._daily_topic_schedule_from),
+            local_date,
             background_lens,
-            (),
         )
-        run = await self._topic_run(
-            profile_id, chart, max(first, switch), local_date, background_lens, carry
-        )
-        return (*carry, *run)[-(TOPIC_WINDOW_DAYS - 1) :]
+        return run[-(TOPIC_WINDOW_DAYS - 1) :]
 
     async def _topic_run(
         self,
@@ -579,12 +567,11 @@ class ReadingApplicationService:
         start: date,
         end: date,
         background_lens: BackgroundLens | None,
-        prior: tuple[str, ...],
     ) -> tuple[str, ...]:
         """Situations of the days ``start`` (inclusive) to ``end`` (exclusive), each chosen
-        against ``prior`` and the days before it in the run."""
+        against the days before it in the run (the block starts with an empty history)."""
 
-        history = list(prior)
+        history: list[str] = []
         run: list[str] = []
         day = start
         while day < end:

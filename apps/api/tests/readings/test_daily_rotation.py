@@ -866,7 +866,7 @@ async def test_topic_history_is_exactly_what_the_earlier_days_of_the_block_serve
         repository = MemoryReadingRepository()
         service = _topic_service(repository)
         served: dict[date, str] = {}
-        for offset in range(16):
+        for offset in range(26):
             day = START + timedelta(days=offset)
             projection = await _open(service, snapshot, day)
             issue = _served(repository, projection).semantic_blueprint.mechanism_key
@@ -876,12 +876,11 @@ async def test_topic_history_is_exactly_what_the_earlier_days_of_the_block_serve
             history = plan.daily_variety.topic_history
             assert history is not None and plan.daily_variety.recent_issue_keys == ()
             assert len(history) <= 6
-            # The earlier days of this block are exactly what they served; days before the
-            # block come from its recomputed carry.
+            # Exactly the earlier days of this block (at most six) as they were served.
             index = day_index(day)
-            in_block = min(index - block_start(plan.daily_variety.seed, index), offset)
+            in_block = min(index - block_start(plan.daily_variety.seed, index), offset, 6)
             earlier = [served[day - timedelta(days=n)] for n in range(in_block, 0, -1)]
-            assert list(history[len(history) - in_block :]) == earlier
+            assert list(history) == earlier
             assert served[day] == await service._computed_daily_issue(
                 OWNER_A, snapshot.result, day, None, topic_history=history
             )
