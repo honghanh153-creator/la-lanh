@@ -156,7 +156,8 @@ def test_invite_first_serves_the_owner_approved_sentences(monkeypatch: pytest.Mo
 def test_release_defaults_follow_ap2_and_aq1() -> None:
     settings = Settings(environment="test", radar_self_attested_checks=False)
     assert settings.radar_invite_first_consent is True
-    assert settings.radar_share_card_links is True
+    # Off until the owner approves the privacy-page line for card links (safe default).
+    assert settings.radar_share_card_links is False
     assert settings.radar_weekly_pairs is True
     assert Settings.model_fields["radar_self_attested_checks"].default is False
 
