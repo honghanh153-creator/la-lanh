@@ -142,3 +142,46 @@ def test_card_link_shows_no_birth_data_and_dies_with_the_result(tmp_path: Path) 
         assert viewer.get(f"/v1/public/radar/cards/{token}").status_code == 404
         with sqlite3.connect(database) as connection:
             assert connection.execute("SELECT COUNT(*) FROM radar_share_cards").fetchone()[0] == 0
+
+
+def test_withdrawing_the_result_removes_its_card_links(tmp_path: Path) -> None:
+    """The invited person withdraws with the receipt: every card link of that result stops."""
+
+    from tests.radar.test_flow import _full_profile
+
+    database = tmp_path / "withdraw.db"
+    with _client(database, card_links=True) as owner:
+        csrf = _full_profile(owner, "radar-card-withdraw-owner-1234", "1994-03-12", "08:15")
+        headers = {"Origin": ORIGIN, "X-CSRF-Token": csrf}
+        assert owner.post("/v1/identity/claim", headers=headers).status_code == 200
+        invite = owner.post(
+            "/v1/radar/requests",
+            headers=headers,
+            json={"recipient_label": "Mèo", "context": "friend"},
+        ).json()
+        token = invite["share_url"].rsplit("/", 1)[-1]
+        recipient = TestClient(owner.app, base_url=ORIGIN)
+        assert recipient.get(f"/v1/public/radar/{token}").status_code == 200
+        recipient_csrf = _full_profile(
+            recipient, "radar-card-withdraw-recipient-12", "1996-07-21", "19:40"
+        )
+        accepted = recipient.post(
+            "/v1/public/radar/current/accept",
+            headers={"Origin": ORIGIN, "X-CSRF-Token": recipient_csrf},
+            json={"request_id": invite["id"], "consent_version": "radar-pair-v1"},
+        )
+        assert accepted.status_code == 200
+        card = owner.post(f"/v1/radar/results/{invite['id']}/cards", headers=headers, json={})
+        card_token = card.json()["share_url"].rsplit("/", 1)[-1]
+        viewer = TestClient(owner.app, base_url=ORIGIN)
+        assert viewer.get(f"/v1/public/radar/cards/{card_token}").status_code == 200
+
+        withdrawn = recipient.post(
+            "/v1/public/radar/receipt/withdraw",
+            headers={"Origin": ORIGIN},
+            json={"request_id": invite["id"]},
+        )
+        assert withdrawn.status_code == 204
+        assert viewer.get(f"/v1/public/radar/cards/{card_token}").status_code == 404
+        with sqlite3.connect(database) as connection:
+            assert connection.execute("SELECT COUNT(*) FROM radar_share_cards").fetchone()[0] == 0
