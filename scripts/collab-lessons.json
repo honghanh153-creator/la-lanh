@@ -1026,6 +1026,25 @@
    "closedBy": {
     "pr": 864
    }
+  },
+  {
+   "id": "L60",
+   "title": "PR sự cố chỉ có nhãn incident (thiếu severity) vẫn được làm trước; chỉ khi ghi rõ severity:P2 trở xuống mới không ưu tiên (21.11: hotfix #863 đứng sau việc thường trong lúc integration đỏ)",
+   "from": "sự cố 21.11 (#747, #863)",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-quota.test.mjs",
+    "name": "L60: an incident PR without a severity goes first; only an explicit P2 or lower does not"
+   },
+   "caller": {
+    "file": "scripts/collab-quota.mjs",
+    "contains": "u.incident ||= serious(labels.map(name => ({ name })));"
+   },
+   "closedBy": {
+    "pr": 864
+   }
   }
  ]
 }
