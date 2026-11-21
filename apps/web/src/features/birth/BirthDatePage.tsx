@@ -138,7 +138,7 @@ function BirthDateOnboarding() {
   const actions = (
     <>
       <button className="signal-station__button" disabled={pending} form="birth-date-form" type="submit">
-        {pending ? "Đang khớp tín hiệu…" : profileCreated ? "Thử tải lại" : "Khớp tín hiệu"}
+        {pending ? "Đang tính lá số…" : profileCreated ? "Thử tải lại" : "Tiếp tục"}
         <ArrowRight aria-hidden="true" />
       </button>
       <button className="signal-station__back" disabled={pending} onClick={() => void navigate(-1)} type="button">
@@ -171,7 +171,7 @@ function BirthDateOnboarding() {
         </fieldset>
         {error && errorAtField ? <p className="signal-date-error" id="birth-error" role="alert">{error}</p> : null}
         <p className="signal-station__privacy">Ngày sinh không xuất hiện khi chia sẻ.</p>
-        <p className="signal-station__privacy">Bấm Khớp tín hiệu là đồng ý dùng ngày sinh để tính lá số và note. Không tự bật AI viết lại.</p>
+        <p className="signal-station__privacy">Bấm Tiếp tục là đồng ý dùng ngày sinh để tính lá số và note. Lá không tự bật AI viết lại.</p>
         <OptionalBirthDetails value={details} onChange={(value) => { setDetails(value); setError(null); }} disabled={pending || supplementSaved} error={error && birthDetailsError(details) === error ? error : null} />
         {profileCreated && !pending ? <small>Ngày sinh đã lưu. Thử lại sẽ không tạo hồ sơ mới.</small> : null}
         {pending ? <p className="signal-station__notice" role="status">{hasBirthDetails(details) ? "Đang lưu thông tin bạn cho phép và tính lại lá số…" : "Đang tìm Mặt Trời và viết note đầu tiên…"}</p> : null}
