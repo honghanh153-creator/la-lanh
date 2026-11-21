@@ -122,12 +122,22 @@ def test_merged_plan_game_checks_not_applicable_for_non_players() -> None:
 
 
 # Issue #689: is the measurement itself stable? Synthetic scores only.
+def _days(value: int) -> list[str]:
+    """Day marks (rubric v4) that work out to ``value``: 3 is four days with nothing to count."""
+
+    kind = "good" if value > 3 else "bad"
+    return [kind] * abs(value - 3) + ["none"] * (4 - abs(value - 3))
+
+
 def _score(pid: str, value: int = 3, **changes: Any) -> dict[str, Any]:
+    """One judge record. A score name in ``changes`` becomes the day marks for that score."""
+
     from scripts.persona_stability import FLAGS, SCORES
 
+    marks = {key: _days(changes.pop(key, value)) for key in SCORES}
     return {
         "persona": pid,
-        **dict.fromkeys(SCORES, value),
+        "marks": {**marks, **changes.pop("marks", {})},
         **dict.fromkeys(FLAGS, False),
         **changes,
     }
@@ -203,18 +213,21 @@ def test_weighted_kappa_reads_agreement_not_only_equal_means() -> None:
     assert weighted_kappa([]) is None
 
 
-def test_judge_output_is_refused_when_it_is_not_whole_scores_and_flags() -> None:
+def test_judge_output_is_refused_when_it_is_not_day_marks_and_flags() -> None:
     import pytest
 
-    from scripts.persona_stability import parse_scores
+    from scripts.persona_stability import FLAGS, SCORES, parse_scores
 
     assert parse_scores([_score("P001")])["P001"]["understood"] == 3
     for bad in (
-        _score("P001", understood=6),
-        _score("P001", understood=3.5),
-        _score("P001", understood=True),
+        _score("P001", marks={"understood": ["good", "none", "none"]}),  # three days
+        _score("P001", marks={"understood": ["good", "none", "none", "fine"]}),  # unknown word
+        _score("P001", marks={"understood": "good"}),
+        _score("P001", marks={"understood": [1, 0, 0, 0]}),
         _score("P001", privacy="no"),
         {"persona": "P001"},
+        # A v3-style record: scores written by the judge, no day marks.
+        {"persona": "P001", **dict.fromkeys(SCORES, 3), **dict.fromkeys(FLAGS, False)},
     ):
         with pytest.raises(ValueError):
             parse_scores([bad])
@@ -481,37 +494,75 @@ def test_one_batch_is_refused_when_planted_cases_are_mixed_in() -> None:
     assert len(split_for_pass(packets, "first", 1)) == 1
 
 
-def test_table_score_follows_the_rubric_table_and_mismatches_are_counted() -> None:
-    from scripts.persona_stability import count_mismatches, parse_scores, table_score
+# Rubric v4 (#689): judges mark days, the machine works out the score, one point per day.
+def test_the_score_comes_from_the_day_marks_one_point_per_day() -> None:
+    from scripts.persona_stability import day_score, parse_scores
 
-    # (bad days, good days) -> score, one row per cell of the rubric table.
-    table_a = {(2, 0): 1, (1, 0): 1, (3, 1): 1, (1, 1): 2, (1, 3): 2, (0, 0): 2}
-    table_a |= {(0, 1): 3, (0, 2): 4, (0, 3): 4, (0, 4): 5}
-    table_b = {(2, 2): 1, (4, 0): 1, (1, 0): 2, (1, 1): 2, (0, 0): 3, (1, 2): 3, (1, 3): 3}
-    table_b |= {(0, 1): 4, (0, 2): 4, (0, 3): 5, (0, 4): 5}
-    for key in ("understood", "want_return"):
-        assert {c: table_score(key, *c) for c in table_a} == table_a
-    for key in ("less_alone", "peaceful"):
-        assert {c: table_score(key, *c) for c in table_b} == table_b
+    cases = {
+        ("none", "none", "none", "none"): 3,
+        ("good", "none", "none", "none"): 4,
+        ("good", "good", "none", "none"): 5,
+        ("good", "good", "good", "good"): 5,  # kept inside 1-5
+        ("bad", "none", "none", "none"): 2,
+        ("bad", "bad", "bad", "none"): 1,
+        ("bad", "good", "none", "none"): 3,
+        ("bad", "good", "good", "good"): 5,
+    }
+    assert {marks: day_score(list(marks)) for marks in cases} == cases
+    # Changing one day moves the score by one point at most; bad against good by two at most.
+    marks = ["none", "none", "none", "none"]
+    for kind, most in (("good", 1), ("bad", 1)):
+        assert abs(day_score([kind, *marks[1:]]) - day_score(marks)) == most
+    assert abs(day_score(["bad", *marks[1:]]) - day_score(["good", *marks[1:]])) == 2
 
-    fits = {"understood": [0, 1], "less_alone": [0, 0], "peaceful": [0, 0], "want_return": [0, 1]}
-    scores = parse_scores(
+    # A score the judge wrote next to the marks is ignored: the marks decide.
+    record = _score("P001", marks={"want_return": ["bad", "bad", "none", "none"]})
+    parsed = parse_scores([{**record, "want_return": 5}])["P001"]
+    assert parsed["want_return"] == 1
+    assert parsed["marks"]["want_return"] == ["bad", "bad", "none", "none"]
+
+
+def test_day_disagreements_count_each_kind_and_spread_shows_a_flat_score() -> None:
+    from scripts.persona_stability import day_disagreements, parse_scores, score_spread
+
+    ids = ["P001", "P002", "P003", "P004"]
+    first = parse_scores(
         [
-            _score("P001", counts=fits),
-            # A score the table does not give for the counts written next to it.
-            _score("P002", counts={**fits, "want_return": [2, 0]}),
-            # Counts that cannot be: five days, a missing score, not whole numbers.
-            _score("P003", counts={"understood": [3, 2], "less_alone": [0, 0.0], "peaceful": [0]}),
-            _score("P004"),  # no counts at all (a v2-style record)
+            _score("P001", marks={"peaceful": ["bad", "good", "none", "none"]}),
+            _score("P002", marks={"peaceful": ["good", "good", "none", "none"]}),
+            _score("P003"),
+            _score("P900", marks={"peaceful": ["bad", "bad", "bad", "bad"]}),  # planted: left out
         ]
     )
-    assert count_mismatches(scores) == {
-        "understood": ["P003", "P004"],
-        "less_alone": ["P003", "P004"],
-        "peaceful": ["P003", "P004"],
-        "want_return": ["P002", "P003", "P004"],
+    again = parse_scores(
+        [
+            # day 1 bad against good, day 2 good against none, day 3 none against bad
+            _score("P001", marks={"peaceful": ["good", "none", "bad", "none"]}),
+            _score("P002", marks={"peaceful": ["good", "good", "none", "none"]}),
+            _score("P003"),
+            _score("P004"),  # the first pass never scored P004: nothing to compare
+            _score("P900"),
+        ]
+    )
+    differ = day_disagreements(first, again, ids)
+    assert differ["peaceful"] == {
+        "days": 12,
+        "bad_none": 1,
+        "good_none": 1,
+        "bad_good": 1,
+        "personas": 1,
     }
-    assert scores["P002"]["want_return"] == 3  # counted, never corrected
+    assert differ["understood"] == {
+        "days": 12,
+        "bad_none": 0,
+        "good_none": 0,
+        "bad_good": 0,
+        "personas": 0,
+    }
+    # Everyone on 3 for a score: the spread says so, where "100% the same" would hide it.
+    spread = score_spread(first, ids)
+    assert spread["understood"] == [0, 0, 3, 0, 0]  # P004 was not scored in this pass
+    assert spread["peaceful"] == [0, 0, 2, 0, 1]
 
 
 def test_judge_breakdown_shows_which_judge_moved_the_mean() -> None:
@@ -530,7 +581,7 @@ def test_judge_breakdown_shows_which_judge_moved_the_mean() -> None:
     assert rows[2]["diff"]["want_return"] is None  # nobody to compare: no number, not zero
 
 
-def test_report_shows_scores_off_the_table_and_each_judge(tmp_path: Path) -> None:
+def test_report_shows_spread_differing_days_and_each_judge(tmp_path: Path) -> None:
     from scripts.persona_stability import cmd_report
 
     people = _personas()[:12]
@@ -544,25 +595,26 @@ def test_report_shows_scores_off_the_table_and_each_judge(tmp_path: Path) -> Non
     (run / "meta.json").write_text(json.dumps({"git_head": "0" * 40}), encoding="utf-8")
     personas_path = tmp_path / "personas.json"
     personas_path.write_text(json.dumps({"personas": people}), encoding="utf-8")
-    fits = {"understood": [0, 1], "less_alone": [0, 0], "peaceful": [0, 0], "want_return": [0, 1]}
 
     def write(name: str, who: list[str], **changes: Any) -> str:
         path = tmp_path / f"{name}.json"
-        path.write_text(
-            json.dumps([_score(pid, counts=fits, **changes) for pid in who]), encoding="utf-8"
-        )
+        path.write_text(json.dumps([_score(pid, **changes) for pid in who]), encoding="utf-8")
         return str(path)
 
     first = [write("first-1", ids[:6]), write("first-2", ids[6:])]
-    # The second judge of the re-scoring gives 4 where the counts say 3.
+    # The second judge of the re-scoring marks one good day where the first pass marked none.
     again = [write("again-1", ids[:6]), write("again-2", ids[6:], understood=4)]
     out = tmp_path / "report.md"
     assert not cmd_report(run, personas_path, first, again, [], out, None)  # mean moved by 0.5
     text = out.read_text(encoding="utf-8")
-    assert "| Hiểu mình | 0 | 6 |" in text  # off the table: none in pass 1, six in pass 2
+    assert "| Hiểu mình | lượt 1 | 0 | 0 | 12 | 0 | 0 |" in text
+    assert "| Hiểu mình | lượt 2 | 0 | 0 | 6 | 6 | 0 |" in text
+    assert "| Hiểu mình | 48 | 0 | 6 | 0 | 6 |" in text  # six days: good against none
+    assert "| Muốn quay lại | 48 | 0 | 0 | 0 | 0 |" in text
     assert "| lượt 2, gói 2 | 6 | +1,00 | +0,00 | +0,00 | +0,00 |" in text
     assert "| lượt 1, gói 2 | 6 | -1,00 | +0,00 | +0,00 | +0,00 |" in text
     assert "| lượt 1, gói 1 | 6 | +0,00 | +0,00 | +0,00 | +0,00 |" in text
     saved = json.loads((run / "stability.json").read_text(encoding="utf-8"))
-    assert saved["score_off_table"]["again"]["understood"] == ids[6:]
+    assert saved["score_spread"]["again"]["understood"] == [0, 0, 6, 6, 0]
+    assert saved["day_marks_differ"]["Lượt 1 và lượt 2"]["understood"]["good_none"] == 6
     assert len(saved["judge_breakdown"]) == 4
