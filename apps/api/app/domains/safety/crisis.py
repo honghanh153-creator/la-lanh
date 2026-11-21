@@ -27,7 +27,7 @@ import re
 import unicodedata
 from dataclasses import dataclass
 
-from app.domains.content.copy_approval import approved_copy, copy_text
+from app.domains.content.copy_approval import copy_text
 
 # Inputs are short (280 characters at most once validated); the guard runs before validation,
 # so it only reads a bounded prefix of whatever arrived.
@@ -50,17 +50,7 @@ class CrisisNotice:
     text: str
 
 
-def crisis_notice(surface_copy_id: str | None = None) -> CrisisNotice:
-    """The notice for a surface (``surface_copy_id``), once the owner approved its sentence.
-
-    Until then, and for Tarot, the approved Tarot notice is served: a surface never shows an
-    unapproved crisis sentence and never shows nothing.
-    """
-
-    if surface_copy_id is not None:
-        text = approved_copy(surface_copy_id)
-        if text is not None:
-            return CrisisNotice(copy_id=surface_copy_id, text=text)
+def crisis_notice() -> CrisisNotice:
     return CrisisNotice(copy_id=CRISIS_COPY_ID, text=copy_text(CRISIS_COPY_ID, CRISIS_NOTICE_TEXT))
 
 

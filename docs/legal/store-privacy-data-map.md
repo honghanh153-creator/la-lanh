@@ -281,24 +281,20 @@ never sent; lean conclusions and reasons stay local. No new data type, recipient
 exact time, recomputes the chart from the existing encrypted supplement; it collects no new
 birth, place or identity field and calls no third party or AI service.
 
-- **Topic path (on):** the request carries a closed topic label only. Answers, the on-tap easier
-  window and the Khám phá month card are computed per request and not stored, cached or logged
-  (`Cache-Control: no-store`). No row is written; a test compares every table's row count.
-- **Typed-question path (built, off):** `LA_LANH_MONTH_TYPED_QUESTIONS_ENABLED=false` by default
-  (R2 kind 4). Even when switched on it stays shut until the owner approves the consent sentence
-  `consent.month.typed_question` and the crisis notice `crisis.self_harm.notice.month`. When on,
-  the text passes the crisis guard first, is read in memory into two closed labels (topic and
-  question kind), and is dropped. Retention: the request only. It is never stored, logged, echoed
-  in the answer or sent to any processor; the answer never quotes it.
+- **Request:** closed values only: a topic label and, optionally, one of 18 preset question ids.
+  There is no typed-question box (owner chose AS1 on 2026-11-21), so no free text is collected and
+  no consent or separate crisis notice is needed for this screen. A request carrying free text is
+  rejected by validation and never read.
+- **Answers:** answers, the on-tap easier window and the Khám phá month card are computed per
+  request and not stored, cached or logged (`Cache-Control: no-store`). No row is written; a test
+  compares every table's row count.
 - **Saving (US-25 AC12):** nothing is saved automatically. "Lưu" sends a topic and an answer key
-  only; the server recomputes the answer and stores the composed answer (topic label, three parts,
-  basis, disclaimer, reframe line) in `saved_month_answers`, AES-GCM encrypted with the row id as
-  context, never the typed text or a date window. Own list, deletable one by one; delete appends a
-  `saved_month_answer_removed` erasure-journal entry (keyed digest, no content). Retention: until the
-  person deletes it, removes birth time or place (deleted with saved notes and share links), or the
-  guest is erased (cascade). Included in the data export as `saved_month_answers`. RLS on, no grants
-  to `anon`/`authenticated`. At most 200 per guest.
-- **Declarations:** while the typed path is off, App Privacy and Data Safety answers do not change
-  (derived astrology content is already declared). Before switching it on, re-check whether
-  processing typed text without storing it counts as "collected" under the current Apple and Google
-  definitions and update this map, the in-app privacy copy and the policy together.
+  only; the server recomputes the answer and stores the composed answer (topic label, preset
+  question and its tip if one was picked, three parts, basis, disclaimer) in `saved_month_answers`,
+  AES-GCM encrypted with the row id as context, never a date window. Own list, deletable one by
+  one; delete appends a `saved_month_answer_removed` erasure-journal entry (keyed digest, no
+  content). Retention: until the person deletes it, removes birth time or place (deleted with saved
+  notes and share links), or the guest is erased (cascade). Included in the data export as
+  `saved_month_answers`. RLS on, no grants to `anon`/`authenticated`. At most 200 per guest.
+- **Declarations:** App Privacy and Data Safety answers do not change (no new data type; derived
+  astrology content is already declared).

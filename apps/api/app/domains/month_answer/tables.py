@@ -13,7 +13,7 @@ from app.db.types import UtcDateTime
 class SavedMonthAnswerRow(Base):
     __tablename__ = "saved_month_answers"
     # The answer text lives only in ``snapshot_ciphertext`` (AES-GCM, bound to the row id). The
-    # typed question is never stored: the answer is recomputed from closed labels before saving.
+    # answer is recomputed on the server from closed values (topic, preset) before saving.
     # Guest deletion cascades; removing birth time or place deletes these copies too.
     __table_args__ = (
         Index("ux_saved_month_answers_guest_key", "guest_id", "answer_key", unique=True),
