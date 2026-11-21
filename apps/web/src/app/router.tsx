@@ -40,6 +40,7 @@ import { RevealPage } from "../features/reveal/RevealPage";
 import { SavedPage } from "../features/saved/SavedPage";
 import { WelcomePage } from "../features/welcome/WelcomePage";
 import { TarotPage } from "../features/tarot/TarotPage";
+import { MonthAskPage } from "../features/month/MonthAskPage";
 import { ContentStudioPage } from "../features/studio/ContentStudioPage";
 import { AppShell } from "./AppShell";
 
@@ -114,6 +115,7 @@ export const appRoutes: RouteObject[] = [
       { path: "existing-user", element: <ExistingUserPage key="google-login" /> },
       { path: "auth/callback", element: <ExistingUserPage key="google-callback" /> },
       { path: "tarot", element: <TarotPage /> },
+      { path: "hoi-thang", element: <MonthAskPage /> },
       { path: "tarot/:sessionId", element: <TarotPage /> },
     ],
   },
