@@ -1007,6 +1007,63 @@
    "closedBy": {
     "pr": 780
    }
+  },
+  {
+   "id": "L59",
+   "title": "Tài liệu mà script đọc (file luật, prompt review, chuẩn câu chữ) không phải văn bản thuần: đổi nó thì CI chạy test của vòng, không coi là PR chỉ có tài liệu (21.11: #747 chỉ đổi file luật, CI bỏ qua test, file vượt giới hạn của hook và integration đỏ)",
+   "from": "sự cố 21.11, integration đỏ sau #747; hotfix #863",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-pr-check-workflow.test.mjs",
+    "name": "L59: a doc that a script reads runs the loop tests; other docs stay docs-only"
+   },
+   "caller": {
+    "file": ".github/workflows/pr-check.yml",
+    "contains": "grep -rqsF -- \"${f##*/}\" scripts/"
+   },
+   "closedBy": {
+    "pr": 864
+   }
+  },
+  {
+   "id": "L60",
+   "title": "PR sự cố chỉ có nhãn incident (thiếu severity) vẫn được làm trước; chỉ khi ghi rõ severity:P2 trở xuống mới không ưu tiên (21.11: hotfix #863 đứng sau việc thường trong lúc integration đỏ)",
+   "from": "sự cố 21.11 (#747, #863)",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-quota.test.mjs",
+    "name": "L60: an incident PR without a severity goes first; only an explicit P2 or lower does not"
+   },
+   "caller": {
+    "file": "scripts/collab-quota.mjs",
+    "contains": "u.incident ||= serious(labels.map(name => ({ name })));"
+   },
+   "closedBy": {
+    "pr": 864
+   }
+  },
+  {
+   "id": "L61",
+   "title": "PR sự cố trượt kiểm đầu vào (thân PR sai mẫu) thì báo động ngay, không âm thầm nằm ở claude-fix (21.11: hotfix #863 đứng chờ vì gộp nhiều cổng trên một dòng trong lúc integration đỏ)",
+   "from": "sự cố 21.11 (#747, #863)",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-merge-gate.test.mjs",
+    "name": "L61: a preflight failure on an incident PR raises an ops alert at once; other PRs stay quiet"
+   },
+   "caller": {
+    "file": "scripts/collab-tick.mjs",
+    "contains": "try { incidentAlert(pr, result, text => opsAlert(gh, text, incidentPreflightSubject)); } catch {}"
+   },
+   "closedBy": {
+    "pr": 864
+   }
   }
  ]
 }
