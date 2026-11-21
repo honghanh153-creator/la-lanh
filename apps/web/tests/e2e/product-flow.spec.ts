@@ -34,6 +34,8 @@ test.beforeEach(async ({ page }) => {
     unmocked.push(path);
     await route.fulfill({ status: 503, json: { code: "E2E_UNMOCKED", path } });
   });
+  // Home and Khám phá ask whether "Hỏi về tháng này" is ready; these tests keep it hidden.
+  await page.route("**/v1/month/status", async (route) => route.fulfill({ status: 200, json: { available: false, month: "2026-09", presets: [] } }));
   await page.route("**/v1/session/renew", async (route) => route.fulfill({ status: 200, json: {
     state: "active", onboarding_status: "completed", expires_at: "2026-09-30T00:00:00Z", resumed: true, session_epoch: "epoch-test",
   } }));
