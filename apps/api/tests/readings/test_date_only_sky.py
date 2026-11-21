@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from dataclasses import replace
 from datetime import date, timedelta
 from itertools import pairwise
 from typing import Any
@@ -183,6 +182,6 @@ async def test_recomputed_history_is_what_a_sky_date_only_reader_was_served() ->
 
 def test_the_snapshot_keeps_only_the_sign() -> None:
     # Nothing in the date-only result names the birth date; the sky path never needs it.
-    snapshot = _date_only_snapshot(GUEST, OWNER_A)
+    result = _date_only_snapshot(GUEST, OWNER_A).result
     assert "birth_date" not in DateOnlySunResult.model_fields
-    assert replace(snapshot).result.sign is ZodiacSign.PISCES
+    assert isinstance(result, DateOnlySunResult) and result.sign is ZodiacSign.PISCES
