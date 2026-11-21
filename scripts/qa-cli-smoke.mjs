@@ -7,6 +7,7 @@ import { join } from "node:path";
 import { writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { contentExit, contentMode, contentVerdict } from "./qa-journey-lib.mjs";
+import { drainOnStop } from "./qa-server.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const scratch = await mkdtemp(join(tmpdir(), "la-lanh-qa-cli-"));
@@ -18,12 +19,14 @@ const child = spawn(process.execPath, ["scripts/qa-server.mjs"], {
   cwd: root,
   env: {
     ...process.env,
-    LA_LANH_DATABASE_URL: databaseUrl,
+    // The launcher reads this name; it overwrites LA_LANH_DATABASE_URL with its own choice.
+    LA_LANH_QA_DATABASE_URL: databaseUrl,
     LA_LANH_QA_API_PORT: String(apiPort),
     LA_LANH_QA_WEB_PORT: String(webPort),
   },
   stdio: ["ignore", "pipe", "pipe"],
 });
+const stopServer = drainOnStop(child);
 
 let output = "";
 // L03: content verdicts of the real API with synthetic data. Report mode unless
@@ -132,11 +135,12 @@ try {
   const overview = await call("/v1/insights/overview?tradition=western");
   verdicts.push({ step: "exact-time insights overview", ...contentVerdict({ expect: { synthesis: true }, api: overview.reading_projection?.active ?? null }) });
 } finally {
-  if (child.exitCode === null) {
-    child.kill("SIGTERM");
-    await new Promise((resolveExit) => child.once("exit", resolveExit));
+  // Wait for the API too (it shares the launcher's output), then remove its database.
+  try {
+    await stopServer();
+  } finally {
+    await rm(scratch, { recursive: true, force: true });
   }
-  await rm(scratch, { recursive: true, force: true });
 }
 
 console.log("QA CLI smoke passed: schema, proxy, SPA deep-link and real guest → birth → daily-note → exact-time overview flow are ready.");

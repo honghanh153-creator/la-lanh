@@ -9,10 +9,12 @@ A small model predicts what the API must answer at each step (US-03 §22). A pat
 when every answer matches, so any 4xx/5xx outside the contract fails it, and the kept action
 read back after every step is the single one the model expects (AC33, one open action per guest).
 
-What the API offers today (measured here, not assumed): only an exact-time profile is offered an
-action it can keep. Date-only and approximate profiles get the note and the lighter action as
-text, with nothing to keep. ``KEEPABLE`` pins that; widening it is a product change that must
-edit this file on purpose.
+What the API offers (measured here, not assumed): with the `keep_action_all_profiles` setting on,
+every kind of profile is offered the card's action and the lighter action to keep (#716). Off
+(the default until the owner turns it on, R2 kind 4), only an exact-time profile is, and a
+hand-built keep from the others is refused, so nothing new is stored for them. ``KEEPABLE``
+pins both; changing it is a product change that must edit this file on purpose.
+A date-only path may end by adding a birth time, which must delete the kept action too.
 
 All birth data is synthetic and drawn from a fixed seed.
 """
@@ -23,18 +25,22 @@ import random
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import date, timedelta
-from typing import Any
+from typing import Any, cast
 from uuid import UUID, uuid4
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import func, select
 
 from app.config import Settings
 from app.domains.astro.models import TimePrecision
 from app.domains.content import copy_approval
 from app.domains.content.copy_approval import copy_digest, load_registry, parse_registry
+from app.domains.experiments.postgres import EXPERIMENT_PURPOSE
+from app.domains.experiments.tables import DailyExperimentRow
+from app.domains.guest.tables import ConsentRow
 from app.domains.readings import application
-from app.domains.readings.lighter_action import LIGHTER_ACTION_PREFIX
+from app.domains.readings.lighter_action import ISSUE_LIGHT_PREFIX, LIGHTER_ACTION_PREFIX
 from app.domains.readings.models import (
     ClaimTemplateId,
     PlanMode,
@@ -46,9 +52,11 @@ ORIGIN = "http://127.0.0.1:5173"
 CONSENT = "action-experiment-v1"
 KINDS = ("date_only", "approximate", "exact")
 PATHS_PER_KIND = 100
-# Profile kinds the API lets keep an action. See the module docstring before changing it;
-# the other two kinds are the open gap in issue #716.
-KEEPABLE = frozenset({"exact"})
+# Profile kinds the API lets keep an action, by the `keep_action_all_profiles` setting. See the
+# module docstring before changing it. A kind left out must get no offer and a 404 for a
+# hand-built keep.
+KEEPABLE = {True: frozenset(KINDS), False: frozenset({"exact"})}
+PATHS_PER_KIND_SWITCHED_OFF = 30
 PRECISION = {
     "date_only": TimePrecision.UNKNOWN.value,
     "approximate": TimePrecision.APPROXIMATE.value,
@@ -66,12 +74,15 @@ BIRTH_DATE_SPAN_DAYS = 23 * 365
 def _approve_lighter_pool(monkeypatch: pytest.MonkeyPatch) -> None:
     """Serve the checked-in lighter sentences, so the low-mood action (#634) is on the paths."""
 
+    # The general list and the light actions written per Daily issue (#699).
     pool = [
-        entry for key, entry in load_registry().items() if key.startswith(LIGHTER_ACTION_PREFIX)
+        entry
+        for key, entry in load_registry().items()
+        if key.startswith((LIGHTER_ACTION_PREFIX, ISSUE_LIGHT_PREFIX))
     ]
     entries = [
         {
-            "id": f"{LIGHTER_ACTION_PREFIX}{number:02d}",
+            "id": entry.id,
             "category": "reading",
             "text": entry.text,
             "status": "approved",
@@ -79,7 +90,7 @@ def _approve_lighter_pool(monkeypatch: pytest.MonkeyPatch) -> None:
             "date": "2026-11-17",
             "digest": copy_digest(entry.text),
         }
-        for number, entry in enumerate(pool, start=1)
+        for entry in pool
     ]
     registry = parse_registry({"version": copy_approval.REGISTRY_VERSION, "entries": entries})
     monkeypatch.setattr(copy_approval, "_runtime_registry", lambda: registry)
@@ -119,8 +130,14 @@ class Path:
     held_target: Target | None = None
     closed_revisions: set[str] = field(default_factory=set)
     stale: list[dict[str, Any]] = field(default_factory=list)
+    birth_time: dict[str, Any] | None = None
     kept: int = 0
     steps: int = 0
+    all_profiles: bool = True
+
+    @property
+    def keepable(self) -> frozenset[str]:
+        return KEEPABLE[self.all_profiles]
 
     # --- the three kinds of profile -------------------------------------------------------
 
@@ -169,6 +186,7 @@ class Path:
     def _supplement(self, body: dict[str, Any]) -> None:
         response = self.client.post("/v1/birth-profile/supplement", json=body, headers=self.headers)
         assert response.status_code == 200, response.text
+        self.birth_time = body
 
     def _open_note(self) -> None:
         """Open today's note, take the deeper reading when one is waiting, list what is offered."""
@@ -201,8 +219,8 @@ class Path:
         lighter = active["lighter_action"]
         # The lighter action (#634) is offered as text to every kind of profile.
         assert lighter is not None
-        if self.kind in KEEPABLE:
-            assert experiment is not None, "an exact-time profile must be offered an action"
+        if self.kind in self.keepable:
+            assert experiment is not None, f"a {self.kind} profile must be offered an action"
             assert lighter["experiment"] is not None
             self.targets.append(Target(revision_id, lens, experiment["action_key"], False))
             self.targets.append(
@@ -221,7 +239,7 @@ class Path:
     # --- what a person can press ------------------------------------------------------------
 
     def keep(self, target: Target | None = None) -> None:
-        if self.kind not in KEEPABLE:
+        if self.kind not in self.keepable:
             refused = self.rng.choice(self.refused)
             assert self._put(refused.body()).status_code == 404
             return
@@ -338,7 +356,7 @@ class Path:
         )
         assert response.status_code == 200, response.text
         assert response.json()["mood"] == picked
-        if picked == "Đuối" and self.kind in KEEPABLE:
+        if picked == "Đuối" and self.kind in self.keepable:
             # The low-mood day: the lighter action of today's card is the one kept.
             lighter = next(
                 t for t in self.targets if t.lighter and t.revision_id == self.auto_revision_id
@@ -369,7 +387,7 @@ class Path:
         active = note.json()["reading_projection"]["active"]
         assert active["revision_id"] == self.auto_revision_id
         offered = active["experiment"]
-        if self.kind in KEEPABLE:
+        if self.kind in self.keepable:
             assert offered["action_key"] == self.targets[0].action_key
         else:
             assert offered is None
@@ -385,12 +403,14 @@ class Path:
     def change_birth_time(self) -> None:
         """A new time or place makes the kept action stale: it is deleted, never carried over."""
 
-        if self.kind == "date_only":
-            self.reopen()
-            return
         dependent = self.held
-        body = self._exact_time() if self.kind == "exact" else self._approximate_time()
+        draw = self._exact_time if self.kind == "exact" else self._approximate_time
+        body = draw()
+        while body == self.birth_time:  # the same time again changes nothing; draw a new one
+            body = draw()
         self._supplement(body)
+        if self.kind == "date_only":  # the person added a birth time for the first time
+            self.kind = "approximate"
         if dependent is not None:
             self.stale.append(dependent)
         self.held = self.held_target = None
@@ -439,7 +459,22 @@ class Path:
         self.rng.choice((self.reopen, self.change_birth_time, self.delete_profile))()
 
 
-def _run_paths(kind: str, count: int, first: int = 0) -> tuple[int, int, list[str]]:
+def _app(*, all_profiles: bool = True) -> Any:
+    return create_app(
+        Settings(
+            environment="test",
+            database_url="sqlite+aiosqlite:///:memory:",
+            cors_origins=[ORIGIN],
+            guest_cookie_name="la_lanh_guest",
+            guest_cookie_secure=False,
+            keep_action_all_profiles=all_profiles,
+        )
+    )
+
+
+def _run_paths(
+    kind: str, count: int, first: int = 0, *, all_profiles: bool = True
+) -> tuple[int, int, list[str]]:
     """Run ``count`` paths. Returns (paths that kept an action, presses, failures).
 
     Each path gets its own app and empty database: one person is one client, and the admission
@@ -449,18 +484,11 @@ def _run_paths(kind: str, count: int, first: int = 0) -> tuple[int, int, list[st
     kept = steps = 0
     failures: list[str] = []
     for index in range(first, first + count):
-        app = create_app(
-            Settings(
-                environment="test",
-                database_url="sqlite+aiosqlite:///:memory:",
-                cors_origins=[ORIGIN],
-                guest_cookie_name="la_lanh_guest",
-                guest_cookie_secure=False,
-            )
-        )
+        app = _app(all_profiles=all_profiles)
         seed = 687_000 + KINDS.index(kind) * 1000 + index
         with TestClient(app, base_url=ORIGIN) as client:
-            path = Path(client=client, rng=random.Random(seed), kind=kind)  # noqa: S311
+            rng = random.Random(seed)  # noqa: S311
+            path = Path(client=client, rng=rng, kind=kind, all_profiles=all_profiles)
             try:
                 path.run(index)
             except AssertionError as error:
@@ -471,19 +499,87 @@ def _run_paths(kind: str, count: int, first: int = 0) -> tuple[int, int, list[st
     return kept, steps, failures
 
 
+@pytest.mark.parametrize("all_profiles", [True, False], ids=["switch-on", "switch-off"])
 @pytest.mark.parametrize("kind", KINDS)
 def test_100_click_paths_answer_only_what_the_contract_allows(
-    kind: str, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+    kind: str,
+    all_profiles: bool,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
 ) -> None:
     _approve_lighter_pool(monkeypatch)
-    kept, steps, failures = _run_paths(kind, PATHS_PER_KIND)
+    count = PATHS_PER_KIND if all_profiles else PATHS_PER_KIND_SWITCHED_OFF
+    kept, steps, failures = _run_paths(kind, count, all_profiles=all_profiles)
     with capsys.disabled():
         print(  # the PR quotes this line as evidence
-            f"\n#687 {kind}: {PATHS_PER_KIND - len(failures)}/{PATHS_PER_KIND} paths without an "
-            f"error, {steps} presses, {kept} paths kept an action"
+            f"\n#687 {kind} ({'switch on' if all_profiles else 'switch off'}): "
+            f"{count - len(failures)}/{count} paths without an error, {steps} presses, "
+            f"{kept} paths kept an action"
         )
     assert failures == []
-    assert kept == (PATHS_PER_KIND if kind in KEEPABLE else 0)
+    assert kept == (count if kind in KEEPABLE[all_profiles] else 0)
+
+
+def _one_path(kind: str, *, all_profiles: bool = True) -> Path:
+    client = TestClient(_app(all_profiles=all_profiles), base_url=ORIGIN)
+    client.__enter__()
+    rng = random.Random(716)  # noqa: S311
+    return Path(client=client, rng=rng, kind=kind, all_profiles=all_profiles)
+
+
+@pytest.mark.parametrize("kind", ["approximate", "exact"])
+def test_the_same_birth_time_again_keeps_the_action_and_a_new_one_deletes_it(
+    kind: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """AC2 (#716): only a real change of time or place removes the kept action."""
+
+    _approve_lighter_pool(monkeypatch)
+    path = _one_path(kind)
+    try:
+        path.start(0)
+        path.keep()
+        held = path.held
+        assert held is not None and path.birth_time is not None
+        path._supplement(dict(path.birth_time))
+        path.check_current()  # nothing changed, so the action is still kept
+        path.change_birth_time()  # a different time: deleted, then a new one can be kept
+        assert path.held is not None and path.held["id"] != held["id"]
+    finally:
+        path.client.__exit__(None, None, None)
+
+
+def test_adding_a_birth_time_deletes_the_action_a_date_only_profile_kept(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """AC2 (#716): the first birth time makes a date-only kept action stale."""
+
+    _approve_lighter_pool(monkeypatch)
+    path = _one_path("date_only")
+    try:
+        path.start(0)
+        path.keep()
+        held = path.held
+        assert held is not None
+        path.change_birth_time()
+        assert path.kind == "approximate"
+        assert path.held is not None and path.held["id"] != held["id"]
+    finally:
+        path.client.__exit__(None, None, None)
+
+
+def test_deleting_the_profile_removes_the_kept_action_for_every_kind(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _approve_lighter_pool(monkeypatch)
+    for kind in KINDS:
+        path = _one_path(kind)
+        try:
+            path.start(0)
+            path.keep()
+            assert path.held is not None
+            path.delete_profile()
+        finally:
+            path.client.__exit__(None, None, None)
 
 
 def _always_exact(*_args: object, **_kwargs: object) -> tuple[PlanMode, TimePrecision]:
@@ -513,3 +609,208 @@ def test_paths_go_red_when_a_profile_kind_loses_its_own_handling(
     monkeypatch.setattr(application, "_public_mode_and_precision", broken)
     _, _, failures = _run_paths(kind, 5)
     assert len(failures) == 5
+
+
+def _stored(path: Path) -> tuple[int, int]:
+    """(experiment rows, experiment consent rows) in the path's database."""
+
+    async def count(sessions: Any) -> tuple[int, int]:
+        async with sessions() as session:
+            experiments = await session.scalar(select(func.count()).select_from(DailyExperimentRow))
+            consents = await session.scalar(
+                select(func.count())
+                .select_from(ConsentRow)
+                .where(ConsentRow.purpose == EXPERIMENT_PURPOSE)
+            )
+            return int(experiments or 0), int(consents or 0)
+
+    app = cast(Any, path.client.app)
+    return cast(tuple[int, int], path.client.portal.call(count, app.state.database.sessions))  # type: ignore[union-attr]
+
+
+def _offer_matches_server(path: Path, active: dict[str, Any], lens: str = "auto") -> None:
+    """The invariant behind Codex P1 on #740: offered exactly when the server would accept it."""
+
+    offered = active["experiment"]
+    revision = UUID(active["revision_id"])
+    key = canonical_experiment_action_key(revision, active["sections"]["micro_action"])
+    answer = path._put(Target(active["revision_id"], lens, key, False).body())
+    if offered is None:
+        assert answer.status_code == 404, answer.text
+    else:
+        assert offered["action_key"] == key
+        assert answer.status_code == 200, answer.text
+        undone = path.client.request(
+            "DELETE",
+            "/v1/daily-note/experiment",
+            json={
+                "experiment_id": answer.json()["id"],
+                "expected_version": answer.json()["version"],
+            },
+            headers=path.headers,
+        )
+        assert undone.status_code == 204, undone.text
+
+
+@pytest.mark.parametrize("all_profiles", [True, False], ids=["switch-on", "switch-off"])
+@pytest.mark.parametrize("kind", KINDS)
+def test_the_note_left_active_after_a_new_birth_time_offers_nothing_it_cannot_keep(
+    kind: str, all_profiles: bool, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Codex P1 on #740: a note on an old chart snapshot shows no keep button.
+
+    The person changes the birth time (or adds one) and does not open the new reading yet. The
+    old note stays on screen, also after acknowledging the new reading; the server refuses a
+    keep for it, so it must not offer one, and a hand-built keep for it stores nothing (no
+    experiment row, no consent row). Opening the new reading offers its actions again, and
+    both can then really be kept.
+    """
+
+    _approve_lighter_pool(monkeypatch)
+    path = _one_path(kind, all_profiles=all_profiles)
+    try:
+        path.start(0)
+        draw = path._exact_time if kind == "exact" else path._approximate_time
+        body = draw()
+        while body == path.birth_time:
+            body = draw()
+        path._supplement(body)
+        note = path.client.get("/v1/daily-note")
+        assert note.status_code == 200, note.text
+        projection = note.json()["reading_projection"]
+        update = projection["available_update"]
+        assert update is not None, "a new birth time must wait as an update"
+        old = projection["active"]
+        assert old["revision_id"] == path.auto_revision_id
+        assert old["experiment"] is None
+        assert old["lighter_action"]["experiment"] is None
+        transition = projection["aura_transition"]["transition_id"]
+        if transition is not None:
+            acknowledged = path.client.put(
+                f"/v1/reading-projections/{projection['scope_key']}/aura-transition/acknowledge",
+                json={"transition_id": transition},
+                headers=path.headers,
+            )
+            assert acknowledged.status_code == 200, acknowledged.text
+            assert acknowledged.json()["active"]["experiment"] is None
+            assert acknowledged.json()["active"]["lighter_action"]["experiment"] is None
+        revision = UUID(old["revision_id"])
+        for lighter, action in (
+            (False, old["sections"]["micro_action"]),
+            (True, old["lighter_action"]["action"]),
+        ):
+            key = canonical_experiment_action_key(revision, action)
+            forged = Target(old["revision_id"], "auto", key, lighter)
+            assert path._put(forged.body()).status_code == 404
+        assert path.client.get("/v1/daily-note/experiment").json() is None
+        assert _stored(path) == (0, 0)
+
+        activated = path.client.put(
+            f"/v1/reading-projections/{projection['scope_key']}/activate",
+            json={"expected_revision_id": update["revision_id"]},
+            headers=path.headers,
+        )
+        assert activated.status_code == 200, activated.text
+        active = activated.json()["active"]
+        if ("approximate" if kind == "date_only" else kind) not in KEEPABLE[all_profiles]:
+            assert active["experiment"] is None
+            _offer_matches_server(path, active)
+            assert _stored(path) == (0, 0)
+            return
+        card = Target(active["revision_id"], "auto", active["experiment"]["action_key"], False)
+        kept = path._put(card.body())
+        assert kept.status_code == 200, kept.text
+        lighter_key = active["lighter_action"]["experiment"]["action_key"]
+        swapped = path._put(
+            {
+                **Target(active["revision_id"], "auto", lighter_key, True).body(),
+                "expected_experiment_id": kept.json()["id"],
+                "expected_version": kept.json()["version"],
+            }
+        )
+        assert swapped.status_code == 200, swapped.text
+        assert swapped.json()["action_key"] == lighter_key
+        assert _stored(path)[1] == 1
+    finally:
+        path.client.__exit__(None, None, None)
+
+
+@pytest.mark.parametrize("all_profiles", [True, False], ids=["switch-on", "switch-off"])
+def test_going_back_to_the_first_birth_time_before_acknowledging_keeps_offer_and_server_in_step(
+    all_profiles: bool, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Codex reproduction on #740: time A, then B (update waits), back to A, acknowledge B.
+
+    Whatever snapshot the profile is on after that, the note offers its action exactly when
+    the server would accept the keep, on the acknowledgement answer and after a reload.
+    """
+
+    _approve_lighter_pool(monkeypatch)
+    path = _one_path("exact", all_profiles=all_profiles)
+    try:
+        path.start(0)
+        first = dict(path.birth_time or {})
+        other = path._exact_time()
+        while other == first:
+            other = path._exact_time()
+        path._supplement(other)
+        waiting = path.client.get("/v1/daily-note").json()["reading_projection"]
+        assert waiting["available_update"] is not None
+        path._supplement(first)
+        transition = waiting["aura_transition"]["transition_id"]
+        assert transition is not None
+        acknowledged = path.client.put(
+            f"/v1/reading-projections/{waiting['scope_key']}/aura-transition/acknowledge",
+            json={"transition_id": transition},
+            headers=path.headers,
+        )
+        if acknowledged.status_code == 200:
+            _offer_matches_server(path, acknowledged.json()["active"])
+        else:  # the waiting update was withdrawn with the change back
+            assert acknowledged.status_code == 409, acknowledged.text
+        reloaded = path.client.get("/v1/daily-note").json()["reading_projection"]["active"]
+        _offer_matches_server(path, reloaded)
+    finally:
+        path.client.__exit__(None, None, None)
+
+
+def test_turning_the_switch_off_stops_new_keeps_and_lets_a_kept_action_close(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Rollback (#716): off again, nothing new is kept for a date-only profile.
+
+    An action kept while the switch was on stays until the person closes it (outcome or
+    undo) or it expires with the usual retention; turning the switch off does not delete it.
+    """
+
+    _approve_lighter_pool(monkeypatch)
+    path = _one_path("date_only", all_profiles=True)
+    try:
+        path.start(0)
+        path.keep(path.targets[0])
+        held = path.held
+        assert held is not None
+        app = cast(Any, path.client.app)
+        app.state.experiment_service._repository._keep_action_all_profiles = False
+        refused = path._put(
+            {
+                **path.targets[1].body(),
+                "expected_experiment_id": held["id"],
+                "expected_version": held["version"],
+            }
+        )
+        assert refused.status_code == 404, refused.text
+        assert path.client.get("/v1/daily-note/experiment").json() == held
+        closed = path.client.post(
+            "/v1/daily-note/experiment/outcome",
+            json={
+                "experiment_id": held["id"],
+                "expected_version": held["version"],
+                "outcome": "helpful",
+            },
+            headers=path.headers,
+        )
+        assert closed.status_code == 200, closed.text
+        assert path._put(path.targets[1].body()).status_code == 404
+    finally:
+        path.client.__exit__(None, None, None)

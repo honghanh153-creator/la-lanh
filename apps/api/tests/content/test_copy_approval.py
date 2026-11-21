@@ -133,6 +133,219 @@ def test_registry_rejects_codex_approval_of_safety_copy() -> None:
     assert any("owner" in problem for problem in entry.problems())
 
 
+_LINT_BAD = [
+    "Xem thêm tại https://vi-du.test/bai-viet nhé.",
+    "Mở www.vi-du nếu cần đọc thêm.",
+    "Ghé vidu.vn để xem thêm.",
+    # Bare domains with any suffix, not only a fixed list (review of #411, PV-15).
+    "Ghé vi-du.ai để đọc thêm.",
+    "Ghé vi-du.site để đọc thêm.",
+    "Ghé vi-du.edu để đọc thêm.",
+    "Ghé VI-DU.SHOP để đọc thêm.",
+    "Ghé bai.vi-du.com.vn/trang để đọc thêm.",
+    "Đọc thêm ở vi-du.travel.",
+    "Gửi thư cho ban-tro-giup@vi-du.test nếu cần.",
+    "Theo dõi @lalanh_thu để nhận thêm.",
+    "Gọi 0900 000 000 nếu cần nói chuyện.",
+    "Gọi +84 90-000-0000 nếu cần.",
+    "Chào {name}, hôm nay thế nào?",
+    "Chào {{ten}}, hôm nay thế nào?",
+    "Hôm nay hợp để <việc cần làm>.",
+    "Hôm nay hợp để [điền việc].",
+    "Chào %s, hôm nay thế nào?",
+    "Chào %(name)s, hôm nay thế nào?",
+    "Chào $ten, hôm nay thế nào?",
+    "Hôm nay hợp để ___.",
+    "TODO viết lại câu này.",
+    "Câu này XXX chưa xong.",
+    "Lorem ipsum dolor sit amet.",
+    "Câu thù nghiệm chưa chuẩn hoá.",  # decomposed grave accent, not NFC
+    # Review r4/r5 of #411: Unicode labels, any-case suffixes, printf slots with flags.
+    "Ghé ví-dụ.test để đọc thêm.",
+    "Ghé ĐỌC-THÊM.VN để đọc thêm.",
+    "Ghé vi-du.TeSt/trang để đọc thêm.",
+    "Ghé vi-du.tEST để đọc thêm.",
+    "Ghé vi-du.Com để đọc thêm.",
+    "Ghé vidu.Com/trang để đọc thêm.",
+    "Còn %02d ngày nữa.",
+    "Còn %.2f giờ nữa.",
+    "Chào %-10s nhé.",
+    "Bạn được %+d điểm.",
+    "Chào %(ten)05.1f nhé.",
+]
+
+
+@pytest.mark.parametrize("text", _LINT_BAD)
+@pytest.mark.parametrize("status", ["pending", "approved"])
+def test_registry_lint_rejects_links_contacts_and_placeholders(text: str, status: str) -> None:
+    raw = _approved(text) if status == "approved" else _entry(text=text)
+    entries = parse_registry({"version": copy_approval.REGISTRY_VERSION, "entries": [raw]})
+    assert copy_approval.registry_problems(entries)
+
+
+@pytest.mark.parametrize("text", _LINT_BAD)
+def test_linted_approved_copy_falls_back(monkeypatch: pytest.MonkeyPatch, text: str) -> None:
+    _use(monkeypatch, _approved(text))
+    assert copy_approval.copy_text("tarot.closing_prompt", "cũ") == "cũ"
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        APPROVED,
+        "Đặt hẹn giờ 20 phút rồi làm tiếp một việc đang dở.",
+        "Uống một cốc nước, rồi hít thở chậm 3 lần.",
+        "Nghỉ 5-10 phút… rồi quay lại việc chính.",
+        "Hỏi: “Mình cần gì lúc này?” — rồi ghi ra một dòng.",
+        "Ghi 1.5 giờ ngủ thêm vào sổ.",
+        "Bản 2.10.3 chạy ổn hơn.",  # three number groups are a version, not an address
+        "Bạn ở TP. Hồ Chí Minh, v.v. vẫn ổn.",
+        "Giảm 50% dung lượng rồi tiếp.",  # a percent sign before a word is not a slot
+        "Pin còn 20%, sạc thêm 5% nữa.",
+        "Giảm 50% (xem bảng) dung lượng.",  # a key needs a conversion letter right after ")"
+        "Giá 50.000đ một hộp.",  # a last label starting with a digit is a number, not a host
+        "Đi bộ 3.5km mỗi ngày.",
+        "Rồi... nghỉ một chút.",  # empty labels are not a host
+        "Ghi chú: नमस्ते là lời chào.",  # marks in a word with no dot are plain text
+        "Chọn và/hoặc bỏ qua 1.5/2 việc.",  # a slash between plain words or numbers is not a link
+        "Lúc 7:30 sáng, đi bộ 2.5km.",
+    ],
+)
+def test_registry_lint_accepts_plain_sentences(text: str) -> None:
+    assert copy_approval.text_lint_problems(text) == ()
+
+
+# Review r6 of #411: one table for the spelling-variant class. Each rule reads the NFKC, casefolded
+# text, so case and full-width forms of a link, an address or a phone number are the same finding.
+_VARIANTS = [
+    "Ghé vidu.Com để đọc thêm.",
+    "Ghé vidu.Vn để đọc thêm.",
+    "Ghé VIDU.COM để đọc thêm.",
+    "Ghé vidu.Com?muc=thu để đọc thêm.",
+    "Ghé ViDu.CoM/trang để đọc thêm.",
+    # Full-width letters and dot.
+    "Ghé \uff56\uff49\uff44\uff55\uff0e\uff43\uff4f\uff4d để đọc thêm.",
+    "Gửi thư cho Ban@Vi-Du.Test nếu cần.",
+    "Gửi thư cho ban\uff20vi-du.test nếu cần.",  # full-width @
+    # Full-width digits.
+    "Gọi \uff10\uff19\uff10\uff10 \uff10\uff10\uff10 \uff10\uff10\uff10 nếu cần.",
+    "Chào %S nhé.",
+]
+
+
+@pytest.mark.parametrize("text", _VARIANTS)
+def test_case_and_width_variants_are_one_class(monkeypatch: pytest.MonkeyPatch, text: str) -> None:
+    assert copy_approval.text_lint_problems(text)
+    entries = parse_registry(
+        {"version": copy_approval.REGISTRY_VERSION, "entries": [_approved(text)]}
+    )
+    assert copy_approval.registry_problems(entries)
+    _use(monkeypatch, _approved(text))
+    assert copy_approval.copy_text("tarot.closing_prompt", "cũ") == "cũ"
+
+
+# Review r7 of #411: the inventory of the two lint classes, so a class is closed by its definition
+# and not by the examples seen so far.
+#
+# Link (domain) = two words joined by a dot with no space, the last one 2+ letters of ANY script or
+# a punycode label, letters with or without combining marks (r8). Forms: ASCII suffix; Unicode
+# suffix (Cyrillic, Han, Arabic, Latin with marks, Devanagari, Bengali, Thai, Tamil);
+# punycode suffix or label ("xn--…"); any case; full-width letters; full-width or ideographic dot;
+# path, query or port after it; an IPv4 address; an invisible character splitting the name.
+#
+# Template slot = "%" + optional "(key)" (any key up to ")", r8) or "n$" + flags + width +
+# precision ("*" too) + length
+# modifier + ANY conversion letter of Python or C printf; "$name", "${…}", "{…}", "<…>", "[…]",
+# three or more underscores.
+_DOMAIN_FORMS = [
+    "Ghé vi-du.рф để đọc thêm.",  # Cyrillic suffix
+    "Ghé vi-du.中国 để đọc thêm.",  # Han suffix
+    "Ghé vi-du.xn--p1ai để đọc thêm.",  # punycode suffix
+    "Ghé vi-du.XN--P1AI để đọc thêm.",
+    "Ghé xn--vi-d-0qa.xn--p1ai/trang để đọc thêm.",  # punycode label and suffix
+    "Ghé пример.рф để đọc thêm.",
+    "Ghé vi-du.québec để đọc thêm.",  # Latin suffix with a mark
+    "Ghé vi-du.مصر để đọc thêm.",  # Arabic suffix
+    "Ghé vi-du.भारत để đọc thêm.",  # Devanagari suffix: a letter then a combining mark (r8)
+    "Ghé vi-du.বাংলা để đọc thêm.",  # Bengali suffix with marks (r8)
+    "Ghé vi-du.இந்தியா để đọc thêm.",  # Tamil suffix with marks
+    "Ghé vi-du.ไทย để đọc thêm.",  # Thai suffix
+    "Ghé ☕.test để đọc thêm.",  # a symbol label the IDNA codec accepts (r10)
+    "Ghé vi-du.☕☕ để đọc thêm.",  # a symbol suffix
+    "Ghé ★sao.vn để đọc thêm.",
+    "Ghé (vi-du.com) để đọc thêm.",  # punctuation around the word
+    "Ghé उदाहरण.भारत để đọc thêm.",  # Devanagari label and suffix, marks in both
+    "Ghé vi-du.भा để đọc thêm.",  # one letter and one mark is still a two-character suffix
+    "Ghé vidu。com để đọc thêm.",  # ideographic full stop as the dot
+    "Ghé vidu｡com để đọc thêm.",  # half-width ideographic full stop
+    "Ghé vi​du.com để đọc thêm.",  # zero-width space inside the name
+    "Ghé vidu⁠.com để đọc thêm.",  # word joiner before the dot
+    "Ghé vi­du.com để đọc thêm.",  # soft hyphen inside the name
+    "Ghé vi-du.com:8080 để đọc thêm.",
+    # Review r11: a path, query or fragment after the host must not hide it.
+    "Ghé vi-du.test/trang?x=1.5 để đọc thêm.",
+    "Ghé vi-du.test/a..b để đọc thêm.",
+    "Ghé vi-du.test/" + "a" * 64 + " để đọc thêm.",
+    "Ghé vi-du.test?x=1.5 để đọc thêm.",
+    "Ghé vi-du.test#muc.2 để đọc thêm.",
+    "Ghé vi-du.test:8080/x..y để đọc thêm.",
+    "Ghé xem/vi-du.test để đọc thêm.",  # a host after a slash
+    "Ghé vi-du.рф/trang?x=1.5 để đọc thêm.",
+    "Mở 192.0.2.10 để đọc thêm.",  # IPv4 (documentation range)
+    "Mở 10.0.0.1 để đọc thêm.",
+    "Xong việc nhỏ.Rồi nghỉ.",  # glued sentences read as a domain: the copy adds the space
+]
+
+_SLOT_FORMS = [
+    *(f"Còn %{kind} nữa." for kind in "diouxXeEfFgGcrsaAp"),
+    "Còn %03u ngày nữa.",
+    "Còn %*d ngày nữa.",
+    "Còn %.*f giờ nữa.",
+    "Còn %ld ngày nữa.",
+    "Còn %llu ngày nữa.",
+    "Còn %zu ngày nữa.",
+    "Còn %hhx ngày nữa.",
+    "Chào %1$s nhé.",
+    "Chào %2$-10s nhé.",
+    "Chào %(ten)r nhé.",
+    "Chào %(full name)s nhé.",  # a key with a space (r8)
+    "Chào %(full-name)s nhé.",  # a key with a hyphen (r8)
+    "Chào %(tên)s nhé.",
+    "Chào %()s nhé.",  # an empty key
+    "Chào %(a(b)c)s nhé.",  # nested parentheses in the key
+    "Chào %(name)-10s nhé.",
+    "Còn %'d ngày nữa.",  # POSIX thousands flag
+    "Còn %*1$d ngày nữa.",  # C width taken from a numbered argument
+    "Còn %I64d ngày nữa.",  # Windows length forms
+    "Chào %S nhé.",  # C wide string
+    "Còn %.s nữa.",  # empty precision (r9)
+    "Còn %.f giờ nữa.",
+    "Còn %05.s nữa.",
+    "Chào %(full\nname)s nhé.",  # a key with a line break (r9)
+    "Chào %sơi, hôm nay thế nào?",  # a slot glued to the next word
+]
+
+
+@pytest.mark.parametrize("text", [*_DOMAIN_FORMS, *_SLOT_FORMS])
+def test_every_domain_and_slot_form_is_rejected_and_falls_back(
+    monkeypatch: pytest.MonkeyPatch, text: str
+) -> None:
+    assert copy_approval.text_lint_problems(text)
+    for raw in (_entry(text=text), _approved(text)):
+        entries = parse_registry({"version": copy_approval.REGISTRY_VERSION, "entries": [raw]})
+        assert copy_approval.registry_problems(entries)
+    _use(monkeypatch, _approved(text))
+    assert copy_approval.copy_text("tarot.closing_prompt", "cũ") == "cũ"
+
+
+def test_a_word_glued_to_the_next_sentence_is_flagged_by_design() -> None:
+    # Without the space, "xong.Sau" reads as a domain once case is folded; the copy adds the space.
+    assert copy_approval.text_lint_problems("Ăn xong.Sau đó nghỉ một chút.") == ("contains a link",)
+    assert copy_approval.text_lint_problems("Ăn xong. Sau đó nghỉ một chút.") == ()
+    assert copy_approval.text_lint_problems("Xong việc nhỏ.Rồi nghỉ.") == ("contains a link",)
+    assert copy_approval.text_lint_problems("Xong việc nhỏ. Rồi nghỉ.") == ()
+
+
 def test_checked_in_registry_is_valid() -> None:
     assert copy_approval.registry_problems(copy_approval.load_registry()) == []
 
@@ -177,3 +390,93 @@ def test_crisis_check_disclosure_is_the_owner_approved_privacy_copy() -> None:
     assert (entry.category, entry.text) == ("privacy", text)
     assert (entry.status, entry.approver, entry.date) == ("approved", "owner", "2026-11-15")
     assert entry.servable
+
+
+# Review r8 of #411, "đóng lớp bằng parser": the two classes are checked against the parsers that
+# define them, not only against examples. Every spec Python's own "%" operator accepts (except the
+# documented space flag) is a slot, and every name Python's IDNA codec accepts is a link.
+def test_every_printf_spec_python_accepts_is_a_template_slot() -> None:
+    import itertools
+
+    class _AnyKey(dict[str, int]):
+        def __missing__(self, key: str) -> int:
+            return 1
+
+    keys = ["", "(k)", "(full name)", "(full-name)", "()", "(a(b)c)", "(tên)", "(full\nname)"]
+    flags = [
+        "".join(chosen) for size in range(5) for chosen in itertools.combinations("#0-+", size)
+    ]
+    accepted = 0
+    missed: list[str] = []
+    for key, flag, width, precision, length, conversion in itertools.product(
+        keys, flags, ["", "5", "*"], ["", ".", ".2", ".*"], ["", "h", "l", "L"], "diouxXeEfFgGcrsa%"
+    ):
+        spec = f"%{key}{flag}{width}{precision}{length}{conversion}"
+        stars = (width == "*") + (precision == ".*")
+        values: object = _AnyKey() if key else (1,) * (stars + (conversion != "%"))
+        try:
+            spec % values
+        except (TypeError, ValueError, KeyError):
+            continue
+        if conversion == "%":
+            continue  # "%%" is a literal percent sign, not a slot
+        accepted += 1
+        # The tokenizer reads the whole spec as one slot, and the gate refuses the sentence.
+        if copy_approval.printf_slots(spec) != ((0, len(spec)),) or not (
+            copy_approval.text_lint_problems(f"Chào {spec} nhé.")
+        ):
+            missed.append(spec)
+    assert accepted > 25_000
+    assert missed == []
+
+
+def test_a_lone_space_flag_is_plain_text_but_a_space_with_more_is_a_slot() -> None:
+    # The one exception, on purpose: "50% dung lượng" reads as "% d" to Python.
+    assert copy_approval.printf_slots("Giảm 50% dung lượng.") == ()
+    assert copy_approval.printf_slots("Còn % 5d ngày.") != ()
+    assert copy_approval.printf_slots("Chào %(ten) s nhé.") != ()
+    assert copy_approval.printf_slots("Giảm 50%% dung lượng.") == ()
+    assert copy_approval.printf_slots("Giảm 50%(chưa đóng s") == ()
+
+
+def test_every_name_the_idna_codec_accepts_is_a_link() -> None:
+    """Hosts drawn from letters, marks, digits, symbols and hyphens of all of Unicode (r10).
+
+    Both the host label and the last label are drawn from the whole set, so a character the
+    rule did not think of is still in the sample. Every name the codec accepts must be refused.
+    """
+
+    import random
+    import sys
+    import unicodedata
+
+    pool = [
+        chr(code)
+        for code in range(sys.maxunicode + 1)
+        if unicodedata.category(chr(code))[0] in "LMNS" or chr(code) == "-"
+    ]
+    starts = [char for char in pool if not char.isdecimal()]
+    draw = random.Random(411)  # noqa: S311 - a fixed sample, not a secret
+
+    def label(first: list[str]) -> str:
+        return draw.choice(first) + "".join(draw.choice(pool) for _ in range(draw.randint(1, 5)))
+
+    checked = 0
+    missed: list[str] = []
+    while checked < 3000:
+        host = unicodedata.normalize("NFC", f"{label(pool)}.{label(starts)}")
+        edges = host[0] + host[-1]
+        if any(unicodedata.category(char).startswith(("P", "Z")) for char in edges):
+            continue  # punctuation or space around a word is not part of it
+        if any(char.isspace() for char in host) or "." in host.split(".", 1)[1]:
+            continue
+        try:
+            host.encode("idna")
+        except UnicodeError:
+            continue
+        if not host.split(".")[-1] or host.split(".")[-1][0].isdecimal():
+            continue
+        checked += 1
+        if not copy_approval.text_lint_problems(f"Ghé {host} nhé."):
+            missed.append(ascii(host))
+    assert missed == []

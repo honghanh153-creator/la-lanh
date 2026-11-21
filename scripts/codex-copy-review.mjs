@@ -29,6 +29,14 @@ export const ownerOnly = new Set(['privacy', 'consent', 'crisis', 'safety']);
 // API import failed in scripts.fallback_approval, and the loop stayed red all day. These entries change
 // together with their roast pair in a code PR, so the daily Codex batch neither sends nor approves them.
 export const codeCoupled = id => /^daily\.headline\./.test(String(id ?? ''));
+// 19.11.2026 (Codex review of #685): a Daily situation without an approved bundle rotates its scenes
+// and its actions independently (daily_psychology.py), so a loose scene that names a concrete moment
+// ("a coworker's document") lands next to unrelated advice ("cooking"). Scenes ship only inside a whole
+// bundle (headline, scene, action written together; owner 10.11.2026), never as loose variants: the
+// batch neither sends nor approves `daily.scene.*`. tests/content/test_daily_scene_bundles.py checks
+// the registry.
+export const bundleOnly = id => /^daily\.scene\./.test(String(id ?? ''));
+const notInBatch = id => codeCoupled(id) || bundleOnly(id);
 export const ruleDocs = [
   'docs/foundation/la-lanh-plain-vietnamese-content-standard.md',
   'docs/operations/decision-checklist.md',
@@ -38,7 +46,7 @@ export const ruleDocs = [
 export const digest = text => createHash('sha256').update(String(text).normalize('NFC')).digest('hex');
 
 export function selectPending(registry) {
-  return (registry.entries ?? []).filter(e => e.status === 'pending' && !ownerOnly.has(e.category) && !codeCoupled(e.id));
+  return (registry.entries ?? []).filter(e => e.status === 'pending' && !ownerOnly.has(e.category) && !notInBatch(e.id));
 }
 
 // One daily batch: a PR body with one row per entry must stay well under GitHub's 65 536-character
@@ -50,7 +58,15 @@ export const batchSize = 200;
 export const rejectedPath = join(stateDir, 'copy-rejected.json');
 export const readRejected = (path = rejectedPath) => { try { return JSON.parse(readFileSync(path, 'utf8')) ?? {}; } catch { return {}; } };
 const unreviewed = (registry, rejected) => selectPending(registry).filter(e => rejected[e.id] !== digest(e.text));
-export const batchFor = (registry, rejected = {}) => unreviewed(registry, rejected).slice(0, batchSize);
+// 20.11.2026 (returning-user persona run, #777): the batch read pending copy in registry order, so
+// the lighter Daily actions for a "Đuối" day (lighter.*, #627/#699: built, served as soon as they are
+// approved) sat behind about 500 bundle lines and no persona ever saw one. Copy that a finished
+// feature waits on goes first; the rest keeps registry order. The same holds for the rewrites of the
+// Daily headlines that say the reader is tired (rewrite.headline.*, #788): code waits only on them.
+export const firstInBatch = [/^lighter\./, /^rewrite\.headline\./];
+const rank = e => (firstInBatch.some(re => re.test(String(e.id ?? ''))) ? 0 : 1);
+export const batchFor = (registry, rejected = {}) =>
+  unreviewed(registry, rejected).map((e, i) => [rank(e), i, e]).sort((a, b) => a[0] - b[0] || a[1] - b[1]).map(([, , e]) => e).slice(0, batchSize);
 export function recordRejected(decisions, reviewed, path = rejectedPath) {
   const rejected = readRejected(path);
   for (const d of decisions) if (d.decision === 'reject' && reviewed.has(d.id)) rejected[d.id] = reviewed.get(d.id);
@@ -123,7 +139,7 @@ export function failReason(error) {
 export function applyDecisions(registry, decisions, date, reviewed = null) {
   const approve = new Set(decisions.filter(d => d.decision === 'approve').map(d => d.id));
   const entries = registry.entries.map(e =>
-    e.status === 'pending' && !ownerOnly.has(e.category) && !codeCoupled(e.id) && approve.has(e.id)
+    e.status === 'pending' && !ownerOnly.has(e.category) && !bundleOnly(e.id) && !codeCoupled(e.id) && approve.has(e.id)
       && (!reviewed || reviewed.get(e.id) === digest(e.text))
       ? { ...e, status: 'approved', approver: 'codex', date, digest: digest(e.text) }
       : e);

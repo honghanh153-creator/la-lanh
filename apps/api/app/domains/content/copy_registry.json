@@ -1,6 +1,66 @@
 {
  "entries": [
   {
+   "id": "rewrite.headline.automatic-caretaking.01.direct",
+   "category": "reading",
+   "text": "Bạn vẫn nhận giúp thêm dù lịch hôm nay đã kín.",
+   "status": "pending"
+  },
+  {
+   "id": "rewrite.headline.automatic-caretaking.01.roast",
+   "category": "reading",
+   "text": "Lịch kín mít rồi mà vẫn nhận thêm một vụ giúp người khác.",
+   "status": "pending"
+  },
+  {
+   "id": "rewrite.headline.automatic-caretaking.02.direct",
+   "category": "reading",
+   "text": "Bạn giúp thêm một việc, việc của mình lại để sau.",
+   "status": "pending"
+  },
+  {
+   "id": "rewrite.headline.automatic-caretaking.02.roast",
+   "category": "reading",
+   "text": "Việc người ta thì làm ngay, việc của mình thì để sau.",
+   "status": "pending"
+  },
+  {
+   "id": "rewrite.headline.decision-fatigue.01.direct",
+   "category": "reading",
+   "text": "Bạn muốn chọn thật đúng nên chọn mãi chưa xong.",
+   "status": "pending"
+  },
+  {
+   "id": "rewrite.headline.decision-fatigue.01.roast",
+   "category": "reading",
+   "text": "Đi tìm đáp án hoàn hảo mà chưa chốt được cái nào.",
+   "status": "pending"
+  },
+  {
+   "id": "rewrite.headline.decision-fatigue.02.direct",
+   "category": "reading",
+   "text": "Lựa chọn còn nhiều, bạn chưa gạch bớt cái nào.",
+   "status": "pending"
+  },
+  {
+   "id": "rewrite.headline.decision-fatigue.02.roast",
+   "category": "reading",
+   "text": "Danh sách lựa chọn dài như thực đơn trà sữa, chưa gạch nổi món nào.",
+   "status": "pending"
+  },
+  {
+   "id": "rewrite.headline.name-the-need.01.direct",
+   "category": "reading",
+   "text": "Bạn kể khó khăn, chưa nói muốn được giúp gì.",
+   "status": "pending"
+  },
+  {
+   "id": "rewrite.headline.name-the-need.01.roast",
+   "category": "reading",
+   "text": "Bạn kể khổ rồi, còn cần giúp gì thì vẫn bí mật.",
+   "status": "pending"
+  },
+  {
    "id": "daily.action.automatic-caretaking.01",
    "category": "reading",
    "text": "Nói với người nhờ: để mình xem lịch rồi báo lại.",
@@ -802,7 +862,10 @@
    "id": "daily.action.comparison-loop.15",
    "category": "reading",
    "text": "Đổi câu so sánh thành câu hỏi: Mình học được gì từ người đó?",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "5069b93cfc316237a0d917724135ea0fb51de748d7f4790ec5a6ad04ddfb2b6b"
   },
   {
    "id": "daily.action.comparison-loop.16",
@@ -5368,13 +5431,19 @@
    "id": "daily.bundle.avoid-small-conflict.01.action",
    "category": "reading",
    "text": "Nói với đồng nghiệp: Tối nay mình không tiện, sáng mai mình làm được phần đầu.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "753daee776cf2e087997c0caed4a996085810e1f454bcba65523b5a3eb46f2c3"
   },
   {
    "id": "daily.bundle.avoid-small-conflict.01.headline",
    "category": "reading",
    "text": "Đồng nghiệp nhờ bạn làm nốt bản trình bày.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "c428d136f18b2ca2ca965dc368c443adc8109e5d9485f24a7aa77bfc1b3e3ecc"
   },
   {
    "id": "daily.bundle.avoid-small-conflict.01.scene",
@@ -5386,13 +5455,19 @@
    "id": "daily.bundle.avoid-small-conflict.02.action",
    "category": "reading",
    "text": "Nhắn lại nhóm: Tối nay mình không tiện, cuối tuần mình đi được.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "6f77edbb560752716533c673daee84b23b114f42b737d0ae9582e6963320e67b"
   },
   {
    "id": "daily.bundle.avoid-small-conflict.02.headline",
    "category": "reading",
    "text": "Nhóm bạn thân rủ đi xem phim tối nay.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "ec19db73af73fa2c34e2a7bdb4cc6f4cd704822591a512af002f198f2d8faded"
   },
   {
    "id": "daily.bundle.avoid-small-conflict.02.scene",
@@ -5404,13 +5479,19 @@
    "id": "daily.bundle.avoid-small-conflict.03.action",
    "category": "reading",
    "text": "Nói với mẹ: Sáng mai con không tiện, con đặt giúp dì một chiếc xe nhé.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "b39828c1721d6aa92965dcf722e562c0713388a166d5870b2ce5ad2f352eed02"
   },
   {
    "id": "daily.bundle.avoid-small-conflict.03.headline",
    "category": "reading",
    "text": "Mẹ nhờ bạn chở dì ra bến xe sáng mai.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "7bd455556dbcda0b89e3609898580a58262c950c38b212e1d77dfca8857385f4"
   },
   {
    "id": "daily.bundle.avoid-small-conflict.03.scene",
@@ -5422,13 +5503,19 @@
    "id": "daily.bundle.avoid-small-conflict.04.action",
    "category": "reading",
    "text": "Nói với bạn cùng lớp: Mình chỉ nhận soát lỗi, phần nội dung bạn tự làm nhé.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "7e9d306a790bfa9a5a47cc41688cfd2a0ff03ed4895b1cb58d195151f7ded99c"
   },
   {
    "id": "daily.bundle.avoid-small-conflict.04.headline",
    "category": "reading",
    "text": "Bạn cùng lớp nhờ bạn làm thay phần thuyết trình.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "54ef3b5b3ff247c3a2b986757a6a82c42ecfbf13315d18d5970ad7ee727cf5da"
   },
   {
    "id": "daily.bundle.avoid-small-conflict.04.scene",
@@ -5440,13 +5527,19 @@
    "id": "daily.bundle.avoid-small-conflict.05.action",
    "category": "reading",
    "text": "Nói với chủ tiệm: Mai mình không tiện ghé, thứ Bảy mình qua lấy được.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "99aa2985a8cca21a9d91e9afe4e43c5f00fc3db2d4ad1ccb48ce6bf16b2e7279"
   },
   {
    "id": "daily.bundle.avoid-small-conflict.05.headline",
    "category": "reading",
    "text": "Chủ tiệm sửa đồ nhờ bạn mai quay lại lấy.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "9972cde5fb86be0b21f63d20106b0db6cf624e64d36f154a800c6d3f44b908b3"
   },
   {
    "id": "daily.bundle.avoid-small-conflict.05.scene",
@@ -5458,13 +5551,19 @@
    "id": "daily.bundle.avoid-small-conflict.06.action",
    "category": "reading",
    "text": "Nói với hàng xóm: Thứ Bảy mình không tiện, mình chỉ nhận được tối Chủ nhật.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "4d1a61f6e310578837e2bc63661fe1f95c050b5b52c935a4b39bb91ee5f7977e"
   },
   {
    "id": "daily.bundle.avoid-small-conflict.06.headline",
    "category": "reading",
    "text": "Hàng xóm nhờ bạn cho chó ăn hai ngày.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "418a2aac9d23a1be0ce3cd56c1e36da30e79721bd63575f991b43ef193d5c329"
   },
   {
    "id": "daily.bundle.avoid-small-conflict.06.scene",
@@ -5476,13 +5575,19 @@
    "id": "daily.bundle.avoid-small-conflict.07.action",
    "category": "reading",
    "text": "Nói với trưởng nhóm: Hôm nay mình không tiện trực, mình nhận trực ngày mai.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-18",
+   "digest": "44ca6e7b8881efab2993393a33fc59d5824b651e9e9fd4a9a55dc531f54efd7b"
   },
   {
    "id": "daily.bundle.avoid-small-conflict.07.headline",
    "category": "reading",
    "text": "Trưởng nhóm nhờ bạn trực điện thoại giờ nghỉ trưa.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-18",
+   "digest": "3b2ac9682ab23fef15541f54e07c603d4f49d5b54debc6b2cefdba4d10aedf2b"
   },
   {
    "id": "daily.bundle.avoid-small-conflict.07.scene",
@@ -5500,25 +5605,37 @@
    "id": "daily.bundle.avoid-small-conflict.08.headline",
    "category": "reading",
    "text": "Bạn cùng phòng hỏi mượn máy tính tối nay.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-18",
+   "digest": "fb7d4daa18ef506a8a7806d2e9a51fe91922324a60eaf285cd0acbbc967d14e4"
   },
   {
    "id": "daily.bundle.avoid-small-conflict.08.scene",
    "category": "reading",
    "text": "Tối nay bạn cần máy tính để nộp bài, đúng lúc bạn cùng phòng nhờ mượn, và bạn định đưa luôn.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-18",
+   "digest": "075b441e122be00a279d1f48b4d589aeb078817166dd8f32cac99126febdb98d"
   },
   {
    "id": "daily.bundle.avoid-small-conflict.09.action",
    "category": "reading",
    "text": "Nhắn em gái là tối nay bạn không tiện, sáng mai bạn giảng được.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "62e32ece64366b5830c6ce29abd6e6b388a26ef7d827f0bc45bf98b7fae21bed"
   },
   {
    "id": "daily.bundle.avoid-small-conflict.09.headline",
    "category": "reading",
    "text": "Em gái nhờ bạn giảng bài toán lúc mười giờ tối.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "4ca6ba645e0f8d5d3404b9cfd78cb3edff7d94ec4dcbc79cc080ae9c73bc2b15"
   },
   {
    "id": "daily.bundle.avoid-small-conflict.09.scene",
@@ -5530,13 +5647,19 @@
    "id": "daily.bundle.avoid-small-conflict.10.action",
    "category": "reading",
    "text": "Nhắn vào nhóm: Tháng này mình bận, mình chỉ nhận gom danh sách người đi.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-18",
+   "digest": "a4dd9bfc0d772d11426db07f08c4faf977078741f71ba0fff9f4f06f2aa0ee0e"
   },
   {
    "id": "daily.bundle.avoid-small-conflict.10.headline",
    "category": "reading",
    "text": "Nhóm lớp cũ hỏi ai nhận đặt chỗ họp lớp.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-18",
+   "digest": "cdc94b53b57bc6988b94b700c07ef191e56e4f4973cd33831ff3d8e851f473be"
   },
   {
    "id": "daily.bundle.avoid-small-conflict.10.scene",
@@ -5548,13 +5671,19 @@
    "id": "daily.bundle.avoid-small-conflict.11.action",
    "category": "reading",
    "text": "Nói với câu lạc bộ: Chủ nhật này mình không tiện, tuần sau mình dẫn được.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "1393032bfe8a08419a7850b4921b2210b830fe2dd23d1bd5175b4bddce794bae"
   },
   {
    "id": "daily.bundle.avoid-small-conflict.11.headline",
    "category": "reading",
    "text": "Câu lạc bộ nhờ bạn dẫn buổi chạy Chủ nhật.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "0a7eeb7be896f9af5501d525d80ee804ad00350c6e96c53a32df256f18c56067"
   },
   {
    "id": "daily.bundle.avoid-small-conflict.11.scene",
@@ -5566,13 +5695,19 @@
    "id": "daily.bundle.avoid-small-conflict.12.action",
    "category": "reading",
    "text": "Nhắn khách: Cuối tuần mình không nhận sửa, sáng thứ Hai mình làm được.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "4e936527a7075b31067ba1b40226854c92c5d8d30c9c5b04e2f6d1e08af3b7e5"
   },
   {
    "id": "daily.bundle.avoid-small-conflict.12.headline",
    "category": "reading",
    "text": "Khách nhờ bạn sửa thêm bản thiết kế cuối tuần.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "fdf9d297923bfbe3c06e3520725f70c1f85d50e294886bce12b7b9da4108fa1e"
   },
   {
    "id": "daily.bundle.avoid-small-conflict.12.scene",
@@ -6376,13 +6511,19 @@
    "id": "daily.bundle.group-pressure.01.action",
    "category": "reading",
    "text": "Hỏi nhóm ai làm phần nào trước khi gật đầu.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "b79e98315d4e213fe458e484c2cab3ad99933c3f5961ba84e7af1d3f7c614460"
   },
   {
    "id": "daily.bundle.group-pressure.01.headline",
    "category": "reading",
    "text": "Nhóm chốt kế hoạch mới lúc cuộc họp sắp hết.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "50ae782d4bd6fbe816915a60649497f10c905cb9e03b5a0d8d6946cfe5b5c058"
   },
   {
    "id": "daily.bundle.group-pressure.01.scene",
@@ -6394,13 +6535,19 @@
    "id": "daily.bundle.group-pressure.02.action",
    "category": "reading",
    "text": "Nhắn vào nhóm hỏi đi bằng gì rồi mới thả tim.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "562a7dfbb65f675b71bbf981093985ce33017a81bca76649edb96198409e2643"
   },
   {
    "id": "daily.bundle.group-pressure.02.headline",
    "category": "reading",
    "text": "Nhóm bạn chốt chuyến đi biển chỉ sau năm phút.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "1892fdf772fa7e2662713e4ee4082f26a0070552aed7c0ff15100e238c7090da"
   },
   {
    "id": "daily.bundle.group-pressure.02.scene",
@@ -6418,7 +6565,10 @@
    "id": "daily.bundle.group-pressure.03.headline",
    "category": "reading",
    "text": "Họ hàng chọn quán cho tiệc mừng thọ bà.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "6820a11cb18de87a027e2da4b8c9b2eb67b8edf70f015c52dac78b560ce2f1c5"
   },
   {
    "id": "daily.bundle.group-pressure.03.scene",
@@ -6430,7 +6580,10 @@
    "id": "daily.bundle.group-pressure.04.action",
    "category": "reading",
    "text": "Xin nhóm giải thích đề tài đó gồm những phần nào.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "d9ea0f97950a6e6e9d2e59a21bcd2057149a6b022f671fbc84551989c4c4ea1d"
   },
   {
    "id": "daily.bundle.group-pressure.04.headline",
@@ -6448,13 +6601,19 @@
    "id": "daily.bundle.group-pressure.05.action",
    "category": "reading",
    "text": "Nhắn nhóm hỏi ai đi mua quà và mua ở đâu.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "a58e75c16948986bdd67b3416100b69b5e66f18225a77d3aa020b84f5e63e05f"
   },
   {
    "id": "daily.bundle.group-pressure.05.headline",
    "category": "reading",
    "text": "Cả phòng góp chung mua quà sinh nhật đồng nghiệp.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "0f1ce03daf82667d33fbe6982fc943aeb63108a92bd0db4118ef156c64c5809b"
   },
   {
    "id": "daily.bundle.group-pressure.05.scene",
@@ -6466,13 +6625,19 @@
    "id": "daily.bundle.group-pressure.06.action",
    "category": "reading",
    "text": "Xin đội trưởng giải thích vị trí của bạn trước khi cả nhóm ra về.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "ccf1d5b444f17d990e0dcd041cbacd18835647c81d5e757b6d397ce7cc12dd47"
   },
   {
    "id": "daily.bundle.group-pressure.06.headline",
    "category": "reading",
    "text": "Đội bóng chốt đội hình mới cho trận cuối tuần.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "2e4109fbc97206e6c07f68328a857d0ff520fc34ef2630a7057fcb493e5de2e5"
   },
   {
    "id": "daily.bundle.group-pressure.06.scene",
@@ -6484,7 +6649,10 @@
    "id": "daily.bundle.group-pressure.07.action",
    "category": "reading",
    "text": "Đọc lại bảng rồi hỏi nhóm hôm nào đến lượt bạn.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "fed101f8255f9d47f81a7fa29d90e3cb1ad255598c7040b2cfc403f06c2c0566"
   },
   {
    "id": "daily.bundle.group-pressure.07.headline",
@@ -6508,19 +6676,28 @@
    "id": "daily.bundle.group-pressure.08.headline",
    "category": "reading",
    "text": "Câu lạc bộ chia việc cho buổi quyên góp sách.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "2a402221f1c48799475008fe4720f300e749e208795fd7d7ccdfcb759c16c066"
   },
   {
    "id": "daily.bundle.group-pressure.08.scene",
    "category": "reading",
    "text": "Cuối buổi sinh hoạt, cả nhóm nhận việc rất nhanh, bạn sắp nhận phần ghi danh dù chưa hiểu cách làm.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "52134e4dd0ca201683fdee44f7e6a2c2d3c20e52b76eeb614f6f3882c63b390f"
   },
   {
    "id": "daily.bundle.group-pressure.09.action",
    "category": "reading",
    "text": "Nói với nhóm bước bạn chưa hiểu và xin xem làm mẫu một lần.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "ca94f722a0d8ac476463c0ca7f458358d70a3f31816c7760a13a574878657fb3"
   },
   {
    "id": "daily.bundle.group-pressure.09.headline",
@@ -6532,19 +6709,28 @@
    "id": "daily.bundle.group-pressure.09.scene",
    "category": "reading",
    "text": "Trưởng nhóm hỏi bạn hiểu cách nhập đơn chưa, mọi người đang chờ và bạn sắp nói hiểu rồi.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "aaa0538ac24c57eed0904f8b50d51c6fe59bc2b14e27782d51487d264cdb234a"
   },
   {
    "id": "daily.bundle.group-pressure.10.action",
    "category": "reading",
    "text": "Hỏi người lập bình chọn trong nhóm vì sao cần đổi giờ.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "70edaa4859c81591709fd87e602367f4a222b6188ecaf34eab382476900693f8"
   },
   {
    "id": "daily.bundle.group-pressure.10.headline",
    "category": "reading",
    "text": "Nhóm chung cư bỏ phiếu đổi giờ đóng cổng.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "e944054f65118c064b23903987cd5562792ba645052ed80245ea8e9f62916ecd"
   },
   {
    "id": "daily.bundle.group-pressure.10.scene",
@@ -6556,13 +6742,19 @@
    "id": "daily.bundle.group-pressure.11.action",
    "category": "reading",
    "text": "Xin nhóm bạn giải thích món đó có gì trước khi gật đầu.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "337f9410d5e4c58ff400775005bd8a09fba6c3a4c9695fc5dad59b81bdf2061c"
   },
   {
    "id": "daily.bundle.group-pressure.11.headline",
    "category": "reading",
    "text": "Cả bàn gọi món đặc biệt theo ý số đông.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "ce1719ab3894e69afcbfd5d80b5fe7861057b890c3f268cef34197fc99b5926f"
   },
   {
    "id": "daily.bundle.group-pressure.11.scene",
@@ -6574,13 +6766,19 @@
    "id": "daily.bundle.group-pressure.12.action",
    "category": "reading",
    "text": "Nhắn nhóm hỏi phần mềm mới khác cái cũ ở chỗ nào.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "8559c3387e5071fdf6fdf232e3b7a72fb84ba0302d621b66c32a1f152f50a814"
   },
   {
    "id": "daily.bundle.group-pressure.12.headline",
    "category": "reading",
    "text": "Nhóm chọn phần mềm mới qua một cuộc bình chọn.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "3757c8cb5c3e5a5788c160bc84f46a4abbfed9e39931993501933aebf3dc2dbd"
   },
   {
    "id": "daily.bundle.group-pressure.12.scene",
@@ -6856,13 +7054,19 @@
    "id": "daily.bundle.name-the-need.01.action",
    "category": "reading",
    "text": "Nhắn trưởng nhóm nhờ giúp đúng một báo cáo, ghi rõ hạn thứ Sáu.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "91e649972101e7feb7ca58241c8412d2c629867a63ccd81a98fc36ee41aaa035"
   },
   {
    "id": "daily.bundle.name-the-need.01.headline",
    "category": "reading",
    "text": "Bạn có ba báo cáo cùng hạn thứ Sáu.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "ad64bd4efc901393ce164b0631e6eb5ed1754098282fa88496007bd4513b272f"
   },
   {
    "id": "daily.bundle.name-the-need.01.scene",
@@ -6874,13 +7078,19 @@
    "id": "daily.bundle.name-the-need.02.action",
    "category": "reading",
    "text": "Nhắn nhóm hai việc cụ thể còn thiếu, như đặt xe và tìm chỗ ăn, rồi hỏi ai nhận.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "e66daba3b4c2f462273fc0477bebdd56fa8317255b0142f8eb177b51d3041e9e"
   },
   {
    "id": "daily.bundle.name-the-need.02.headline",
    "category": "reading",
    "text": "Bạn lo hết việc chuẩn bị chuyến đi của nhóm.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "995e58a3269a5ac017c73282dc0abd460b2704aa851b1799a980c3599d7ca31d"
   },
   {
    "id": "daily.bundle.name-the-need.02.scene",
@@ -6892,13 +7102,19 @@
    "id": "daily.bundle.name-the-need.03.action",
    "category": "reading",
    "text": "Hỏi em gái có làm giúp được một việc cụ thể không, như nhặt rau hoặc rửa chén.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "2d6c639a0b172860e0605ff95e35885b8f5bcfd0130f9f18dbdf5de7fabe9771"
   },
   {
    "id": "daily.bundle.name-the-need.03.headline",
    "category": "reading",
    "text": "Bạn nấu một mình cho bữa họp mặt gia đình.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "ff5f7837eaa4f4250b3ad1015f41d324e378fcd8d0699b6182ab401a5ba6ee70"
   },
   {
    "id": "daily.bundle.name-the-need.03.scene",
@@ -6910,13 +7126,19 @@
    "id": "daily.bundle.name-the-need.04.action",
    "category": "reading",
    "text": "Chọn hai phần cụ thể còn thiếu của bài và hỏi từng bạn trong nhóm có nhận được không.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "2fa8e841767b2fcc261e313e96d9ea416c97295c7ae3606b295434f728a15bce"
   },
   {
    "id": "daily.bundle.name-the-need.04.headline",
    "category": "reading",
    "text": "Bài nhóm sắp nộp mà bạn làm gần hết.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "253d89c1dbe2cbdc638d7a637579ba49bb658e0b07ca4f001b2d5da3b181ad77"
   },
   {
    "id": "daily.bundle.name-the-need.04.scene",
@@ -6928,13 +7150,19 @@
    "id": "daily.bundle.name-the-need.05.action",
    "category": "reading",
    "text": "Nhắn người kia nhờ giúp mua hai món cụ thể trên đường về.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "b22b2d956817508f90724dd2d4c138519924252bd2ee7aa20d7b44ecf99b251c"
   },
   {
    "id": "daily.bundle.name-the-need.05.headline",
    "category": "reading",
    "text": "Bạn đi chợ một mình với danh sách dài.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "be4c68ebd9c5ccf5646690375a4d515efcee8b713ab4b281a9e8c082d6444555"
   },
   {
    "id": "daily.bundle.name-the-need.05.scene",
@@ -6946,13 +7174,19 @@
    "id": "daily.bundle.name-the-need.06.action",
    "category": "reading",
    "text": "Nói với đồng nghiệp một việc cụ thể họ có thể làm giúp trong chiều nay.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "8ae5f573723daa7cf69da6d0ea01be06c45552e73ffe92293b947a570c8bf925"
   },
   {
    "id": "daily.bundle.name-the-need.06.headline",
    "category": "reading",
    "text": "Đồng nghiệp hỏi bạn có cần giúp gì không.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "f679b6b0c7e713fee371289d1e2a9e25106cb5db40de81745f7d1278c4cfa270"
   },
   {
    "id": "daily.bundle.name-the-need.06.scene",
@@ -6964,13 +7198,19 @@
    "id": "daily.bundle.name-the-need.07.action",
    "category": "reading",
    "text": "Nói với người kia một việc cụ thể cần giúp, như phơi đồ hoặc lau sàn.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "fb376f42ef416d125b630ab473582f4dd5d5119bb9c8904904c756f4f9e7b47a"
   },
   {
    "id": "daily.bundle.name-the-need.07.headline",
    "category": "reading",
    "text": "Bạn dọn dẹp một mình cả buổi cuối tuần.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "347ddbf87498180258416b587aaad6d16d080be8ff8d16b9a6f3d29ab301a97d"
   },
   {
    "id": "daily.bundle.name-the-need.07.scene",
@@ -6982,13 +7222,19 @@
    "id": "daily.bundle.name-the-need.08.action",
    "category": "reading",
    "text": "Nhắn bạn cùng phòng nhờ giúp một việc cụ thể, như mua đồ ăn tối trên đường về.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "63d6f4b172dc7fadffe74f7ec925956b29c5db7e4656d11d7b7a730fe2f2aa94"
   },
   {
    "id": "daily.bundle.name-the-need.08.headline",
    "category": "reading",
    "text": "Bạn về trễ mà còn phải lo bữa tối.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "662195a46de7828c3602becc1fb7a26f84849b26dd076894364b05d45f8ea5e4"
   },
   {
    "id": "daily.bundle.name-the-need.08.scene",
@@ -7000,13 +7246,19 @@
    "id": "daily.bundle.name-the-need.09.action",
    "category": "reading",
    "text": "Nói với mẹ một việc cụ thể mẹ giúp được trong tuần thi, như nấu sẵn bữa trưa.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "039a0411bffa608d950aecc5fbcbd485ce8f7d36a305534e3c24b52958ec9b1a"
   },
   {
    "id": "daily.bundle.name-the-need.09.headline",
    "category": "reading",
    "text": "Tuần thi, mẹ gọi hỏi bạn có cần gì không.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "9cfed7baac6c3e47469d1a40a7b44e91aad86e5cae105e2495a48fa2a8f91ec8"
   },
   {
    "id": "daily.bundle.name-the-need.09.scene",
@@ -7018,13 +7270,19 @@
    "id": "daily.bundle.name-the-need.10.action",
    "category": "reading",
    "text": "Nói với sếp một đầu việc cụ thể bạn cần giúp trong tuần này.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "b36476d2c89d4852789188d70bd5a2451ea9ac03089022f296f27c28e5774788"
   },
   {
    "id": "daily.bundle.name-the-need.10.headline",
    "category": "reading",
    "text": "Cuối cuộc họp, sếp hỏi ai cần hỗ trợ.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "f02e8da9908978f9ac91663319c9af3a45ce3779e855cbb1509fe0a56e765a0c"
   },
   {
    "id": "daily.bundle.name-the-need.10.scene",
@@ -7036,13 +7294,19 @@
    "id": "daily.bundle.name-the-need.11.action",
    "category": "reading",
    "text": "Nhắn nhóm câu lạc bộ nhờ giúp một việc cụ thể, như dựng bàn lúc 7 giờ sáng.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "97411ed91db0a94b515d0bee57be4fe5a070ef266d65ae3f18f3bed3d796691e"
   },
   {
    "id": "daily.bundle.name-the-need.11.headline",
    "category": "reading",
    "text": "Bạn phụ trách gian hàng câu lạc bộ ở hội chợ.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "cab4d8ede682c9f4425d84f2550432253032238988a59e0b3b4d2a08c140a77d"
   },
   {
    "id": "daily.bundle.name-the-need.11.scene",
@@ -7054,13 +7318,19 @@
    "id": "daily.bundle.name-the-need.12.action",
    "category": "reading",
    "text": "Nhắn chủ quán nhờ giúp một khâu cụ thể, như thu ngân từ 11 giờ đến 1 giờ.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "75bf007b134d93a8e1af042290616d22dd60e222b72c2bf1492ba8076e33c228"
   },
   {
    "id": "daily.bundle.name-the-need.12.headline",
    "category": "reading",
    "text": "Quán đông khách mà chỉ mình bạn đứng quầy.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "7745686a0a893e85bb61fa13a8d10ee41600e40d1fcec4719d4ef8c87f57ddb0"
   },
   {
    "id": "daily.bundle.name-the-need.12.scene",
@@ -8032,13 +8302,19 @@
    "id": "daily.bundle.specific-feedback.01.action",
    "category": "reading",
    "text": "Hỏi sếp góp ý riêng phần số liệu, chỗ bạn còn phân vân nhất.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "c0f1d4e0adc753f4a93f837d31163bdca1f9d0169414ce414e869f7d53c1c5a7"
   },
   {
    "id": "daily.bundle.specific-feedback.01.headline",
    "category": "reading",
    "text": "Bạn sắp gửi sếp bản nháp báo cáo tháng.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "0214fd52bc7f539b5d73c4f07d63da143eb5e8a5296673570c061a8aa73f3174"
   },
   {
    "id": "daily.bundle.specific-feedback.01.scene",
@@ -8050,13 +8326,19 @@
    "id": "daily.bundle.specific-feedback.02.action",
    "category": "reading",
    "text": "Nhắn nhóm đọc đúng phần mở bài và hỏi ý chính đã rõ chưa.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "e185e690a7ab4f9613934e15855a7863ed911e46427b54adcb24203cc511c44b"
   },
   {
    "id": "daily.bundle.specific-feedback.02.headline",
    "category": "reading",
    "text": "Bạn nhờ nhóm học đọc bài luận trước khi nộp.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "1e23dcef93a6e62e6e51e8ecea7bdc2b9595918465fcc6c0c9e942af8e6d9bd9"
   },
   {
    "id": "daily.bundle.specific-feedback.02.scene",
@@ -8068,13 +8350,19 @@
    "id": "daily.bundle.specific-feedback.03.action",
    "category": "reading",
    "text": "Hỏi nhóm góp ý riêng đoạn kể chuyện hồi đi học, chỗ bạn sợ hơi dài.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "b27c398ec763b112484be441cd348dad03e3edab06093797a9f7ff375d2675a5"
   },
   {
    "id": "daily.bundle.specific-feedback.03.headline",
    "category": "reading",
    "text": "Bạn soạn lời chúc cho đám cưới bạn thân.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-19",
+   "digest": "b767cd75f0feb89ce8f20eecac3859b57745f6a6747519c91e11d265f2492ef9"
   },
   {
    "id": "daily.bundle.specific-feedback.03.scene",
@@ -10225,6 +10513,42 @@
    "status": "pending"
   },
   {
+   "id": "la.issue.missing-context.02.direct",
+   "category": "reading",
+   "text": "Chưa chắc người kia muốn gì thì hỏi lại cho rõ.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.missing-context.02.roast",
+   "category": "reading",
+   "text": "Đọc đi đọc lại vẫn không ra ý hả? Hỏi lại một câu cho rõ.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.missing-context.03.direct",
+   "category": "reading",
+   "text": "Hỏi người gửi một câu: ý bạn là vậy phải không?",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.missing-context.03.roast",
+   "category": "reading",
+   "text": "Tin nhắn ngắn quá nên khó hiểu hả? Hỏi lại cho chắc đi.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.missing-context.04.direct",
+   "category": "reading",
+   "text": "Thiếu thông tin thì hỏi thêm, khỏi phải tự hiểu một mình.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.missing-context.04.roast",
+   "category": "reading",
+   "text": "Tự hiểu một mình rồi lỡ hiểu sai thì phiền. Hỏi lại đi.",
+   "status": "pending"
+  },
+  {
    "id": "la.issue.too-many-open-loops.01.direct",
    "category": "reading",
    "text": "Chọn một việc, làm xong rồi mới sang việc khác.",
@@ -10234,6 +10558,42 @@
    "id": "la.issue.too-many-open-loops.01.roast",
    "category": "reading",
    "text": "Việc nào cũng làm dở một nửa hả? Chọn một việc làm xong đi.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.too-many-open-loops.02.direct",
+   "category": "reading",
+   "text": "Làm xong một việc nhỏ trước, rồi mới mở việc tiếp theo.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.too-many-open-loops.02.roast",
+   "category": "reading",
+   "text": "Mười việc dở dang mà định làm thêm hả? Xong một việc đã.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.too-many-open-loops.03.direct",
+   "category": "reading",
+   "text": "Ghi các việc dở ra giấy, rồi chọn một việc làm cho xong.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.too-many-open-loops.03.roast",
+   "category": "reading",
+   "text": "Danh sách việc dài hơn cả ngày rồi đó. Chọn một việc thôi.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.too-many-open-loops.04.direct",
+   "category": "reading",
+   "text": "Hôm nay chỉ cần xong một việc là đã tốt rồi.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.too-many-open-loops.04.roast",
+   "category": "reading",
+   "text": "Đang làm ba việc cùng lúc hả? Gác hai việc, xong một việc trước.",
    "status": "pending"
   },
   {
@@ -10249,6 +10609,42 @@
    "status": "pending"
   },
   {
+   "id": "la.issue.changed-plan.02.direct",
+   "category": "reading",
+   "text": "Nhắn xác nhận giờ hẹn mới trước khi đổi các việc khác.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.changed-plan.02.roast",
+   "category": "reading",
+   "text": "Lịch vừa đổi mà bạn đã xếp lại cả tuần hả? Xác nhận giờ trước.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.changed-plan.03.direct",
+   "category": "reading",
+   "text": "Chốt lại giờ hẹn với người kia, rồi mới sửa lịch của bạn.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.changed-plan.03.roast",
+   "category": "reading",
+   "text": "Người ta dời hẹn, bạn dời cả ngày theo hả? Chốt giờ đã.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.changed-plan.04.direct",
+   "category": "reading",
+   "text": "Hỏi rõ giờ mới, ghi vào lịch, rồi làm tiếp việc đang dở.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.changed-plan.04.roast",
+   "category": "reading",
+   "text": "Lịch đổi phút chót thì bực thật. Chốt giờ mới rồi hẵng tính.",
+   "status": "pending"
+  },
+  {
    "id": "la.issue.comparison-loop.01.direct",
    "category": "reading",
    "text": "Ghi ra một việc bạn đã làm được trong tuần này.",
@@ -10258,6 +10654,42 @@
    "id": "la.issue.comparison-loop.01.roast",
    "category": "reading",
    "text": "Xem ảnh người ta nãy giờ rồi đó. Kể một việc bạn đã làm xem.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.comparison-loop.02.direct",
+   "category": "reading",
+   "text": "Ghi ra ba việc bạn đã làm hôm nay, nhỏ cũng được.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.comparison-loop.02.roast",
+   "category": "reading",
+   "text": "Lướt bài khoe của người khác nãy giờ rồi. Đếm việc của mình đi.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.comparison-loop.03.direct",
+   "category": "reading",
+   "text": "Nhìn lại bài tập của mình tuần trước và tuần này.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.comparison-loop.03.roast",
+   "category": "reading",
+   "text": "Xem thành tích người ta mãi thì mệt. Nhìn việc mình đã xong đi.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.comparison-loop.04.direct",
+   "category": "reading",
+   "text": "Kể với bản thân một việc bạn đã làm tốt hơn tháng trước.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.comparison-loop.04.roast",
+   "category": "reading",
+   "text": "Người ta chạy nhanh thì kệ. Bạn đã làm được gì, ghi ra xem.",
    "status": "pending"
   },
   {
@@ -10273,6 +10705,42 @@
    "status": "pending"
   },
   {
+   "id": "la.issue.automatic-caretaking.02.direct",
+   "category": "reading",
+   "text": "Trước khi nhận giúp, xem sức mình hôm nay còn bao nhiêu.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.automatic-caretaking.02.roast",
+   "category": "reading",
+   "text": "Ai nhờ cũng nhận thì lấy đâu ra sức. Xem lại sức mình đi.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.automatic-caretaking.03.direct",
+   "category": "reading",
+   "text": "Nói với người nhờ: hôm nay mình chỉ giúp được một lúc.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.automatic-caretaking.03.roast",
+   "category": "reading",
+   "text": "Định giúp cả nhóm hả? Nói rõ bạn giúp được bao lâu thôi.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.automatic-caretaking.04.direct",
+   "category": "reading",
+   "text": "Giúp vừa sức là đủ, phần còn lại có thể nói để mai.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.automatic-caretaking.04.roast",
+   "category": "reading",
+   "text": "Ai nhờ gì cũng gật hả? Nói vừa sức mình thôi.",
+   "status": "pending"
+  },
+  {
    "id": "la.issue.decision-fatigue.01.direct",
    "category": "reading",
    "text": "Gạch đi hai lựa chọn bạn ít thích nhất trước.",
@@ -10282,6 +10750,42 @@
    "id": "la.issue.decision-fatigue.01.roast",
    "category": "reading",
    "text": "Lướt menu mười phút rồi vẫn chưa gọi món hả? Gạch bớt đi.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.decision-fatigue.02.direct",
+   "category": "reading",
+   "text": "Chỉ giữ hai lựa chọn, rồi chọn cái làm bạn đỡ lo hơn.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.decision-fatigue.02.roast",
+   "category": "reading",
+   "text": "So sánh tới phương án thứ tám rồi hả? Gạch bớt cho nhẹ đầu.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.decision-fatigue.03.direct",
+   "category": "reading",
+   "text": "Gạch bớt những lựa chọn không hợp, chỉ giữ lại hai cái.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.decision-fatigue.03.roast",
+   "category": "reading",
+   "text": "Chọn tới chọn lui cả buổi rồi. Gạch bớt cho còn hai cái đi.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.decision-fatigue.04.direct",
+   "category": "reading",
+   "text": "Đặt một tiêu chí, gạch những lựa chọn không đạt.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.decision-fatigue.04.roast",
+   "category": "reading",
+   "text": "Mở hai chục tab so giá rồi đó. Bớt lại ba tab thôi.",
    "status": "pending"
   },
   {
@@ -10297,6 +10801,42 @@
    "status": "pending"
   },
   {
+   "id": "la.issue.perfect-before-start.02.direct",
+   "category": "reading",
+   "text": "Đặt giờ gửi bản nháp, tới giờ thì bấm gửi.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.perfect-before-start.02.roast",
+   "category": "reading",
+   "text": "Bản nháp nằm trong máy cả tuần rồi đó. Gửi đi cho người ta đọc.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.perfect-before-start.03.direct",
+   "category": "reading",
+   "text": "Gửi bản đang có, ghi chú phần bạn còn phân vân.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.perfect-before-start.03.roast",
+   "category": "reading",
+   "text": "Sửa từng dấu chấm phẩy rồi kìa. Gửi trước, góp ý về rồi tính.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.perfect-before-start.04.direct",
+   "category": "reading",
+   "text": "Người đọc cần bản nháp hơn bản hoàn hảo. Gửi đi nhé.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.perfect-before-start.04.roast",
+   "category": "reading",
+   "text": "Đọc lại lần thứ năm rồi hả? Bấm gửi đi, không sao đâu.",
+   "status": "pending"
+  },
+  {
    "id": "la.issue.group-pressure.01.direct",
    "category": "reading",
    "text": "Chưa hiểu chỗ nào thì hỏi ngay trong buổi họp.",
@@ -10306,6 +10846,42 @@
    "id": "la.issue.group-pressure.01.roast",
    "category": "reading",
    "text": "Cả nhóm gật nên bạn gật theo hả? Hỏi một câu có sao đâu.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.group-pressure.02.direct",
+   "category": "reading",
+   "text": "Hỏi lại một chỗ bạn chưa hiểu trước khi đồng ý.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.group-pressure.02.roast",
+   "category": "reading",
+   "text": "Cả nhóm nói ok nên bạn cũng ok hả? Hỏi lại một chỗ đã.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.group-pressure.03.direct",
+   "category": "reading",
+   "text": "Nhắn riêng hỏi một bạn trong nhóm phần bạn còn chưa rõ.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.group-pressure.03.roast",
+   "category": "reading",
+   "text": "Ngại hỏi giữa nhóm thì nhắn riêng hỏi một người cũng được.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.group-pressure.04.direct",
+   "category": "reading",
+   "text": "Đồng ý cũng được, nhưng hỏi rõ phần việc của bạn trước.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.group-pressure.04.roast",
+   "category": "reading",
+   "text": "Gật xong mới hỏi mình phải làm gì thì muộn. Hỏi trước đi.",
    "status": "pending"
   },
   {
@@ -10321,6 +10897,42 @@
    "status": "pending"
   },
   {
+   "id": "la.issue.avoid-small-conflict.02.direct",
+   "category": "reading",
+   "text": "Nói rõ phần nào bạn làm được, phần nào bạn không nhận.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.avoid-small-conflict.02.roast",
+   "category": "reading",
+   "text": "Chữ được nói ra trước khi kịp nghĩ hả? Lần này nói rõ đi.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.avoid-small-conflict.03.direct",
+   "category": "reading",
+   "text": "Từ chối một việc nhỏ hôm nay, nói ngắn gọn là được.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.avoid-small-conflict.03.roast",
+   "category": "reading",
+   "text": "Sợ mất lòng nên nhận hết hả? Thử từ chối một việc nhỏ xem.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.avoid-small-conflict.04.direct",
+   "category": "reading",
+   "text": "Nói thật là hôm nay bạn đang bận, chưa nhận thêm được.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.avoid-small-conflict.04.roast",
+   "category": "reading",
+   "text": "Gật đầu xong lại ngồi than. Lần này nói thật luôn cho nhẹ.",
+   "status": "pending"
+  },
+  {
    "id": "la.issue.defend-old-choice.01.direct",
    "category": "reading",
    "text": "Kiểm tra xem cách này đã ra kết quả gì chưa.",
@@ -10330,6 +10942,42 @@
    "id": "la.issue.defend-old-choice.01.roast",
    "category": "reading",
    "text": "Làm ba tuần chưa ra gì mà vẫn làm tiếp hả? Xem kết quả cái đã.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.defend-old-choice.02.direct",
+   "category": "reading",
+   "text": "So kết quả tuần này với tuần trước rồi mới quyết.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.defend-old-choice.02.roast",
+   "category": "reading",
+   "text": "Bỏ công nhiều rồi nên tiếc hả? Nhìn kết quả cái đã.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.defend-old-choice.03.direct",
+   "category": "reading",
+   "text": "Kiểm tra một lần làm gần nhất có ra kết quả không.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.defend-old-choice.03.roast",
+   "category": "reading",
+   "text": "Cách cũ quen tay thật, nhưng kiểm tra xem còn hiệu quả không.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.defend-old-choice.04.direct",
+   "category": "reading",
+   "text": "Thử cách khác cho một phần nhỏ, rồi so kết quả.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.defend-old-choice.04.roast",
+   "category": "reading",
+   "text": "Đi mãi một hướng hả? Thử hướng khác một chút, so kết quả xem.",
    "status": "pending"
   },
   {
@@ -10345,6 +10993,42 @@
    "status": "pending"
   },
   {
+   "id": "la.issue.capacity-before-agreement.02.direct",
+   "category": "reading",
+   "text": "Nhìn lịch tuần này trước khi nói có với việc mới.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.capacity-before-agreement.02.roast",
+   "category": "reading",
+   "text": "Hứa trước rồi mới mở lịch thì dễ kẹt. Xem lịch trước đi.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.capacity-before-agreement.03.direct",
+   "category": "reading",
+   "text": "Ghi việc mới vào lịch xem có chỗ không, rồi hẵng trả lời.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.capacity-before-agreement.03.roast",
+   "category": "reading",
+   "text": "Tuần này còn trống buổi nào không? Xem lịch rồi hẵng gật.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.capacity-before-agreement.04.direct",
+   "category": "reading",
+   "text": "Hẹn trả lời sau, để bạn có thời gian xem lịch.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.capacity-before-agreement.04.roast",
+   "category": "reading",
+   "text": "Không cần trả lời liền đâu. Xem lịch xong rồi nhắn lại.",
+   "status": "pending"
+  },
+  {
    "id": "la.issue.quick-reply.01.direct",
    "category": "reading",
    "text": "Đọc tới dòng cuối của tin nhắn rồi mới gõ trả lời.",
@@ -10354,6 +11038,42 @@
    "id": "la.issue.quick-reply.01.roast",
    "category": "reading",
    "text": "Mới đọc dòng đầu đã gõ xong rồi hả? Đọc nốt phần sau đi.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.quick-reply.02.direct",
+   "category": "reading",
+   "text": "Đọc lại câu hỏi của người kia trước khi bấm gửi.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.quick-reply.02.roast",
+   "category": "reading",
+   "text": "Gõ nhanh quá trả lời trật câu rồi kìa. Đọc lại đi.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.quick-reply.03.direct",
+   "category": "reading",
+   "text": "Đọc hết tin, đếm xem người kia hỏi mấy câu.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.quick-reply.03.roast",
+   "category": "reading",
+   "text": "Tin có ba câu hỏi mà bạn trả lời một. Đọc lại xem.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.quick-reply.04.direct",
+   "category": "reading",
+   "text": "Đọc chậm tin nhắn dài, rồi trả lời từng ý.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.quick-reply.04.roast",
+   "category": "reading",
+   "text": "Lướt tin như lướt video hả? Tin này đọc chậm thôi.",
    "status": "pending"
   },
   {
@@ -10369,6 +11089,42 @@
    "status": "pending"
   },
   {
+   "id": "la.issue.repair-reply.02.direct",
+   "category": "reading",
+   "text": "Nhắn lại một câu nhẹ hơn cho câu lúc nãy.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.repair-reply.02.roast",
+   "category": "reading",
+   "text": "Lỡ gắt rồi thì nhắn lại một câu cho người ta yên tâm.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.repair-reply.03.direct",
+   "category": "reading",
+   "text": "Gặp lại thì nói lại: lúc nãy mình hơi vội.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.repair-reply.03.roast",
+   "category": "reading",
+   "text": "Gửi xong mới thấy câu đó hơi gắt hả? Sửa lại một câu là được.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.repair-reply.04.direct",
+   "category": "reading",
+   "text": "Sửa một câu cho dịu hơn là đủ, không cần giải thích dài.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.repair-reply.04.roast",
+   "category": "reading",
+   "text": "Câu lúc nãy hơi gắt đó. Nhắn lại ngắn thôi, vậy là ổn.",
+   "status": "pending"
+  },
+  {
    "id": "la.issue.specific-feedback.01.direct",
    "category": "reading",
    "text": "Chỉ vào một đoạn rồi hỏi: đoạn này dễ hiểu chưa?",
@@ -10381,6 +11137,42 @@
    "status": "pending"
   },
   {
+   "id": "la.issue.specific-feedback.02.direct",
+   "category": "reading",
+   "text": "Đánh dấu một phần bạn còn lo, rồi hỏi về phần đó.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.specific-feedback.02.roast",
+   "category": "reading",
+   "text": "Hỏi bài này được không thì ai cũng gật. Hỏi cụ thể một phần đi.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.specific-feedback.03.direct",
+   "category": "reading",
+   "text": "Hỏi một câu cụ thể: phần mở đầu đã rõ chưa?",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.specific-feedback.03.roast",
+   "category": "reading",
+   "text": "Gửi nguyên file rồi hỏi ổn không? Chỉ một chỗ cần xem đi.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.specific-feedback.04.direct",
+   "category": "reading",
+   "text": "Chọn một phần, hỏi người đọc thấy phần đó thế nào.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.specific-feedback.04.roast",
+   "category": "reading",
+   "text": "Hỏi cả bài thì nhận về cả rổ ý. Hỏi một chỗ thôi.",
+   "status": "pending"
+  },
+  {
    "id": "la.issue.name-the-need.01.direct",
    "category": "reading",
    "text": "Nói rõ bạn cần người kia làm giúp việc gì, lúc nào.",
@@ -10390,6 +11182,1086 @@
    "id": "la.issue.name-the-need.01.roast",
    "category": "reading",
    "text": "Thở dài ba lần rồi mà chưa ai hiểu hả? Nói rõ bạn cần gì đi.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.name-the-need.02.direct",
+   "category": "reading",
+   "text": "Nhắn cho một người: mình cần giúp việc này, tối nay.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.name-the-need.02.roast",
+   "category": "reading",
+   "text": "Than mệt cả ngày mà chưa nhờ ai. Nhắn rõ việc cần giúp xem.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.name-the-need.03.direct",
+   "category": "reading",
+   "text": "Nói rõ việc nào bạn muốn người kia đỡ một tay.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.name-the-need.03.roast",
+   "category": "reading",
+   "text": "Người ta đâu đọc được suy nghĩ. Nói rõ bạn cần gì nhé.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.name-the-need.04.direct",
+   "category": "reading",
+   "text": "Hỏi mình cần gì nhất hôm nay, rồi nói với một người.",
+   "status": "pending"
+  },
+  {
+   "id": "la.issue.name-the-need.04.roast",
+   "category": "reading",
+   "text": "Im lặng chịu một mình hoài hả? Kể ra bạn cần gì đi.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.missing-context.01",
+   "category": "reading",
+   "text": "Chỗ chưa rõ cứ để đó, đứng dậy uống một cốc nước đã.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.missing-context.02",
+   "category": "reading",
+   "text": "Ghi một dòng cho riêng mình: chỗ nào bạn đang chưa rõ.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.too-many-open-loops.01",
+   "category": "reading",
+   "text": "Gấp máy lại, ngồi yên hai phút, chưa cần đụng tới việc nào.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.too-many-open-loops.02",
+   "category": "reading",
+   "text": "Ghi một dòng: việc nào đang ở trong đầu bạn nhiều nhất.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.changed-plan.01",
+   "category": "reading",
+   "text": "Kế hoạch đổi rồi thì nghỉ ba phút đã, chưa cần xếp lại ngay.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.changed-plan.02",
+   "category": "reading",
+   "text": "Đi bộ một vòng quanh nhà rồi mới tính tới lịch mới.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.comparison-loop.01",
+   "category": "reading",
+   "text": "Tắt điện thoại ba phút, nhìn ra cửa sổ thay vì xem bài của người khác.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.comparison-loop.02",
+   "category": "reading",
+   "text": "Ghi một dòng: hôm nay bạn đã làm được việc gì.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.automatic-caretaking.01",
+   "category": "reading",
+   "text": "Uống một cốc nước cho mình trước, việc của người khác để sau.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.automatic-caretaking.02",
+   "category": "reading",
+   "text": "Ngồi yên ba phút, chưa cần lo phần của ai.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.decision-fatigue.01",
+   "category": "reading",
+   "text": "Hoãn việc chọn lại năm phút, đi rửa mặt đã.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.decision-fatigue.02",
+   "category": "reading",
+   "text": "Nhắm mắt một phút, chưa cần chọn gì lúc này.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.perfect-before-start.01",
+   "category": "reading",
+   "text": "Để bản đang làm dở đó, duỗi vai và cổ một phút.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.perfect-before-start.02",
+   "category": "reading",
+   "text": "Gấp máy lại, thở chậm năm hơi, bản đó chưa cần đẹp ngay.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.group-pressure.01",
+   "category": "reading",
+   "text": "Ra khỏi chỗ đông người, đứng thở chậm một phút.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.group-pressure.02",
+   "category": "reading",
+   "text": "Tắt điện thoại năm phút rồi ngồi yên một mình, chuyện của nhóm để sau.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.avoid-small-conflict.01",
+   "category": "reading",
+   "text": "Chuyện đang ngại cứ để đó, đi bộ một vòng cho đỡ căng.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.avoid-small-conflict.02",
+   "category": "reading",
+   "text": "Ghi một dòng cho riêng mình: chuyện gì đang làm bạn khó chịu.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.defend-old-choice.01",
+   "category": "reading",
+   "text": "Chưa cần chứng minh mình đúng, uống một ngụm nước và thở chậm.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.defend-old-choice.02",
+   "category": "reading",
+   "text": "Ngồi yên hai phút rồi mới nghĩ tiếp chuyện cách cũ hay cách mới.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.capacity-before-agreement.01",
+   "category": "reading",
+   "text": "Tắt điện thoại năm phút, chưa cần gật đầu với ai lúc này.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.capacity-before-agreement.02",
+   "category": "reading",
+   "text": "Nằm xuống ba phút trước khi nghĩ tới lời mời đó.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.quick-reply.01",
+   "category": "reading",
+   "text": "Úp điện thoại xuống bàn, thở chậm năm hơi rồi mới cầm lại.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.quick-reply.02",
+   "category": "reading",
+   "text": "Đứng dậy uống một cốc nước, tin đó vẫn còn ở đó.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.repair-reply.01",
+   "category": "reading",
+   "text": "Lỡ lời rồi thì ngồi yên hai phút cho bớt nóng đã.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.repair-reply.02",
+   "category": "reading",
+   "text": "Rửa mặt bằng nước mát rồi nghỉ ba phút, chuyện kia tính sau.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.specific-feedback.01",
+   "category": "reading",
+   "text": "Đọc xong lời góp ý thì duỗi vai một phút, chưa cần sửa gì ngay.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.specific-feedback.02",
+   "category": "reading",
+   "text": "Tắt máy năm phút rồi mới xem lại lời góp ý.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.name-the-need.01",
+   "category": "reading",
+   "text": "Ghi một dòng cho riêng mình: lúc này bạn đang cần gì.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.issue.name-the-need.02",
+   "category": "reading",
+   "text": "Ngồi yên ba phút, đặt tay lên bụng và thở đều.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.sun.aries",
+   "category": "reading",
+   "text": "Khi muốn làm gì, bạn hay bắt tay ngay rồi mới tính chi tiết sau.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.sun.taurus",
+   "category": "reading",
+   "text": "Bạn hay chọn một hướng chắc chắn rồi đi đều, không thích bị giục đổi giữa chừng.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.sun.gemini",
+   "category": "reading",
+   "text": "Bạn hay làm nhiều việc nhỏ cùng lúc và thấy vui khi được học thêm điều mới.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.sun.cancer",
+   "category": "reading",
+   "text": "Bạn hay dồn sức vào việc chăm lo cho người thân và nơi mình thấy là nhà.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.sun.leo",
+   "category": "reading",
+   "text": "Bạn hay muốn việc mình làm có dấu ấn riêng và được người khác nhìn thấy.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.sun.virgo",
+   "category": "reading",
+   "text": "Bạn hay thấy ổn hơn khi làm xong một việc cụ thể, dù chỉ là việc nhỏ.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.sun.libra",
+   "category": "reading",
+   "text": "Bạn hay hỏi ý người khác trước khi chọn hướng đi cho mình.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.sun.scorpio",
+   "category": "reading",
+   "text": "Bạn hay dồn sức vào ít việc nhưng làm tới cùng, và không thích kể nhiều.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.sun.sagittarius",
+   "category": "reading",
+   "text": "Bạn hay chọn việc cho mình thấy có ý nghĩa, hoặc được đi, được học thêm.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.sun.capricorn",
+   "category": "reading",
+   "text": "Bạn hay đặt mục tiêu dài và làm từng bước, kể cả khi chưa ai thấy kết quả.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.sun.aquarius",
+   "category": "reading",
+   "text": "Bạn hay làm theo cách riêng, kể cả khi số đông đang chọn cách khác.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.sun.pisces",
+   "category": "reading",
+   "text": "Bạn hay làm tốt nhất khi việc đó có ích cho ai đó, không chỉ vì được giao.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.moon.aries",
+   "category": "reading",
+   "text": "Khi buồn hay bực, bạn hay nói ra ngay và cũng nguôi khá nhanh.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.moon.taurus",
+   "category": "reading",
+   "text": "Sau một ngày mệt, bạn hay cần ăn ngon, ngủ đủ và ở chỗ quen.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.moon.gemini",
+   "category": "reading",
+   "text": "Khi rối, bạn hay nhắn tin hoặc kể với ai đó để nói được mình đang thấy gì.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.moon.cancer",
+   "category": "reading",
+   "text": "Khi buồn, bạn hay tìm về người thân hoặc một góc quen để thấy yên tâm.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.moon.leo",
+   "category": "reading",
+   "text": "Khi buồn, bạn hay cần một lời hỏi han hoặc một cái ôm từ người mình quý.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.moon.virgo",
+   "category": "reading",
+   "text": "Khi lo, bạn hay dọn dẹp hoặc làm một việc tay chân để bình tĩnh lại.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.moon.libra",
+   "category": "reading",
+   "text": "Khi không vui, bạn hay cố giữ không khí dễ chịu cho mọi người trước.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.moon.scorpio",
+   "category": "reading",
+   "text": "Khi bị tổn thương, bạn hay giữ kín và chỉ kể với rất ít người.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.moon.sagittarius",
+   "category": "reading",
+   "text": "Khi buồn, bạn hay ra ngoài, đi đâu đó hoặc đổi chỗ ngồi cho nhẹ đầu.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.moon.capricorn",
+   "category": "reading",
+   "text": "Khi mệt, bạn hay cố làm cho xong việc rồi mới cho mình nghỉ.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.moon.aquarius",
+   "category": "reading",
+   "text": "Khi buồn, bạn hay lùi ra một chút để nghĩ trước khi nói cảm xúc.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.moon.pisces",
+   "category": "reading",
+   "text": "Bạn hay buồn theo khi người bên cạnh buồn, dù chuyện không phải của mình.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.mercury.aries",
+   "category": "reading",
+   "text": "Khi nói chuyện, bạn hay vào thẳng ý chính và trả lời khá nhanh.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.mercury.taurus",
+   "category": "reading",
+   "text": "Bạn hay nghĩ kỹ trước khi nói và nhớ lâu điều mình đã hiểu chắc.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.mercury.gemini",
+   "category": "reading",
+   "text": "Bạn hay hỏi nhiều, đọc nhiều và nối các ý khác nhau rất nhanh.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.mercury.cancer",
+   "category": "reading",
+   "text": "Bạn hay nhớ một chuyện qua cảm xúc lúc đó và nói nhẹ nhàng khi chuyện khó.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.mercury.leo",
+   "category": "reading",
+   "text": "Khi kể chuyện, bạn hay kể sinh động và muốn người nghe thật sự chú ý.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.mercury.virgo",
+   "category": "reading",
+   "text": "Bạn hay ghi chú, lập danh sách và để ý những chi tiết người khác bỏ qua.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.mercury.libra",
+   "category": "reading",
+   "text": "Khi trao đổi, bạn hay cân nhắc cả hai phía trước khi nói ý mình.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.mercury.scorpio",
+   "category": "reading",
+   "text": "Bạn hay nghe nhiều hơn nói và hỏi đúng chỗ người khác đang né.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.mercury.sagittarius",
+   "category": "reading",
+   "text": "Bạn hay nói thẳng điều mình tin và thích bàn chuyện lớn hơn chuyện vặt.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.mercury.capricorn",
+   "category": "reading",
+   "text": "Bạn hay nói ngắn, rõ, và chỉ nói khi đã nghĩ xong.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.mercury.aquarius",
+   "category": "reading",
+   "text": "Bạn hay nghĩ khác số đông và thích hỏi: sao không làm theo cách khác?",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.mercury.pisces",
+   "category": "reading",
+   "text": "Bạn hay hiểu ý người khác qua giọng nói, nét mặt hơn là qua từng chữ.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.venus.aries",
+   "category": "reading",
+   "text": "Khi quý ai, bạn hay chủ động rủ rê và thể hiện ra khá rõ.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.venus.taurus",
+   "category": "reading",
+   "text": "Bạn hay thể hiện tình cảm bằng việc cụ thể: một bữa ăn, một món quà, một lần đưa đón.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.venus.gemini",
+   "category": "reading",
+   "text": "Bạn hay quý người nói chuyện hợp và giữ liên lạc bằng những tin nhắn vui.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.venus.cancer",
+   "category": "reading",
+   "text": "Bạn hay chăm người mình thương bằng những việc nhỏ hằng ngày.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.venus.leo",
+   "category": "reading",
+   "text": "Bạn hay muốn được khen, được để ý, và cũng hào phóng khen người khác.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.venus.virgo",
+   "category": "reading",
+   "text": "Bạn hay thể hiện tình cảm bằng cách giúp một việc cụ thể đúng lúc người kia cần.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.venus.libra",
+   "category": "reading",
+   "text": "Bạn hay quý những mối quan hệ có qua có lại và cư xử tử tế với nhau.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.venus.scorpio",
+   "category": "reading",
+   "text": "Bạn hay mở lòng chậm, nhưng khi đã tin thì gắn bó rất sâu.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.venus.sagittarius",
+   "category": "reading",
+   "text": "Bạn hay quý người cho mình tự do và cùng mình thử điều mới.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.venus.capricorn",
+   "category": "reading",
+   "text": "Bạn hay thể hiện tình cảm bằng việc có mặt đều đặn và giữ lời hứa.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.venus.aquarius",
+   "category": "reading",
+   "text": "Bạn hay quý những mối quan hệ cho mình vẫn là mình và có khoảng riêng.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.venus.pisces",
+   "category": "reading",
+   "text": "Bạn hay dễ thương người, dễ cảm thông và hay nhường người mình quý.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.mars.aries",
+   "category": "reading",
+   "text": "Khi muốn gì, bạn hay lao vào làm ngay và không ngại cạnh tranh.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.mars.taurus",
+   "category": "reading",
+   "text": "Bạn hay khởi động chậm, nhưng đã làm thì làm đều và bền.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.mars.gemini",
+   "category": "reading",
+   "text": "Bạn hay làm hăng theo từng đợt và làm tốt khi được đổi việc liên tục.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.mars.cancer",
+   "category": "reading",
+   "text": "Bạn hay mạnh mẽ nhất khi bảo vệ người nhà hoặc người mình thương.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.mars.leo",
+   "category": "reading",
+   "text": "Bạn hay làm hăng hơn khi có người cổ vũ hoặc khi việc đó là của mình.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.mars.virgo",
+   "category": "reading",
+   "text": "Bạn hay làm việc chăm chỉ, cẩn thận và muốn mọi thứ đâu ra đó.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.mars.libra",
+   "category": "reading",
+   "text": "Bạn hay tránh cãi nhau và muốn giải quyết bằng cách nói chuyện.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.mars.scorpio",
+   "category": "reading",
+   "text": "Khi đã muốn gì, bạn hay kiên trì rất lâu và ít khi bỏ cuộc.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.mars.sagittarius",
+   "category": "reading",
+   "text": "Bạn hay hăng hái lúc bắt đầu và cần một mục tiêu đủ lớn để làm tiếp.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.mars.capricorn",
+   "category": "reading",
+   "text": "Bạn hay đặt kế hoạch rõ và đi từng bước tới đích.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.mars.aquarius",
+   "category": "reading",
+   "text": "Bạn hay hăng nhất khi được làm theo cách mình nghĩ ra.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.mars.pisces",
+   "category": "reading",
+   "text": "Bạn hay làm theo cảm hứng và có sức hơn khi việc đó giúp được ai đó.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.jupiter.aries",
+   "category": "reading",
+   "text": "Bạn hay mở ra cơ hội mới bằng cách dám thử trước người khác.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.jupiter.taurus",
+   "category": "reading",
+   "text": "Bạn hay tin vào những gì tích góp dần, từ tiền bạc tới kỹ năng.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.jupiter.gemini",
+   "category": "reading",
+   "text": "Bạn hay biết thêm nhiều điều nhờ học, đọc và quen thêm người mới.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.jupiter.cancer",
+   "category": "reading",
+   "text": "Bạn hay lớn lên nhờ gia đình, người thân hoặc một nhóm thân như người nhà.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.jupiter.leo",
+   "category": "reading",
+   "text": "Bạn hay có thêm cơ hội khi dám đứng ra, chia sẻ hoặc thể hiện điều mình giỏi.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.jupiter.virgo",
+   "category": "reading",
+   "text": "Bạn hay tiến bộ nhờ làm đi làm lại một việc tới khi thành thạo.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.jupiter.libra",
+   "category": "reading",
+   "text": "Bạn hay có thêm cơ hội nhờ các mối quan hệ và việc làm chung với người khác.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.jupiter.scorpio",
+   "category": "reading",
+   "text": "Bạn hay lớn lên sau những lần phải đối mặt với chuyện khó.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.jupiter.sagittarius",
+   "category": "reading",
+   "text": "Bạn hay học được nhiều nhờ đi xa, học thêm hoặc gặp người khác mình.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.jupiter.capricorn",
+   "category": "reading",
+   "text": "Bạn hay tin vào kết quả đến từ kỷ luật và làm bền bỉ lâu dài.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.jupiter.aquarius",
+   "category": "reading",
+   "text": "Bạn hay có ý tưởng mới khi ở trong một nhóm cùng chí hướng.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.everyday.jupiter.pisces",
+   "category": "reading",
+   "text": "Bạn hay thấy nhẹ lòng khi giúp người khác hoặc làm việc có ý nghĩa.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.sun.aries",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ quyết quá nhanh rồi mới thấy mình chưa hỏi đủ.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.sun.taurus",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ giữ cách cũ dù nó đã không còn hợp.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.sun.gemini",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ mở thêm việc mới thay vì làm xong việc đang dở.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.sun.cancer",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ lo cho mọi người trước mà quên việc của mình.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.sun.leo",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ buồn lâu nếu công sức của mình không ai nhắc tới.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.sun.virgo",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ sửa đi sửa lại một việc đã đủ tốt.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.sun.libra",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ chờ người khác chọn hộ để khỏi phải quyết.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.sun.scorpio",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ ôm hết một mình và không nói ai biết mình đang mệt.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.sun.sagittarius",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ bỏ ngang để tìm một hướng mới hấp dẫn hơn.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.sun.capricorn",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ làm thêm giờ thay vì nói rằng mình đã quá tải.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.sun.aquarius",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ rút ra xa và trả lời rất ngắn.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.sun.pisces",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ để người khác quyết hộ rồi thấy mình đi sai hướng.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.moon.aries",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ nói nặng lời rồi sau đó mới thấy tiếc.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.moon.taurus",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ thu mình trong thói quen cũ và ngại đổi gì thêm.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.moon.gemini",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ nghĩ nhiều tới khuya mà vẫn chưa nói được mình đang thấy gì.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.moon.cancer",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ tủi thân và chờ người khác tự nhận ra.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.moon.leo",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ nghĩ mình không được quan tâm nếu không ai hỏi han.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.moon.virgo",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ tự trách mình vì những lỗi rất nhỏ.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.moon.libra",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ nói “không sao” dù trong lòng vẫn còn khó chịu.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.moon.scorpio",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ nhớ mãi một câu nói làm mình đau.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.moon.sagittarius",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ né chuyện khó bằng cách bận rộn với việc khác.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.moon.capricorn",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ gồng tiếp và chỉ thấy mệt khi đã quá sức.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.moon.aquarius",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ im lặng rất lâu và khiến người khác thấy xa cách.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.moon.pisces",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ ôm nỗi buồn của người khác mà quên phần của mình.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.mercury.aries",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ ngắt lời người khác hoặc trả lời trước khi nghe hết.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.mercury.taurus",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ giữ ý mình dù người kia đã đưa thêm thông tin.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.mercury.gemini",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ nói lan man và nhảy qua lại giữa nhiều chuyện.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.mercury.cancer",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ nghe một câu bình thường thành câu trách mình.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.mercury.leo",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ khó chịu nếu ý mình bị bỏ qua giữa đám đông.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.mercury.virgo",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ soi lỗi trong lời người khác và cả lời của mình.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.mercury.libra",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ nói vòng vo để khỏi làm ai phật lòng.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.mercury.scorpio",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ đoán ý xấu sau một tin nhắn ngắn.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.mercury.sagittarius",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ hứa nhanh hoặc nói quá lên so với điều mình làm được.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.mercury.capricorn",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ nói cứng và khiến người nghe thấy bị chê.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.mercury.aquarius",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ tranh luận bằng lý lẽ mà bỏ qua cảm xúc người kia.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.mercury.pisces",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ nói không rõ ý để tránh va chạm.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.venus.aries",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ mất hứng nhanh nếu người kia trả lời chậm.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.venus.taurus",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ giữ chặt một mối quan hệ dù nó đã làm mình mệt.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.venus.gemini",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ nói chuyện vui để né cuộc nói chuyện thật.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.venus.cancer",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ cần người kia hỏi han nhiều hơn mà ngại nói ra.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.venus.leo",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ giận dỗi khi người kia quên một dịp quan trọng với bạn.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.venus.virgo",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ góp ý quá nhiều và người kia nghe thành chê.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.venus.libra",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ chiều ý người kia rồi quên mình cũng có mong muốn.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.venus.scorpio",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ thử lòng người kia thay vì hỏi thẳng.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.venus.sagittarius",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ rút đi khi mối quan hệ bắt đầu cần cam kết.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.venus.capricorn",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ giữ khoảng cách và ngại nói rằng mình cần được quan tâm.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.venus.aquarius",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ lạnh đi và người kia khó biết bạn đang nghĩ gì.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.venus.pisces",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ nhịn quá lâu rồi buồn mà không ai biết.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.mars.aries",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ nóng và nói ra điều chưa kịp nghĩ.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.mars.taurus",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ lì ra và không chịu đổi ý.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.mars.gemini",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ bỏ dở nhiều việc cùng lúc.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.mars.cancer",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ giận ngầm thay vì nói thẳng điều mình không chịu.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.mars.leo",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ tự ái nếu bị chỉnh trước mặt người khác.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.mars.virgo",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ ôm hết việc vì thấy người khác làm chưa kỹ.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.mars.libra",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ nói đồng ý rồi trong lòng vẫn bực.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.mars.scorpio",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ giữ cơn giận trong lòng rất lâu.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.mars.sagittarius",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ hấp tấp hoặc nhận quá nhiều việc.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.mars.capricorn",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ làm quá sức và khắt khe với chính mình.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.mars.aquarius",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ làm ngược lại chỉ vì không thích bị bảo phải làm gì.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.mars.pisces",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ trì hoãn và đợi tới phút chót mới làm.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.jupiter.aries",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ nhận một cơ hội quá vội mà chưa xem kỹ.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.jupiter.taurus",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ nghĩ phải có đủ mọi thứ mới thấy yên tâm.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.jupiter.gemini",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ học nhiều thứ một lúc mà không đi sâu được cái nào.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.jupiter.cancer",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ ngại rời khỏi chỗ quen dù có cơ hội tốt.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.jupiter.leo",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ hứa nhiều hơn sức mình để giữ hình ảnh.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.jupiter.virgo",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ chờ thật hoàn hảo rồi mới dám bắt đầu.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.jupiter.libra",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ nhận lời quá nhiều người để không ai buồn.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.jupiter.scorpio",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ nghi ngờ một cơ hội tốt vì sợ bị lừa.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.jupiter.sagittarius",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ ôm quá nhiều kế hoạch mà chưa xong cái nào.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.jupiter.capricorn",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ nghĩ phải thật vất vả mới xứng đáng có kết quả.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.jupiter.aquarius",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ bỏ qua lời khuyên vì muốn làm theo cách riêng.",
+   "status": "pending"
+  },
+  {
+   "id": "insight.watch.jupiter.pisces",
+   "category": "reading",
+   "text": "Khi căng, bạn dễ tin người quá nhanh hoặc giúp quá sức mình.",
    "status": "pending"
   }
  ],

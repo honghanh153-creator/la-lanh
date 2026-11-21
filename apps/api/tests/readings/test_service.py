@@ -1,7 +1,12 @@
 from datetime import UTC, datetime
 
+import pytest
+
 from app.domains.astro.engine import NatalChartEngine
 from app.domains.astro.models import CalculationConfig, ChartInput, Tradition
+from app.domains.content import copy_approval
+from app.domains.content.copy_approval import copy_digest, parse_registry
+from app.domains.readings.models import ReadingClaim
 from app.domains.readings.service import InsightReadingService
 
 
@@ -25,7 +30,7 @@ def test_overview_synthesizes_four_to_six_claims_from_chart_factors() -> None:
     assert "tham khảo" in reading.disclaimer.lower()
     moon_claim = next(claim for claim in reading.claims if claim.id == "moon-sign")
     assert "Mặt Trăng" in moon_claim.meaning
-    assert "Trong đời thường" in moon_claim.manifestation
+    assert moon_claim.manifestation
     assert moon_claim.watch_for
     assert moon_claim.micro_action
     assert len(moon_claim.evidence) >= 2
@@ -88,3 +93,58 @@ def test_planets_in_the_same_sign_never_share_a_card_sentence() -> None:
     reading = InsightReadingService().overview(chart, observed_at=datetime(2026, 9, 4, tzinfo=UTC))
     tails = [claim.summary.split(":", 1)[1].strip() for claim in reading.claims]
     assert len(tails) == len(set(tails)), tails
+
+
+def _same_sign_reading() -> list[ReadingClaim]:
+    chart = NatalChartEngine().calculate_chart(
+        ChartInput(
+            utc_datetime=datetime(1997, 9, 20, 5, 0, tzinfo=UTC), latitude=20.84, longitude=106.69
+        )
+    )
+    return list(
+        InsightReadingService().overview(chart, observed_at=datetime(2026, 9, 4, tzinfo=UTC)).claims
+    )
+
+
+def test_a_card_never_repeats_an_earlier_cards_everyday_or_watch_sentence() -> None:
+    """New-user persona run 20.11.2026: Sun and Mercury in one sign printed the same
+    "Ngoài đời" and "Khi căng" sentence on both cards."""
+
+    claims = _same_sign_reading()
+    everyday = [claim.manifestation for claim in claims if claim.manifestation]
+    assert len(everyday) == len(set(everyday)), everyday
+    watch = [claim.watch_for.split(". Góc", 1)[0] for claim in claims if claim.watch_for]
+    assert len(watch) == len(set(watch)), watch
+    first = claims[0]
+    assert first.manifestation and first.watch_for
+    mercury = next(claim for claim in claims if claim.id == "mercury-sign")
+    assert mercury.manifestation == ""
+
+
+def test_approved_planet_sentences_are_served_per_planet(monkeypatch: pytest.MonkeyPatch) -> None:
+    claims = _same_sign_reading()
+    sign = next(c for c in claims if c.id == "sun-sign").factor_refs[1].split(":")[-1]
+    entries = []
+    for body in ("sun", "mercury"):
+        for kind, text in (
+            ("everyday", f"Câu thử đời thường riêng cho {body}."),
+            ("watch", f"Khi căng, câu thử riêng cho {body}."),
+        ):
+            entries.append(
+                {
+                    "id": f"insight.{kind}.{body}.{sign}",
+                    "category": "reading",
+                    "text": text,
+                    "status": "approved",
+                    "approver": "codex",
+                    "date": "2026-11-20",
+                    "digest": copy_digest(text),
+                }
+            )
+    registry = parse_registry({"version": copy_approval.REGISTRY_VERSION, "entries": entries})
+    monkeypatch.setattr(copy_approval, "_runtime_registry", lambda: registry)
+
+    served = {claim.id: claim for claim in _same_sign_reading()}
+    assert served["sun-sign"].manifestation == "Câu thử đời thường riêng cho sun."
+    assert served["mercury-sign"].manifestation == "Câu thử đời thường riêng cho mercury."
+    assert served["mercury-sign"].watch_for.startswith("Khi căng, câu thử riêng cho mercury.")
