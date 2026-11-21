@@ -29,6 +29,7 @@ from app.domains.readings.daily_rotation import (
     staircase_slots,
     top_k_slot,
 )
+from app.domains.readings.daily_topics import TOPIC_POOL_SIZE, pick_topic, rotation_order
 from app.domains.readings.headline_rewrites import served_headline
 from app.domains.readings.interpretive_lenses import daily_mixed_radix_slots
 from app.domains.readings.knowledge import InterpretationFrame, body_label, semantic_arena
@@ -1237,7 +1238,9 @@ def _situation_pool(
         best_per_issue: dict[str, SupportedSituation] = {}
         for situation in ordered:
             best_per_issue.setdefault(situation.issue_key, situation)
-        return list(best_per_issue.values())[:DAILY_TOP_K]
+        # Topic anti-repeat (plan 2026-11-21): a wider ranked pool, chosen by recent history.
+        size = DAILY_TOP_K if plan.daily_variety.topic_history is None else TOPIC_POOL_SIZE
+        return list(best_per_issue.values())[:size]
 
     best_rank = max(rank(situation) for situation in eligible)
     return sorted(
@@ -1253,6 +1256,15 @@ def _pick(plan: ReadingPlan, pool: list[SupportedSituation]) -> SupportedSituati
     if variety is None:
         (issue_slot,) = daily_mixed_radix_slots(plan.editorial_seed, (len(pool),))
         return pool[issue_slot]
+    if variety.topic_history is not None:
+        keys = [situation.issue_key for situation in pool]
+        if plan.precision is TimePrecision.UNKNOWN:
+            # Date-only: the pool is the same every day, so a fixed per-reader order walked by
+            # day spaces every topic ``len(pool)`` days apart without any history.
+            order = rotation_order(variety.seed, keys)
+            return pool[keys.index(order[variety.day_index % len(order)])]
+        history = [key or None for key in variety.topic_history]
+        return pool[pick_topic(keys, history)]
     slot = top_k_slot(variety.day_index, len(pool))
     recent = variety.recent_issue_keys
     if len(pool) >= 2 and len(recent) == 2 and recent[0] == recent[1] == pool[slot].issue_key:
@@ -1285,6 +1297,9 @@ def _occurrence_index(plan: ReadingPlan, pool: list[SupportedSituation]) -> int 
     variety = plan.daily_variety
     if variety is None or plan.daily_selection is not None or len(pool) < 2:
         return None
+    if variety.topic_history is not None:
+        # ``rotation_order`` walks the whole pool: a topic comes back every ``len(pool)`` days.
+        return variety.day_index // len(pool)
     return variety.day_index // min(len(pool), DAILY_TOP_K)
 
 

@@ -115,3 +115,24 @@ def schedule(
         chosen.append(key)
         history.append(key)
     return chosen
+
+
+def rotation_order(
+    seed: str, keys: Sequence[str], themes: Mapping[str, str] = ISSUE_THEMES
+) -> tuple[str, ...]:
+    """A fixed per-reader order of a pool that does not change by day (date-only Daily).
+
+    Walked round-robin by day, every topic comes back exactly every ``len(keys)`` days, so no topic
+    repeats sooner and the per-appearance headline order (``day_index // len(keys)``) moves on at
+    each appearance. Neighbours differ in theme where the pool allows it."""
+
+    def rank(key: str) -> bytes:
+        return sha256(f"{seed}\x1f{_BLOCK_LABEL}\x1f{key}".encode()).digest()
+
+    remaining = sorted(dict.fromkeys(keys), key=rank)
+    order: list[str] = []
+    while remaining:
+        last = themes.get(order[-1]) if order else None
+        index = next((i for i, key in enumerate(remaining) if themes.get(key) != last), 0)
+        order.append(remaining.pop(index))
+    return tuple(order)
