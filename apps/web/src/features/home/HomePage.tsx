@@ -28,6 +28,7 @@ import {
   type SignalContext,
 } from "../../shared/api/client";
 import { applySavedMood, dailyMoodKey, readDailyMood, resetDailyActionChoice, useDailyActionView, type DailyActionChoice } from "../../shared/hooks/useDailyActionView";
+import { useDailyExperiment } from "../../shared/hooks/useDailyExperiment";
 import { currentSessionEpoch, sessionGeneration } from "../../shared/session/sessionIdentity";
 import { useReadingUpdateActivation } from "../../shared/hooks/useReadingUpdateActivation";
 import { chartDataRevision } from "../../shared/storage/clearChartDerivedData";
@@ -53,7 +54,7 @@ import { useOnboardingMotion } from "../../shared/ui/onboardingMotion";
 import { AppNav } from "../../shared/ui/AppNav";
 import { AppSheet } from "../../shared/ui/AppSheet";
 import { BrandMark } from "../../shared/ui/BrandMark";
-import { SHOW_LIGHTER_ACTION, SHOW_ORIGINAL_ACTION } from "../../shared/ui/ReadingContent";
+import { ExperimentControls, SHOW_LIGHTER_ACTION, SHOW_ORIGINAL_ACTION } from "../../shared/ui/ReadingContent";
 import { ReadingUpdateGift } from "../../shared/ui/ReadingUpdateGift";
 import { WHY_TODAY_ID } from "../../shared/ui/readingLabels";
 import { ResonanceFeedback } from "../../shared/ui/ResonanceFeedback";
@@ -163,6 +164,17 @@ export function HomePage() {
   const ritual = useDailyRitual(note?.note_date);
   const [moodSheetOpen, setMoodSheetOpen] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  // The kept action is the same server state the note page uses (US-03 AC33). It is read only
+  // when today's reading offers an action that can be kept.
+  const shownExperiment = (actionView.lighterShown
+    ? activeReading?.lighter_action?.experiment
+    : activeReading?.experiment) ?? null;
+  const dailyExperiment = useDailyExperiment({
+    enabled: Boolean(note?.id && (activeReading?.experiment || activeReading?.lighter_action?.experiment)),
+    onChosen: () => setMessage("Đã giữ một việc nhỏ để thử hôm nay. Bạn có thể dừng bất cứ lúc nào."),
+    onUndone: () => setMessage("Đã bỏ giữ việc nhỏ. Không có streak hay đánh dấu hoàn thành nào được tạo."),
+    onReflected: () => setMessage("Đã lưu phần nhìn lại riêng cho thử nghiệm này."),
+  });
   const [resonance, setResonance] = useState<ResonanceChoice | null>(null);
   const [, refreshGift] = useState(0);
   const [, refreshUnlock] = useState(0);
@@ -419,6 +431,36 @@ export function HomePage() {
         <HomeDailySignal
           activeReading={activeReading}
           actionView={actionView}
+          kept={shownExperiment ? (
+            <ExperimentControls
+              currentExperiment={dailyExperiment.experiment}
+              error={dailyExperiment.errorMessage}
+              experiment={shownExperiment}
+              onChoose={() => {
+                if (!note || !activeReading) return;
+                const held = dailyExperiment.experiment;
+                const expectedHeld = held && held.action_key !== shownExperiment.action_key ? held : null;
+                dailyExperiment.choose({
+                  daily_note_id: note.id,
+                  revision_id: activeReading.revision_id,
+                  background_lens: context,
+                  action_key: shownExperiment.action_key,
+                  consent_version: "action-experiment-v1",
+                  expected_experiment_id: expectedHeld?.id ?? null,
+                  expected_version: expectedHeld?.version ?? null,
+                });
+              }}
+              onReflect={(outcome) => {
+                const held = dailyExperiment.experiment;
+                if (held) dailyExperiment.reflect({ experiment_id: held.id, expected_version: held.version, outcome });
+              }}
+              onUndo={() => {
+                const held = dailyExperiment.experiment;
+                if (held) dailyExperiment.undo({ experiment_id: held.id, expected_version: held.version });
+              }}
+              status={dailyExperiment.status}
+            />
+          ) : null}
           detailPath={dailyContextPath("/note/today", context)}
           decoration={noteDecoration}
           toolbar={quickActions}
@@ -602,12 +644,15 @@ function HomeValueHero({ date, moon, whyPath, children }: { date?: string; moon?
 function HomeDailySignal({
   activeReading,
   actionView,
+  kept,
   detailPath,
   decoration,
   toolbar,
 }: {
   activeReading: NonNullable<DailyNote["reading_projection"]>["active"];
   actionView: DailyActionChoice;
+  /** Keep / stop keeping / look back, when the action on screen can be kept. */
+  kept: ReactNode;
   detailPath: string;
   decoration: ReactNode;
   toolbar: ReactNode;
@@ -640,6 +685,7 @@ function HomeDailySignal({
                   {actionView.lighterShown ? SHOW_ORIGINAL_ACTION : SHOW_LIGHTER_ACTION}
                 </button>
               ) : null}
+              {kept ? <div className="home-daily-signal__kept">{kept}</div> : null}
             </aside>
           ) : null}
           <footer className="home-note-footer"><Link to={detailPath}>Đọc đầy đủ<ArrowRight aria-hidden="true" weight="bold" /></Link>{toolbar}</footer>

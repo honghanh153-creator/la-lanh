@@ -135,16 +135,6 @@ function ExperimentSection({
       {lighter.shown ? SHOW_ORIGINAL_ACTION : SHOW_LIGHTER_ACTION}
     </button>
   ) : null;
-  const [replaceConfirming, setReplaceConfirming] = useState(false);
-  const [reflectionOpen, setReflectionOpen] = useState(false);
-  const currentMatches = Boolean(experiment && currentExperiment?.action_key === experiment.action_key);
-  const busy = status === "choosing" || status === "undoing" || status === "reflecting";
-
-  useEffect(() => {
-    setReplaceConfirming(false);
-    setReflectionOpen(false);
-  }, [currentExperiment?.id, currentExperiment?.version, experiment?.action_key]);
-
   if (!experiment) {
     const isDaily = content.purpose === "daily_note" || content.purpose === "personalized_sky";
     // Home already shows this action; the detail page must not drop it just
@@ -159,15 +149,6 @@ function ExperimentSection({
     );
   }
 
-  const isReflected = currentMatches && currentExperiment?.state === "reflected";
-  const actionLabel = status === "choosing"
-    ? "Đang giữ…"
-    : currentMatches
-      ? "Đang giữ việc này"
-      : currentExperiment
-        ? replaceConfirming ? "Xác nhận thay việc đang giữ" : "Thay việc đang giữ"
-        : "Giữ để thử hôm nay";
-
   return (
     <section className="reading-content__action" aria-labelledby={`experiment-${experiment.action_key}`}>
       <h2 id={`experiment-${experiment.action_key}`}>{ACTION_HEADING}</h2>
@@ -178,6 +159,62 @@ function ExperimentSection({
       </div>
       {switchButton}
 
+      <ExperimentControls
+        currentExperiment={currentExperiment}
+        error={error}
+        experiment={experiment}
+        onChoose={onChoose}
+        onReflect={onReflect}
+        onUndo={onUndo}
+        status={status}
+      />
+    </section>
+  );
+}
+
+/**
+ * Keep, stop keeping, replace and look back on the day's action. Home and the note page render
+ * this one component over the same server state, so the two cannot drift apart (US-03 AC33).
+ */
+export function ExperimentControls({
+  experiment,
+  currentExperiment,
+  error,
+  onChoose,
+  onReflect,
+  onUndo,
+  status,
+}: {
+  /** The action on screen that can be kept. */
+  experiment: NonNullable<ReadingContentModel["experiment"]>;
+  currentExperiment: DailyExperiment | null;
+  error: string | null;
+  onChoose?: () => void;
+  onReflect?: (outcome: ExperimentOutcome) => void;
+  onUndo?: () => void;
+  status: DailyExperimentStatus;
+}) {
+  const [replaceConfirming, setReplaceConfirming] = useState(false);
+  const [reflectionOpen, setReflectionOpen] = useState(false);
+  const currentMatches = currentExperiment?.action_key === experiment.action_key;
+  const busy = status === "choosing" || status === "undoing" || status === "reflecting";
+
+  useEffect(() => {
+    setReplaceConfirming(false);
+    setReflectionOpen(false);
+  }, [currentExperiment?.id, currentExperiment?.version, experiment.action_key]);
+
+  const isReflected = currentMatches && currentExperiment?.state === "reflected";
+  const actionLabel = status === "choosing"
+    ? "Đang giữ…"
+    : currentMatches
+      ? "Đang giữ việc này"
+      : currentExperiment
+        ? replaceConfirming ? "Xác nhận thay việc đang giữ" : "Thay việc đang giữ"
+        : "Giữ để thử hôm nay";
+
+  return (
+    <>
       {isReflected ? (
         <div className="reading-content__reflected" role="status">
           <Check aria-hidden="true" />
@@ -248,7 +285,7 @@ function ExperimentSection({
       ) : null}
 
       {error ? <p className="reading-content__experiment-error" role="alert">{error}</p> : null}
-    </section>
+    </>
   );
 }
 

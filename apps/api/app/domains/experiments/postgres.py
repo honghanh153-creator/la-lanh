@@ -48,10 +48,13 @@ class PostgresExperimentRepository:
         sessions: async_sessionmaker[AsyncSession],
         envelope: EnvelopeCipher,
         erasure_journal: ErasureJournal | None = None,
+        *,
+        keep_action_all_profiles: bool = False,
     ) -> None:
         self._sessions = sessions
         self._envelope = envelope
         self._erasure_journal = erasure_journal
+        self._keep_action_all_profiles = keep_action_all_profiles
 
     async def choose_with_consent(
         self,
@@ -240,11 +243,15 @@ class PostgresExperimentRepository:
             raise ExperimentTargetNotFound
         plan = _plan_record(plan_row, self._envelope).plan
         normalized_lens = plan.background_lens or BackgroundLens.AUTO
+        # With `keep_action_all_profiles` on, every kind of profile may keep the Daily note's
+        # action (#716); off (the default until the owner turns it on), only an exact-time full
+        # synthesis may, as before. The checks below bind the target to the owner's current
+        # chart snapshot and the active revision of that day and lens either way.
+        exact = plan.mode is PlanMode.FULL_SYNTHESIS and plan.precision is TimePrecision.EXACT
         if (
-            plan.mode is not PlanMode.FULL_SYNTHESIS
-            or plan.precision is not TimePrecision.EXACT
-            or plan.purpose is not ReadingPurpose.DAILY_NOTE
+            plan.purpose is not ReadingPurpose.DAILY_NOTE
             or normalized_lens is not draft.background_lens
+            or not (exact or self._keep_action_all_profiles)
         ):
             raise ExperimentTargetNotFound
         current_snapshot_id = await session.scalar(
