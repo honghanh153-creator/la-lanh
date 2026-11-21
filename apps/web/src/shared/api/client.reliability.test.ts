@@ -21,6 +21,7 @@ import {
   setContentRewriteConsent,
   SESSION_EPOCH_KEY,
 } from "./client";
+import { beginLaLineMemoryWrite, LA_LINE_MEMORY_KEY, lastLaLine, rememberLaLine } from "../storage/laLineMemory";
 import { readSavedNoteMutationQueue } from "../storage/savedNoteMutationQueue";
 import { testLocks, testRequestUrl } from "../session/testLocks";
 
@@ -138,15 +139,20 @@ describe("API client reliability", () => {
     });
     await verifyAccountCode("012345", "login-nonce");
     expect(sessionStorage.getItem(SESSION_EPOCH_KEY)).toBe("account-b");
+    // Which line Lá said last (W1) stays while sign-out is not confirmed and goes once it is.
+    await rememberLaLine(beginLaLineMemoryWrite(), "changed-plan", { pair: "la.issue.changed-plan.02", day: "2026-11-18", appearance: "00000000-0000-4000-8000-0000000000a1" });
     vi.mocked(fetch).mockRejectedValueOnce(new TypeError("offline"));
     await expect(logoutAccount()).rejects.toThrow("offline");
     expect(sessionStorage.getItem(SESSION_EPOCH_KEY)).toBe("account-b");
+    expect(lastLaLine("changed-plan")?.pair).toBe("la.issue.changed-plan.02");
     vi.mocked(fetch).mockImplementationOnce(() => {
       document.cookie = "la_lanh_csrf=; Max-Age=0; path=/";
       return Promise.resolve(new Response(null, { status: 204 }));
     });
     await logoutAccount();
     expect(sessionStorage.getItem(SESSION_EPOCH_KEY)).toBeNull();
+    expect(lastLaLine("changed-plan")).toBeNull();
+    expect(localStorage.getItem(LA_LINE_MEMORY_KEY)).toBeNull();
   });
 
   it("uses a single API prefix and CSRF protection for rewrite consent", async () => {

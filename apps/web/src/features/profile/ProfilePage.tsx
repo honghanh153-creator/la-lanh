@@ -37,10 +37,17 @@ import { useTheme } from "../../shared/theme/useTheme";
 import { AppNav } from "../../shared/ui/AppNav";
 import { AppSheet } from "../../shared/ui/AppSheet";
 import { NightSky } from "../../shared/ui/NightSky";
+import { clearLaLineMemory } from "../../shared/storage/laLineMemory";
+import { HISTORY_CLEAR_FAILED, localEraseFailedText } from "./historyClearCopy";
 import { clearPendingMood } from "../../shared/storage/pendingMood";
 import { dropQueuedSaves } from "../../shared/storage/savedNoteMutationQueue";
 import { saveDataExport } from "./downloadMyData";
 import { personaTag } from "../card/shareArt";
+
+/** The server cleared the history but this device refused to erase its own part. */
+class LocalHistoryClearError extends Error {}
+
+
 
 function formatBirthDate(isoDate: string): string {
   const [year, month, day] = isoDate.split("-");
@@ -138,6 +145,9 @@ export function ProfilePage() {
     mutationFn: async () => {
       await queryClient.cancelQueries();
       await clearReadingHistory();
+      // Which line Lá said last per issue is history too (W1). A refused erase on this device is
+      // not reported as done (Codex P1 on #734); trying again repeats both steps safely.
+      if (!(await clearLaLineMemory())) throw new LocalHistoryClearError();
     },
     onSuccess: async () => {
       // "daily-action-view" holds the mood picked in this tab (#627); it goes with the mood itself.
@@ -151,9 +161,11 @@ export function ProfilePage() {
       await dropCachedDailyNotes(queryClient);
       await queryClient.invalidateQueries({ queryKey: ["daily-note-resonance"] });
     },
-    onError: (failure) => setError(failure instanceof ApiProblem && failure.code === "HISTORY_BUSY"
+    onError: (failure) => setError(failure instanceof LocalHistoryClearError
+      ? localEraseFailedText()
+      : failure instanceof ApiProblem && failure.code === "HISTORY_BUSY"
       ? "Nội dung đang cập nhật. Chờ vài giây rồi thử xoá lại; lịch sử chưa bị xoá."
-      : "Chưa xác nhận được việc xoá lịch sử. Kiểm tra kết nối rồi thử lại; hồ sơ vẫn được giữ."),
+      : HISTORY_CLEAR_FAILED),
   });
   const sign = query.data ? primarySunSign(query.data.calculation) : null;
   const identity = identityFromCalculation(query.data?.calculation);

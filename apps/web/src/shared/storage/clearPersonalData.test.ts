@@ -59,6 +59,7 @@ describe("personal-data cleanup lifecycle", () => {
     localStorage.setItem("la-lanh-saved-notes-v1", "private saved notes");
     localStorage.setItem("la-lanh-pending-mood-v1", "private mood");
     localStorage.setItem("la-lanh-saved-note-acks-v1", "[]");
+    localStorage.setItem("la-lanh-la-line-memory-v2", JSON.stringify({ v: 2, scope: "s", issues: {} }));
     localStorage.setItem("la-lanh-daily-ritual-v1", "2026-10-11");
     localStorage.setItem("la-lanh-night-nudge-dismissed-v1", "2026-10-11");
     localStorage.setItem("la-lanh-birth-supplement-snooze-until", "private snooze");
@@ -89,6 +90,7 @@ describe("personal-data cleanup lifecycle", () => {
     expect(localStorage.getItem("la-lanh-saved-note-mutations-v1")).toBeNull();
     expect(localStorage.getItem("la-lanh-saved-note-acks-v1")).toBeNull();
     expect(localStorage.getItem("la-lanh-pending-mood-v1")).toBeNull();
+    expect(localStorage.getItem("la-lanh-la-line-memory-v2")).toBeNull();
     expect(localStorage.getItem("la-lanh-daily-ritual-v1")).toBeNull();
     expect(localStorage.getItem("la-lanh-night-nudge-dismissed-v1")).toBeNull();
     expect(localStorage.getItem("la-lanh-birth-supplement-snooze-until")).toBeNull();
