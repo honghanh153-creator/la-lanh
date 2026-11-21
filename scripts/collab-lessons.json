@@ -1025,6 +1025,25 @@
    "closedBy": {
     "pr": 838
    }
+  },
+  {
+   "id": "L57",
+   "title": "Tick ngừng từ 30 phút thì ghi một dòng kèm nguyên nhân đọc từ máy (Mac ngủ, khởi động lại hay không rõ); chỉ \"không rõ\" mới báo động (21.11: không có dòng tick nào 07:45–10:04, không ai biết vì sao)",
+   "from": "phiên điều phối 21.11, tick log sáng 21.11",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-tick-gap.test.mjs",
+    "name": "L57: a tick gap is written once with its cause; only an unexplained gap alerts"
+   },
+   "caller": {
+    "file": "scripts/collab-tick.mjs",
+    "contains": "try { gapNote({ log, alert: text => opsAlert(gh, text, tickGapSubject) }); }"
+   },
+   "closedBy": {
+    "pr": 838
+   }
   }
  ]
 }
