@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 
 from app.config import Settings
 from app.main import create_app
+from tests.leak_checks import leaked
 
 ORIGIN = "http://127.0.0.1:5173"
 
@@ -193,7 +194,7 @@ def test_private_radar_requires_both_people_and_supports_withdrawal(tmp_path: Pa
         _assert_no_raw_birth_data(result.json())
         assert "score" not in result.text.lower()
         assert "1996-07-21" not in result.text
-        assert "19:40" not in result.text
+        assert leaked(result.text, ("19:40",)) == []
         assert "vn-hanoi" not in result.text
         assert recipient.get(f"/v1/public/radar/{token}").status_code == 404
         receipt_result = recipient.get("/v1/public/radar/receipt")
@@ -439,7 +440,7 @@ def test_private_check_computes_without_persisting_other_person_birth_input(
         _assert_no_raw_birth_data(payload)
         assert "score" not in response.text.lower()
         assert "1996-07-21" not in response.text
-        assert "19:40" not in response.text
+        assert leaked(response.text, ("19:40",)) == []
         assert "vn-dak-lak" not in response.text
 
         with sqlite3.connect(database) as connection:
