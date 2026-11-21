@@ -204,20 +204,33 @@ export function svgTextOf(source) {
 
 const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
 // Chunks that only describe pixels and colour. Every other chunk can carry text or a date.
-const PNG_PIXEL_CHUNKS = new Set(["IHDR", "PLTE", "IDAT", "IEND", "tRNS", "gAMA", "cHRM", "sRGB", "sBIT", "bKGD", "pHYs", "hIST", "sPLT", "acTL", "fcTL", "fdAT"]);
+// sPLT is not in this list: it starts with a free-text palette name.
+const PNG_PIXEL_CHUNKS = new Set(["IHDR", "PLTE", "IDAT", "IEND", "tRNS", "gAMA", "cHRM", "sRGB", "sBIT", "bKGD", "pHYs", "hIST", "acTL", "fcTL", "fdAT"]);
 
 function inflated(data) {
   try {
-    return inflateSync(data).toString("utf8");
+    return inflateSync(data);
   } catch {
-    return "";
+    return null;
   }
+}
+
+// Every way the bytes of a metadata field can be read as text. EXIF writes some fields with two
+// bytes per letter (XPComment, UserComment "UNICODE"), in either byte order and starting at any
+// offset, so the bytes are read as UTF-16 in both byte orders, from offset 0 and from offset 1.
+function wideViews(bytes) {
+  const even = Buffer.concat([bytes, Buffer.alloc(bytes.length % 2)]);
+  return [even.toString("utf16le"), Buffer.from(even).swap16().toString("utf16le")];
+}
+function textViews(bytes) {
+  return [bytes.toString("latin1"), bytes.toString("utf8"), ...wideViews(bytes), ...wideViews(bytes.subarray(1))];
 }
 
 // What a PNG says besides its pixels (AC3 of #691): {chunks, texts}. `chunks` lists every chunk
 // type in order; `texts` has one entry for each chunk that is not pure pixel data: text chunks
 // (tEXt, zTXt, iTXt, with compressed parts unpacked), EXIF (eXIf), the modification time (tIME),
-// colour profiles and chunks this list does not know. Throws when the bytes are not a PNG.
+// suggested palettes (sPLT, for their name), colour profiles and chunks this list does not know.
+// Each is given in every reading of textViews, so two-byte EXIF text is found too. Throws when the bytes are not a PNG.
 export function pngMetadata(bytes) {
   const data = Buffer.from(bytes);
   if (data.length < 8 || PNG_SIGNATURE.some((byte, index) => data[index] !== byte)) throw new Error("không phải file PNG");
@@ -239,11 +252,11 @@ export function pngMetadata(bytes) {
       const unpacked = [];
       for (let at = body.indexOf(0); at !== -1 && unpacked.length < 4; at = body.indexOf(0, at + 1)) {
         for (const skip of [1, 2, 3]) {
-          const text = inflated(body.subarray(at + skip));
-          if (text) unpacked.push(text);
+          const plain = inflated(body.subarray(at + skip));
+          if (plain?.length) unpacked.push(plain);
         }
       }
-      texts.push([type, body.toString("latin1"), body.toString("utf8"), ...unpacked].join("\n"));
+      texts.push([type, ...[body, ...unpacked].flatMap(textViews)].join("\n"));
     }
     offset += 12 + length;
   }

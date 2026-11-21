@@ -34,7 +34,7 @@ Yêu cầu gốc: US-03 AC12 và mục 21 (DoD delta: network, URL, history, log
 | Bộ nhớ trình duyệt | localStorage, sessionStorage, mọi mục trong Cache (địa chỉ, header và nội dung câu trả lời đã lưu), tiêu đề trang |
 | Tên file | tên file khi tải ảnh note, tải Lá Khai Sinh, tải dữ liệu của tôi; tên file app đưa vào bảng chia sẻ; header `Content-Disposition` của mọi câu trả lời |
 | Ảnh chia sẻ | bản SVG mà ảnh được vẽ từ đó, chữ mô tả ảnh (alt), tiêu đề màn, tiêu đề và chữ app đưa vào bảng chia sẻ |
-| Thông tin kèm trong ảnh PNG | mọi phần của file PNG tải về không phải điểm ảnh: chữ (tEXt, zTXt, iTXt), EXIF, giờ sửa file, hồ sơ màu, phần lạ |
+| Thông tin kèm trong ảnh PNG | mọi phần của file PNG tải về không phải điểm ảnh: chữ (tEXt, zTXt, iTXt), EXIF (cả chữ ghi hai byte mỗi ký tự, hai chiều byte), tên bảng màu gợi ý (sPLT), giờ sửa file, hồ sơ màu, phần lạ |
 
 Về file và ảnh (#691):
 
@@ -79,7 +79,7 @@ Tên chỗ tìm dùng được: `server-log`, `request-url`, `request-referer`, 
 
 Với `web-storage`, dấu được ghi vào Cache thật của trang (trong nội dung một câu trả lời đã lưu), nên lượt chạy chỉ đỏ khi phần đọc bộ nhớ thật sự đọc được nó. Với các chỗ tìm còn lại, dấu được thêm vào danh sách đã thu, nên chỉ thử được phần tìm dấu.
 
-Riêng thông tin kèm trong ảnh PNG có test dựng một file PNG có chèn dấu ở từng loại phần (chữ, chữ nén, EXIF, giờ sửa file, phần lạ) và chờ máy kiểm báo đỏ.
+Riêng thông tin kèm trong ảnh PNG có test dựng một file PNG có chèn dấu ở từng loại phần (chữ, chữ nén, EXIF chữ thường và EXIF hai byte mỗi ký tự, tên bảng màu, giờ sửa file, phần lạ) và chờ máy kiểm báo đỏ. Các file thử có mã kiểm (CRC) đúng như file PNG thật.
 
 Phần tìm dấu có test riêng, không cần trình duyệt: `node --test scripts/leak-canary-lib.test.mjs` (chạy trong `pnpm collab:test`).
 

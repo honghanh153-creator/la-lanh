@@ -286,12 +286,40 @@ test("#691 the share image text is the SVG without font payloads, with character
   assert.equal(svgTextOf(null), "");
 });
 
+const CRC_TABLE = Array.from({ length: 256 }, (_, n) => {
+  let c = n;
+  for (let k = 0; k < 8; k += 1) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+  return c >>> 0;
+});
+function crc32(bytes) {
+  let c = 0xffffffff;
+  for (const byte of bytes) c = CRC_TABLE[(c ^ byte) & 0xff] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+}
+// A chunk as a PNG reader accepts it: length, type, body and the CRC of type + body.
 function pngChunk(type, body = Buffer.alloc(0)) {
   const head = Buffer.alloc(8);
   head.writeUInt32BE(body.length, 0);
   head.write(type, 4, "latin1");
-  return Buffer.concat([head, body, Buffer.alloc(4)]);
+  const tail = Buffer.alloc(4);
+  tail.writeUInt32BE(crc32(Buffer.concat([head.subarray(4), body])), 0);
+  return Buffer.concat([head, body, tail]);
 }
+// An EXIF block (TIFF) holding one field, in IFD0 or in the Exif sub-IFD, in either byte order.
+function exifBlock({ big = false, tag, type, value, inExifIfd = false }) {
+  const number = (size, n) => {
+    const out = Buffer.alloc(size);
+    if (size === 2) (big ? out.writeUInt16BE(n) : out.writeUInt16LE(n));
+    else (big ? out.writeUInt32BE(n) : out.writeUInt32LE(n));
+    return out;
+  };
+  const ifd = (fieldTag, fieldType, count, offset) => Buffer.concat([number(2, 1), number(2, fieldTag), number(2, fieldType), number(4, count), number(4, offset), number(4, 0)]);
+  const head = Buffer.concat([Buffer.from(big ? "MM" : "II", "latin1"), number(2, 42), number(4, 8)]);
+  if (!inExifIfd) return Buffer.concat([head, ifd(tag, type, value.length, 26), value]);
+  return Buffer.concat([head, ifd(0x8769, 4, 1, 26), ifd(tag, type, value.length, 44), value]);
+}
+const utf16le = (text) => Buffer.from(text, "utf16le");
+const utf16be = (text) => Buffer.from(text, "utf16le").swap16();
 const PNG_HEAD = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 const png = (...extra) => Buffer.concat([PNG_HEAD, pngChunk("IHDR", Buffer.alloc(13)), ...extra, pngChunk("IDAT", Buffer.from([1, 2, 3])), pngChunk("IEND")]);
 
@@ -318,11 +346,27 @@ test("#691 AC3: a mark planted in any PNG metadata chunk turns the check red", (
     ["tEXt in UTF-8", pngChunk("tEXt", Buffer.from("Comment\0Quảng Ngãi", "utf8")), "birthplace"],
     ["zTXt compressed", pngChunk("zTXt", Buffer.concat([Buffer.from("Comment\0\0", "latin1"), deflateSync(Buffer.from("zqcanary690safety"))])), "safety-text"],
     ["iTXt compressed", pngChunk("iTXt", international), "tarot-question"],
-    ["eXIf", pngChunk("eXIf", Buffer.from("MM\0*\0\0\0\x08UserComment 13/02/1994", "latin1")), "birth-date"],
+    ["eXIf ImageDescription (ASCII)", pngChunk("eXIf", exifBlock({ tag: 0x010e, type: 2, value: Buffer.from("born 13/02/1994\0", "latin1") })), "birth-date"],
+    ["eXIf XPComment (UTF-16LE)", pngChunk("eXIf", exifBlock({ tag: 0x9c9c, type: 1, value: utf16le("câu hỏi zqcanary690tarot\0") })), "tarot-question"],
+    ["eXIf XPComment at an odd offset", pngChunk("eXIf", exifBlock({ tag: 0x9c9c, type: 1, value: Buffer.concat([Buffer.alloc(1), utf16le("zqcanary690safety\0")]) })), "safety-text"],
+    ["eXIf UserComment (UTF-16BE, Exif IFD)", pngChunk("eXIf", exifBlock({ big: true, tag: 0x9286, type: 7, inExifIfd: true, value: Buffer.concat([Buffer.from("UNICODE\0", "latin1"), utf16be("mood Đuối")]) })), "mood"],
+    ["eXIf UTF-16BE at an odd offset", pngChunk("eXIf", exifBlock({ big: true, tag: 0x9c9c, type: 1, value: Buffer.concat([Buffer.alloc(1), utf16be("Quảng Ngãi")]) })), "birthplace"],
+    ["sPLT palette name", pngChunk("sPLT", Buffer.concat([Buffer.from("born 1994-02-13\0\x08", "latin1"), Buffer.alloc(6)])), "birth-date"],
     ["tIME", pngChunk("tIME", time), "birth-date"],
     ["unknown chunk", pngChunk("prVt", Buffer.from("mood Đuối", "utf8")), "mood"],
   ];
   for (const [name, chunk, kind] of cases) assert.ok(metadataFindings(png(chunk)).includes(kind), name);
+});
+
+test("#691 AC3: metadata without a mark stays clean in every reading", () => {
+  const harmless = png(
+    pngChunk("eXIf", exifBlock({ tag: 0x0131, type: 2, value: Buffer.from("canvas export\0", "latin1") })),
+    pngChunk("eXIf", exifBlock({ tag: 0x9c9c, type: 1, value: utf16le("ảnh chia sẻ\0") })),
+    pngChunk("sPLT", Buffer.concat([Buffer.from("web safe\0\x08", "latin1"), Buffer.alloc(6)])),
+  );
+  assert.deepEqual(pngMetadata(harmless).chunks, ["IHDR", "eXIf", "eXIf", "sPLT", "IDAT", "IEND"]);
+  assert.equal(pngMetadata(harmless).texts.length, 3);
+  assert.deepEqual(metadataFindings(harmless), []);
 });
 
 test("#691 a file that is not a whole PNG breaks the run instead of passing", () => {
