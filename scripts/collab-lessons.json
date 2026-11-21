@@ -1045,6 +1045,25 @@
    "closedBy": {
     "pr": 864
    }
+  },
+  {
+   "id": "L61",
+   "title": "PR sự cố trượt kiểm đầu vào (thân PR sai mẫu) thì báo động ngay, không âm thầm nằm ở claude-fix (21.11: hotfix #863 đứng chờ vì gộp nhiều cổng trên một dòng trong lúc integration đỏ)",
+   "from": "sự cố 21.11 (#747, #863)",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-merge-gate.test.mjs",
+    "name": "L61: a preflight failure on an incident PR raises an ops alert at once; other PRs stay quiet"
+   },
+   "caller": {
+    "file": "scripts/collab-tick.mjs",
+    "contains": "try { incidentAlert(pr, result, text => opsAlert(gh, text, incidentPreflightSubject)); } catch {}"
+   },
+   "closedBy": {
+    "pr": 864
+   }
   }
  ]
 }
