@@ -13,6 +13,7 @@ from fastapi.testclient import TestClient
 from app.config import Settings
 from app.domains.radar.cards import initial_of
 from app.main import create_app
+from tests.leak_checks import leaked
 
 ORIGIN = "http://127.0.0.1:5173"
 
@@ -106,8 +107,8 @@ def test_card_link_shows_no_birth_data_and_dies_with_the_result(tmp_path: Path) 
         body = card.json()
         assert body["initial"] is None and body["context"] == "crush"
         assert body["tier"] and body["line"]
-        for raw in ("1996", "1994", "Mèo", "Hoang", "vn-hanoi", "08:15"):
-            assert raw not in card.text
+        raw = ("1996", "1994", "Mèo", "Hoang", "vn-hanoi", "08:15")
+        assert leaked(card.text, raw) == []
 
         named = client.post(
             f"/v1/radar/results/{request_id}/cards", headers=headers, json={"show_initial": True}
