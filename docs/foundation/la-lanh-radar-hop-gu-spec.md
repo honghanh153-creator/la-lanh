@@ -20,6 +20,7 @@ Radar giúp một người hiểu tương tác với người họ đã biết: 
   - Phiên bản đồng ý lưu theo cặp: `radar-weekly-recipient-v1`.
 - **AT1:** câu về link xem thẻ đã duyệt nguyên văn (`privacy.radar.cards.privacy-page`), nằm trong khối "Thẻ Hợp gu" ở trang quyền riêng tư, sau "Hai bạn tuần này", trước "Tải bản sao dữ liệu". `radar_share_card_links = true` khi phát hành.
 - Còn mở (ghi cho owner, không tự sửa): khối "Hai bạn tuần này" trên trang quyền riêng tư vẫn là câu AQ1 số 2, viết cho người gửi ("Chỉ chọn khi người ấy đồng ý cho việc này"); từ AR1 người được mời mới là người chọn. Câu `privacy.radar.weekly.optin-label` không còn màn nào dùng.
+- **Mục AV (21.11.2026, mặc định AV3): `radar_weekly_pairs = false` khi phát hành.** Hai câu đã duyệt vẫn nói ngày sinh không được lưu: `privacy.radar.invite-first.recipient-body` ("…không lưu lại…", ngay trên ô của AR1) và `privacy.radar.invite-first.owner-invite-body` ("…Lá không lưu ngày sinh đó…", trang đầu và trang mời). Khi người được mời tick, hai câu này sai. Công tắc tắt thì trang lời mời không hiện ô (`weekly_offer = false`), `keep_weekly = true` bị từ chối (422), không giữ gì, Hôm nay không có thẻ tuần. Mã ô AR1 giữ nguyên. Bật lại khi owner duyệt ba câu thay (trang quyền riêng tư, trang lời mời, bước mời). Thẻ (AT1) và phần còn lại của AP2/AQ1 không đổi.
 - Merge `main` và deploy vẫn cần lệnh phát hành riêng của owner.
 
 ## 1a. Owner AP2 + AQ1 (21.11.2026), thay các phần dưới khi khác ý
@@ -55,7 +56,7 @@ Owner chọn AL1 sau thử 100 người giả (34–45/100 tới được kết 
 - **Link xem thẻ (`radar_share_card_links`; bật khi phát hành từ AT1, xem 1a0):** `POST /v1/radar/results/{id}/cards` (owner, CSRF) tạo link `/radar/the/<token>` (token 256 bit, chỉ lưu HMAC); bản chụp (`radar-card-v1`: context, tier, line, initial) mã hoá AES-GCM, hạn = hạn kết quả, tối đa 5 link đang mở mỗi kết quả, thu hồi bằng `POST /v1/radar/cards/{id}/revoke`. Xoá kết quả, rút kết quả hoặc xoá dữ liệu khách đều xoá link (FK cascade và xoá trực tiếp). `GET /v1/public/radar/cards/{token}` trả `no-store`, `no-referrer`, `noindex`; mọi trường hợp từ chối là một 404. Web `/radar/the/*` có header tương tự trong `_headers`. Bảng `radar_share_cards` (migration 0043) bật RLS, thu quyền `anon`/`authenticated`.
 - Link là chia sẻ một bản tóm tắt về hai người cho bất kỳ ai cầm link, nên là thu dữ liệu/chia sẻ mới (R2 loại 4): làm sẵn, để tắt tới khi owner duyệt câu cho trang quyền riêng tư (AT1, 21.11.2026: đã duyệt, bật).
 
-## 1e. "Hai bạn tuần này" (hướng C, nửa sau, AL1; bật từ AQ1, lối vào theo AR1 ở 1a0)
+## 1e. "Hai bạn tuần này" (hướng C, nửa sau, AL1; lối vào theo AR1, tắt khi phát hành theo mục AV ở 1a0)
 
 - Giữ một cặp lâu hơn 24 giờ là thu dữ liệu cá nhân mới (R2 loại 4), nên chỉ mở khi `radar_weekly_pairs = true` **và** owner đã duyệt cả ba câu `privacy.radar.weekly.*`. Mặc định là **Không**.
 - ~~Chủ chọn giữ ngay trên form check riêng~~ (bỏ theo AP2/AR1): chỉ người được mời tự tick trên trang lời mời (1a0). Lá lưu **chỉ ngày sinh** của người kia (không giờ, không nơi) và tên gọi, đều mã hoá AES-GCM, cùng quan hệ; bảng `radar_weekly_pairs` (migration 0044, RLS). Tự hết hạn sau 90 ngày (owner AQ1), tối đa 5 cặp mỗi người gửi; "Tắt nhắc cặp này" xoá hẳn; xoá dữ liệu khách hoặc tài khoản xoá theo (FK cascade).

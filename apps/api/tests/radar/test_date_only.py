@@ -158,7 +158,9 @@ def test_release_defaults_follow_ap2_aq1_and_at1() -> None:
     assert settings.radar_invite_first_consent is True
     # Owner AT1 (21.11.2026) approved the privacy-page line for card links: on at release.
     assert settings.radar_share_card_links is True
-    assert settings.radar_weekly_pairs is True
+    # Item AV (21.11.2026, default AV3): weekly stays off until the owner approves the replacements
+    # for the "not stored" sentences; card links are not affected.
+    assert settings.radar_weekly_pairs is False
     assert Settings.model_fields["radar_self_attested_checks"].default is False
 
 

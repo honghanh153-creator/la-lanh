@@ -113,10 +113,13 @@ class Settings(BaseSettings):
     # turned it on and AT1 (21.11.2026) approved the privacy-page line about card links, so it is
     # on at release. The image card needs no switch.
     radar_share_card_links: bool = True
-    # Hợp gu AL1 direction C, "Hai bạn tuần này": keeping a pair stores the other person's birth
-    # date (encrypted, at most 90 days). Owner AQ1 (21.11.2026) approved its three sentences and
-    # turned it on with the release.
-    radar_weekly_pairs: bool = True
+    # Hợp gu AL1 direction C, "Hai bạn tuần này": keeping a pair stores the invited person's birth
+    # date (encrypted, at most 90 days), only when that person ticks their own box (owner AR1,
+    # 21.11.2026). Off at release (item AV, default AV3): two approved sentences still say the
+    # date is not stored (the link page and the invite step), and the privacy-page line was
+    # written for the sender. It stays off until the owner approves their replacements; while
+    # off, the link page shows no box and nothing is kept.
+    radar_weekly_pairs: bool = False
     # Owner AP2 (21.11.2026): no more "this person agreed" tick on any path; Hợp gu opens only when
     # the other person types their own birth date through the link. New self-attested private
     # checks are refused (410). Kept off, only so stored results stay readable and deletable until

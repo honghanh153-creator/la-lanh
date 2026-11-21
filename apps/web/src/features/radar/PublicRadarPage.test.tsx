@@ -69,6 +69,23 @@ describe("PublicRadarPage", () => {
     expect(screen.queryByRole("checkbox", { name: WEEKLY_OPTIN })).not.toBeInTheDocument();
   });
 
+  // Item AV (default AV3): with the weekly switch off the AR1 box stays hidden, even if a stale preview offers it.
+  it("hides the weekly box while the weekly switch is off", async () => {
+    vi.mocked(getPublicRadarInvite).mockResolvedValue({ ...invite, weekly_offer: true });
+    vi.mocked(getRadarConsentOptions).mockResolvedValue({
+      invite_first: true,
+      sentences: { "recipient-heading": "Tiêu đề.", "recipient-body": "Thân bài.", "recipient-consent": "Câu đồng ý.", "recipient-decline": "Câu từ chối." },
+      authorized_input_version: "radar-authorized-input-v2",
+      date_consent_version: "radar-pair-date-v1",
+      weekly: false,
+      weekly_sentences: {},
+    });
+    renderInvite();
+
+    expect(await screen.findByRole("checkbox", { name: "Câu đồng ý." })).toBeInTheDocument();
+    expect(screen.getAllByRole("checkbox")).toHaveLength(1);
+  });
+
   // Owner AR1 (21.11.2026): the recipient's own weekly box, word for word, separate and unticked; only a tick keeps the date.
   it.each([
     [false, false],
