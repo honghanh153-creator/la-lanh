@@ -1,7 +1,7 @@
 """Month answers for one guest: load the chart, pick the fact, compose (AK2, 20.11.2026).
 
-Reads only. The typed question never reaches this layer: the route turns it into closed labels
-(topic, kind) and drops it. Nothing here stores or logs anything about the person.
+Reads only. People pick a topic or a preset question (no typed text, owner AS1 21.11.2026).
+Nothing here stores or logs anything about the person.
 """
 
 from __future__ import annotations
@@ -31,7 +31,7 @@ from app.domains.month_answer.facts import (
     month_fact,
     month_key,
 )
-from app.domains.month_answer.question import QuestionKind
+from app.domains.month_answer.presets import PresetId, presets_for
 
 # The Khám phá card: one line and one small thing per area, no dates (S21). "Bản thân" uses the
 # mind topic's copy.
@@ -94,7 +94,7 @@ class MonthAnswerService:
         self,
         guest_id: UUID,
         topic: Topic,
-        kind: QuestionKind = QuestionKind.HOW,
+        preset: PresetId | None = None,
         *,
         today: date | None = None,
     ) -> MonthAnswer:
@@ -102,7 +102,7 @@ class MonthAnswerService:
         chart = await self._chart(guest_id)
         month = month_key(today or today_in_vietnam())
         fact = await to_thread(month_fact, engine, chart, topic, month)
-        answer = compose(fact, kind, self._copy)
+        answer = compose(fact, preset, self._copy)
         if answer is None:
             raise MonthAnswerUnavailable
         return answer
@@ -113,15 +113,16 @@ class MonthAnswerService:
         """The answer the person is looking at, recomputed; ``None`` if it no longer matches.
 
         Saving never takes text from the client: the server recomputes the answer from the chart,
-        the topic and this month, tries each question kind, and keeps the one whose key matches.
+        the topic and this month, tries the plain topic answer and each of the topic's preset
+        questions, and keeps the one whose key matches.
         """
 
         engine = self._engine_or_raise()
         chart = await self._chart(guest_id)
         month = month_key(today or today_in_vietnam())
         fact = await to_thread(month_fact, engine, chart, topic, month)
-        for kind in QuestionKind:
-            answer = compose(fact, kind, self._copy)
+        for preset in (None, *presets_for(topic)):
+            answer = compose(fact, preset, self._copy)
             if answer is not None and answer.answer_key == answer_key:
                 return answer
         return None
@@ -149,7 +150,7 @@ class MonthAnswerService:
         items: list[OverviewItem] = []
         for area, topic in OVERVIEW_AREAS:
             fact = await to_thread(month_fact, engine, chart, topic, month)
-            answer = compose(fact, QuestionKind.HOW, self._copy)
+            answer = compose(fact, None, self._copy)
             if answer is None:
                 raise MonthAnswerUnavailable
             items.append(OverviewItem(area, OVERVIEW_LABELS[area], answer.theme, answer.act))

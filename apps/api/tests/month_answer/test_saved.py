@@ -71,6 +71,29 @@ def test_save_list_delete(client: TestClient, approve_month: Callable[..., None]
     assert client.delete(f"/v1/month/saved/{body['id']}", headers=headers).status_code == 404
 
 
+def test_save_a_preset_answer_keeps_its_question_and_tip(
+    client: TestClient, approve_month: Callable[..., None]
+) -> None:
+    approve_month()
+    headers = _person(client, "save-preset")
+    response = client.post(
+        "/v1/month/answers", json={"topic": "mind", "preset": "mind.sleep"}, headers=headers
+    )
+    answer = response.json()["answer"]
+    saved = client.post(
+        "/v1/month/saved",
+        json={"topic": "mind", "answer_key": answer["answer_key"]},
+        headers=headers,
+    )
+    assert saved.status_code == 201, saved.text
+    body = saved.json()["answer"]
+    assert body["preset"] == "mind.sleep"
+    assert body["question"] == answer["question"] and body["tip"] == answer["tip"]
+    export = client.post("/v1/session/data-export", headers=headers).json()
+    [item] = export["saved_month_answers"]
+    assert item["question"] == answer["question"] and item["tip"] == answer["tip"]
+
+
 def test_saved_text_is_encrypted_at_rest(
     client: TestClient, approve_month: Callable[..., None]
 ) -> None:

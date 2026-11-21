@@ -154,12 +154,17 @@ const radarResult = {
 };
 
 const monthAnswer = {
-  month: "2026-11", topic: "work", topic_label: "Công việc", reframe: null,
+  month: "2026-11", topic: "work", topic_label: "Công việc", preset: null, question: null, tip: null,
   theme: "Câu giả: tháng này công việc cần nói rõ.", act: "Câu giả: ghi ra ba việc.", say: "Câu giả để nói.",
   basis: { line: "Dựa vào: dữ liệu giả.", detail: "Chi tiết giả." },
   disclaimer: "Đây là một góc nhìn để bạn tự quyết, không phải điều chắc chắn sẽ xảy ra.",
   answer_key: "0123456789abcdef0123456789abcdef",
 };
+
+const monthPresets = [
+  { id: "work.hard_talk", topic: "work", text: "Câu hỏi giả về công việc?" },
+  { id: "mind.sleep", topic: "mind", text: "Câu hỏi giả về giấc ngủ?" },
+];
 
 const accountStatus = {
   account_inactivity_days: 365, daily_note_hours: 24, google_login_enabled: false, guest_inactivity_days: 30,
@@ -266,9 +271,9 @@ function answer(flags: Flags, method: string, path: string): Reply | null {
       return { status: 404, json: { code: "LA_CHUNG_RESULT_NOT_FOUND" } };
     // US-25 "Hỏi về tháng này": fake data only, the copy shown as if approved.
     case "GET /v1/month/status":
-      return { status: 200, json: { available: signedIn, typed_questions: false, month: "2026-11", consent: null } };
+      return { status: 200, json: { available: signedIn, month: "2026-11", presets: signedIn ? monthPresets : [] } };
     case "POST /v1/month/answers":
-      return { status: 200, json: { status: "answered", need_topic: null, answer: monthAnswer } };
+      return { status: 200, json: { status: "answered", answer: monthAnswer } };
     case "GET /v1/month/window":
       return { status: 200, json: { found: true, start: "2026-11-24", end: "2026-11-25", basis: "Dựa vào: dữ liệu giả.", line: "Làm lúc nào cũng được; khoảng này chỉ dễ hơn một chút." } };
     case "GET /v1/month/overview":

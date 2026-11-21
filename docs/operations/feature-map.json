@@ -2095,13 +2095,18 @@
    ],
    "user_path": [
     "Home",
-    "Bấm Hỏi về tháng này"
+    "Bấm Hỏi về tháng này",
+    "Chọn một mảng hoặc một câu hỏi có sẵn"
    ],
    "owner_only": false,
    "key_selectors": [
     {
      "role": "heading",
      "name": "Bạn muốn hỏi chuyện gì?"
+    },
+    {
+     "role": "heading",
+     "name": "Hoặc chọn một câu hỏi có sẵn"
     }
    ],
    "states": {

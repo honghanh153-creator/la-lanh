@@ -28,6 +28,8 @@ export type MonthTopic = components["schemas"]["Topic"];
 export type MonthStatus = components["schemas"]["MonthStatusResponse"];
 export type MonthAnswerResult = components["schemas"]["MonthAnswerResponse"];
 export type MonthAnswer = components["schemas"]["MonthAnswerView"];
+export type MonthPreset = components["schemas"]["MonthPresetView"];
+export type MonthPresetId = components["schemas"]["PresetId"];
 export type MonthWindow = components["schemas"]["MonthWindowResponse"];
 export type MonthOverview = components["schemas"]["MonthOverviewResponse"];
 export type SavedMonthAnswer = components["schemas"]["SavedMonthAnswerView"];
@@ -812,22 +814,14 @@ export function startTarotSession(input: {
   });
 }
 
-/** US-25: whether "Hỏi về tháng này" can show, and whether typed questions are switched on. */
+/** US-25: whether "Hỏi về tháng này" can show, and its preset questions. */
 export function getMonthStatus(signal?: AbortSignal): Promise<MonthStatus> {
   return request<MonthStatus>("/month/status", { signal });
 }
 
-/**
- * Ask about this month. A typed question is sent once and never kept: not in storage, not in the
- * URL, not in the query cache key (the caller passes it from component state only).
- */
-export function askMonth(input: { topic?: MonthTopic | null; question?: string; consent_version?: string }): Promise<MonthAnswerResult> {
-  const body: Record<string, string> = {};
-  if (input.topic) body.topic = input.topic;
-  if (input.question) {
-    body.question = input.question;
-    if (input.consent_version) body.consent_version = input.consent_version;
-  }
+/** Ask about this month: a topic, optionally one of its preset questions. No typed text (AS1). */
+export function askMonth(input: { topic: MonthTopic; preset?: MonthPresetId | null }): Promise<MonthAnswerResult> {
+  const body = input.preset ? { topic: input.topic, preset: input.preset } : { topic: input.topic };
   return request<MonthAnswerResult>("/month/answers", {
     method: "POST",
     headers: { "Content-Type": "application/json", ...csrfHeader() },

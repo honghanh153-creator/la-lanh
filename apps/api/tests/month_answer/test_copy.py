@@ -7,6 +7,13 @@ import re
 from app.domains.content.copy_approval import load_registry
 from app.domains.month_answer.answer import required_copy_ids
 from app.domains.month_answer.facts import ANSWER_PLANETS, Topic
+from app.domains.month_answer.presets import (
+    PresetId,
+    ask_id,
+    preset_copy_ids,
+    presets_for,
+    tip_id,
+)
 
 from .conftest import registry_texts
 
@@ -30,16 +37,31 @@ def test_every_topic_and_planet_has_three_parts() -> None:
     )
 
 
-def test_month_copy_is_pending_and_sensitive_copy_is_owner_only() -> None:
+def test_month_copy_is_pending_user_copy_and_no_typed_question_copy_ships() -> None:
     registry = load_registry()
     for key, entry in registry.items():
         if key.startswith("month."):
             assert entry.category == "reading"
-    assert registry["consent.month.typed_question"].category == "consent"
-    assert registry["crisis.self_harm.notice.month"].category == "crisis"
-    # Nobody but the owner approves these two (R2 kind 3); this PR leaves them pending.
-    assert registry["consent.month.typed_question"].status == "pending"
-    assert registry["crisis.self_harm.notice.month"].status == "pending"
+            assert entry.status == "pending"
+    # Owner chose AS1 on 21.11.2026: no typed box, so no consent or crisis sentence for it.
+    assert "consent.month.typed_question" not in registry
+    assert "crisis.self_harm.notice.month" not in registry
+    assert not [key for key in registry if key.startswith("month.reframe.")]
+    assert "month.line.need_topic" not in registry
+
+
+def test_three_preset_questions_per_topic_each_with_a_tip() -> None:
+    texts = registry_texts("month.preset.")
+    assert len(PresetId) == 3 * len(Topic)
+    for topic in Topic:
+        assert len(presets_for(topic)) == 3, topic
+    for preset in PresetId:
+        question, tip = texts[ask_id(preset)], texts[tip_id(preset)]
+        assert question.endswith("?"), preset
+        assert len(question) <= 60, preset
+        assert not tip.endswith("?"), preset
+    assert set(texts) == set(preset_copy_ids())
+    assert texts["month.preset.work.hard_talk.ask"] == "Làm sao nói chuyện khó với sếp?"
 
 
 def test_no_prediction_no_date_no_yes_no() -> None:
@@ -48,7 +70,7 @@ def test_no_prediction_no_date_no_yes_no() -> None:
             continue  # "không phải điều chắc chắn sẽ xảy ra" says the opposite of a prediction
         assert not DATE_LIKE.search(text), cid
         assert not PREDICTION.search(text), cid
-        if cid.startswith(("month.theme.", "month.act.", "month.say.")):
+        if cid.startswith(("month.theme.", "month.act.", "month.say.")) or cid.endswith(".tip"):
             assert not YES_NO.search(text), cid
 
 

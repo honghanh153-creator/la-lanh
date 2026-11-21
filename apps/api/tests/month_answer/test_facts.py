@@ -26,7 +26,7 @@ from app.domains.month_answer.facts import (
     local_noon,
     month_fact,
 )
-from app.domains.month_answer.question import QuestionKind
+from app.domains.month_answer.presets import PresetId, presets_for
 
 DATE_LIKE = re.compile(r"\b\d{1,2}\s*[./-]\s*\d{1,2}\b|\bngày \d|\bmùng \d|\btháng \d|\d{4}-\d{2}")
 
@@ -138,11 +138,11 @@ def test_answer_is_deterministic_and_holds_no_date(engine: NatalChartEngine, app
     chart = _chart(engine, BIRTHS[2], TimePrecision.EXACT)
     for topic in Topic:
         fact = month_fact(engine, chart, topic, "2026-11")
-        first = compose(fact, QuestionKind.HOW)
-        second = compose(month_fact(engine, chart, topic, "2026-11"), QuestionKind.HOW)
+        first = compose(fact)
+        second = compose(month_fact(engine, chart, topic, "2026-11"))
         assert first is not None and first == second
         assert first.basis.line.startswith("Dựa vào: ")
-        assert first.reframe is None
+        assert first.preset is None and first.question is None and first.tip is None
         text = " ".join((first.theme, first.act, first.say, first.basis.line, first.basis.detail))
         assert not DATE_LIKE.search(text)
 
@@ -150,22 +150,38 @@ def test_answer_is_deterministic_and_holds_no_date(engine: NatalChartEngine, app
 def test_pending_copy_gives_no_answer(engine: NatalChartEngine) -> None:
     chart = _chart(engine, BIRTHS[0], TimePrecision.EXACT)
     fact = month_fact(engine, chart, Topic.WORK, "2026-11")
-    assert compose(fact, QuestionKind.HOW) is None
+    assert compose(fact) is None
 
 
-def test_outcome_kinds_carry_a_reframe(engine: NatalChartEngine, approve_month) -> None:  # type: ignore[no-untyped-def]
+def test_preset_answer_keeps_the_chart_parts(engine: NatalChartEngine, approve_month) -> None:  # type: ignore[no-untyped-def]
     approve_month()
     chart = _chart(engine, BIRTHS[0], TimePrecision.EXACT)
-    fact = month_fact(engine, chart, Topic.STUDY, "2026-11")
-    for kind in (
-        QuestionKind.OUTCOME,
-        QuestionKind.TIMING,
-        QuestionKind.SHOULD,
-        QuestionKind.OTHER_MIND,
-    ):
-        answer = compose(fact, kind)
-        assert answer is not None and answer.reframe is not None
-        assert answer.reframe.startswith("Lá không ")
+    for topic in Topic:
+        fact = month_fact(engine, chart, topic, "2026-11")
+        plain = compose(fact)
+        assert plain is not None
+        keys = {plain.answer_key}
+        for preset in presets_for(topic):
+            answer = compose(fact, preset)
+            assert answer is not None and answer.preset is preset
+            assert answer.question and answer.question.endswith("?")
+            assert answer.tip
+            assert (answer.theme, answer.act, answer.say, answer.basis) == (
+                plain.theme,
+                plain.act,
+                plain.say,
+                plain.basis,
+            )
+            keys.add(answer.answer_key)
+        assert len(keys) == 4  # each preset saves as its own answer
+
+
+def test_preset_from_another_topic_is_refused(engine: NatalChartEngine, approve_month) -> None:  # type: ignore[no-untyped-def]
+    approve_month()
+    chart = _chart(engine, BIRTHS[0], TimePrecision.EXACT)
+    fact = month_fact(engine, chart, Topic.WORK, "2026-11")
+    with pytest.raises(ValueError):
+        compose(fact, PresetId.MONEY_MONTH_END)
 
 
 def test_window_ignores_the_clock_inside_a_day(engine: NatalChartEngine) -> None:
