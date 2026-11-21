@@ -23,7 +23,7 @@ another person's private thoughts. Every jab is paired with the unchanged action
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import StrEnum
 
 from app.domains.content.copy_approval import approved_texts
@@ -34,6 +34,7 @@ from app.domains.readings.daily_psychology import (
     DailyIssuePattern,
     split_scene_lead,
 )
+from app.domains.readings.headline_rewrites import approved_rewrite, rewrite_pairs
 from app.domains.readings.models import (
     ReadingContentProjection,
     ReadingPurpose,
@@ -576,13 +577,49 @@ ROAST_PLACEMENT_MEANINGS: dict[str, str] = {
     "capacity-before-agreement": "Bạn hay ôm trách nhiệm, trong khi thời gian có giới hạn thật.",
 }
 
+# A code headline that says the reader is tired gives way to its approved rewrite pair, direct and
+# roast together (headline_rewrites, #777). The replaced pair stays readable for saved notes.
+_REPLACED_HEADLINES: dict[str, tuple[str, str]] = {
+    direct: (roast, key)
+    for key, voice in ROAST_ISSUES.items()
+    for direct, roast in voice.headlines
+    if approved_rewrite(direct) is not None
+}
+ROAST_ISSUES = {
+    key: replace(
+        voice,
+        headlines=tuple(
+            approved_rewrite(direct) or (direct, roast) for direct, roast in voice.headlines
+        ),
+    )
+    for key, voice in ROAST_ISSUES.items()
+}
+
 _ISSUES = {issue.key: issue for issue in DAILY_ISSUES}
 _HEADLINE_ROAST: dict[str, str] = {
-    direct: roast for voice in ROAST_ISSUES.values() for direct, roast in voice.headlines
+    **{direct: roast for direct, (roast, _) in _REPLACED_HEADLINES.items()},
+    **{direct: roast for voice in ROAST_ISSUES.values() for direct, roast in voice.headlines},
 }
 _HEADLINE_ISSUE: dict[str, str] = {
-    direct: key for key, voice in ROAST_ISSUES.items() for direct, _ in voice.headlines
+    **{direct: key for direct, (_, key) in _REPLACED_HEADLINES.items()},
+    **{direct: key for key, voice in ROAST_ISSUES.items() for direct, _ in voice.headlines},
 }
+
+
+def _headline_roast(hook: str) -> str | None:
+    found = _HEADLINE_ROAST.get(hook)
+    if found is None and (pair := rewrite_pairs().get(hook)) is not None:
+        found = pair[0]
+    return found
+
+
+def _headline_issue(hook: str) -> str | None:
+    found = _HEADLINE_ISSUE.get(hook)
+    if found is None and (pair := rewrite_pairs().get(hook)) is not None:
+        found = pair[1]
+    return found
+
+
 _ACTION_ISSUE: dict[str, str] = {
     action: issue.key
     for issue in DAILY_ISSUES
@@ -632,8 +669,8 @@ def _thesis_matches(issue: DailyIssuePattern, thesis: str) -> bool:
 
 
 def _resolve_issue(sections: DailySections) -> str | None:
-    if sections.hook in _HEADLINE_ISSUE:
-        return _HEADLINE_ISSUE[sections.hook]
+    if (headline_issue := _headline_issue(sections.hook)) is not None:
+        return headline_issue
     if sections.micro_action in _ACTION_ISSUE:
         return _ACTION_ISSUE[sections.micro_action]
     return next(
@@ -653,8 +690,8 @@ def roast_daily_sections(sections: DailySections) -> DailySections:
     arena, scene = split_scene_lead(sections.manifestation)
     gentle = arena in _GENTLE_ARENAS
 
-    hook = _HEADLINE_ROAST.get(sections.hook, sections.hook)
-    if _HEADLINE_ISSUE.get(sections.hook, key) != key:
+    hook = _headline_roast(sections.hook) or sections.hook
+    if (_headline_issue(sections.hook) or key) != key:
         hook = sections.hook
 
     thesis = sections.thesis
@@ -686,7 +723,7 @@ def roast_daily_sections(sections: DailySections) -> DailySections:
 def roast_legacy_text(value: str) -> str:
     """Legacy title/body only change when they equal an authored direct headline."""
 
-    return _HEADLINE_ROAST.get(value, value)
+    return _headline_roast(value) or value
 
 
 def apply_content_voice(
