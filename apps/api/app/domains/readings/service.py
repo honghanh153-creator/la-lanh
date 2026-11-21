@@ -8,6 +8,7 @@ from app.domains.astro.models import (
     Tradition,
     TransitToNatalSnapshot,
 )
+from app.domains.content.copy_approval import copy_text
 from app.domains.readings.models import (
     BackgroundLens,
     InsightReading,
@@ -239,11 +240,25 @@ class InsightReadingService:
             (BodyName.JUPITER, ReadingDomain.CORE, "Điều giúp bạn mở rộng"),
         )
         claims: list[ReadingClaim] = []
+        # Two planets in one sign used to print the same "Ngoài đời" and "Khi căng" sentence
+        # word for word (new-user persona run 20.11.2026). Each planet has its own sentence once
+        # approved (insight.everyday / insight.watch); until then a card never repeats a
+        # sentence an earlier card already showed: the section is left out instead.
+        shown: set[str] = set()
         for body, domain, title in definitions:
             try:
                 position = chart.body(body)
             except KeyError:
                 continue
+            sign = position.sign.value
+            manifestation = self._manifestation(body, sign)
+            watch_core = self._watch_core(body, sign)
+            if manifestation in shown:
+                manifestation = ""
+            shown.add(manifestation)
+            if watch_core in shown:
+                watch_core = ""
+            shown.add(watch_core)
             claims.append(
                 ReadingClaim(
                     id=f"{body.value}-sign",
@@ -252,8 +267,8 @@ class InsightReadingService:
                     summary=self._summary(chart, body, position.sign.value),
                     hook=self._hook(body, position.sign.value),
                     meaning=self._meaning(chart, body, position.longitude, position.sign.value),
-                    manifestation=self._manifestation(position.sign.value),
-                    watch_for=self._watch_for(chart, body, position.sign.value),
+                    manifestation=manifestation,
+                    watch_for=self._watch_for(chart, body, watch_core),
                     micro_action=BODY_ACTION[body],
                     evidence=self._evidence_labels(
                         chart, body, position.longitude, position.sign.value
@@ -300,12 +315,21 @@ class InsightReadingService:
         return text
 
     @staticmethod
-    def _manifestation(sign: str) -> str:
-        return f"Trong đời thường, bạn hay {SIGN_EVERYDAY[sign]}."
+    def _manifestation(body: BodyName, sign: str) -> str:
+        return copy_text(
+            f"insight.everyday.{body.value}.{sign}",
+            f"Trong đời thường, bạn hay {SIGN_EVERYDAY[sign]}.",
+        )
 
     @staticmethod
-    def _watch_for(chart: NatalChart, body: BodyName, sign: str) -> str:
-        text = f"Khi căng, bạn hay {SIGN_SHADOW[sign]}."
+    def _watch_core(body: BodyName, sign: str) -> str:
+        return copy_text(
+            f"insight.watch.{body.value}.{sign}", f"Khi căng, bạn hay {SIGN_SHADOW[sign]}."
+        )
+
+    @staticmethod
+    def _watch_for(chart: NatalChart, body: BodyName, core: str) -> str:
+        text = core
         related = sorted(
             (aspect for aspect in chart.aspects if body in {aspect.body_a, aspect.body_b}),
             key=lambda aspect: aspect.orb,
@@ -319,7 +343,7 @@ class InsightReadingService:
                 else "tạo sự phối hợp khá tự nhiên"
             )
             text += (
-                f" Góc {ASPECT_VI.get(aspect.kind, aspect.kind)} gần nhất với "
+                f"{' ' if text else ''}Góc {ASPECT_VI.get(aspect.kind, aspect.kind)} gần nhất với "
                 f"{BODY_VI.get(other, other.value.title())} {dynamic}; nó không quyết định "
                 "bạn phải phản ứng thế nào."
             )
