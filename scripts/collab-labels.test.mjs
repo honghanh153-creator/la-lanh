@@ -16,8 +16,16 @@ test('label follows the turn and only changes when needed', () => {
 test('a hold behind another PR is labelled as waiting on that PR, not on the owner', () => {
   assert.deepEqual(labelChange({ labels: ['st: chờ owner'] }, { turn: 'hold', reason: 'chờ PR #722 cùng file' }), { add: 'st: chờ PR khác', remove: ['st: chờ owner'] });
   assert.deepEqual(labelChange({ labels: [] }, { turn: 'hold', reason: 'xếp chồng trên agent/claude/x' }), { add: 'st: chờ PR khác', remove: [] });
-  for (const reason of ['needs-owner', 'base là main: chỉ owner', 'owner bỏ khỏi plan hôm nay', 'draft'])
+  for (const reason of ['needs-owner', 'base là main: chỉ owner', 'owner bỏ khỏi plan hôm nay'])
     assert.deepEqual(labelChange({ labels: [] }, { turn: 'hold', reason }), { add: 'st: chờ owner', remove: [] }, reason);
   // The PR leaves the wait label once its turn moves on.
   assert.deepEqual(labelChange({ labels: ['st: chờ PR khác'] }, { turn: 'claude-check' }), { add: 'st: đang kiểm tra', remove: ['st: chờ PR khác'] });
 });
+
+// 18.11 (hourly check 16:45): a draft is paused by its agent, not held for the owner (#726).
+test('a draft is labelled paused by its agent, never "chờ owner"', () => {
+  assert.deepEqual(labelChange({ labels: ['st: chờ owner'] }, { turn: 'hold', reason: 'draft' }), { add: 'st: tạm dừng', remove: ['st: chờ owner'] });
+  assert.deepEqual(labelChange({ labels: ['st: tạm dừng'] }, { turn: 'claude-check' }), { add: 'st: đang kiểm tra', remove: ['st: tạm dừng'] });
+  assert.deepEqual(labelChange({ labels: [] }, { turn: 'hold', reason: 'needs-owner' }), { add: 'st: chờ owner', remove: [] });
+});
+
