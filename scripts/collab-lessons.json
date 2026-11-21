@@ -1044,6 +1044,25 @@
    "closedBy": {
     "pr": 838
    }
+  },
+  {
+   "id": "L58",
+   "title": "PR vào collab/integration không có nhãn area thì rơi vào nhóm cuối và không bao giờ tới lượt: tick gắn area:ops cho PR chỉ đổi file quy trình, còn lại báo động sau hai tick (21.11: 8 PR quy trình chờ tới ba ngày, chưa lần nào được check hay review)",
+   "from": "phiên điều phối 21.11; soát làn quy trình",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-area-label.test.mjs",
+    "name": "L58: an unlabelled workflow PR is labelled area:ops; any other unlabelled PR alerts after two ticks, once per set"
+   },
+   "caller": {
+    "file": "scripts/collab-tick.mjs",
+    "contains": "try { areaNote({ gh, log, alert: text => opsAlert(gh, text, areaWatchSubject), resolve: text => resolveOpsAlert(gh, text, areaWatchSubject) }); }"
+   },
+   "closedBy": {
+    "pr": 838
+   }
   }
  ]
 }
