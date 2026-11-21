@@ -273,3 +273,22 @@ never sent; lean conclusions and reasons stay local. No new data type, recipient
 - Never in the file: ids, hashes, digests, capability/receipt tokens, CSRF or session secrets, Radar result prose, Lá Chứng responder content, other people's birth data, birthplace centroid coordinates, rows the app already hides (expired Daily history, Tarot, Radar), internal reading/rewrite state.
 - Delivery: built on request from a fresh read, not stored or cached server-side (`no-store`, `Pragma: no-cache`, `nosniff`, `no-referrer`, fixed filename `la-lanh-du-lieu-cua-toi.json`), CSRF + trusted origin, 5/min per peer. The web client hands the Blob to the device and keeps no copy; the Capacitor shell writes the JSON to the app's own cache directory with the official `@capacitor/filesystem` plugin, opens it with `@capacitor/share` (system share sheet), and deletes the temp file as soon as the sheet closes (saved, cancelled or failed); if that delete fails, the file stays only in the app-private cache until the OS or app clears it. Neither plugin sends data off the device. Real iOS/Android device testing is still required before release. No third party or SDK receives it, so Apple App Privacy and Google Play Data Safety answers do not change (no new collection or sharing). Play's "users can request data deletion" answer is unchanged; the export is an additional in-app right.
 - **P09 D2:** B's self-service screens (session list/view/withdraw, used-invite withdraw, receipt) are in integration since #83; Mình and the privacy page now link B to them and explain what is held. B is never asked for birth data again. Inventory and open questions: [plan](../plans/2026-10-29-privacy-export-and-b-rights.md).
+
+## Hỏi Lá bằng lá số delta — AK2, 2026-11-20
+
+"Hỏi về tháng này" answers a topic from the person's stored chart and this month's transits
+(`app/domains/month_answer`, `/v1/month/*`). It reads the existing birth snapshot and, for an
+exact time, recomputes the chart from the existing encrypted supplement; it collects no new
+birth, place or identity field and calls no third party or AI service.
+
+- **Request:** closed values only: a topic label and, optionally, one of 18 preset question ids.
+  There is no typed-question box (owner chose AS1 on 2026-11-21), so no free text is collected and
+  no consent or separate crisis notice is needed for this screen. A request carrying free text is
+  rejected by validation and never read.
+- **Answers:** answers, the on-tap easier window and the Khám phá month card are computed per
+  request and not stored, cached or logged (`Cache-Control: no-store`). No row is written; a test
+  compares every table's row count.
+- **Saving:** nothing is saved automatically. Explicit "Lưu" and its own deletable list come in a
+  separate change with its own retention, export and erasure entries.
+- **Declarations:** App Privacy and Data Safety answers do not change (no new data type; derived
+  astrology content is already declared).
