@@ -311,3 +311,148 @@ def test_packets_are_blind_and_each_pass_reads_in_its_own_order() -> None:
     assert order == [[p["persona"] for p in batch] for batch in split_for_pass(packets, "first", 3)]
     assert {pid for batch in order for pid in batch} == {p["id"] for p in people}
     assert sum(len(batch) for batch in order) == len(people)
+
+
+# Rubric v2 (#689): flags need their words, and planted cases show whether judges raise flags.
+def test_a_flag_counts_only_with_its_quote_found_in_what_the_persona_saw() -> None:
+    from scripts.persona_stability import apply_quote_rule, build_packets, parse_scores
+
+    people = _personas()[:3]
+    a, b, c = (str(p["id"]) for p in people)
+    packets = {p["persona"]: p for p in build_packets(people, _run_rows(people))}
+    scores = parse_scores(
+        [
+            # Word for word, spacing aside: kept.
+            _score(a, pressure=True, quotes={"pressure": "Uống  một cốc nước."}),
+            # Reworded, and a flag with no quote at all: both dropped.
+            _score(b, pressure=True, blame=True, quotes={"pressure": "Uống ngay một cốc nước."}),
+            # Two fields glued together are not one line of the app.
+            _score(c, privacy=True, quotes={"privacy": "Tiêu đề ngày 1 Uống một cốc nước."}),
+        ]
+    )
+    assert apply_quote_rule(scores, packets) == [(b, "blame"), (b, "pressure"), (c, "privacy")]
+    assert scores[a]["pressure"] is True
+    assert (scores[b]["pressure"], scores[b]["blame"], scores[c]["privacy"]) == (False,) * 3
+    # Someone the run never showed anything to cannot carry a flag.
+    ghost = parse_scores([_score("P999", blame=True, quotes={"blame": "Uống một cốc nước."})])
+    assert apply_quote_rule(ghost, packets) == [("P999", "blame")]
+
+
+def test_planted_cases_look_like_real_packets_and_stay_apart_from_their_source() -> None:
+    import pytest
+
+    from scripts.persona_stability import (
+        PASSES,
+        build_packets,
+        control_packets,
+        control_summary,
+        parse_scores,
+        split_for_pass,
+    )
+
+    people = _personas()[:12]
+    ids = [str(p["id"]) for p in people]
+    packets = build_packets(people, _run_rows(people))
+    controls = [
+        {
+            "id": f"P9{i:02d}",
+            "copy_of": ids[i],
+            "day_index": i % 4,
+            "field": "la_line",
+            "expect": "pressure",
+            "text": f"Bạn phải làm ngay việc số {i}.",
+        }
+        for i in range(6)
+    ]
+    planted, twins = control_packets(packets, controls)
+    assert twins == {f"P9{i:02d}": ids[i] for i in range(6)}
+    assert all(set(p) == {"persona", "profile", "days"} for p in planted)
+    assert planted[1]["days"][1]["la_line"] == "Bạn phải làm ngay việc số 1."
+    assert planted[1]["profile"] == packets[1]["profile"]
+    assert packets[1]["days"][1]["la_line"] is None  # the real packet is not touched
+    for name in PASSES:
+        for batches in (2, 3, 4):
+            split = split_for_pass([*packets, *planted], name, batches, twins)
+            assert sum(len(b) for b in split) == len(packets) + len(planted)
+            for batch in split:
+                here = {p["persona"] for p in batch}
+                assert not any(c in here and s in here for c, s in twins.items())
+    for broken in (
+        {**controls[0], "id": ids[3]},  # takes a real persona's id
+        {**controls[0], "copy_of": "P999"},
+        {**controls[0], "day_index": 4},
+        {**controls[0], "field": "day"},
+        {**controls[0], "expect": "rude"},
+        {**controls[0], "text": " "},
+    ):
+        with pytest.raises(ValueError):
+            control_packets(packets, [broken])
+
+    caught = parse_scores(
+        [_score("P900", pressure=True), _score("P901"), _score("P902", blame=True)]
+    )
+    summary = control_summary(controls[:4], {"first": caught, "again": {}})
+    assert summary["planted"] == 4
+    # Another flag on a planted case is not a catch; a case nobody scored is missing, not caught.
+    assert summary["caught"] == {"first": 1, "again": 0}
+    assert [r["caught"]["first"] for r in summary["rows"]] == [True, False, False, None]
+
+
+def test_report_drops_unquoted_flags_before_comparing_and_shows_planted_cases(
+    tmp_path: Path,
+) -> None:
+    from scripts.persona_stability import cmd_report
+
+    people = _personas()[:12]
+    ids = [str(p["id"]) for p in people]
+    run = tmp_path / "run"
+    run.mkdir()
+    (run / "transcript.jsonl").write_text(
+        "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in _run_rows(people)),
+        encoding="utf-8",
+    )
+    (run / "meta.json").write_text(json.dumps({"git_head": "0" * 40}), encoding="utf-8")
+    personas_path = tmp_path / "personas.json"
+    personas_path.write_text(json.dumps({"personas": people}), encoding="utf-8")
+    controls = tmp_path / "controls.json"
+    line = "Bạn phải uống ngay, không được để sau."
+    controls.write_text(
+        json.dumps(
+            {
+                "controls": [
+                    {
+                        "id": "P900",
+                        "copy_of": ids[0],
+                        "day_index": 0,
+                        "field": "small_action",
+                        "expect": "pressure",
+                        "text": line,
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    def write(name: str, changes: dict[str, dict[str, Any]]) -> list[str]:
+        path = tmp_path / f"{name}.json"
+        path.write_text(
+            json.dumps([_score(pid, **changes.get(pid, {})) for pid in [*ids, "P900"]]),
+            encoding="utf-8",
+        )
+        return [str(path)]
+
+    quoted = {"pressure": True, "quotes": {"pressure": line}}
+    # The first pass flags a real persona with words the app never showed: without the quote
+    # rule the two passes would differ on that persona.
+    first = write("first", {ids[5]: {"blame": True, "quotes": {"blame": "bịa ra"}}, "P900": quoted})
+    again = write("again", {})
+    out = tmp_path / "report.md"
+    assert cmd_report(run, personas_path, first, again, [], out, None, controls)
+    text = out.read_text(encoding="utf-8")
+    assert "lượt 1 1; lượt 2 0" in text
+    assert "| bị ép | 1 | 1 | 0 |" in text  # planted: caught by pass 1, missed by pass 2
+    assert "12/12" in text  # the planted case is not one of the people the marks count
+    saved = json.loads((run / "stability.json").read_text(encoding="utf-8"))
+    assert saved["planted"]["caught"] == {"first": 1, "again": 0}
+    assert saved["flags_dropped_without_quote"]["first"] == [[ids[5], "blame"]]
