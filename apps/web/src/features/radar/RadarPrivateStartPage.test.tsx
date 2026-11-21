@@ -1,14 +1,13 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
-  ApiProblem,
   claimOwner,
   createPrivateRadarCheck,
   getBirthSupplement,
+  getRadarConsentOptions,
   getSession,
   listRadarInvites,
   OWNER_SESSION_EPOCH_KEY,
@@ -26,6 +25,7 @@ vi.mock("../../shared/api/client", async (loadOriginal) => {
     createPrivateRadarCheck: vi.fn(),
     deleteRadarResult: vi.fn(),
     getBirthSupplement: vi.fn(),
+    getRadarConsentOptions: vi.fn(),
     listRadarInvites: vi.fn(),
     searchBirthPlaces: vi.fn(),
   };
@@ -43,6 +43,17 @@ function supplement(profileLevel: 1 | 2 | 3) {
     timezone_id: full ? "Asia/Ho_Chi_Minh" : null,
   } as Awaited<ReturnType<typeof getBirthSupplement>>;
 }
+
+const SWITCHED_OFF = { invite_first: false, sentences: {}, authorized_input_version: "radar-authorized-input-v1", date_consent_version: "radar-pair-date-v1" };
+// Test stand-ins only: the real sentences are owner-only and served by the server once approved.
+const APPROVED = {
+  invite_first: true,
+  sentences: {
+    "owner-invite-heading": "Câu mời A.", "owner-invite-body": "Câu mời B.",
+  },
+  authorized_input_version: "radar-authorized-input-v2",
+  date_consent_version: "radar-pair-date-v1",
+};
 
 function renderPage(queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })) {
   return render(
@@ -77,6 +88,7 @@ describe("RadarPrivateStartPage", () => {
     vi.mocked(listRadarInvites).mockResolvedValue([]);
     vi.mocked(searchBirthPlaces).mockResolvedValue([]);
     vi.mocked(getBirthSupplement).mockResolvedValue(supplement(3));
+    vi.mocked(getRadarConsentOptions).mockResolvedValue(SWITCHED_OFF);
     scrollIntoView.mockReset();
     Object.defineProperty(Element.prototype, "scrollIntoView", {
       configurable: true,
@@ -92,63 +104,35 @@ describe("RadarPrivateStartPage", () => {
     }
   });
 
-  it("makes direct private input the primary flow and keeps invitation secondary", async () => {
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    render(
-      <QueryClientProvider client={queryClient}>
-        <MemoryRouter><RadarPrivateStartPage /></MemoryRouter>
-      </QueryClientProvider>,
-    );
+  // Owner AP2 (21.11.2026): no "this person agreed" tick on any path; a pair is read only when the
+  // other person types their own birth date through the link.
+  it("leads to the invite with the owner-approved sentences and asks nothing about the other person", async () => {
+    vi.mocked(getRadarConsentOptions).mockResolvedValue(APPROVED);
+    renderPage();
 
-    expect(await screen.findByRole("heading", { name: "Check kín một người bạn đã biết." })).toBeInTheDocument();
-    expect(await screen.findByRole("button", { name: /Check kín ngay/ })).toBeDisabled();
-    expect(screen.getByText(/Ngày, giờ và nơi sinh không được lưu/)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Mời họ tự nhập" })).toHaveAttribute("href", "/radar/invite");
-    expect(screen.getByRole("navigation", { name: "Tiến độ Radar" })).toBeInTheDocument();
-    expect(screen.getByText("Thông tin").closest('[aria-current="step"]')).toBeInTheDocument();
-    expect(document.querySelector("#radar-history")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Không rõ giờ" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Câu mời A." })).toBeInTheDocument();
+    expect(screen.getByText("Câu mời B.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Gửi link mời/ })).toHaveAttribute("href", "/radar/invite");
+    expect(screen.getByRole("heading", { name: "Xem hợp gu với một người bạn đã biết." })).toBeInTheDocument();
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Xem hợp gu$/ })).not.toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/đã cho phép|xác nhận|không gửi thông báo/i);
+    expect(createPrivateRadarCheck).not.toHaveBeenCalled();
   });
 
-  it("submits a privacy-limited Radar check when the other birth time is unknown", async () => {
-    const user = userEvent.setup();
-    vi.mocked(searchBirthPlaces).mockResolvedValue([{
-      place_id: "vn-hanoi",
-      display_name: "Hà Nội",
-      timezone_id: "Asia/Ho_Chi_Minh",
-      country_code: "VN",
-      confidence: "current-province-centroid",
-    }]);
-    vi.mocked(createPrivateRadarCheck).mockResolvedValue({
-      version: "radar-result-v2",
-      headline: "Một kết nối",
-      summary: "Một bản đọc giới hạn.",
-      dimensions: [],
-      strongest_contacts: [],
-      disclaimer: "Không dùng lớp phụ thuộc giờ.",
-      request_id: "00000000-0000-4000-8000-000000000099",
-      mode: "private_check",
-    });
-    render(
-      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-        <MemoryRouter><RadarPrivateStartPage /></MemoryRouter>
-      </QueryClientProvider>,
-    );
+  it("keeps the plain invite link while the server serves no approved sentence", async () => {
+    renderPage();
+    expect(await screen.findByRole("link", { name: "Mời họ tự nhập" })).toHaveAttribute("href", "/radar/invite");
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+  });
 
-    await user.type(await screen.findByLabelText("Tên gọi để bạn dễ nhớ"), "An");
-    await user.type(screen.getByLabelText("Ngày sinh — ngày"), "15");
-    await user.type(screen.getByLabelText("Ngày sinh — tháng"), "03");
-    await user.type(screen.getByLabelText("Ngày sinh — năm"), "1990");
-    await user.click(screen.getByRole("button", { name: "Không rõ giờ" }));
-    await user.type(screen.getByLabelText("Thành phố / tỉnh nơi sinh"), "Hà");
-    await user.click(await screen.findByRole("button", { name: /Hà Nội/ }));
-    await user.click(screen.getByLabelText("Xác nhận đã được phép dùng thông tin sinh"));
-    await user.click(screen.getByRole("button", { name: /Check kín ngay/ }));
-
-    await waitFor(() => expect(createPrivateRadarCheck).toHaveBeenCalledWith(expect.objectContaining({
-      birth_time_mode: "unknown",
-      birth_time_local: null,
-    }), expect.any(String)));
+  it("does not block a date-only owner", async () => {
+    vi.mocked(getRadarConsentOptions).mockResolvedValue(APPROVED);
+    vi.mocked(getBirthSupplement).mockResolvedValue(supplement(1));
+    renderPage();
+    expect(await screen.findByRole("link", { name: /Gửi link mời/ })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Thêm giờ & nơi sinh của mình" })).not.toBeInTheDocument();
   });
 
   it("moves returning users to their Radar history from the result CTA", async () => {
@@ -159,42 +143,6 @@ describe("RadarPrivateStartPage", () => {
     );
 
     await waitFor(() => expect(scrollIntoView).toHaveBeenCalled());
-  });
-
-  it("requires both hour and minute for an exact-time check", async () => {
-    const user = userEvent.setup();
-    vi.mocked(searchBirthPlaces).mockResolvedValue([{
-      place_id: "vn-hanoi", display_name: "Hà Nội", timezone_id: "Asia/Ho_Chi_Minh",
-      country_code: "VN", confidence: "current-province-centroid",
-    }]);
-    render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-      <MemoryRouter><RadarPrivateStartPage /></MemoryRouter>
-    </QueryClientProvider>);
-    await user.type(await screen.findByLabelText("Tên gọi để bạn dễ nhớ"), "QA");
-    await user.type(screen.getByLabelText("Ngày sinh — ngày"), "15");
-    await user.type(screen.getByLabelText("Ngày sinh — tháng"), "03");
-    await user.type(screen.getByLabelText("Ngày sinh — năm"), "1990");
-    await user.type(screen.getByLabelText("Thành phố / tỉnh nơi sinh"), "Hà");
-    await user.click(await screen.findByRole("button", { name: /Hà Nội/ }));
-    await user.click(screen.getByLabelText("Xác nhận đã được phép dùng thông tin sinh"));
-    await user.selectOptions(screen.getByLabelText("Giờ (0–23)"), "07");
-    expect(screen.getByRole("button", { name: /Check kín ngay/ })).toBeDisabled();
-    await user.selectOptions(screen.getByLabelText("Phút (0–59)"), "30");
-    expect(screen.getByRole("button", { name: /Check kín ngay/ })).toBeEnabled();
-  });
-
-  it("opens all 34 current birthplace units without calling an external geocoder", async () => {
-    const user = userEvent.setup();
-    render(
-      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-        <MemoryRouter><RadarPrivateStartPage /></MemoryRouter>
-      </QueryClientProvider>,
-    );
-
-    await user.click(await screen.findByRole("button", { name: "Xem đủ 34 tỉnh/thành" }));
-
-    await waitFor(() => expect(searchBirthPlaces).toHaveBeenCalledWith("", expect.any(AbortSignal)));
-    expect(screen.getByRole("button", { name: "Thu gọn danh mục" })).toBeVisible();
   });
 
   it("never renders cached Radar history while binding a different guest session", () => {
@@ -217,76 +165,6 @@ describe("RadarPrivateStartPage", () => {
     );
 
     expect(screen.queryByText("Old private result")).not.toBeInTheDocument();
-    expect(screen.getByText("Đang nối Radar với phiên chart hiện tại…")).toBeInTheDocument();
-  });
-  it("shows the add-birth-time gate instead of the form to a date-only user", async () => {
-    const user = userEvent.setup();
-    vi.mocked(getBirthSupplement).mockResolvedValue(supplement(1));
-    renderPage();
-
-    const cta = await screen.findByRole("link", { name: "Thêm giờ & nơi sinh của mình" });
-    expect(cta).toHaveAttribute("href", "/birth-time");
-    expect(screen.getByRole("heading", { name: "Radar cần chart đủ giờ và nơi sinh của bạn trước." })).toBeInTheDocument();
-    expect(screen.queryByLabelText("Tên gọi để bạn dễ nhớ")).not.toBeInTheDocument();
-    expect(screen.queryByLabelText("Ngày sinh — ngày")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Check kín ngay/ })).not.toBeInTheDocument();
-    await user.click(cta);
-    expect(sessionStorage.getItem("la-lanh-radar-owner-start")).toBe("private");
-  });
-
-  it("shows the form to a user whose own chart has birth time and place", async () => {
-    vi.mocked(getBirthSupplement).mockResolvedValue(supplement(3));
-    renderPage();
-
-    expect(await screen.findByLabelText("Tên gọi để bạn dễ nhớ")).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Thêm giờ & nơi sinh của mình" })).not.toBeInTheDocument();
-  });
-
-  it("waits for the precision check without showing the form, then shows it", async () => {
-    let resolve: ((value: Awaited<ReturnType<typeof getBirthSupplement>>) => void) | null = null;
-    vi.mocked(getBirthSupplement).mockImplementation(() => new Promise((done) => { resolve = done; }));
-    renderPage();
-
-    await waitFor(() => expect(resolve).not.toBeNull());
-    expect(screen.getByText("Đang nối Radar với phiên chart hiện tại…")).toBeInTheDocument();
-    expect(screen.queryByLabelText("Tên gọi để bạn dễ nhớ")).not.toBeInTheDocument();
-    resolve!(supplement(3));
-    expect(await screen.findByLabelText("Tên gọi để bạn dễ nhớ")).toBeInTheDocument();
-    expect(screen.queryByText("Đang nối Radar với phiên chart hiện tại…")).not.toBeInTheDocument();
-  });
-
-  it("falls back to the form when the precision check fails or times out", async () => {
-    vi.mocked(getBirthSupplement).mockRejectedValue(new Error("Request timed out"));
-    renderPage();
-
-    expect(await screen.findByLabelText("Tên gọi để bạn dễ nhớ")).toBeInTheDocument();
-    expect(screen.queryByText("Đang nối Radar với phiên chart hiện tại…")).not.toBeInTheDocument();
-  });
-
-  it("keeps the server 409 as a fallback and stores no draft of the other person", async () => {
-    const user = userEvent.setup();
-    vi.mocked(getBirthSupplement).mockRejectedValue(new Error("offline"));
-    vi.mocked(searchBirthPlaces).mockResolvedValue([{
-      place_id: "vn-hanoi", display_name: "Hà Nội", timezone_id: "Asia/Ho_Chi_Minh",
-      country_code: "VN", confidence: "current-province-centroid",
-    }]);
-    vi.mocked(createPrivateRadarCheck).mockRejectedValue(new ApiProblem(409, "RADAR_CHART_REQUIRED", "chart"));
-    renderPage();
-
-    await user.type(await screen.findByLabelText("Tên gọi để bạn dễ nhớ"), "QA");
-    await user.type(screen.getByLabelText("Ngày sinh — ngày"), "15");
-    await user.type(screen.getByLabelText("Ngày sinh — tháng"), "03");
-    await user.type(screen.getByLabelText("Ngày sinh — năm"), "1990");
-    await user.click(screen.getByRole("button", { name: "Không rõ giờ" }));
-    await user.type(screen.getByLabelText("Thành phố / tỉnh nơi sinh"), "Hà");
-    await user.click(await screen.findByRole("button", { name: /Hà Nội/ }));
-    await user.click(screen.getByLabelText("Xác nhận đã được phép dùng thông tin sinh"));
-    await user.click(screen.getByRole("button", { name: /Check kín ngay/ }));
-
-    expect(await screen.findByRole("link", { name: "Thêm giờ & nơi sinh của mình" })).toHaveAttribute("href", "/birth-time");
-    expect(screen.getByRole("alert")).toHaveTextContent("Chart của bạn còn thiếu giờ hoặc nơi sinh.");
-    const stored = JSON.stringify({ ...sessionStorage }) + JSON.stringify({ ...localStorage });
-    expect(stored).not.toContain("1990");
-    expect(stored).not.toContain("vn-hanoi");
+    expect(screen.getByText("Đang mở hồ sơ của bạn…")).toBeInTheDocument();
   });
 });

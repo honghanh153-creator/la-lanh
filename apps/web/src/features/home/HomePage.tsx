@@ -67,6 +67,7 @@ import { NightSky } from "../../shared/ui/NightSky";
 import { homeCompanionLine, type HomeCompanionState } from "./companionLine";
 import { NightNudgeNotice, WeekRecapNotice } from "./HomeRituals";
 import { useNightNudge, useWeekRecap } from "./homeRitualState";
+import { RadarWeeklyCard } from "../radar/RadarWeeklyCard";
 import "./home-vitality.css";
 
 const RITUAL_KEY = "la-lanh-daily-ritual-v1";
@@ -528,6 +529,8 @@ export function HomePage() {
           <NightNudgeNotice {...nightNudge} />
         ) : null}
       </HomeCompanion>
+
+      <RadarWeeklyCard />
 
       <HomeExploreRoutes />
 

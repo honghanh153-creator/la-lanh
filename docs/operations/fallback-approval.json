@@ -1,7 +1,7 @@
 {
  "approved": {
   "copy_registry": {
-   "approved": "7f5e3fb9a3777d5617cb798e218e6b7b5b6ea03bad4f38531e97c3ccdea8bb45",
+   "approved": "034dbe5c84aa89063f1dc750afc14dd064d9fe154aae9a8a6d9be4e572cc1ab8",
    "version": "copy-registry/v1"
   },
   "daily": {
@@ -86,12 +86,17 @@
     "app.domains.radar.reading.ASPECT_CHANNELS": "7b716946333191662850df8c2bab53317a45f7c928bee165d01e1b9f90eea815",
     "app.domains.radar.reading.ASPECT_LABELS": "6451608df6ce08324ba2456735b8ce29917936987bc2e250a0976f7112bdcf99",
     "app.domains.radar.reading.BALANCED_FIT_COPY": "6b151d5280e3ed384229f380151d2f6604fc2e7c8cd304d5079004d1e86c4906",
+    "app.domains.radar.reading.BASES": "76976682642465b5632195788171ecb5e82dbae2041ca8cc316cd830133f9c95",
+    "app.domains.radar.reading.BASIS_DATE_ONLY": "3cf133072f50b6dc296a2235cec7a99d932c6314b120aa8f3c08d0079ec3f052",
+    "app.domains.radar.reading.BASIS_FULL": "1e5941238a72b1f89a5d4cfad9164d5d37f08fab209161841ebf39bf057083d4",
     "app.domains.radar.reading.BODY_LABELS": "83e849958fbfc3b3fddc09ece75eb76c8c8da1cc89f20aace203d2afaeef129b",
     "app.domains.radar.reading.BODY_SHARED_ROLES": "e996c2de81754cb89f4f74b90ebf387f221322caf47c051b85c233e76d796b66",
     "app.domains.radar.reading.BODY_WEIGHT": "8728bb7748b85d2f32989556f2c6d00443c69844a581b6ae490956c7890ce5df",
     "app.domains.radar.reading.CLOSING_LINE": "830398561cabc835ac1e9f8d95bbf8ad2230478a0aa52c383c1faed5839aeeb4",
-    "app.domains.radar.reading.CONTEXTS": "d1545a7e5c9e6917567abcefedf7b5dba64ea7897263e44f6b9b169d334631d8",
+    "app.domains.radar.reading.CONTEXTS": "36b3ac9e9d555cee182f70f17ddfbbbf3c7006adee92ec4606e8465d24c2b5ec",
+    "app.domains.radar.reading.DATE_ONLY_BASIS_NOTE": "fc4a192c6327c926ca837e69b8814d932f6be18ba07802a34c32079543318605",
     "app.domains.radar.reading.FACTOR_COPY": "35daaf960e74d3677efa1643706fb6bf53fef0974e75494254231d59e3559de0",
+    "app.domains.radar.reading.FALLBACK_CONTEXTS": "0e50c6f94b705f04c0b8ca2cd073ff67a71c335917f0963fb4e14881de8a148d",
     "app.domains.radar.reading.FIT_COPY": "28cea59cde46894f5e6d5739217f9f99454908469835b1cccbc33abd713be593",
     "app.domains.radar.reading.HEADLINES": "60cf6ea82b1964ff80c49c45bc3093158d8b2cefeee3f6722576c7ce1c4f248a",
     "app.domains.radar.reading.HOUSE_AREAS": "2f5ca6a15e0cdf13dbb7faa0987b28f6d2ba1db6a0f1977dcd2f90acd2f92666",
@@ -109,6 +114,7 @@
     "app.domains.radar.reading.TIER_LABELS": "f8b48a3933cbce87491b688c53abba4952d32d9b58a513d6d85eb143203bb41b",
     "app.domains.radar.reading.TIER_REASONS": "9db05d4a434ffe118a39f82ec6833a5c6f65c9b0f3d286ad3de62a55ec4925c7",
     "app.domains.radar.reading.TIER_REFERENCE": "d1a0e91a55139b1b24f1f143af370def170f8bcdda52529faeb5d7231d00a949",
+    "app.domains.radar.reading.TIER_REFERENCE_DATE_ONLY": "2686340ba6d43a8f863379de3e601088efbbb1f425b645977e104eafed23f3c0",
     "app.domains.radar.reading.UNCLEAR_FIT_HEADLINES": "40fa306297df021f39aa892045607c7639166e3e5ea7030a587ae2cdb89f5e25",
     "app.domains.radar.reading.UNCLEAR_FIT_LABEL": "3aa88c0a8a2287737efa4c18bbf9020cca304ce76c8b6b25bf6994b5589f28f1"
    }
@@ -262,6 +268,9 @@
   "mood_lighter_task_17_11": "Owner approved privacy.mood-lighter-task on 17.11.2026, item S, relayed verbatim by the coordinator session (their words: \"S2 nhé nhưng thay vì ghi là trên máy bạn thì ghi là dành cho bạn được rồi?\"), text character for character as in copy_registry.json, approver owner, date 2026-11-17. Rendered on the consent and /privacy page next to the note and mood retention text from apps/web/src/shared/config/moodLighterTaskNote.ts; a web test keeps the two equal. Adding it moves the copy_registry.approved pin; no other pinned table changed.",
   "owner_receipt": "docs/reviews/production-release-2026-10-26/receipt.md (previous: docs/reviews/production-release-2026-10-21/receipt.md)",
   "owner_workbook": "docs/reviews/production-release-2026-10-16/content-approval.xlsx (owner content review of 16/10/2026)",
+  "radar_al1_date_only_20_11": "Owner approved AL1 on 20.11.2026, relayed verbatim by the coordinator session (their word: \"al1\"): rebuild Hợp gu as a birth-date-only flow. The approved report requires the exact line DATE_ONLY_BASIS_NOTE \"Dựa vào: ngày sinh của hai bạn.\" on a date-only result. New pins: BASES/BASIS_* (structure), TIER_REFERENCE_DATE_ONLY (radar-tier-ref-date-v1, synthetic, scripts.radar_tier_reference --basis date_only), CONTEXTS + FALLBACK_CONTEXTS (coworker and family serve the approved 'someone' sentences until their own radar.<context>.* registry lines are approved). No existing sentence changed; full-basis readings are byte-identical.",
+  "radar_am1_20_11": "Owner approved AM1 on 20.11.2026, relayed verbatim by the coordinator session (their word: \"am1\"): apply the Hợp gu owner-only copy table (audit 20.11, section 5) word for word. Five privacy lines added to copy_registry.json as privacy.radar.* (approver owner, date 2026-11-20); web tests keep the landing and consent page text equal to the registry. Adding them moves the copy_registry.approved pin; no other pinned table changed.",
+  "radar_ap2_aq1_21_11": "Owner AP2 and AQ1 on 21.11.2026, relayed by the coordinator session (her words: \"ap2 / aq1\"; recorded in her approvals file, section \"AP, AQ, AO\"). AP2: Hợp gu invite sentences 1, 2, 5, 6, 7, 8, 9 approved word for word as privacy.radar.invite-first.* (approver owner, 2026-11-21); the tick and its sentences 3 and 4 removed. AQ1: share cards on; the three privacy.radar.weekly.* sentences approved word for word. Retired AM1 entries privacy.radar.landing-no-notify, privacy.radar.landing-permission-heading and privacy.radar.consent-private-summary are removed with the screens that showed them. Moves the copy_registry.approved pin only.",
   "radar_deep_dive_138": "PR #139 / issue #138: DEEP_DIVE practice actions keep the follow-up question (\"Sau đó đối chiếu phản hồi thật…\") on the first action only, so the page no longer repeats a sentence; no new sentence. Owner approved this copy in chat on 31/10/2026 (\"duyệt copy #139\"); approved_release unchanged.",
   "radar_readable_v2": "docs/reviews/2026-10-29-hop-gu-readable.md: Hợp gu renderer radar-readable-v2 / conditional-reflection-v4 / radar-tier-ref-v1 (named tiers, context areas, threshold-gated friction, one Xem thêm layer), built on the owner's order of 29/10/2026 from the owner's feedback and the research report Phần B; the new copy is NOT yet read by the owner and must be read before any release; approved_release unchanged; Codex r55 (30/10/2026): UNCLEAR_FIT_HEADLINES, NO_CLEAR_FIT_REASON, UNCLEAR_FIT_LABEL and BALANCED_FIT_COPY for pairs without a good theme (draft copy, owner reading pending with the rest of US-22), tests/radar/test_readable_r55.py",
   "radar_titles_211": "PR #211 / issue #194: two fixed Radar titles reworded (why section: \"Những điều Lá đã dựa vào\"; perspectives: \"Cùng một lần gặp, mỗi người để tâm một chuyện khác\"). Owner approved in chat on 04.11.2026 (\"211 duyệt\"); approved_release unchanged.",

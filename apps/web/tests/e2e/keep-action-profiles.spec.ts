@@ -121,6 +121,9 @@ class FakeServer {
         return { status: 200, json: { consented: false, feedback_count: 0, last_choice: null } };
       case "GET /v1/saved-notes":
         return { status: 200, json: [] };
+      // Hôm nay asks whether "Hai bạn tuần này" is on (Hợp gu C); off here.
+      case "GET /v1/public/radar/consent-options":
+        return { status: 200, json: { invite_first: false, sentences: {}, authorized_input_version: "radar-authorized-input-v1", date_consent_version: "radar-pair-date-v1", card_links: false, weekly: false, weekly_sentences: {} } };
       case "GET /v1/birth-profile/supplement":
         return { status: 200, json: { profile_id: "profile-test", place_display_name: null, timezone_id: null, ...this.profile.supplement } };
       case "GET /v1/daily-note/experiment":

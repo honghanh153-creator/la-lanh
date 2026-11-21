@@ -1,9 +1,21 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, within } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { RadarResult } from "../../shared/api/client";
 import { RadarResultView } from "./RadarContinuePage";
+
+vi.mock("../../shared/api/client", async (original) => {
+  const actual = await original<typeof import("../../shared/api/client")>();
+  return { ...actual, getRadarAskQuestions: vi.fn().mockResolvedValue({ version: "radar-ask-v1", questions: [] }) };
+});
+
+// The owner view asks the server for "Hỏi về hai bạn" questions, so it needs a query client.
+function Providers({ children }: { children: ReactNode }) {
+  return <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><MemoryRouter>{children}</MemoryRouter></QueryClientProvider>;
+}
 
 const closing = "Kết quả để tham khảo, cách hai bạn đối xử với nhau mới là điều quyết định.";
 
@@ -86,7 +98,7 @@ const readable: RadarResult = {
 
 describe("RadarResultView · radar-readable-v2", () => {
   it("leads with the named tier and reason, without any 0-100 number", () => {
-    const { container } = render(<MemoryRouter><RadarResultView ownerView result={readable} /></MemoryRouter>);
+    const { container } = render(<Providers><RadarResultView ownerView result={readable} /></Providers>);
 
     expect(screen.getByText("Hợp chuyện")).toBeInTheDocument();
     expect(screen.getByText(readable.summary)).toBeInTheDocument();
@@ -98,7 +110,7 @@ describe("RadarResultView · radar-readable-v2", () => {
   });
 
   it("shows short main sections and keeps chart terms behind one closed Xem thêm", () => {
-    const { container } = render(<MemoryRouter><RadarResultView ownerView result={readable} /></MemoryRouter>);
+    const { container } = render(<Providers><RadarResultView ownerView result={readable} /></Providers>);
 
     expect(screen.getByRole("heading", { level: 2, name: "Điều trôi chảy" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "Điều cần để ý" })).toBeInTheDocument();
@@ -120,11 +132,18 @@ describe("RadarResultView · radar-readable-v2", () => {
       pair_signature: { ...readable.pair_signature!, tier: { key: "easy", label: "Hợp chuyện", score: 72 } },
       sections: readable.sections!.filter((section) => section.key !== "friction"),
     };
-    render(<MemoryRouter><RadarResultView result={calm} /></MemoryRouter>);
+    render(<Providers><RadarResultView result={calm} /></Providers>);
 
     expect(screen.queryByRole("heading", { level: 2, name: "Điều cần để ý" })).not.toBeInTheDocument();
     expect(screen.getByText("· 72")).toBeInTheDocument();
   });
+  // AL1: a result read from both birth dates says what it rests on, next to the headline.
+  it("says when a reading rests on the two birth dates only", () => {
+    const dated = { ...readable, metadata: { ...readable.metadata!, basis: "date_only" as const, basis_note: "Dựa vào: ngày sinh của hai bạn." } };
+    render(<Providers><RadarResultView ownerView result={dated} /></Providers>);
+    expect(screen.getByText("Dựa vào: ngày sinh của hai bạn.")).toBeInTheDocument();
+  });
+
   it("keeps the perspective's own receipts inside Xem thêm (#138)", () => {
     const withOverlay: RadarResult = {
       ...readable,
@@ -138,7 +157,7 @@ describe("RadarResultView · radar-readable-v2", () => {
         }],
       }),
     };
-    const { container } = render(<MemoryRouter><RadarResultView ownerView result={withOverlay} /></MemoryRouter>);
+    const { container } = render(<Providers><RadarResultView ownerView result={withOverlay} /></Providers>);
 
     const perspective = container.querySelector("details.radar-more .radar-more__section.is-perspective") as HTMLElement;
     expect(within(perspective).getByText("Sao Kim của người kia rơi vào nhà 7 của bạn.")).toBeInTheDocument();
