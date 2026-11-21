@@ -65,22 +65,17 @@ describe("RadarStartPage birth-precision gate", () => {
     vi.mocked(listRadarInvites).mockResolvedValue([]);
   });
 
-  it("shows the add-birth-time gate instead of the invite form to a date-only user", async () => {
+  // AL1 (owner, 20.11.2026): a date-only owner is not blocked; the pair is read from both birth dates.
+  it("shows the invite form to a date-only user", async () => {
     vi.mocked(getBirthSupplement).mockResolvedValue(supplement(1));
     renderInvitePage();
 
-    expect(await screen.findByRole("link", { name: "Thêm giờ & nơi sinh của mình" })).toHaveAttribute("href", "/birth-time");
-    expect(screen.queryByLabelText("Tên gọi của người ấy")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Tạo link bật Radar/ })).not.toBeInTheDocument();
-  });
-
-  it("remembers invite mode when the gate sends the owner to add birth time", async () => {
-    vi.mocked(getBirthSupplement).mockResolvedValue(supplement(1));
-    const user = userEvent.setup();
-    renderInvitePage();
-
-    await user.click(await screen.findByRole("link", { name: "Thêm giờ & nơi sinh của mình" }));
-    expect(sessionStorage.getItem("la-lanh-radar-owner-start")).toBe("invite");
+    expect(await screen.findByLabelText("Tên gọi của người ấy")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Tạo link mời/ })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Thêm giờ & nơi sinh của mình" })).not.toBeInTheDocument();
+    expect(screen.getAllByRole("button", { pressed: false }).map((button) => button.textContent)).toEqual(
+      expect.arrayContaining(["Bạn bè", "Đồng nghiệp", "Người yêu", "Gia đình"]),
+    );
   });
 
   it("shows the invite form to a user with birth time and place", async () => {
@@ -89,6 +84,10 @@ describe("RadarStartPage birth-precision gate", () => {
 
     expect(await screen.findByLabelText("Tên gọi của người ấy")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Thêm giờ & nơi sinh của mình" })).not.toBeInTheDocument();
+    // Plain Vietnamese labels (journey review 20.11), no "check", "private" or "bật Radar".
+    expect(screen.getByRole("heading", { name: "Bạn muốn mời ai?" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Tạo link mời/ })).toBeInTheDocument();
+    expect(screen.getByText("lời mời riêng")).toBeInTheDocument();
   });
 
   it("falls back to the invite form when the precision check fails", async () => {
@@ -127,6 +126,7 @@ describe("RadarStartPage delete confirmation", () => {
     render(<QueryClientProvider client={client}><MemoryRouter><RadarStartPage /></MemoryRouter></QueryClientProvider>);
 
     await user.click(await screen.findByRole("button", { name: "Xoá lần Radar với Mèo" }));
+    expect(screen.getByText("Đã có kết quả")).toBeInTheDocument();
     const sheet = screen.getByRole("dialog", { name: "Xoá lần Radar với Mèo?" });
     await user.click(within(sheet).getByRole("button", { name: "Giữ lại" }));
     expect(deleteRadarResult).not.toHaveBeenCalled();

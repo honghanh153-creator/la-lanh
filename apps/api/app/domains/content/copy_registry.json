@@ -12263,6 +12263,729 @@
    "category": "reading",
    "text": "Khi căng, bạn dễ tin người quá nhanh hoặc giúp quá sức mình.",
    "status": "pending"
+  },
+  {
+   "id": "privacy.radar.landing-no-notify",
+   "category": "privacy",
+   "text": "Không gửi link, không tạo hồ sơ cho người ấy, không đưa họ vào danh sách tìm người.",
+   "status": "approved",
+   "approver": "owner",
+   "date": "2026-11-20",
+   "digest": "d1dd7038eda02a1204f71ca407a9aaf1866c479010f28590b8a6572b42f1301b"
+  },
+  {
+   "id": "privacy.radar.landing-permission-heading",
+   "category": "privacy",
+   "text": "Không báo cho người ấy, nhưng vẫn cần họ cho phép",
+   "status": "approved",
+   "approver": "owner",
+   "date": "2026-11-20",
+   "digest": "f54b5c580cfd63ca172a9db0c330eb625e589b1e54bc1fd3e84350672eb3a300"
+  },
+  {
+   "id": "privacy.radar.consent-private-summary",
+   "category": "privacy",
+   "text": "Radar xem riêng",
+   "status": "approved",
+   "approver": "owner",
+   "date": "2026-11-20",
+   "digest": "7a0a46ee78981de3ffa67f4ccbac428f8832a8f2f4844bb2178b57a232afb79d"
+  },
+  {
+   "id": "privacy.radar.consent-invite",
+   "category": "privacy",
+   "text": "Kết quả dùng link mời chỉ mở khi người nhận tự nhập dữ liệu và đồng ý. Link là quyền truy cập riêng, hãy gửi đúng người. Người nhận có thể rút đồng ý; người tạo có thể xoá kết quả. Xem riêng không có link công khai. Mỗi hồ sơ giữ tối đa 100 lần Radar, kể cả lời mời đã thu hồi; xoá một lần để tạo thêm.",
+   "status": "approved",
+   "approver": "owner",
+   "date": "2026-11-20",
+   "digest": "54a4d95d3563fd7f4ada2df00bcae944916a8003ed07e20c8a000c394d0f64cf"
+  },
+  {
+   "id": "privacy.radar.consent-recipient",
+   "category": "privacy",
+   "text": "Nếu bạn đã đồng ý một lời mời Hợp gu, bạn xem hoặc rút chart khỏi kết quả trong mục Kết quả bạn đã nhận, trên thiết bị bạn đã đồng ý. Nếu chỉ còn link mời, mở lại link để rút chart; trang đó không mở lại bản đọc vì người gửi cũng giữ link. Lá không bao giờ hỏi lại ngày, giờ hay nơi sinh của bạn để xác minh, và không đưa dữ liệu sinh của bạn cho người mời. Nếu ai đó xem riêng với thông tin của bạn, chỉ người đó xoá được kết quả; bạn có thể nhờ họ xoá, hoặc chờ kết quả tự hết hạn (24 giờ với lần check mới).",
+   "status": "approved",
+   "approver": "owner",
+   "date": "2026-11-20",
+   "digest": "6dc5147648cfcd160ad621f9adb355a9729c9ed19830f00cb14e2a6fa79f654d"
+  },
+  {
+   "id": "privacy.radar.invite-first.owner-invite-heading",
+   "category": "privacy",
+   "text": "Cách chắc nhất: gửi link để người ấy tự nhập ngày sinh.",
+   "status": "pending"
+  },
+  {
+   "id": "privacy.radar.invite-first.owner-invite-body",
+   "category": "privacy",
+   "text": "Người ấy chỉ cần nhập ngày sinh của mình và bấm đồng ý. Lá không lưu ngày sinh đó. Kết quả giữ 30 ngày, ai trong hai bạn cũng xoá được.",
+   "status": "pending"
+  },
+  {
+   "id": "privacy.radar.invite-first.owner-attest-label",
+   "category": "privacy",
+   "text": "Mình đã hỏi và người này đồng ý cho mình dùng ngày sinh của họ.",
+   "status": "pending"
+  },
+  {
+   "id": "privacy.radar.invite-first.owner-attest-help",
+   "category": "privacy",
+   "text": "Chỉ tick khi bạn đã hỏi chính người đó. Thấy ngày sinh trên mạng không có nghĩa là họ đã đồng ý.",
+   "status": "pending"
+  },
+  {
+   "id": "privacy.radar.invite-first.owner-date-only-storage",
+   "category": "privacy",
+   "text": "Ngày sinh bạn nhập chỉ dùng để xem lần này và không được lưu. Kết quả được mã hoá, giữ 24 giờ rồi tự xoá. Bạn có thể xoá sớm hơn.",
+   "status": "pending"
+  },
+  {
+   "id": "privacy.radar.invite-first.recipient-heading",
+   "category": "privacy",
+   "text": "Có người muốn xem hai bạn hợp nhau ở đâu.",
+   "status": "pending"
+  },
+  {
+   "id": "privacy.radar.invite-first.recipient-body",
+   "category": "privacy",
+   "text": "Bạn chỉ cần nhập ngày sinh của mình. Lá dùng nó cho đúng lần xem này, không lưu lại và không gửi cho người mời.",
+   "status": "pending"
+  },
+  {
+   "id": "privacy.radar.invite-first.recipient-consent",
+   "category": "privacy",
+   "text": "Tôi đồng ý dùng ngày sinh của mình để Lá xem lần này. Tôi và người mời cùng nhận bản đọc, giữ 30 ngày. Tôi rút lại được bất cứ lúc nào.",
+   "status": "pending"
+  },
+  {
+   "id": "privacy.radar.invite-first.recipient-decline",
+   "category": "privacy",
+   "text": "Không muốn thì bạn cứ đóng trang. Lá không báo cho người mời là bạn đã mở link.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.tier.very_easy",
+   "category": "reading",
+   "text": "Rất dễ làm chung",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.tier.easy",
+   "category": "reading",
+   "text": "Dễ làm chung",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.tier.complementary",
+   "category": "reading",
+   "text": "Bù trừ cho nhau",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.tier.warming_up",
+   "category": "reading",
+   "text": "Cần thời gian quen cách làm",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.tier.patient",
+   "category": "reading",
+   "text": "Khác cách làm, cần kiên nhẫn",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.tier.unclear",
+   "category": "reading",
+   "text": "Chưa đủ dữ kiện để xếp bậc",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.area.talk",
+   "category": "reading",
+   "text": "Trao đổi công việc",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.area.feel",
+   "category": "reading",
+   "text": "Không khí khi làm chung",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.area.rhythm",
+   "category": "reading",
+   "text": "Nhịp làm việc",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.headline.communication",
+   "category": "reading",
+   "text": "Hai bạn trao đổi việc với nhau khá trơn tru.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.headline.emotional",
+   "category": "reading",
+   "text": "Hai bạn dễ nhận ra khi một trong hai đang quá tải.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.headline.attraction",
+   "category": "reading",
+   "text": "Làm chung, hai bạn dễ hăng hái hơn.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.headline.pace",
+   "category": "reading",
+   "text": "Hai bạn dễ chia việc và giữ đúng hạn.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.headline.clarity",
+   "category": "reading",
+   "text": "Trong công việc, hai bạn dễ hiểu ý nhau mà không cần giải thích dài.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.headline.freedom",
+   "category": "reading",
+   "text": "Hai bạn dễ cùng nghĩ ra cách làm mới.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.headline.intensity",
+   "category": "reading",
+   "text": "Hai bạn dễ bàn một vấn đề cho ra lẽ.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.headline.visibility",
+   "category": "reading",
+   "text": "Hai bạn dễ ghi nhận công sức của nhau.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.headline.unclear",
+   "category": "reading",
+   "text": "Hai bạn còn đang tìm cách làm chung cho hợp.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.fit.communication",
+   "category": "reading",
+   "text": "Khi bàn việc, hai bạn dễ hiểu đúng ý nhau ngay lần đầu. Họp chung hay nhắn việc thường ngắn gọn.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.fit.emotional",
+   "category": "reading",
+   "text": "Hai bạn dễ thấy khi một trong hai đang rối vì việc. Một câu ngắn như \"Cần mình đỡ phần nào không?\" giữa hai bạn thường đến đúng lúc.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.fit.attraction",
+   "category": "reading",
+   "text": "Làm cùng nhau, hai bạn dễ kéo nhau vào việc. Những buổi làm chung thường ít uể oải.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.fit.pace",
+   "category": "reading",
+   "text": "Việc giao cho hai bạn thường xong đúng hạn. Ai làm phần nào cũng dễ rõ ngay từ đầu.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.fit.clarity",
+   "category": "reading",
+   "text": "Hai bạn dễ nắm ý chính của nhau, kể cả khi chỉ nói vài từ. Việc chuyển giao giữa hai bạn ít bị sót.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.fit.freedom",
+   "category": "reading",
+   "text": "Hai bạn dễ cùng thử một cách làm khác thay vì làm theo lối cũ. Ý tưởng mới giữa hai bạn ít bị gạt đi.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.fit.intensity",
+   "category": "reading",
+   "text": "Khi gặp vấn đề khó, hai bạn dễ ngồi lại tìm cho ra nguyên nhân. Ít khi dừng ở cách xử lý tạm.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.fit.visibility",
+   "category": "reading",
+   "text": "Hai bạn dễ thấy và nói ra phần việc tốt của nhau. Nhờ vậy, làm chung dễ có động lực hơn.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.tension.communication",
+   "category": "reading",
+   "text": "Một tin nhắn việc quá ngắn dễ làm hai bạn hiểu lệch nhau. Ghi rõ việc gì, ai làm, khi nào xong sẽ đỡ phải hỏi lại.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.tension.emotional",
+   "category": "reading",
+   "text": "Lúc áp lực, hai bạn có thể cần những cách khác nhau: có lúc muốn nói ra, có lúc chỉ muốn làm cho xong. Hỏi \"Lúc này bạn cần mình làm gì?\" sẽ đỡ phải đoán.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.tension.attraction",
+   "category": "reading",
+   "text": "Cả hai đều muốn cầm lái, nên chuyện ai quyết dễ thành va chạm. Chia rõ ai chốt phần nào ngay từ đầu sẽ đỡ căng.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.tension.pace",
+   "category": "reading",
+   "text": "Hai bạn có thể khác nhau về tốc độ làm việc, nên dễ sốt ruột với nhau. Đặt một mốc xem lại giữa chừng sẽ giúp cả hai yên tâm.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.tension.clarity",
+   "category": "reading",
+   "text": "Một việc chỉ nói miệng dễ làm hai bạn nhớ mỗi người một kiểu. Ghi lại điều đã chốt sau mỗi lần bàn sẽ đỡ nhầm.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.tension.freedom",
+   "category": "reading",
+   "text": "Đổi kế hoạch vào phút chót dễ làm hai bạn lệch nhau. Báo sớm khi muốn đổi là đủ.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.tension.intensity",
+   "category": "reading",
+   "text": "Khi bàn chuyện quan trọng, lời góp ý dễ nghe nặng hơn ý định. Nói về việc, không nói về người, sẽ giữ được không khí.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.tension.visibility",
+   "category": "reading",
+   "text": "Khi việc chung được khen, có lúc phần của một người bị khuất. Nói rõ ai làm phần nào trước nhóm sẽ công bằng hơn.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.suggestion.communication.action",
+   "category": "reading",
+   "text": "Lần tới giao việc cho nhau, thử nhắn đủ ba ý: việc gì, cần gì, hạn khi nào.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.suggestion.communication.question",
+   "category": "reading",
+   "text": "Bạn thích nhận việc qua tin nhắn hay nói trực tiếp?",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.suggestion.emotional.action",
+   "category": "reading",
+   "text": "Khi thấy người kia đang dồn việc, hỏi một câu ngắn trước khi nhờ thêm.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.suggestion.emotional.question",
+   "category": "reading",
+   "text": "Lúc nhiều việc, bạn muốn được hỏi han hay được để yên làm?",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.suggestion.attraction.action",
+   "category": "reading",
+   "text": "Thử chọn một việc nhỏ để hai bạn làm chung từ đầu tới cuối.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.suggestion.attraction.question",
+   "category": "reading",
+   "text": "Việc nào bạn thấy làm chung vui hơn làm một mình?",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.suggestion.pace.action",
+   "category": "reading",
+   "text": "Chốt trước hạn của một việc chung và một mốc xem lại giữa chừng.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.suggestion.pace.question",
+   "category": "reading",
+   "text": "Bạn thích làm sớm hay làm sát hạn cho tập trung?",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.suggestion.clarity.action",
+   "category": "reading",
+   "text": "Sau mỗi lần bàn việc, gửi lại ba dòng tóm tắt điều đã chốt.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.suggestion.clarity.question",
+   "category": "reading",
+   "text": "Mình hiểu đúng phần việc của mình chưa?",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.suggestion.freedom.action",
+   "category": "reading",
+   "text": "Thử đề xuất một cách làm mới cho một việc lặp lại hằng tuần.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.suggestion.freedom.question",
+   "category": "reading",
+   "text": "Có việc nào bạn muốn làm khác đi mà chưa có dịp nói?",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.suggestion.intensity.action",
+   "category": "reading",
+   "text": "Dành mười lăm phút không bị ngắt để bàn một vấn đề đang kẹt.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.suggestion.intensity.question",
+   "category": "reading",
+   "text": "Theo bạn, chỗ nào trong việc này khó nhất?",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.suggestion.visibility.action",
+   "category": "reading",
+   "text": "Sau khi xong một việc chung, nói rõ một phần người kia làm tốt.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.suggestion.visibility.question",
+   "category": "reading",
+   "text": "Bạn thích được ghi nhận riêng hay trước cả nhóm?",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.low_signal.action",
+   "category": "reading",
+   "text": "Thử làm chung một việc nhỏ và để ý xem hai bạn phối hợp ra sao.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.coworker.low_signal.question",
+   "category": "reading",
+   "text": "Bạn thích được giao việc theo cách nào?",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.tier.very_easy",
+   "category": "reading",
+   "text": "Rất hiểu nhau",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.tier.easy",
+   "category": "reading",
+   "text": "Dễ hiểu nhau",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.tier.complementary",
+   "category": "reading",
+   "text": "Bổ khuyết cho nhau",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.tier.warming_up",
+   "category": "reading",
+   "text": "Cần thêm thời gian lắng nghe",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.tier.patient",
+   "category": "reading",
+   "text": "Khác nếp nghĩ, cần kiên nhẫn",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.tier.unclear",
+   "category": "reading",
+   "text": "Chưa đủ dữ kiện để xếp bậc",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.area.talk",
+   "category": "reading",
+   "text": "Nói chuyện với nhau",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.area.feel",
+   "category": "reading",
+   "text": "Quan tâm nhau",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.area.rhythm",
+   "category": "reading",
+   "text": "Nếp sinh hoạt",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.headline.communication",
+   "category": "reading",
+   "text": "Hai bạn nói chuyện với nhau khá dễ, ít khi phải dè chừng.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.headline.emotional",
+   "category": "reading",
+   "text": "Hai bạn dễ để ý khi một trong hai không vui.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.headline.attraction",
+   "category": "reading",
+   "text": "Ở bên nhau, hai bạn dễ thấy vui hơn.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.headline.pace",
+   "category": "reading",
+   "text": "Hai bạn dễ là chỗ dựa đều đặn cho nhau.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.headline.clarity",
+   "category": "reading",
+   "text": "Hai bạn dễ hiểu nhau qua những điều nhỏ.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.headline.freedom",
+   "category": "reading",
+   "text": "Hai bạn dễ cùng làm điều gì đó khác thường ngày.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.headline.intensity",
+   "category": "reading",
+   "text": "Hai bạn có thể nói với nhau những chuyện khó nói.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.headline.visibility",
+   "category": "reading",
+   "text": "Hai bạn dễ tự hào về nhau.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.headline.unclear",
+   "category": "reading",
+   "text": "Hai bạn còn đang tìm cách nói chuyện cho hợp.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.fit.communication",
+   "category": "reading",
+   "text": "Hai bạn dễ kể cho nhau nghe chuyện trong ngày. Một bữa cơm chung thường đủ để hỏi han nhau.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.fit.emotional",
+   "category": "reading",
+   "text": "Hai bạn dễ nhận ra khi không khí trong gia đình chùng xuống. Một câu hỏi thăm giữa hai bạn thường làm mọi thứ dịu lại.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.fit.attraction",
+   "category": "reading",
+   "text": "Ở cạnh nhau, hai bạn dễ rủ nhau làm gì đó cho vui. Những dịp sum họp giữa hai bạn thường rộn ràng.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.fit.pace",
+   "category": "reading",
+   "text": "Hai bạn dễ giữ lời với nhau trong những việc nhỏ. Việc chung trong gia đình giữa hai bạn ít bị bỏ dở.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.fit.clarity",
+   "category": "reading",
+   "text": "Hai bạn dễ hiểu ý nhau qua một câu đùa hay một thói quen chung. Nhiều chuyện không cần nói ra cũng đã rõ.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.fit.freedom",
+   "category": "reading",
+   "text": "Hai bạn dễ cùng thử một điều mới, như một món ăn hay một chuyến đi ngắn. Mỗi người cũng dễ để người kia có khoảng riêng.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.fit.intensity",
+   "category": "reading",
+   "text": "Giữa hai bạn, chuyện khó vẫn có chỗ để nói. Sau những lần nói thật, hai bạn thường gần nhau hơn.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.fit.visibility",
+   "category": "reading",
+   "text": "Hai bạn dễ ghi nhận cố gắng của nhau. Một lời khen giữa hai bạn thường có sức nặng.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.tension.communication",
+   "category": "reading",
+   "text": "Một câu góp ý giữa người thân dễ nghe như trách. Nói về một việc cụ thể, không nhắc chuyện cũ, sẽ đỡ căng.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.tension.emotional",
+   "category": "reading",
+   "text": "Hai bạn có thể bày tỏ quan tâm theo những cách khác nhau: hỏi han, hoặc lặng lẽ làm giúp. Nói rõ \"Mình cần được nghe\" hay \"Mình cần được giúp\" sẽ đỡ hiểu lầm.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.tension.attraction",
+   "category": "reading",
+   "text": "Cả hai đều có ý riêng, nên chuyện quyết việc chung dễ thành tranh luận. Thay phiên nhau quyết từng việc là cách đơn giản.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.tension.pace",
+   "category": "reading",
+   "text": "Hai bạn có thể khác nhau về giờ giấc và nếp sinh hoạt. Thống nhất vài việc cần đúng giờ sẽ đỡ phải nhắc nhau.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.tension.clarity",
+   "category": "reading",
+   "text": "Một lời hứa nói vội dễ bị mỗi người nhớ một kiểu. Nhắc lại bằng một tin nhắn ngắn sẽ đỡ nhầm.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.tension.freedom",
+   "category": "reading",
+   "text": "Khi một người muốn tự quyết chuyện riêng, người còn lại dễ thấy mình bị gạt ra. Báo trước một câu sẽ giữ được sự gần gũi.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.tension.intensity",
+   "category": "reading",
+   "text": "Chuyện cũ chưa nói hết dễ làm một câu bình thường nghe nặng nề. Chờ lúc cả hai bình tĩnh rồi hãy nói tiếp.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.tension.visibility",
+   "category": "reading",
+   "text": "Có lúc cố gắng của một người trong gia đình bị xem là chuyện đương nhiên. Một lời cảm ơn cụ thể sẽ khác đi nhiều.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.suggestion.communication.action",
+   "category": "reading",
+   "text": "Tuần này, thử hỏi người kia một chuyện trong ngày và nghe hết câu trả lời.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.suggestion.communication.question",
+   "category": "reading",
+   "text": "Dạo này có chuyện gì làm bạn vui không?",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.suggestion.emotional.action",
+   "category": "reading",
+   "text": "Lần tới thấy người kia ít nói hơn thường ngày, rủ làm một việc nhỏ cùng nhau thay vì hỏi dồn.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.suggestion.emotional.question",
+   "category": "reading",
+   "text": "Khi buồn, bạn thích có người ngồi cạnh hay muốn ở một mình?",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.suggestion.attraction.action",
+   "category": "reading",
+   "text": "Rủ nhau làm một việc vui trong tuần, như nấu một món hay đi dạo.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.suggestion.attraction.question",
+   "category": "reading",
+   "text": "Cuối tuần này bạn muốn cùng làm gì?",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.suggestion.pace.action",
+   "category": "reading",
+   "text": "Chốt một việc chung trong gia đình kèm ngày làm cụ thể.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.suggestion.pace.question",
+   "category": "reading",
+   "text": "Việc nào trong tuần bạn muốn được chia bớt?",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.suggestion.clarity.action",
+   "category": "reading",
+   "text": "Nhắc lại điều đã hứa bằng một tin nhắn ngắn trong ngày.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.suggestion.clarity.question",
+   "category": "reading",
+   "text": "Mình nhớ đúng điều đã hứa với bạn chưa?",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.suggestion.freedom.action",
+   "category": "reading",
+   "text": "Thử đổi một nếp quen, như ăn ở chỗ khác hay đi một đường khác.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.suggestion.freedom.question",
+   "category": "reading",
+   "text": "Có điều gì bạn muốn thử mà chưa có dịp?",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.suggestion.intensity.action",
+   "category": "reading",
+   "text": "Chọn một lúc yên tĩnh để nói về một chuyện đang vướng, mỗi người nói một lượt.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.suggestion.intensity.question",
+   "category": "reading",
+   "text": "Có chuyện gì bạn muốn mình hiểu rõ hơn không?",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.suggestion.visibility.action",
+   "category": "reading",
+   "text": "Cảm ơn người kia về một việc cụ thể họ đã làm trong tuần.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.suggestion.visibility.question",
+   "category": "reading",
+   "text": "Gần đây bạn thấy tự hào về điều gì?",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.low_signal.action",
+   "category": "reading",
+   "text": "Thử một bữa ăn hay một buổi đi dạo chung và để ý xem hai bạn nói chuyện có dễ không.",
+   "status": "pending"
+  },
+  {
+   "id": "radar.family.low_signal.question",
+   "category": "reading",
+   "text": "Bạn thích nói chuyện vào lúc nào trong ngày?",
+   "status": "pending"
   }
  ],
  "version": "copy-registry/v1"
