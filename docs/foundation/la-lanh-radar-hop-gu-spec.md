@@ -8,6 +8,8 @@
 
 Radar giúp một người hiểu tương tác với người họ đã biết: chỗ dễ nói chuyện, dễ rung động, nhịp hành động hợp nhau và chỗ dễ cấn. Từ `radar-readable-v2` (29/10/2026, phản hồi owner) Radar mở đầu bằng **một bậc có tên theo ngữ cảnh** kèm một câu lý do, ba mảng theo ngữ cảnh (hợp / cân bằng / cần để ý / chưa rõ) và vài đoạn ngắn; không hiển thị con số. Bậc xếp theo thứ hạng so với phân bố tham chiếu tổng hợp cố định, không phải xác suất thành công. Radar không kết luận soulmate/red flag/định mệnh và không suy ra ý định, cảm xúc hoặc độ an toàn của người kia. (Bài cũ `radar-living-dossier-v1` hiển thị ba chỉ báo 0–100 cho tới khi hết hạn.)
 
+**Câu chữ trên màn hình (AM1, owner duyệt 20.11.2026).** Từ AM1, màn hình gọi `private_check` là “xem riêng” (trước đó “check kín”); nút là `Xem hợp gu`, chữ chờ `Đang xem hai lá số…`, lịch sử `Những người bạn đã xem gần đây`, nút người nhận `Đồng ý & xem kết quả`. Bảng chữ cũ → mới nằm trong PR AM1; test web chặn chữ cũ quay lại. Tài liệu này vẫn dùng “check kín” làm tên khái niệm.
+
 **“Check kín” nghĩa là:** Lá Lành không gửi link/thông báo cho người kia, không tạo hồ sơ cho họ và không đưa họ vào pool. “Kín” không có nghĩa là được phép dùng lén dữ liệu. Người nhập phải xác nhận người kia đã cho phép dùng thông tin sinh cho mục đích này.
 
 ## 2. Hai mode
@@ -17,7 +19,7 @@ Radar giúp một người hiểu tương tác với người họ đã biết: 
 | `private_check` — chính | A đã được B cho phép dùng thông tin sinh | A nhập trong một phiên tính | A nhận ngay | DOB/time/place chỉ ở server memory; không lưu vào Radar |
 | `consented_invite` — phụ | A chưa được phép nhập hộ hoặc B muốn tự kiểm soát | B mở link, tự nhập chart và consent riêng | A và B nhận bản đọc rút gọn | Lưu trong birth profile mã hóa của B theo consent của B |
 
-Không được tự động chuyển từ mode này sang mode kia. CTA chính luôn là `Check kín ngay`; `Mời họ tự nhập` chỉ xuất hiện dưới cổng quyền sử dụng dữ liệu.
+Không được tự động chuyển từ mode này sang mode kia. CTA chính luôn là `Xem hợp gu` (trước AM1: `Check kín ngay`); `Mời họ tự nhập` chỉ xuất hiện dưới cổng quyền sử dụng dữ liệu.
 
 ## 3. Screen map
 
@@ -31,14 +33,14 @@ Không được tự động chuyển từ mode này sang mode kia. CTA chính l
 | `/radar/continue` | Pair consent | B consent riêng và chạy hai chart | Derived pair result |
 | `/radar/receipt` | Kết quả phía người nhận | B mở lại trong 30 ngày (bằng hạn kết quả) hoặc rút chart khỏi kết quả | HttpOnly receipt-bound read/withdraw |
 
-Ba bước `Bắt đầu → Thông tin → Bản đọc` phải xuất hiện nhất quán trên flow chính và flow lời mời. Màn kết quả không được là ngõ cụt: owner luôn có đường `Check thêm một người`, `Xem các lần check` và điều hướng chính; recipient mở lại bằng receipt trên đúng thiết bị trong 30 ngày (bằng hạn kết quả), có thể rút chart và luôn có đường về Radar. Kết quả hết hạn/đã xóa phải hiển thị terminal state có CTA quay lại thay vì một trang trống.
+Ba bước `Bắt đầu → Thông tin → Bản đọc` phải xuất hiện nhất quán trên flow chính và flow lời mời. Màn kết quả không được là ngõ cụt: owner luôn có đường `Xem thêm một người`, `Xem lại kết quả cũ` (trước 20/11/2026: `Check thêm một người`, `Xem các lần check`) và điều hướng chính; recipient mở lại bằng receipt trên đúng thiết bị trong 30 ngày (bằng hạn kết quả), có thể rút chart và luôn có đường về Radar. Kết quả hết hạn/đã xóa phải hiển thị terminal state có CTA quay lại thay vì một trang trống.
 
 ## 4. Primary user flow
 
 ```mermaid
 flowchart TD
   A["Tap Hợp gu"] --> B["Intro Radar"]
-  B --> C["Check kín một người"]
+  B --> C["Xem hợp gu với một người"]
   C --> D{"Chart A đủ ngày + giờ + nơi sinh?"}
   D -->|Không| E["Hoàn thiện chart A"] --> C
   D -->|Có| F["Nickname + loại quan hệ"]
