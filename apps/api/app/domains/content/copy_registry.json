@@ -12263,6 +12263,36 @@
    "category": "reading",
    "text": "Khi căng, bạn dễ tin người quá nhanh hoặc giúp quá sức mình.",
    "status": "pending"
+  },
+  {
+   "id": "situation.pair.moon-neptune.tense",
+   "category": "reading",
+   "text": "Bạn dễ thấy mình cần điều gì đó nhưng chưa gọi được tên.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.moon-uranus.tense",
+   "category": "reading",
+   "text": "Bạn dễ muốn có khoảng riêng nhưng chưa nói ra với ai.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.moon-saturn.tense",
+   "category": "reading",
+   "text": "Bạn quen tự lo nên dễ giữ trong lòng điều mình đang cần.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.moon-sun.tense",
+   "category": "reading",
+   "text": "Bạn dễ thấy việc mình muốn làm và điều mình cần đang kéo về hai phía.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.moon-venus.tense",
+   "category": "reading",
+   "text": "Bạn dễ chiều ý người khác rồi quên hỏi mình đang cần gì.",
+   "status": "pending"
   }
  ],
  "version": "copy-registry/v1"
