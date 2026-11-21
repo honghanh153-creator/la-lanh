@@ -1,0 +1,411 @@
+"""Hỏi Lá bằng lá số (AK2, 20.11.2026): month answers, the on-tap easier window, the month card.
+
+- ``GET /month/status``: whether the feature can show (every sentence approved) and the preset
+  questions. No personal data.
+- ``POST /month/answers``: a topic, optionally one of its preset questions. There is no typed
+  question (owner chose AS1 on 21.11.2026), so the request holds closed values only.
+- ``GET /month/window?topic=``: the easier window. Only the "Xem lúc nào dễ hơn" tap calls it; the
+  answer itself never carries a date.
+- ``GET /month/overview``: the Khám phá card, no dates.
+"""
+
+from __future__ import annotations
+
+import logging
+from datetime import datetime
+from typing import Annotated, Literal, cast
+from uuid import UUID
+
+from fastapi import APIRouter, Header, Query, Request, Response
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, ConfigDict, Field
+
+from app.domains.birth.errors import BirthDomainError
+from app.domains.content.copy_approval import approved_copy
+from app.domains.guest.errors import GuestDomainError
+from app.domains.guest.service import GuestSessionService
+from app.domains.month_answer.answer import feature_ready
+from app.domains.month_answer.facts import Topic
+from app.domains.month_answer.presets import PresetId, ask_id, preset_topic
+from app.domains.month_answer.saved import (
+    PostgresSavedMonthAnswers,
+    SavedMonthAnswer,
+    SavedMonthAnswerLimit,
+)
+from app.domains.month_answer.service import (
+    MonthAnswerService,
+    MonthAnswerUnavailable,
+    today_in_vietnam,
+)
+from app.infrastructure.csrf import require_trusted_origin, trusted_origins
+
+router = APIRouter()
+logger = logging.getLogger(__name__)
+
+NO_STORE = {"Cache-Control": "no-store, max-age=0"}
+
+
+class MonthPresetView(BaseModel):
+    id: PresetId
+    topic: Topic
+    text: str
+
+
+class MonthStatusResponse(BaseModel):
+    available: bool
+    month: str
+    presets: tuple[MonthPresetView, ...] = ()
+
+
+class MonthAnswerRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    topic: Topic
+    preset: PresetId | None = None
+
+
+class MonthBasis(BaseModel):
+    line: str
+    detail: str
+
+
+class MonthAnswerView(BaseModel):
+    month: str
+    topic: Topic
+    topic_label: str
+    preset: PresetId | None
+    question: str | None
+    tip: str | None
+    theme: str
+    act: str
+    say: str
+    basis: MonthBasis
+    disclaimer: str
+    answer_key: str
+
+
+class MonthAnswerResponse(BaseModel):
+    status: Literal["answered"]
+    answer: MonthAnswerView
+
+
+class MonthWindowResponse(BaseModel):
+    found: bool
+    start: str | None = None
+    end: str | None = None
+    basis: str | None = None
+    line: str | None = None
+
+
+class MonthSaveRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    topic: Topic
+    answer_key: str = Field(min_length=32, max_length=32, pattern=r"^[0-9a-f]{32}$")
+
+
+class SavedMonthAnswerView(BaseModel):
+    id: UUID
+    month: str
+    saved_at: datetime
+    answer: MonthAnswerView
+
+
+class SavedMonthAnswerList(BaseModel):
+    items: tuple[SavedMonthAnswerView, ...]
+
+
+class MonthOverviewItem(BaseModel):
+    area: Literal["work", "love", "money", "self"]
+    label: str
+    line: str
+    try_text: str
+
+
+class MonthOverviewResponse(BaseModel):
+    month: str
+    items: tuple[MonthOverviewItem, ...]
+
+
+def _guests(request: Request) -> GuestSessionService:
+    return cast(GuestSessionService, request.app.state.guest_session_service)
+
+
+def _service(request: Request) -> MonthAnswerService:
+    return MonthAnswerService(
+        engine=getattr(request.app.state, "astro_engine", None),
+        birth_service=getattr(request.app.state, "birth_chart_service", None),
+        daily_service=request.app.state.daily_note_service,
+    )
+
+
+def _saved(request: Request) -> PostgresSavedMonthAnswers | None:
+    return cast(
+        PostgresSavedMonthAnswers | None,
+        getattr(request.app.state, "saved_month_answers", None),
+    )
+
+
+def _saved_preset(value: object) -> PresetId | None:
+    try:
+        return PresetId(value) if isinstance(value, str) else None
+    except ValueError:
+        return None
+
+
+def _saved_view(item: SavedMonthAnswer) -> SavedMonthAnswerView:
+    content = item.content
+    basis = content.get("basis")
+    basis_map = cast(dict[str, str], basis) if isinstance(basis, dict) else {}
+    return SavedMonthAnswerView(
+        id=item.id,
+        month=item.month,
+        saved_at=item.saved_at,
+        answer=MonthAnswerView(
+            month=item.month,
+            topic=Topic(item.topic),
+            topic_label=str(content.get("topic_label", "")),
+            preset=_saved_preset(content.get("preset")),
+            question=cast(str | None, content.get("question")),
+            tip=cast(str | None, content.get("tip")),
+            theme=str(content.get("theme", "")),
+            act=str(content.get("act", "")),
+            say=str(content.get("say", "")),
+            basis=MonthBasis(
+                line=str(basis_map.get("line", "")), detail=str(basis_map.get("detail", ""))
+            ),
+            disclaimer=str(content.get("disclaimer", "")),
+            answer_key="",
+        ),
+    )
+
+
+async def _mutation_guest(request: Request, csrf_token: str | None):  # type: ignore[no-untyped-def]
+    require_trusted_origin(request, trusted_origins(request))
+    return await _guests(request).verify_csrf(
+        request.cookies.get(request.app.state.settings.guest_cookie_name), csrf_token
+    )
+
+
+def _problem(status: int, code: str) -> JSONResponse:
+    return JSONResponse(
+        status_code=status,
+        content={
+            "type": "about:blank",
+            "title": "Month answer request was rejected",
+            "status": status,
+            "code": code,
+        },
+        media_type="application/problem+json",
+        headers=NO_STORE,
+    )
+
+
+def _domain_problem(error: BirthDomainError | GuestDomainError) -> JSONResponse:
+    return _problem(error.status_code, error.code)
+
+
+def _presets() -> tuple[MonthPresetView, ...]:
+    views: list[MonthPresetView] = []
+    for preset in PresetId:
+        text = approved_copy(ask_id(preset))
+        if text is None:
+            return ()
+        views.append(MonthPresetView(id=preset, topic=preset_topic(preset), text=text))
+    return tuple(views)
+
+
+@router.get("/month/status", response_model=MonthStatusResponse)
+async def month_status(request: Request, response: Response) -> MonthStatusResponse:
+    response.headers.update(NO_STORE)
+    available = feature_ready() and getattr(request.app.state, "astro_engine", None) is not None
+    return MonthStatusResponse(
+        available=available,
+        month=today_in_vietnam().strftime("%Y-%m"),
+        presets=_presets() if available else (),
+    )
+
+
+@router.post(
+    "/month/answers",
+    response_model=MonthAnswerResponse,
+    responses={401: {}, 403: {}, 404: {}, 409: {}, 422: {}, 503: {}},
+)
+async def month_answer(
+    body: MonthAnswerRequest,
+    request: Request,
+    response: Response,
+    csrf_token: Annotated[str | None, Header(alias="X-CSRF-Token")] = None,
+) -> MonthAnswerResponse | Response:
+    response.headers.update(NO_STORE)
+    try:
+        require_trusted_origin(request, trusted_origins(request))
+        guest = await _guests(request).verify_csrf(
+            request.cookies.get(request.app.state.settings.guest_cookie_name), csrf_token
+        )
+    except GuestDomainError as error:
+        return _domain_problem(error)
+
+    if body.preset is not None and preset_topic(body.preset) is not body.topic:
+        return _problem(422, "MONTH_PRESET_TOPIC_MISMATCH")
+    try:
+        answer = await _service(request).answer(guest.id, body.topic, body.preset)
+    except (BirthDomainError, GuestDomainError) as error:
+        return _domain_problem(error)
+    except MonthAnswerUnavailable:
+        return _problem(503, "MONTH_ANSWER_UNAVAILABLE")
+    except Exception as error:
+        # The exception type only: never the message (it could carry chart details).
+        logger.error("month_answer_failed", extra={"error_type": type(error).__name__})
+        return _problem(503, "MONTH_ANSWER_UNAVAILABLE")
+    return MonthAnswerResponse(
+        status="answered",
+        answer=MonthAnswerView(
+            month=answer.month,
+            topic=answer.topic,
+            topic_label=answer.topic_label,
+            preset=answer.preset,
+            question=answer.question,
+            tip=answer.tip,
+            theme=answer.theme,
+            act=answer.act,
+            say=answer.say,
+            basis=MonthBasis(line=answer.basis.line, detail=answer.basis.detail),
+            disclaimer=answer.disclaimer,
+            answer_key=answer.answer_key,
+        ),
+    )
+
+
+@router.get(
+    "/month/window",
+    response_model=MonthWindowResponse,
+    responses={401: {}, 404: {}, 409: {}, 503: {}},
+)
+async def month_window(
+    request: Request,
+    response: Response,
+    topic: Annotated[Topic, Query()],
+) -> MonthWindowResponse | Response:
+    response.headers.update(NO_STORE)
+    try:
+        guest = await _guests(request).resume(
+            request.cookies.get(request.app.state.settings.guest_cookie_name)
+        )
+        found = await _service(request).window(guest.id, topic)
+    except (BirthDomainError, GuestDomainError) as error:
+        return _domain_problem(error)
+    except MonthAnswerUnavailable:
+        return _problem(503, "MONTH_ANSWER_UNAVAILABLE")
+    if found is None:
+        return MonthWindowResponse(found=False)
+    return MonthWindowResponse(
+        found=True, start=found.start, end=found.end, basis=found.basis, line=found.line
+    )
+
+
+@router.get(
+    "/month/overview",
+    response_model=MonthOverviewResponse,
+    responses={401: {}, 404: {}, 409: {}, 503: {}},
+)
+async def month_overview(request: Request, response: Response) -> MonthOverviewResponse | Response:
+    response.headers.update(NO_STORE)
+    try:
+        guest = await _guests(request).resume(
+            request.cookies.get(request.app.state.settings.guest_cookie_name)
+        )
+        month, items = await _service(request).overview(guest.id)
+    except (BirthDomainError, GuestDomainError) as error:
+        return _domain_problem(error)
+    except MonthAnswerUnavailable:
+        return _problem(503, "MONTH_ANSWER_UNAVAILABLE")
+    return MonthOverviewResponse(
+        month=month,
+        items=tuple(
+            MonthOverviewItem(
+                area=cast(Literal["work", "love", "money", "self"], item.area),
+                label=item.label,
+                line=item.line,
+                try_text=item.try_,
+            )
+            for item in items
+        ),
+    )
+
+
+@router.post(
+    "/month/saved",
+    response_model=SavedMonthAnswerView,
+    status_code=201,
+    responses={401: {}, 403: {}, 404: {}, 409: {}, 429: {}, 503: {}},
+)
+async def save_month_answer(
+    body: MonthSaveRequest,
+    request: Request,
+    response: Response,
+    csrf_token: Annotated[str | None, Header(alias="X-CSRF-Token")] = None,
+) -> SavedMonthAnswerView | Response:
+    """Explicit "Lưu" only. The answer is recomputed server-side; the client sends no text."""
+
+    response.headers.update(NO_STORE)
+    repository = _saved(request)
+    if repository is None:
+        return _problem(503, "MONTH_ANSWER_UNAVAILABLE")
+    try:
+        guest = await _mutation_guest(request, csrf_token)
+        answer = await _service(request).answer_for_key(guest.id, body.topic, body.answer_key)
+        if answer is None:
+            return _problem(409, "MONTH_ANSWER_CHANGED")
+        saved = await repository.save(guest.id, answer)
+    except (BirthDomainError, GuestDomainError) as error:
+        return _domain_problem(error)
+    except MonthAnswerUnavailable:
+        return _problem(503, "MONTH_ANSWER_UNAVAILABLE")
+    except SavedMonthAnswerLimit:
+        return _problem(429, "MONTH_SAVED_LIMIT")
+    return _saved_view(saved)
+
+
+@router.get(
+    "/month/saved",
+    response_model=SavedMonthAnswerList,
+    responses={401: {}, 503: {}},
+)
+async def list_saved_month_answers(
+    request: Request, response: Response
+) -> SavedMonthAnswerList | Response:
+    response.headers.update(NO_STORE)
+    repository = _saved(request)
+    if repository is None:
+        return _problem(503, "MONTH_ANSWER_UNAVAILABLE")
+    try:
+        guest = await _guests(request).resume(
+            request.cookies.get(request.app.state.settings.guest_cookie_name)
+        )
+    except GuestDomainError as error:
+        return _domain_problem(error)
+    items = await repository.list_for_guest(guest.id)
+    return SavedMonthAnswerList(items=tuple(_saved_view(item) for item in items))
+
+
+@router.delete(
+    "/month/saved/{saved_id}",
+    status_code=204,
+    responses={401: {}, 403: {}, 404: {}, 503: {}},
+)
+async def delete_saved_month_answer(
+    saved_id: UUID,
+    request: Request,
+    csrf_token: Annotated[str | None, Header(alias="X-CSRF-Token")] = None,
+) -> Response:
+    repository = _saved(request)
+    if repository is None:
+        return _problem(503, "MONTH_ANSWER_UNAVAILABLE")
+    try:
+        guest = await _mutation_guest(request, csrf_token)
+    except GuestDomainError as error:
+        return _domain_problem(error)
+    if not await repository.delete(guest.id, saved_id):
+        return _problem(404, "MONTH_SAVED_NOT_FOUND")
+    return Response(status_code=204, headers=NO_STORE)

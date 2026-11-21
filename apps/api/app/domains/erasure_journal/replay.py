@@ -42,6 +42,7 @@ from app.domains.la_chung.models import RequestStatus
 from app.domains.la_chung.tables import LaChungReportRow, LaChungRequestRow, LaChungResponseRow
 from app.domains.matching.postgres import PostgresMatchingRepository
 from app.domains.matching.tables import MatchingConsentRow, MatchingProfileRow
+from app.domains.month_answer.tables import SavedMonthAnswerRow
 from app.domains.radar.models import RadarStatus
 from app.domains.radar.tables import RadarRequestRow
 from app.domains.resonance.postgres import PostgresResonanceRepository
@@ -69,6 +70,7 @@ _ARTIFACT_IDS = {
     ErasureKind.TAROT_SESSION_DELETED: TarotSessionRow.id,
     ErasureKind.SHARE_REVOKED: ShareArtifactRow.id,
     ErasureKind.SAVED_NOTE_REMOVED: SavedNoteRow.id,
+    ErasureKind.SAVED_MONTH_ANSWER_REMOVED: SavedMonthAnswerRow.id,
     ErasureKind.LA_CHUNG_INVITE_REVOKED: LaChungRequestRow.id,
     ErasureKind.LA_CHUNG_RESULT_DELETED: LaChungRequestRow.id,
     ErasureKind.LA_CHUNG_RESPONSE_WITHDRAWN: LaChungResponseRow.id,
@@ -340,6 +342,11 @@ async def _apply(
     elif kind is ErasureKind.SAVED_NOTE_REMOVED:
         async with sessions() as session, session.begin():
             await session.execute(delete(SavedNoteRow).where(SavedNoteRow.id == subject))
+    elif kind is ErasureKind.SAVED_MONTH_ANSWER_REMOVED:
+        async with sessions() as session, session.begin():
+            await session.execute(
+                delete(SavedMonthAnswerRow).where(SavedMonthAnswerRow.id == subject)
+            )
     elif kind is ErasureKind.RADAR_INVITE_REVOKED:
         async with sessions() as session, session.begin():
             # Only a still-pending invite: an accepted or withdrawn row keeps its own state.
