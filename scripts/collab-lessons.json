@@ -929,6 +929,84 @@
     "pr": 736
    },
    "note": "Tick: scripts/collab-turn.mjs giữ chỗ cho PR đầu hàng trước khi đồng bộ (test 'reservation: the front reserves before its sync…'). Gỡ tay có ghi lý do: node scripts/collab-reservation.mjs --release --reason \"…\"."
+  },
+  {
+   "id": "L51",
+   "title": "PR giữ chỗ hết hạn được giữ chỗ lại khi integration đã đổi (cần đồng bộ), không được gia hạn ở cùng đỉnh; reservation ghi đỉnh integration thật sau các merge trong cùng tick (Codex P2 trên #736 và #738: #737, #739)",
+   "from": "fix-forward #737, #739",
+   "who": "claude",
+   "due": "2026-11-19",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-loop.test.mjs",
+    "name": "#739: a reservation made after a merge in the same tick records the live tip"
+   },
+   "caller": {
+    "file": "scripts/collab-turn.mjs",
+    "contains": "tip: mergedNow.size ? liveTip(t.number) : t.tip"
+   },
+   "closedBy": {
+    "pr": 738
+   },
+   "note": "Phục hồi sau hết hạn: test '#737: an expired holder may reserve again at the same head once integration has moved' (scripts/collab-merge-gate.test.mjs)."
+  },
+  {
+   "id": "L52",
+   "title": "PR draft mang nhãn \"st: tạm dừng\" (agent tạm dừng), không phải \"st: chờ owner\" (kiểm tra mỗi giờ 16:45 18.11: #726 draft hiện như việc của owner)",
+   "from": "kiểm tra mỗi giờ 16:45 18.11",
+   "who": "claude",
+   "due": "2026-11-19",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-labels.test.mjs",
+    "name": "a draft is labelled paused by its agent, never \"chờ owner\""
+   },
+   "caller": {
+    "file": "scripts/collab-labels.mjs",
+    "contains": "reason === 'draft' ? 'paused' : 'hold'"
+   },
+   "closedBy": {
+    "pr": 743
+   },
+   "note": "Nối L49 (PR chờ PR khác)."
+  },
+  {
+   "id": "L53",
+   "title": "PR đã sẵn sàng merge (Author check PASS trên đỉnh integration + APPROVE ở head) không bị PR khác cùng file giữ lại; PR kia đồng bộ sau (#729 chờ #753 suốt tối 19.11)",
+   "from": "phiên điều phối 19.11 (PR đã duyệt bị bỏ đói)",
+   "who": "claude",
+   "due": "2026-11-20",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-loop.test.mjs",
+    "name": "L53: a PR ready to merge is never held by an earlier PR on a shared file; the other syncs after it"
+   },
+   "caller": {
+    "file": "scripts/collab-turn.mjs",
+    "contains": "if (prTurn(pr, { dropped, ...opts, open: [] }).turn === 'merge') return null;"
+   },
+   "closedBy": {
+    "pr": 738
+   }
+  },
+  {
+   "id": "L54",
+   "title": "Câu chữ mà một tính năng đã xong chỉ còn chờ (việc nhẹ ngày Đuối) được lô duyệt copy xét trước, không đứng sau hàng trăm câu khác (chạy thử người dùng cũ 20.11: 0/4715 ngày Đuối có việc nhẹ)",
+   "from": "chạy thử 1000 người dùng cũ 20.11 (#777), Codex auto-1 trên #780",
+   "who": "claude",
+   "due": "2026-11-21",
+   "status": "done",
+   "test": {
+    "file": "scripts/codex-copy-review.test.mjs",
+    "name": "copy a finished feature waits on (lighter actions) goes first, the rest keeps registry order"
+   },
+   "caller": {
+    "file": "scripts/codex-copy-review.mjs",
+    "contains": "const pending = batchFor(registry, rejectedFile ? readRejected(rejectedFile) : {});"
+   },
+   "closedBy": {
+    "pr": 780
+   }
   }
  ]
 }
