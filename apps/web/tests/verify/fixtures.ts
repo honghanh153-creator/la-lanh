@@ -153,6 +153,14 @@ const radarResult = {
   disclaimer: "Dùng để soi lại trải nghiệm thật, không thay cho quyết định của bạn.",
 };
 
+const monthAnswer = {
+  month: "2026-11", topic: "work", topic_label: "Công việc", reframe: null,
+  theme: "Câu giả: tháng này công việc cần nói rõ.", act: "Câu giả: ghi ra ba việc.", say: "Câu giả để nói.",
+  basis: { line: "Dựa vào: dữ liệu giả.", detail: "Chi tiết giả." },
+  disclaimer: "Đây là một góc nhìn để bạn tự quyết, không phải điều chắc chắn sẽ xảy ra.",
+  answer_key: "0123456789abcdef0123456789abcdef",
+};
+
 const accountStatus = {
   account_inactivity_days: 365, daily_note_hours: 24, google_login_enabled: false, guest_inactivity_days: 30,
   history_days: 30, login_enabled: false, masked_email: null, profile_expires_at: null, signed_in: false,
@@ -256,6 +264,22 @@ function answer(flags: Flags, method: string, path: string): Reply | null {
       return { status: 200, json: [] };
     case `GET /v1/la-chung/results/${IDS.radarRequest}`:
       return { status: 404, json: { code: "LA_CHUNG_RESULT_NOT_FOUND" } };
+    // US-25 "Hỏi về tháng này": fake data only, the copy shown as if approved.
+    case "GET /v1/month/status":
+      return { status: 200, json: { available: signedIn, typed_questions: false, month: "2026-11", consent: null } };
+    case "POST /v1/month/answers":
+      return { status: 200, json: { status: "answered", need_topic: null, answer: monthAnswer } };
+    case "GET /v1/month/window":
+      return { status: 200, json: { found: true, start: "2026-11-24", end: "2026-11-25", basis: "Dựa vào: dữ liệu giả.", line: "Làm lúc nào cũng được; khoảng này chỉ dễ hơn một chút." } };
+    case "GET /v1/month/overview":
+      return { status: 200, json: { month: "2026-11", items: [
+        { area: "work", label: "Công việc", line: "Dòng giả về công việc.", try_text: "Việc thử giả." },
+        { area: "love", label: "Tình cảm", line: "Dòng giả về tình cảm.", try_text: "Việc thử giả." },
+        { area: "money", label: "Tiền", line: "Dòng giả về tiền.", try_text: "Việc thử giả." },
+        { area: "self", label: "Bản thân", line: "Dòng giả về bản thân.", try_text: "Việc thử giả." },
+      ] } };
+    case "GET /v1/month/saved":
+      return { status: 200, json: { items: [] } };
     case `GET /v1/tarot/sessions/${IDS.tarotSession}`:
       return { status: 404, json: { code: "TAROT_SESSION_NOT_FOUND" } };
     default:
