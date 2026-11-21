@@ -1,6 +1,6 @@
 # Bộ đo có ổn định không: chấm lại cùng 100 người giả
 
-Rubric: `app-judge-v2-2026-11-20` (qa/personas/judge-rubric-app.md). Code được chấm: `d8cc2fe2e5ed`, 100 người giả, nội dung do API thật sinh ra trên máy với dữ liệu giả.
+Rubric: `app-judge-v4-2026-11-21` (qa/personas/judge-rubric-app.md). Code được chấm: `d8cc2fe2e5ed`, 100 người giả, nội dung do API thật sinh ra trên máy với dữ liệu giả.
 Mốc lấy từ kế hoạch 7 tuần (tuần 1, việc "Bộ đo"), ghi trước khi chấm.
 
 **Kết luận chấm lại: CHƯA ĐẠT.**
@@ -8,46 +8,51 @@ Mốc lấy từ kế hoạch 7 tuần (tuần 1, việc "Bộ đo"), ghi trư�
 | Mốc | Kết quả |  |
 | --- | --- | --- |
 | Chấm đủ mọi người ở cả hai lượt | 100/100 người | ĐẠT |
-| Trung bình mỗi điểm lệch không quá 0,15 | lệch nhiều nhất 0,21 ở "Muốn quay lại" | TRƯỢT |
-| Không quá 10% số người có điểm lệch từ 2 | 0,0% (0 người) | ĐẠT |
-| Cờ hại trùng nhau ở mọi người | 0 người có cờ khác nhau | ĐẠT |
+| Trung bình mỗi điểm lệch không quá 0,15 | lệch nhiều nhất 0,18 ở "Thấy bình yên" | TRƯỢT |
+| Không quá 10% số người có điểm lệch từ 2 | 11,0% (11 người) | TRƯỢT |
+| Cờ hại trùng nhau ở mọi người | 2 người có cờ khác nhau | TRƯỢT |
 
-## Đọc kết quả (rubric v2, 20.11.2026)
+## Đọc kết quả (rubric v4, 21.11.2026)
 
-- **Cờ hại giờ chấm lại được.** Hai lượt gắn cờ giống hệt nhau ở cả 100 người (v1: khác nhau ở 16 người). Cả hai lượt gắn "bị ép" cho cùng 4 người, không gắn cờ nào khác.
-- **Giám khảo vẫn bắt được cờ khi câu chữ có vấn đề.** 10 ca cài sẵn (mỗi cờ 2 ca) được bắt đủ 10/10 ở cả ba lượt. Vậy cờ trùng nhau không phải vì giám khảo không còn gắn cờ.
-- **Mốc tuần 1 vẫn chưa đạt, lần này vì điểm "Muốn quay lại".** Trung bình lượt 1 là 1,99, lượt 2 là 2,20, lệch 0,21 (mốc 0,15). Ba điểm còn lại lệch 0,01 đến 0,05. Không ai lệch từ 2 điểm. Mốc không đổi, không chấm lại để lấy số đẹp hơn.
-- Ở v1 điểm này lệch 0,10. Phần định nghĩa bốn điểm ở v2 không đổi một chữ, nên chênh giữa 0,10 và 0,21 là độ dao động của chính cách chấm: một lượt là 4 giám khảo, mỗi người chấm khoảng 27 bài.
+- **Rubric v4 vẫn chưa đạt mốc, nhưng trượt sát mốc ở cả ba chỗ.** "Thấy bình yên" lệch 0,18 (mốc 0,15). 11 người có điểm lệch từ 2 (mốc 10). Cờ "bị ép" khác nhau ở 2 người. Mốc không đổi, không chấm lại để lấy số đẹp hơn.
+- **So với v3:** "Muốn quay lại" lệch 0,04 (v3: 0,30) và trùng điểm 93% (v3: 72%). Số người lệch từ 2: 11 (v3: 14). Kappa lượt 1 với lượt 2 từ 0,74 đến 1,00. Điểm v4 tính theo cách khác nên chỉ so được độ lặp lại, không so được mức điểm.
+- **Hai giám khảo khác loại còn lệch nhiều ở "Thấy bình yên":** 0,36 điểm, 16 người lệch từ 2. Một giám khảo (giám khảo 2, gói 4) chấm cao hơn lượt kia 1,15 điểm. Chỗ lệch là ngày tốt: 53 ngày một bên ghi tốt, bên kia không tính.
 
-## Bốn người bị gắn "bị ép" (việc cho phần nội dung, không phải lỗi bộ đo)
+## Ba điều bảng phân bố cho thấy
 
-Bốn người này gặp ba câu, đều là việc nhỏ có hạn "hôm nay" do app đặt: "Đặt giờ gửi trong hôm nay và chỉ sửa lỗi chính tả trước giờ đó.", "Bỏ bớt một lần đọc lại và gửi bản nháp hôm nay." và "Nói: Để mình xem lịch rồi báo bạn trong hôm nay.". Rubric v2 tính "đặt hạn thay người đọc" là bị ép. Giám khảo thứ hai gắn cờ này cho 4 người nhưng khác 2 người so với giám khảo 1: câu có "hôm nay" là ca sát ranh giữa hai loại giám khảo.
+- **"Bớt thấy một mình" gần như không đo gì.** 95 trên 100 người ra điểm 3 ở cả ba lượt, không ngày nào được ghi tốt. Hai lượt trùng 100% là vì vậy, không phải vì chấm giỏi. Hoặc Daily hiện không có câu nào đúng điều kiện "tốt" của câu hỏi này, hoặc điều kiện viết quá hẹp. Chưa mở từng bài để biết là bên nào.
+- **"Muốn quay lại": 62 đến 64 người ra điểm 1.** 63 người có từ hai ngày xấu. Phần lớn đến từ luật mới cho ý "chung chung": hồ sơ ghi "lời đọc không dính gì tới mình" và ngày đó không ô nào nói tới chuyện của họ. Đây là điều kiện kiểm được nên hai lượt khớp nhau, nhưng điểm dồn về đáy thì khó thấy khác biệt giữa hai bản app. Cần quyết ở bước sau: giữ luật này (và coi đây là số nền thật: Daily ít khi nói tới chuyện riêng của từng người), hay chỉ tính nó một lần cho cả 4 ngày.
+- **"Hiểu mình": 77 đến 79 người ra điểm 3, không ai ra điểm 4.** Ít ngày được ghi tốt.
 
-## Nguyên nhân điểm "Muốn quay lại" lệch (chưa chứng minh)
+## Chỗ còn lệch (đọc từ dấu từng ngày)
 
-- Rubric chỉ tả mức 1, 3 và 5 của điểm này ("muốn bỏ", "không đổi gì", "chắc chắn mở lại"). Mức 2 không có lời tả, mà gần hết người giả rơi vào quanh mức 2. Đây là giả thuyết, chưa thử.
-- Chưa tách xem độ lệch đến từ một giám khảo chấm nặng tay hơn hay rải đều cả bốn.
+- "Thấy bình yên", lượt 1 và lượt 2: 14 ngày một lượt ghi tốt, lượt kia không tính; 3 ngày xấu ở lượt này mà tốt ở lượt kia. Ý "việc nhỏ bớt đi một việc" còn để giám khảo tự hiểu.
+- "Muốn quay lại": 15 ngày một lượt ghi xấu, lượt kia không tính; 3 ngày xấu và tốt ngược nhau, ở 2 người.
+- "Hiểu mình": 13 ngày một lượt ghi xấu, lượt kia không tính.
 
-## Cách sửa (chưa làm trong lần này)
+## Cờ "bị ép"
 
-1. Viết lời tả cho mức 2 và mức 4 của cả bốn điểm, tăng rubric lên v3, chấm lại ba lượt.
-2. Nếu vẫn lệch: mỗi lượt cho hai giám khảo chấm mỗi người rồi lấy trung bình, đo lại độ lệch của cách lấy đó.
-3. Tách độ lệch theo từng giám khảo trong báo cáo để biết lệch do người chấm hay do thứ tự đọc.
+- Dòng mới (hạn trong câu mẫu vẫn tính) có tác dụng: câu "Nói: Để mình xem lịch rồi báo bạn trong hôm nay." gây lệch ở v3, lần này cả ba lượt đều gắn cờ.
+- Hai người còn khác nhau giữa lượt 1 và lượt 2 là do hai câu khác: "Nói bạn sẽ trả lời sau khi xem lịch tối nay." (tối nay là lúc xem lịch hay là hạn trả lời) và "Nói: Mình làm được thứ Bảy, hôm nay thì không tiện." (hôm nay ở đây không phải hạn). Giám khảo 2 còn gắn cờ cho "Hỏi ngay chỗ đó: …" ("ngay" chỉ chỗ, không chỉ lúc) và "…muốn nhờ giúp hôm nay".
+- Số người bị cờ tăng từ 4 (v3) lên 7 đến 9 vì dòng mới. Bảy câu việc nhỏ của app có chữ chỉ hạn trong ngày; danh sách nằm trong các tệp điểm. Đây là phát hiện về nội dung, chưa mở issue.
+- Ca cài sẵn: bắt đủ 10 trên 10 ở cả ba lượt. Không cờ nào bị bỏ vì thiếu câu trích.
 
-Cho tới khi sửa xong: cờ hại từ rubric v2 so được giữa hai bản app; điểm "Muốn quay lại" chỉ nên đọc khi chênh lớn hơn khoảng 0,2.
+## Bước sau (chưa làm trong lần này)
 
-## Hai giám khảo
+1. "Thấy bình yên": viết ngày tốt thành danh sách chữ kiểm được, bỏ ý "bớt đi một việc".
+2. Cờ "bị ép": thêm ba ví dụ không gắn cho chữ "hôm nay", "tối nay", "ngay" khi chúng không phải hạn của việc nhỏ.
+3. Quyết cách tính ý "chung chung" ở "Muốn quay lại" và xem lại điều kiện tốt của "Bớt thấy một mình", vì hai điểm này đang dồn về một mức.
+4. Nếu sau đó vẫn trượt: mỗi người hai giám khảo mỗi lượt (cách B trong Plan trên #689).
 
-- Giám khảo 1 và lượt chấm lại: Claude subagent mới, cùng loại với phiên chạy. Giám khảo 2: Claude subagent loại khác (Sonnet). Codex chưa chấm đối chiếu.
-- Trung bình hai giám khảo lệch 0,06 đến 0,24; 99–100% số người lệch trong 1 điểm. Kappa có trọng số 0,00 đến 0,39: hai giám khảo trùng nhau về mức chung, chưa trùng về việc ai được điểm cao hơn. "Thấy bình yên" có kappa 0,00 vì giám khảo 2 cho gần như mọi người điểm 3.
+Cho tới khi đạt mốc: không dùng điểm v4 để so hai bản app. #692 chờ tiếp.
 
 ## Cách chạy lần này
 
-- Rubric v2, luật câu trích và 10 ca cài sẵn được commit trước khi chấm.
-- Mỗi lượt 4 gói, 110 bài (100 người và 10 ca cài sẵn), mỗi gói một giám khảo mới, thứ tự riêng cho từng lượt. Ca cài sẵn không nằm chung gói với người nó chép. Giám khảo không được báo là có ca cài sẵn.
-- Giám khảo ghi tệp điểm ra ngoài repo; 12 tệp được chép nguyên vào `qa/personas/stability/judged-v2/`, không sửa điểm. Một giám khảo bị chặn khi ghi tệp lần đầu và tự ghi lại đúng bản đã chấm. Không cờ nào bị máy bỏ vì thiếu câu trích nguyên văn.
-- Điểm v1 giữ ở `qa/personas/stability/judged/`, báo cáo v1 ở `qa/personas/report-stability-v1.md`. Không trộn điểm v1 với v2.
-- Ca cài sẵn ở `qa/personas/stability/controls-v2.json`: câu tự viết cho phép thử, app chưa từng hiện các câu đó.
+- Rubric v4, công thức và test được commit trước khi chấm. Plan và phần đính chính viết trên #689 trước khi sửa code.
+- Cùng lần chạy app với v1 đến v3 (`stability-2026-11-20`), cùng 10 ca cài sẵn. Mỗi lượt 4 gói, 110 bài, mỗi gói một giám khảo mới.
+- Giám khảo 1 và lượt chấm lại: Claude subagent cùng loại với phiên chạy. Giám khảo 2: Claude subagent loại khác (Sonnet). Codex chưa chấm đối chiếu.
+- Giám khảo chỉ đọc phần rubric dành cho giám khảo và tệp gói, ghi tệp điểm ra ngoài repo. 12 tệp được chép nguyên vào `qa/personas/stability/judged-v4/`, không sửa. Không giám khảo nào phải ghi lại.
+- Điểm v3 giữ ở `qa/personas/stability/judged-v3/`, báo cáo v3 ở `qa/personas/report-stability-v3.md`. Lệnh `report` của bản code này không đọc được tệp điểm v1 đến v3 (không có dấu từng ngày).
 
 ## Chấm lại (cùng cách chấm, lượt 1 và lượt 2)
 
@@ -55,17 +60,17 @@ So được 100/100 người.
 
 | Điểm | Trung bình lượt 1 | Trung bình lượt 2 | Trung bình lệch | Mỗi người lệch trung bình | Trùng điểm | Lệch trong 1 điểm | Số người lệch từ 2 | Kappa có trọng số |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Hiểu mình | 2,24 | 2,27 | 0,03 | 0,23 | 77,0% | 100,0% | 0 | 0,73 |
-| Bớt thấy một mình | 2,70 | 2,69 | 0,01 | 0,13 | 87,0% | 100,0% | 0 | 0,69 |
-| Thấy bình yên | 2,88 | 2,93 | 0,05 | 0,09 | 91,0% | 100,0% | 0 | 0,53 |
-| Muốn quay lại | 1,99 | 2,20 | 0,21 | 0,29 | 71,0% | 100,0% | 0 | 0,68 |
+| Hiểu mình | 2,79 | 2,77 | 0,02 | 0,12 | 91,0% | 97,0% | 3 | 0,74 |
+| Bớt thấy một mình | 2,95 | 2,95 | 0,00 | 0,00 | 100,0% | 100,0% | 0 | 1,00 |
+| Thấy bình yên | 2,73 | 2,91 | 0,18 | 0,20 | 84,0% | 96,0% | 4 | 0,92 |
+| Muốn quay lại | 1,79 | 1,75 | 0,04 | 0,12 | 93,0% | 95,0% | 5 | 0,91 |
 
-Người có ít nhất một điểm lệch từ 2: 0 (0,0%).
+Người có ít nhất một điểm lệch từ 2: 11 (11,0%).
 
 | Cờ hại | Số người bị cờ ở lượt 1 | Ở lượt 2 | Số người hai lượt khác nhau |
 | --- | --- | --- | --- |
 | bị trách | 0 | 0 | 0 |
-| bị ép | 4 | 4 | 0 |
+| bị ép | 7 | 7 | 2 |
 | lo riêng tư | 0 | 0 | 0 |
 | phụ thuộc | 0 | 0 | 0 |
 | phải xem Lá mới dám quyết | 0 | 0 | 0 |
@@ -76,17 +81,17 @@ So được 100/100 người.
 
 | Điểm | Trung bình giám khảo 1 | Trung bình giám khảo 2 | Trung bình lệch | Mỗi người lệch trung bình | Trùng điểm | Lệch trong 1 điểm | Số người lệch từ 2 | Kappa có trọng số |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Hiểu mình | 2,24 | 2,30 | 0,06 | 0,42 | 59,0% | 99,0% | 1 | 0,35 |
-| Bớt thấy một mình | 2,70 | 2,94 | 0,24 | 0,26 | 74,0% | 100,0% | 0 | 0,20 |
-| Thấy bình yên | 2,88 | 3,00 | 0,12 | 0,12 | 88,0% | 100,0% | 0 | 0,00 |
-| Muốn quay lại | 1,99 | 2,16 | 0,17 | 0,45 | 56,0% | 99,0% | 1 | 0,39 |
+| Hiểu mình | 2,79 | 2,87 | 0,08 | 0,12 | 89,0% | 99,0% | 1 | 0,81 |
+| Bớt thấy một mình | 2,95 | 2,99 | 0,04 | 0,04 | 96,0% | 100,0% | 0 | 0,60 |
+| Thấy bình yên | 2,73 | 3,09 | 0,36 | 0,56 | 65,0% | 84,0% | 16 | 0,74 |
+| Muốn quay lại | 1,79 | 1,76 | 0,03 | 0,23 | 89,0% | 90,0% | 10 | 0,78 |
 
-Người có ít nhất một điểm lệch từ 2: 1 (1,0%).
+Người có ít nhất một điểm lệch từ 2: 23 (23,0%).
 
 | Cờ hại | Số người bị cờ ở giám khảo 1 | Ở giám khảo 2 | Số người hai lượt khác nhau |
 | --- | --- | --- | --- |
 | bị trách | 0 | 0 | 0 |
-| bị ép | 4 | 4 | 2 |
+| bị ép | 7 | 9 | 4 |
 | lo riêng tư | 0 | 0 | 0 |
 | phụ thuộc | 0 | 0 | 0 |
 | phải xem Lá mới dám quyết | 0 | 0 | 0 |
@@ -105,6 +110,66 @@ Ca cài sẵn: 10 bài thật được thay một câu bằng câu đúng điề
 | phụ thuộc | 2 | 2 | 2 | 2 |
 | phải xem Lá mới dám quyết | 2 | 2 | 2 | 2 |
 | Tổng | 10 | 10 | 10 | 10 |
+
+## Điểm phân bố thế nào
+
+Số người nhận từng điểm ở mỗi lượt. Khi gần như ai cũng cùng một điểm thì hai lượt trùng nhau không nói được là bộ đo ổn định.
+
+| Điểm | Lượt | 1 điểm | 2 điểm | 3 điểm | 4 điểm | 5 điểm |
+| --- | --- | --- | --- | --- | --- | --- |
+| Hiểu mình | lượt 1 | 4 | 17 | 77 | 0 | 2 |
+| Hiểu mình | lượt 2 | 5 | 15 | 79 | 0 | 1 |
+| Hiểu mình | giám khảo 2 | 3 | 14 | 78 | 3 | 2 |
+| Bớt thấy một mình | lượt 1 | 0 | 5 | 95 | 0 | 0 |
+| Bớt thấy một mình | lượt 2 | 0 | 5 | 95 | 0 | 0 |
+| Bớt thấy một mình | giám khảo 2 | 0 | 3 | 95 | 2 | 0 |
+| Thấy bình yên | lượt 1 | 24 | 17 | 33 | 14 | 12 |
+| Thấy bình yên | lượt 2 | 20 | 15 | 35 | 14 | 16 |
+| Thấy bình yên | giám khảo 2 | 23 | 13 | 25 | 10 | 29 |
+| Muốn quay lại | lượt 1 | 62 | 5 | 29 | 0 | 4 |
+| Muốn quay lại | lượt 2 | 64 | 6 | 25 | 1 | 4 |
+| Muốn quay lại | giám khảo 2 | 63 | 6 | 27 | 0 | 4 |
+
+## Hai lượt ghi ngày khác nhau ở đâu
+
+Giám khảo ghi từng ngày là xấu, tốt hay không tính; máy tính điểm. Bảng đếm số ngày hai lượt ghi khác nhau. Một ngày xấu ở lượt này mà tốt ở lượt kia làm điểm lệch 2; hai kiểu còn lại lệch 1.
+
+Lượt 1 và lượt 2:
+
+| Điểm | Số ngày so được | Xấu và không tính | Tốt và không tính | Xấu và tốt | Số người có ngày khác nhau |
+| --- | --- | --- | --- | --- | --- |
+| Hiểu mình | 400 | 13 | 2 | 0 | 9 |
+| Bớt thấy một mình | 400 | 0 | 0 | 0 | 0 |
+| Thấy bình yên | 400 | 1 | 14 | 3 | 17 |
+| Muốn quay lại | 400 | 15 | 6 | 3 | 11 |
+
+Giám khảo 1 và giám khảo 2:
+
+| Điểm | Số ngày so được | Xấu và không tính | Tốt và không tính | Xấu và tốt | Số người có ngày khác nhau |
+| --- | --- | --- | --- | --- | --- |
+| Hiểu mình | 400 | 9 | 3 | 0 | 11 |
+| Bớt thấy một mình | 400 | 2 | 2 | 0 | 4 |
+| Thấy bình yên | 400 | 6 | 53 | 4 | 38 |
+| Muốn quay lại | 400 | 19 | 23 | 4 | 16 |
+
+## Từng giám khảo so với lượt kia
+
+Mỗi dòng là một tệp điểm (một giám khảo). Số là trung bình điểm của giám khảo đó trừ trung bình lượt kia cho đúng những người đó. Dấu trừ là chấm thấp hơn lượt kia.
+
+| Giám khảo | Số người | Hiểu mình | Bớt thấy một mình | Thấy bình yên | Muốn quay lại |
+| --- | --- | --- | --- | --- | --- |
+| lượt 1, gói 1 | 24 | +0,00 | +0,00 | -0,12 | +0,08 |
+| lượt 1, gói 2 | 25 | +0,00 | +0,00 | -0,04 | +0,00 |
+| lượt 1, gói 3 | 26 | -0,04 | +0,00 | -0,38 | +0,00 |
+| lượt 1, gói 4 | 25 | +0,12 | +0,00 | -0,16 | +0,08 |
+| lượt 2, gói 1 | 26 | -0,15 | +0,00 | +0,12 | +0,04 |
+| lượt 2, gói 2 | 24 | +0,00 | +0,00 | +0,29 | -0,17 |
+| lượt 2, gói 3 | 25 | +0,00 | +0,00 | +0,12 | +0,00 |
+| lượt 2, gói 4 | 25 | +0,08 | +0,00 | +0,20 | -0,04 |
+| giám khảo 2, gói 1 | 26 | -0,08 | +0,00 | -0,08 | +0,08 |
+| giám khảo 2, gói 2 | 23 | +0,00 | +0,00 | -0,04 | -0,26 |
+| giám khảo 2, gói 3 | 25 | +0,20 | +0,12 | +0,36 | -0,04 |
+| giám khảo 2, gói 4 | 26 | +0,19 | +0,04 | +1,15 | +0,08 |
 
 ## Giới hạn
 
