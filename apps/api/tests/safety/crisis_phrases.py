@@ -138,6 +138,10 @@ POSITIVES: tuple[str, ...] = (
     "Toi nay minh se di xa mai mai roi",
     "Tối nay mình sẽ đi xa mãi mãi để không ai phải lo nữa",
     "Mình sẽ đi xa mãi mãi khỏi cuộc đời này",
+    "Mình sẽ đi xa mãi mãi khỏi cuộc đời của mình",
+    "Mình muốn đi xa mãi mãi khỏi cuộc đời, có nên không?",
+    "Con sẽ đi xa mãi mãi khỏi gia đình này",
+    "Mình sẽ đi xa mãi mãi khỏi gia đình của mình",
     "Em sẽ đi xa mãi mãi thôi",
     "Mình đi xa mãi mãi mà không ai biết đâu",
     "Nếu ngày mai mình đã đi xa mãi mãi, mọi người đừng tìm mình",
@@ -322,6 +326,12 @@ NEGATIVES: tuple[str, ...] = (
     "Mình sẽ đi xa, không quay lại nữa đâu, chuyển hẳn vào Nam",
     "Mình muốn đi xa mãi mãi khỏi cái thành phố ồn ào này",
     "Mình sẽ đi xa mãi mãi rồi, chuyển hẳn vào Nam lập nghiệp",
+    # Leaving another person's life is a breakup question, not a farewell (#808 review 6).
+    "Mình muốn đi xa mãi mãi khỏi cuộc đời anh ấy, có nên chia tay không?",
+    "Em muốn đi xa mãi mãi khỏi cuộc đời của người yêu cũ",
+    "Mình sẽ đi xa mãi mãi khỏi đời cô ấy cho xong",
+    "Minh se di xa mai mai khoi cuoc song cua ho",
+    "Mình muốn đi xa mãi mãi khỏi gia đình chồng, có nên ly hôn không?",
     "Unable to sleep, should I quit coffee?",
     "Nhân 19 tuổi, học trung cấp Cơ khí ở một huyện của Tây Ninh",
 )

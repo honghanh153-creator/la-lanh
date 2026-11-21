@@ -332,8 +332,11 @@ _RULES: tuple[_Rule, ...] = (
         # The farewell may end the sentence, end on a particle, or say what it leaves behind:
         # "… mãi mãi rồi", "… khỏi cuộc đời này", "… để không ai phải lo nữa" (#809).
         r"(?=\s*(?:$|\.|(?:nua|dau|luon|bai|nhe|nha|day|roi|thoi|vay|a|ah|ha|ne|r|ri|lun)\b|"
-        r"khoi (?:cuoc doi|cuoc song|doi|the gian|the gioi|tran gian|trai dat|day|moi nguoi|"
-        r"tat ca|moi thu|ca nha|gia dinh)\b|"
+        # Leaving someone else's life is a breakup, not a farewell: "… khỏi cuộc đời anh ấy".
+        r"khoi (?:cuoc doi|cuoc song|doi|the gioi|gia dinh|ca nha)\b(?! (?:nay )?(?:"
+        r"cua (?!(?:toi|minh|tao|to|tui|con|chau)\b)|"
+        r"anh|chi|em|ho|nguoi|ban|ong|ba|no|ay|chong|vo|may|(?:co|cau) (?:ay|ta))\b)|"
+        r"khoi (?:the gian|tran gian|trai dat|day|moi nguoi|tat ca|moi thu)\b|"
         r"de (?:khong (?:ai|con ai)|moi nguoi|ca nha|gia dinh|bo me|ai cung|khoi)\b|"
         r"(?:ma )?(?:khong|chang) (?:ai|can ai) (?:biet|tim|lo|nho)\b))"
         # Moving away for good is not a farewell: "đi xa, không quay lại, chuyển hẳn vào Nam".
