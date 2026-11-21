@@ -2,7 +2,9 @@
 // Leak canary (#690): runs the built web app against the real API (local, throwaway SQLite) with a
 // synthetic profile whose values are easy to find, then searches the places that must never carry
 // them: server log, request URLs, Referer headers, requests leaving the app, error reports, API
-// error answers, browser history, the current URL and web storage.
+// error answers, browser history, the current URL and web storage. #691: it also downloads and
+// shares the note card and the birth card and downloads the data file, then searches the file
+// names, the SVG each picture is drawn from and the metadata inside each PNG.
 //
 // Usage:  node scripts/leak-canary.mjs [--plant <surface>]
 //   --plant <surface>  put a mark into that surface on purpose; the run must then end red (exit 1).
@@ -10,7 +12,7 @@
 // send every mark, 2 the run itself broke.
 // How to read the result: docs/operations/leak-canary-runbook.md
 import { spawn } from "node:child_process";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -18,7 +20,8 @@ import { fileURLToPath } from "node:url";
 
 import {
   CANARY, SAFETY_TEXT, SURFACES, TAROT_QUESTION,
-  buildMarks, canaryServerEnv, dumpWebStorage, isLocalUrl, missingSends, reportLines, scanSurfaces, sendsIn,
+  buildMarks, canaryServerEnv, dumpWebStorage, isLocalUrl, missingFiles, missingSends, pngMetadata, reportLines,
+  scanSurfaces, sendsIn, svgTextOf,
 } from "./leak-canary-lib.mjs";
 import { drainOnStop } from "./qa-server.mjs";
 
@@ -40,6 +43,7 @@ const origin = `http://127.0.0.1:${webPort}`;
 
 const surfaces = Object.fromEntries(SURFACES.map((name) => [name, []]));
 const sent = new Set();
+const collected = new Set();
 const secrets = new Set();
 let placeId = null;
 let serverLog = "";
@@ -90,6 +94,9 @@ function watch(context) {
     }).catch(() => {});
   });
   context.on("response", (response) => {
+    // The file name a server answer proposes for a download.
+    const disposition = response.headers()["content-disposition"];
+    if (disposition) surfaces["file-name"].push(disposition);
     if (response.status() < 400 || !isLocalUrl(response.url(), origin)) return;
     void response.text().then((text) => surfaces["error-response"].push(text)).catch(() => {});
   });
@@ -119,6 +126,49 @@ async function plantInPage(page) {
 }
 
 const button = (page, name) => page.getByRole("button", { name }).first();
+
+// One share card (#691): the SVG the picture is drawn from, the downloaded PNG (name and metadata)
+// and what the app hands to the share sheet. The browser here has no share sheet, so a stand-in
+// records the call; without it the app falls back to a download and the share path is not run.
+async function collectCard(page, { kind, downloadName, shareName }) {
+  const image = page.locator("img.share-art__image.is-loaded");
+  await image.waitFor({ timeout: 30_000 });
+  const svg = svgTextOf(await image.getAttribute("src"));
+  if (!/<svg[\s>]/.test(svg) || !/<text[\s>]/.test(svg)) throw new Error("ảnh xem trước không phải bản SVG có chữ");
+  surfaces["share-image"].push(
+    svg,
+    `alt ${await image.getAttribute("alt")}`,
+    `heading ${await page.locator(".share-art h1").first().textContent().catch(() => "")}`,
+  );
+
+  const downloading = page.waitForEvent("download", { timeout: 20_000 });
+  await page.getByRole("button", { name: downloadName, exact: true }).click();
+  const file = await downloading;
+  surfaces["file-name"].push(file.suggestedFilename());
+  const { chunks, texts } = pngMetadata(await readFile(await file.path()));
+  surfaces["image-metadata"].push(`chunks ${chunks.join(" ")}`, ...texts);
+  collected.add(`${kind}-png`);
+
+  await page.evaluate(() => {
+    const calls = [];
+    Object.defineProperty(window, "__leakCanaryShared", { value: calls, configurable: true });
+    Object.defineProperty(navigator, "canShare", { value: () => true, configurable: true });
+    Object.defineProperty(navigator, "share", {
+      configurable: true,
+      value: async (data) => {
+        calls.push({ title: data?.title ?? "", text: data?.text ?? "", url: data?.url ?? "", files: [...(data?.files ?? [])].map((entry) => entry.name) });
+      },
+    });
+  });
+  await page.getByRole("button", { name: shareName, exact: true }).click();
+  await page.waitForFunction(() => window.__leakCanaryShared.length > 0, null, { timeout: 20_000 });
+  for (const call of await page.evaluate(() => window.__leakCanaryShared)) {
+    if (call.files.length === 0) throw new Error("bảng chia sẻ không nhận file nào");
+    surfaces["file-name"].push(...call.files);
+    surfaces["share-image"].push(`share title ${call.title}\ntext ${call.text}\nurl ${call.url}`);
+  }
+  collected.add(`${kind}-share`);
+}
 
 async function journey(page) {
   const go = (path) => page.goto(`${origin}${path}`, { waitUntil: "domcontentloaded" });
@@ -186,6 +236,24 @@ async function journey(page) {
       surfaces["current-url"].push(page.url());
     }
   });
+  await mark("ảnh note: tải và chia sẻ", async () => {
+    await go("/card");
+    await collectCard(page, { kind: "note-card", downloadName: "Tải ảnh PNG", shareName: "Chia sẻ card" });
+  });
+  await mark("Lá Khai Sinh: tải và chia sẻ", async () => {
+    await go("/birth-card");
+    await collectCard(page, { kind: "birth-card", downloadName: "Tải PNG", shareName: "Chia sẻ" });
+  });
+  await mark("tải dữ liệu của tôi", async () => {
+    await go("/profile");
+    await page.locator("details.profile-more > summary").click();
+    await button(page, /Tải dữ liệu của tôi/).click();
+    const downloading = page.waitForEvent("download", { timeout: 20_000 });
+    await page.getByRole("button", { name: "Tải về", exact: true }).click();
+    // Only the name is searched: the file itself holds the owner's data on purpose.
+    surfaces["file-name"].push((await downloading).suggestedFilename());
+    collected.add("data-export-file");
+  });
 }
 
 let exitCode = 2;
@@ -219,8 +287,9 @@ try {
   const marks = buildMarks({ placeId, secrets: [...secrets] });
   const findings = scanSurfaces(surfaces, marks);
   const missing = missingSends(sent);
-  for (const line of reportLines({ surfaces, findings, missing, planted })) console.log(line);
-  exitCode = findings.length > 0 || missing.length > 0 ? 1 : 0;
+  const noFiles = missingFiles(collected);
+  for (const line of reportLines({ surfaces, findings, missing, missingFiles: noFiles, planted })) console.log(line);
+  exitCode = findings.length > 0 || missing.length > 0 || noFiles.length > 0 ? 1 : 0;
 } catch (error) {
   // Only the first line, without values: an error text can quote the page.
   console.error(`Lượt chạy hỏng: ${String(error?.message ?? error).split("\n")[0].slice(0, 200)}`);

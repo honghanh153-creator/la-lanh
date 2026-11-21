@@ -89,7 +89,7 @@ const aura = content("00000000-0000-4000-8000-000000000011", "full_synthesis", "
 
 describe("HomePage rich reading", () => {
   beforeEach(() => {
-    vi.mocked(getMonthStatus).mockResolvedValue({ available: false, typed_questions: false, month: "2026-11", consent: null });
+    vi.mocked(getMonthStatus).mockResolvedValue({ available: false, month: "2026-11", presets: [] });
     vi.clearAllMocks();
     localStorage.clear();
     clearCachedDailyNote();
@@ -233,7 +233,7 @@ describe("HomePage rich reading", () => {
   });
 
   it("puts \"Hỏi về tháng này\" next to Tarot once the month copy is approved, never an answer or a date", async () => {
-    vi.mocked(getMonthStatus).mockResolvedValue({ available: true, typed_questions: false, month: "2026-11", consent: null });
+    vi.mocked(getMonthStatus).mockResolvedValue({ available: true, month: "2026-11", presets: [] });
     vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(vibe)));
     renderPage();
 
@@ -246,7 +246,7 @@ describe("HomePage rich reading", () => {
   });
 
   it("hides the month entry while its copy is pending", async () => {
-    vi.mocked(getMonthStatus).mockResolvedValue({ available: false, typed_questions: false, month: "2026-11", consent: null });
+    vi.mocked(getMonthStatus).mockResolvedValue({ available: false, month: "2026-11", presets: [] });
     vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(vibe)));
     renderPage();
 

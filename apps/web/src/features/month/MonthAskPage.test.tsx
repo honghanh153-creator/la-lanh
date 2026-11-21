@@ -5,7 +5,6 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
-  ApiProblem,
   askMonth,
   deleteSavedMonthAnswer,
   getMonthOverview,
@@ -14,6 +13,7 @@ import {
   listSavedMonthAnswers,
   saveMonthAnswer,
   type MonthAnswer,
+  type MonthPreset,
   type MonthStatus,
 } from "../../shared/api/client";
 import { MonthAskPage } from "./MonthAskPage";
@@ -33,12 +33,13 @@ vi.mock("../../shared/api/client", async (original) => {
   };
 });
 
-const CANARY = "zqcanary7month";
 const ANSWER: MonthAnswer = {
   month: "2026-11",
   topic: "work",
   topic_label: "Công việc",
-  reframe: null,
+  preset: null,
+  question: null,
+  tip: null,
   theme: "Tháng này công việc cần sắp lại cho gọn.",
   act: "Ghi ra các việc bạn đang ôm.",
   say: "Mình đang có ba việc cùng hạn, bạn muốn mình làm việc nào trước?",
@@ -47,8 +48,22 @@ const ANSWER: MonthAnswer = {
   answer_key: "0123456789abcdef0123456789abcdef",
 };
 
+const PRESETS: MonthPreset[] = [
+  { id: "work.hard_talk", topic: "work", text: "Làm sao nói chuyện khó với sếp?" },
+  { id: "work.too_much", topic: "work", text: "Việc dồn nhiều quá, nên làm việc nào trước?" },
+  { id: "work.shifts", topic: "work", text: "Tăng ca, đổi ca liên tục, giữ sức thế nào?" },
+  { id: "mind.sleep", topic: "mind", text: "Thức khuya hoài, làm sao ngủ sớm hơn?" },
+];
+const PRESET_ANSWER: MonthAnswer = {
+  ...ANSWER,
+  preset: "work.hard_talk",
+  question: "Làm sao nói chuyện khó với sếp?",
+  tip: "Hẹn sếp một lúc riêng, nói một chuyện chính và nói rõ bạn cần sếp giúp gì.",
+  answer_key: "fedcba9876543210fedcba9876543210",
+};
+
 function status(overrides: Partial<MonthStatus> = {}): MonthStatus {
-  return { available: true, typed_questions: false, month: "2026-11", consent: null, ...overrides };
+  return { available: true, month: "2026-11", presets: PRESETS, ...overrides };
 }
 
 function renderAt(element: React.ReactElement, path = "/hoi-thang") {
@@ -72,7 +87,7 @@ describe("Hỏi về tháng này (US-25)", () => {
     localStorage.clear();
     sessionStorage.clear();
     vi.mocked(getMonthStatus).mockResolvedValue(status());
-    vi.mocked(askMonth).mockResolvedValue({ status: "answered", answer: ANSWER, need_topic: null });
+    vi.mocked(askMonth).mockResolvedValue({ status: "answered", answer: ANSWER });
     vi.mocked(listSavedMonthAnswers).mockResolvedValue([]);
   });
 
@@ -151,53 +166,39 @@ describe("Hỏi về tháng này (US-25)", () => {
     expect(deleteSavedMonthAnswer).toHaveBeenCalledWith("22222222-2222-2222-2222-222222222222");
   });
 
-  it("has no typed box while the switch is off", async () => {
+  it("has no typed box: preset questions are listed under their topic instead", async () => {
     renderAt(<MonthAskPage />);
     await screen.findByRole("button", { name: "Công việc" });
     expect(screen.queryByRole("textbox")).toBeNull();
+    expect(screen.getByRole("heading", { name: "Hoặc chọn một câu hỏi có sẵn" })).toBeInTheDocument();
+    for (const preset of PRESETS) {
+      expect(screen.getByRole("button", { name: preset.text })).toBeInTheDocument();
+    }
   });
 
-  it("typed questions need the consent box, then are sent once and kept nowhere", async () => {
+  it("answers a preset question with its tip and the month parts", async () => {
     const user = userEvent.setup();
-    vi.mocked(getMonthStatus).mockResolvedValue(status({
-      typed_questions: true,
-      consent: { version: "month-typed-question-v1", copy_id: "consent.month.typed_question", text: "Câu đồng ý (bản nháp)." },
-    }));
+    vi.mocked(askMonth).mockResolvedValue({ status: "answered", answer: PRESET_ANSWER });
     renderAt(<MonthAskPage />);
-    const box = await screen.findByRole("textbox");
-    await user.type(box, `Làm sao nói với sếp ${CANARY} là mình quá tải?`);
-    const submit = screen.getByRole("button", { name: "Hỏi Lá" });
-    expect(submit).toBeDisabled();
+    await user.click(await screen.findByRole("button", { name: "Làm sao nói chuyện khó với sếp?" }));
 
-    await user.click(screen.getByRole("checkbox"));
-    await user.click(submit);
-    expect(askMonth).toHaveBeenCalledWith({ question: `Làm sao nói với sếp ${CANARY} là mình quá tải?`, consent_version: "month-typed-question-v1" });
-    await screen.findByText(ANSWER.theme);
-    expect(JSON.stringify({ ...localStorage })).not.toContain(CANARY);
-    expect(JSON.stringify({ ...sessionStorage })).not.toContain(CANARY);
-    expect(window.location.href).not.toContain(CANARY);
+    expect(askMonth).toHaveBeenCalledWith({ topic: "work", preset: "work.hard_talk" });
+    expect(await screen.findByRole("heading", { name: PRESET_ANSWER.question! })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Với câu này" })).toBeInTheDocument();
+    expect(screen.getByText(PRESET_ANSWER.tip!)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Có thể làm ngay" })).toBeInTheDocument();
+    // The other questions about the same topic are one tap away; the one just asked is not repeated.
+    const more = screen.getByRole("region", { name: "Câu hỏi khác về chuyện này" });
+    expect(more).toHaveTextContent("Việc dồn nhiều quá, nên làm việc nào trước?");
+    expect(more).not.toHaveTextContent("Làm sao nói chuyện khó với sếp?");
+    expect(more).not.toHaveTextContent("Thức khuya hoài");
   });
 
-  it("shows only the crisis notice for crisis text and clears the box", async () => {
-    const user = userEvent.setup();
-    const notice = "Câu thông báo an toàn đã duyệt.";
-    vi.mocked(getMonthStatus).mockResolvedValue(status({
-      typed_questions: true,
-      consent: { version: "month-typed-question-v1", copy_id: "consent.month.typed_question", text: "Câu đồng ý (bản nháp)." },
-    }));
-    vi.mocked(askMonth).mockRejectedValue(new ApiProblem(422, "CRISIS_NOTICE", "Content is not supported", {
-      code: "CRISIS_NOTICE",
-      notice: { copy_id: "crisis.self_harm.notice.month", text: notice },
-    }));
+  it("hides the preset list while presets are not served", async () => {
+    vi.mocked(getMonthStatus).mockResolvedValue(status({ presets: [] }));
     renderAt(<MonthAskPage />);
-    await user.type(await screen.findByRole("textbox"), "Dạo này mình chỉ muốn chết");
-    await user.click(screen.getByRole("checkbox"));
-    await user.click(screen.getByRole("button", { name: "Hỏi Lá" }));
-
-    expect(await screen.findByRole("alert")).toHaveTextContent(notice);
-    expect(screen.getAllByRole("alert")).toHaveLength(1);
-    expect(screen.getByRole("textbox")).toHaveValue("");
-    expect(screen.queryByText("Có thể nói")).toBeNull();
+    await screen.findByRole("button", { name: "Công việc" });
+    expect(screen.queryByRole("heading", { name: "Hoặc chọn một câu hỏi có sẵn" })).toBeNull();
   });
 });
 

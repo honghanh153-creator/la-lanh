@@ -1,8 +1,7 @@
-"""Month answers over HTTP. Synthetic births and questions only (no real person's data)."""
+"""Month answers over HTTP. Synthetic births only (no real person's data)."""
 
 from __future__ import annotations
 
-import logging
 import re
 from collections.abc import Callable, Iterator
 from typing import Any
@@ -11,17 +10,11 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import func, select
 
-from app.api.crisis_guard import CRISIS_NOTICE_CODE
 from app.config import Settings
 from app.db.base import Base
 from app.main import create_app
-from app.middleware import admission
-
-from ..safety.crisis_phrases import NEGATIVES, POSITIVES
 
 ORIGIN = "http://127.0.0.1:5173"
-CANARY = "zqcanary7month"
-CONSENT = "month-typed-question-v1"
 ISO_DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
 
 
@@ -44,12 +37,6 @@ def _client(**settings: Any) -> TestClient:
 @pytest.fixture
 def client() -> Iterator[TestClient]:
     with _client() as test_client:
-        yield test_client
-
-
-@pytest.fixture
-def typed_client() -> Iterator[TestClient]:
-    with _client(month_typed_questions_enabled=True) as test_client:
         yield test_client
 
 
@@ -102,8 +89,8 @@ def _row_counts(client: TestClient) -> dict[str, int]:
 def test_status_hides_the_feature_while_copy_is_pending(client: TestClient) -> None:
     body = client.get("/v1/month/status").json()
     assert body["available"] is False
-    assert body["typed_questions"] is False
-    assert body["consent"] is None
+    assert body["presets"] == []
+    assert "typed_questions" not in body and "consent" not in body
 
 
 def test_status_once_copy_is_approved(
@@ -112,8 +99,22 @@ def test_status_once_copy_is_approved(
     approve_month()
     response = client.get("/v1/month/status")
     assert response.headers["cache-control"].startswith("no-store")
-    assert response.json()["available"] is True
-    assert response.json()["typed_questions"] is False  # switch is off by default
+    body = response.json()
+    assert body["available"] is True
+    assert len(body["presets"]) == 18
+    assert {item["topic"] for item in body["presets"]} == {
+        "work",
+        "money",
+        "love",
+        "family",
+        "study",
+        "mind",
+    }
+    assert {
+        "id": "work.hard_talk",
+        "topic": "work",
+        "text": "Làm sao nói chuyện khó với sếp?",
+    } in body["presets"]
 
 
 def test_topic_answer_has_three_parts_basis_and_no_date(
@@ -134,7 +135,7 @@ def test_topic_answer_has_three_parts_basis_and_no_date(
         assert answer["disclaimer"] == (
             "Đây là một góc nhìn để bạn tự quyết, không phải điều chắc chắn sẽ xảy ra."
         )
-        assert answer["reframe"] is None
+        assert answer["preset"] is None and answer["question"] is None and answer["tip"] is None
         assert answer["month"] == "2026-11"
         # No dates anywhere in the answer: those only come from the on-tap window.
         assert not ISO_DATE.search(response.text)
@@ -216,188 +217,66 @@ def test_needs_a_guest(client: TestClient, approve_month: Callable[..., None]) -
     assert client.post("/v1/month/answers", json={"topic": "work"}).status_code in {401, 403}
 
 
-# --- typed questions ---------------------------------------------------------------------------
+# --- preset questions (owner chose AS1 on 21.11.2026: no typed box) ----------------------------
 
 
-def test_typed_question_refused_while_switched_off(
-    client: TestClient, approve_month: Callable[..., None]
-) -> None:
-    approve_month(owner=True)
-    headers = _person(client, "off")
+def test_preset_question_answer(client: TestClient, approve_month: Callable[..., None]) -> None:
+    approve_month()
+    headers = _person(client, "preset")
+    plain = client.post("/v1/month/answers", json={"topic": "work"}, headers=headers).json()
     response = client.post(
-        "/v1/month/answers",
-        json={"question": "Làm sao nói với sếp là mình quá tải?", "consent_version": CONSENT},
-        headers=headers,
+        "/v1/month/answers", json={"topic": "work", "preset": "work.hard_talk"}, headers=headers
     )
-    assert response.status_code == 403
-    assert response.json()["code"] == "MONTH_TYPED_QUESTIONS_OFF"
-
-
-def test_typed_question_needs_owner_approved_consent_even_when_on(
-    typed_client: TestClient, approve_month: Callable[..., None]
-) -> None:
-    approve_month()  # month copy approved, consent and crisis copy still pending
-    headers = _person(typed_client, "consent-pending")
-    assert typed_client.get("/v1/month/status").json()["typed_questions"] is False
-    response = typed_client.post(
-        "/v1/month/answers",
-        json={"question": "Làm sao nói với sếp là mình quá tải?", "consent_version": CONSENT},
-        headers=headers,
-    )
-    assert response.status_code == 403
-
-
-def test_typed_question_needs_consent(
-    typed_client: TestClient, approve_month: Callable[..., None]
-) -> None:
-    approve_month(owner=True)
-    status = typed_client.get("/v1/month/status").json()
-    assert status["typed_questions"] is True
-    assert status["consent"]["version"] == CONSENT
-    headers = _person(typed_client, "consent")
-    response = typed_client.post(
-        "/v1/month/answers",
-        json={"question": "Làm sao nói với sếp là mình quá tải?"},
-        headers=headers,
-    )
-    assert response.status_code == 428
-
-
-def test_typed_outcome_question_gets_no_yes_no_and_is_not_echoed_logged_or_stored(
-    typed_client: TestClient,
-    approve_month: Callable[..., None],
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    approve_month(owner=True)
-    headers = _person(typed_client, "outcome")
-    before = _row_counts(typed_client)
-    question = f"Buổi phỏng vấn tới {CANARY} mình có đậu không?"
-    with caplog.at_level(logging.DEBUG):
-        response = typed_client.post(
-            "/v1/month/answers",
-            json={"question": question, "consent_version": CONSENT},
-            headers=headers,
-        )
     assert response.status_code == 200, response.text
     answer = response.json()["answer"]
-    assert answer["topic"] == "work"
-    assert answer["reframe"] == (
-        "Lá không đoán được chuyện này sẽ ra sao. Đây là việc giúp bạn có thêm cơ hội."
-    )
-    for part in ("theme", "act", "say"):
-        assert not re.match(r"^(Có|Không|Được|Chưa)\b", answer[part])
-    assert CANARY not in response.text
-    assert CANARY not in caplog.text
-    assert _row_counts(typed_client) == before
+    assert answer["preset"] == "work.hard_talk"
+    assert answer["question"] == "Làm sao nói chuyện khó với sếp?"
+    assert answer["tip"]
+    # The month parts and the basis still come from the chart, same as the topic answer.
+    for part in ("theme", "act", "say", "basis"):
+        assert answer[part] == plain["answer"][part]
+    assert answer["answer_key"] != plain["answer"]["answer_key"]
+    assert not ISO_DATE.search(response.text)
 
 
-def test_typed_question_without_a_topic_asks_for_one(
-    typed_client: TestClient, approve_month: Callable[..., None]
-) -> None:
-    approve_month(owner=True)
-    headers = _person(typed_client, "need-topic")
-    response = typed_client.post(
-        "/v1/month/answers",
-        json={"question": "Tháng này thế nào nhỉ?", "consent_version": CONSENT},
-        headers=headers,
-    )
-    assert response.json() == {
-        "status": "need_topic",
-        "answer": None,
-        "need_topic": "Lá chưa rõ câu này thuộc chuyện gì. Bạn chọn một mảng bên dưới nhé.",
-    }
-
-
-def test_same_typed_question_same_answer(
-    typed_client: TestClient, approve_month: Callable[..., None]
-) -> None:
-    approve_month(owner=True)
-    headers = _person(typed_client, "same-typed")
-    body = {"question": "Cuối tháng này mình có đủ tiền ăn không?", "consent_version": CONSENT}
-    first = typed_client.post("/v1/month/answers", json=body, headers=headers).json()
-    second = typed_client.post("/v1/month/answers", json=body, headers=headers).json()
-    assert first == second and first["answer"]["topic"] == "money"
-
-
-# --- crisis guard on typed text -----------------------------------------------------------------
-
-
-def _post_in_budget(
-    client: TestClient, _index: int, body: dict[str, str], headers: dict[str, str]
-) -> Any:
-    response = client.post("/v1/month/answers", json=body, headers=headers)
-    assert response.status_code != 429
-    return response
-
-
-@pytest.fixture
-def no_admission_limit(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Hundreds of phrases from one peer: the per-minute backstop is not under test here."""
-
-    monkeypatch.setattr(admission, "_policy", lambda _request: None)
-
-
-def _assert_month_crisis(response: Any, notice_copy_id: str) -> None:
-    assert response.status_code == 422
-    body = response.json()
-    assert body["code"] == CRISIS_NOTICE_CODE
-    assert body["notice"]["copy_id"] == notice_copy_id
-    assert response.headers["cache-control"].startswith("no-store")
-
-
-@pytest.mark.usefixtures("no_admission_limit")
-def test_every_crisis_phrase_is_routed_on_the_typed_path(
-    typed_client: TestClient,
-    approve_month: Callable[..., None],
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    approve_month(owner=True)
-    headers = _person(typed_client, "crisis")
-    before = _row_counts(typed_client)
-    with caplog.at_level(logging.DEBUG):
-        for index, phrase in enumerate(POSITIVES):
-            response = _post_in_budget(
-                typed_client,
-                index,
-                {"question": phrase, "consent_version": CONSENT},
-                headers,
-            )
-            _assert_month_crisis(response, "crisis.self_harm.notice.month")
-            assert phrase not in response.text
-        canary = typed_client.post(
-            "/v1/month/answers",
-            json={"question": f"Mình muốn chết {CANARY}", "consent_version": CONSENT},
-            headers=headers,
-        )
-        _assert_month_crisis(canary, "crisis.self_harm.notice.month")
-    assert CANARY not in canary.text
-    assert CANARY not in caplog.text
-    assert _row_counts(typed_client) == before
-
-
-def test_crisis_text_is_routed_before_the_switch_and_length_checks(
+def test_every_preset_answers_without_yes_no(
     client: TestClient, approve_month: Callable[..., None]
 ) -> None:
-    """Switch off and month crisis copy pending: the approved Tarot notice still answers."""
+    approve_month()
+    headers = _person(client, "every-preset")
+    presets = client.get("/v1/month/status").json()["presets"]
+    for item in presets:
+        body = {"topic": item["topic"], "preset": item["id"]}
+        response = client.post("/v1/month/answers", json=body, headers=headers)
+        assert response.status_code == 200, (item, response.text)
+        answer = response.json()["answer"]
+        assert answer["question"] == item["text"]
+        for part in ("tip", "theme", "act", "say"):
+            assert not re.match(r"^(Có|Không|Được|Chưa)\b", answer[part]), (item, part)
+
+
+def test_preset_must_match_its_topic(
+    client: TestClient, approve_month: Callable[..., None]
+) -> None:
+    approve_month()
+    headers = _person(client, "mismatch")
+    response = client.post(
+        "/v1/month/answers", json={"topic": "love", "preset": "work.hard_talk"}, headers=headers
+    )
+    assert response.status_code == 422
+    assert response.json()["code"] == "MONTH_PRESET_TOPIC_MISMATCH"
+
+
+def test_free_text_is_not_accepted(client: TestClient, approve_month: Callable[..., None]) -> None:
+    """No typed box: a request carrying free text is refused by validation, never read."""
 
     approve_month()
-    headers = _person(client, "crisis-off")
-    response = client.post("/v1/month/answers", json={"question": "tự tử"}, headers=headers)
-    _assert_month_crisis(response, "crisis.self_harm.notice")
-
-
-@pytest.mark.usefixtures("no_admission_limit")
-def test_false_alarms_stay_at_or_below_two_percent(
-    typed_client: TestClient, approve_month: Callable[..., None]
-) -> None:
-    approve_month(owner=True)
-    headers = _person(typed_client, "negatives")
-    flagged = 0
-    for index, phrase in enumerate(NEGATIVES):
-        text = phrase if len(phrase) >= 8 else f"{phrase} tháng này"
-        response = _post_in_budget(
-            typed_client, index, {"question": text[:280], "consent_version": CONSENT}, headers
-        )
-        assert response.status_code in {200, 422}, response.text
-        flagged += response.status_code == 422 and response.json().get("code") == CRISIS_NOTICE_CODE
-    assert flagged / len(NEGATIVES) <= 0.02
+    headers = _person(client, "free-text")
+    for body in (
+        {"topic": "work", "question": "Làm sao nói với sếp là mình quá tải?"},
+        {"topic": "work", "preset": "Làm sao nói với sếp là mình quá tải?"},
+        {"question": "Làm sao nói với sếp là mình quá tải?"},
+    ):
+        response = client.post("/v1/month/answers", json=body, headers=headers)
+        assert response.status_code == 422, body
+        assert "quá tải" not in response.text

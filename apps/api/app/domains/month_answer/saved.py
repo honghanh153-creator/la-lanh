@@ -1,7 +1,7 @@
 """Saved month answers: explicit save, own list, delete (AK2, US-25 AC12).
 
-Only the composed answer is stored (topic label, the three parts, the basis, the disclaimer and
-the reframe line if any), encrypted with the row id as context. No typed text, no date window.
+Only the composed answer is stored (topic label, the preset question and its tip if one was picked,
+the three parts, the basis, the disclaimer), encrypted with the row id as context. No date window.
 """
 
 from __future__ import annotations
@@ -47,7 +47,9 @@ def snapshot_of(answer: MonthAnswer) -> dict[str, object]:
         "month": answer.month,
         "topic": answer.topic.value,
         "topic_label": answer.topic_label,
-        "reframe": answer.reframe,
+        "preset": answer.preset.value if answer.preset is not None else None,
+        "question": answer.question,
+        "tip": answer.tip,
         "theme": answer.theme,
         "act": answer.act,
         "say": answer.say,

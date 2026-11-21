@@ -7,14 +7,10 @@
   min-height: 44px; padding: .5rem .9rem; border-radius: 999px;
   border: 1px solid var(--line, rgba(255,255,255,.25)); background: transparent; color: inherit; font: inherit;
 }
-.month-typed { display: grid; gap: .6rem; margin-top: 1rem; }
-.month-typed textarea { width: 100%; box-sizing: border-box; font: inherit; padding: .6rem; border-radius: .6rem; }
-.month-consent { display: flex; gap: .5rem; align-items: flex-start; font-size: .9rem; }
-.month-consent input { min-width: 22px; min-height: 22px; }
 .month-answer { display: grid; gap: .9rem; padding: 1rem; border-radius: 1rem; border: 1px solid var(--line, rgba(255,255,255,.18)); }
 .month-answer p, .month-answer blockquote { margin: 0; }
 .month-answer blockquote { padding-left: .75rem; border-left: 3px solid currentColor; font-style: italic; }
-.month-reframe { font-weight: 600; }
+.month-question { font-weight: 600; }
 .month-basis summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; }
 .month-disclaimer { font-size: .85rem; opacity: .8; }
 .month-window-button, .month-again {
@@ -37,3 +33,8 @@
 .month-reminder { display: flex; gap: .5rem; align-items: center; min-height: 44px; font-size: .9rem; }
 .month-reminder input { min-width: 22px; min-height: 22px; }
 .home-month-reminder { display: block; margin: .5rem 0; }
+.month-presets { display: grid; gap: .6rem; margin-top: 1.2rem; }
+.month-preset-group { display: grid; gap: .35rem; }
+.month-preset-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .4rem; }
+.month-preset-list button { width: 100%; min-height: 44px; text-align: left; font: inherit; padding: .55rem .75rem; border-radius: .7rem; border: 1px solid var(--line, rgba(127, 127, 127, .35)); background: transparent; color: inherit; cursor: pointer; }
+.month-preset-list button:disabled { opacity: .6; cursor: default; }

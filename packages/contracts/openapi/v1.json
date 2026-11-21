@@ -2655,7 +2655,7 @@
       },
       "ExportSavedMonthAnswer": {
         "additionalProperties": false,
-        "description": "A month answer the person saved with \"Lưu\" (US-25). The typed question is never stored.",
+        "description": "A month answer the person saved with \"Lưu\" (US-25).",
         "properties": {
           "act": {
             "anyOf": [
@@ -2705,7 +2705,7 @@
             "title": "Month",
             "type": "string"
           },
-          "reframe": {
+          "question": {
             "anyOf": [
               {
                 "type": "string"
@@ -2714,7 +2714,7 @@
                 "type": "null"
               }
             ],
-            "title": "Reframe"
+            "title": "Question"
           },
           "saved_at": {
             "format": "date-time",
@@ -2743,6 +2743,17 @@
             ],
             "title": "Theme"
           },
+          "tip": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tip"
+          },
           "topic": {
             "title": "Topic",
             "type": "string"
@@ -2764,7 +2775,8 @@
           "month",
           "topic",
           "topic_label",
-          "reframe",
+          "question",
+          "tip",
           "theme",
           "act",
           "say",
@@ -4219,79 +4231,40 @@
       "MonthAnswerRequest": {
         "additionalProperties": false,
         "properties": {
-          "consent_version": {
+          "preset": {
             "anyOf": [
               {
-                "maxLength": 64,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Consent Version"
-          },
-          "question": {
-            "anyOf": [
-              {
-                "maxLength": 280,
-                "minLength": 8,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Question"
-          },
-          "topic": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Topic"
+                "$ref": "#/components/schemas/PresetId"
               },
               {
                 "type": "null"
               }
             ]
+          },
+          "topic": {
+            "$ref": "#/components/schemas/Topic"
           }
         },
+        "required": [
+          "topic"
+        ],
         "title": "MonthAnswerRequest",
         "type": "object"
       },
       "MonthAnswerResponse": {
         "properties": {
           "answer": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/MonthAnswerView"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "need_topic": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Need Topic"
+            "$ref": "#/components/schemas/MonthAnswerView"
           },
           "status": {
-            "enum": [
-              "answered",
-              "need_topic"
-            ],
+            "const": "answered",
             "title": "Status",
             "type": "string"
           }
         },
         "required": [
-          "status"
+          "status",
+          "answer"
         ],
         "title": "MonthAnswerResponse",
         "type": "object"
@@ -4317,7 +4290,17 @@
             "title": "Month",
             "type": "string"
           },
-          "reframe": {
+          "preset": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PresetId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "question": {
             "anyOf": [
               {
                 "type": "string"
@@ -4326,7 +4309,7 @@
                 "type": "null"
               }
             ],
-            "title": "Reframe"
+            "title": "Question"
           },
           "say": {
             "title": "Say",
@@ -4335,6 +4318,17 @@
           "theme": {
             "title": "Theme",
             "type": "string"
+          },
+          "tip": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tip"
           },
           "topic": {
             "$ref": "#/components/schemas/Topic"
@@ -4348,7 +4342,9 @@
           "month",
           "topic",
           "topic_label",
-          "reframe",
+          "preset",
+          "question",
+          "tip",
           "theme",
           "act",
           "say",
@@ -4375,29 +4371,6 @@
           "detail"
         ],
         "title": "MonthBasis",
-        "type": "object"
-      },
-      "MonthConsent": {
-        "properties": {
-          "copy_id": {
-            "title": "Copy Id",
-            "type": "string"
-          },
-          "text": {
-            "title": "Text",
-            "type": "string"
-          },
-          "version": {
-            "title": "Version",
-            "type": "string"
-          }
-        },
-        "required": [
-          "version",
-          "copy_id",
-          "text"
-        ],
-        "title": "MonthConsent",
         "type": "object"
       },
       "MonthOverviewItem": {
@@ -4455,6 +4428,27 @@
         "title": "MonthOverviewResponse",
         "type": "object"
       },
+      "MonthPresetView": {
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/PresetId"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "topic": {
+            "$ref": "#/components/schemas/Topic"
+          }
+        },
+        "required": [
+          "id",
+          "topic",
+          "text"
+        ],
+        "title": "MonthPresetView",
+        "type": "object"
+      },
       "MonthSaveRequest": {
         "additionalProperties": false,
         "properties": {
@@ -4482,28 +4476,21 @@
             "title": "Available",
             "type": "boolean"
           },
-          "consent": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/MonthConsent"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
           "month": {
             "title": "Month",
             "type": "string"
           },
-          "typed_questions": {
-            "title": "Typed Questions",
-            "type": "boolean"
+          "presets": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/MonthPresetView"
+            },
+            "title": "Presets",
+            "type": "array"
           }
         },
         "required": [
           "available",
-          "typed_questions",
           "month"
         ],
         "title": "MonthStatusResponse",
@@ -4952,6 +4939,30 @@
         ],
         "title": "PoolMembershipInput",
         "type": "object"
+      },
+      "PresetId": {
+        "enum": [
+          "work.hard_talk",
+          "work.too_much",
+          "work.shifts",
+          "money.month_end",
+          "money.ask_back",
+          "money.say_no",
+          "love.closer",
+          "love.say_tired",
+          "love.far",
+          "family.parents_ask",
+          "family.my_path",
+          "family.compare",
+          "study.many_exams",
+          "study.exam_energy",
+          "study.start_project",
+          "mind.homesick",
+          "mind.sleep",
+          "mind.heavy"
+        ],
+        "title": "PresetId",
+        "type": "string"
       },
       "ProblemResponse": {
         "properties": {
@@ -13333,9 +13344,6 @@
               }
             },
             "description": "Request input was rejected"
-          },
-          "428": {
-            "description": "Precondition Required"
           },
           "503": {
             "description": "Service Unavailable"

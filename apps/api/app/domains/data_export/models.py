@@ -119,13 +119,14 @@ class ExportSavedNote(_Strict):
 
 
 class ExportSavedMonthAnswer(_Strict):
-    """A month answer the person saved with "Lưu" (US-25). The typed question is never stored."""
+    """A month answer the person saved with "Lưu" (US-25)."""
 
     saved_at: datetime
     month: str
     topic: str
     topic_label: str | None
-    reframe: str | None
+    question: str | None
+    tip: str | None
     theme: str | None
     act: str | None
     say: str | None

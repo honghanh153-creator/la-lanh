@@ -36,4 +36,5 @@ def test_month_check_runs_clean_on_a_few_personas(tmp_path: Path) -> None:
     assert summary["personas"] == 6
     assert summary["failures"] == {}
     assert summary["topic_answers"] == 36
-    assert summary["crisis"]["missed"] == 0
+    assert summary["preset_answers"] == 6 * 18
+    assert summary["free_text"]["sent"] == summary["free_text"]["refused"] > 0

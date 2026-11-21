@@ -2,20 +2,24 @@
 
 The real FastAPI app runs in-process on a fresh local SQLite file per worker: synthetic data
 only, never production, no provider call. For this run only, and only in memory, the pending
-``month.*`` sentences and the two owner-only drafts (typed-question consent, month crisis notice)
-are served as approved and the typed-question switch is on, so every path can be exercised. The
-admission backstop is off (one test client sends thousands of requests).
+``month.*`` sentences are served as approved so every path can be exercised. The admission
+backstop is off (one test client sends thousands of requests).
 
-Per persona (one guest each, created one after the other on one client, as persona_sim does):
+There is no typed question (owner chose AS1 on 21.11.2026). Per persona (one guest each, created
+one after the other on one client, as persona_sim does):
 
 - six topics asked twice: same answer both times, three parts, a "Dựa vào" line, no date;
+- every preset question: answered with its own question and tip, the month parts equal to the
+  topic answer, nothing opening like a yes/no verdict, no date;
 - the easier window for one topic: starts today or later, at most three days;
-- its Tarot questions typed as month questions: never flagged as crisis (false alarm), never
-  echoed back, never stored;
-- its ``crisis_inputs``: every one must get the crisis notice (a miss is a failure);
-- its ``figurative_inputs``: must not get the crisis notice (false alarm);
+- free text is refused: the persona's first Tarot question and first crisis input sent as a
+  ``question`` field get a validation error and are not echoed;
+- saving a topic answer and a preset answer: the list holds exactly those two;
 - cross-person isolation: a new person sees no saved answer of the one before, cannot delete it,
-  and no answer carries another persona's question text.
+  and no answer carries another persona's text.
+
+It also counts, by rough keywords and for the report only, how many personas' Tarot questions
+match each preset's situation: the evidence that the presets are what people wanted to ask.
 
     uv run --directory apps/api python -m scripts.persona_month_check \\
         --out ../../qa/personas/runs/<name>
@@ -41,9 +45,34 @@ from scripts.persona_sim import ORIGIN, ROOT, _setup, git_head
 PERSONAS = ROOT / "qa" / "personas" / "personas-1000.json"
 INSTANT = datetime(2026, 11, 20, 5, 0, tzinfo=UTC)  # noon in Vietnam
 TOPICS = ("work", "money", "love", "family", "study", "mind")
-CONSENT = "month-typed-question-v1"
 DATE_LIKE = re.compile(r"\b\d{1,2}\s*[./-]\s*\d{1,2}\b|\d{4}-\d{2}-\d{2}|\bngày \d")
 YES_NO = re.compile(r"^(Có|Không|Được|Chưa)\b")
+MONTH_PARTS = ("theme", "act", "say", "basis")
+# Rough situation keywords per preset, matched on the lowercased Tarot question. Report only.
+PRESET_THEMES: dict[str, re.Pattern[str]] = {
+    key: re.compile(pattern)
+    for key, pattern in {
+        "work.hard_talk": r"(sếp|quản lý|trưởng phòng).*(nói|góp ý|đề xuất|xin|trả lời)"
+        r"|(nói|góp ý|đề xuất|xin).*(sếp|quản lý|trưởng phòng)",
+        "work.too_much": r"deadline|dồn|nhiều việc|việc nào trước|ưu tiên|bớt việc|quá tải",
+        "work.shifts": r"ca đêm|tăng ca|đổi ca|ca trực|ca tối|ca xoay|làm ca",
+        "money.month_end": r"cuối tháng|hết tiền|xoay|kẹt tiền|thiếu tiền|cạn tiền|tới lương",
+        "money.ask_back": r"\bđòi\b|trả tiền|\bnợ\b",
+        "money.say_no": r"từ chối|không có tiền",
+        "love.closer": r"gần (nhau )?hơn|ít nói chuyện|xa cách|hục hặc",
+        "love.say_tired": r"(nói|kể).*mệt|hiểu mình mệt",
+        "love.far": r"ở xa|yêu xa|làm xa|ít gọi|ít nhắn",
+        "family.parents_ask": r"(bố|ba|mẹ).*(hỏi|giục|hối)",
+        "family.my_path": r"con đường|học tiếp|ở lại .* hay về|về quê làm|muốn vẽ",
+        "family.compare": r"so sánh|so mình|so với",
+        "study.many_exams": r"\bôn\b|môn thi|đợt thi|thi liền|nhiều môn",
+        "study.exam_energy": r"\b(thi|ôn)\b.*(mệt|sức|ngủ)|(mệt|sức|ngủ).*\b(thi|ôn)\b",
+        "study.start_project": r"đồ án|ý tưởng|khóa luận|bắt đầu từ đâu",
+        "mind.homesick": r"nhớ nhà",
+        "mind.sleep": r"ngủ|thức khuya",
+        "mind.heavy": r"nặng lòng|mệt trong lòng|buồn|trống trải|trống trống|đuối",
+    }.items()
+}
 
 
 def _serve_month_copy_as_approved() -> None:
@@ -51,14 +80,12 @@ def _serve_month_copy_as_approved() -> None:
     from app.domains.content.copy_approval import copy_digest, load_registry
 
     registry = dict(load_registry())
-    owner_drafts = {"consent.month.typed_question", "crisis.self_harm.notice.month"}
     for key, entry in registry.items():
-        if key.startswith("month.") or key in owner_drafts:
-            approver = "owner" if entry.category in copy_approval.OWNER_ONLY_CATEGORIES else "codex"
+        if key.startswith("month."):
             registry[key] = replace(
                 entry,
                 status="approved",
-                approver=approver,
+                approver="codex",
                 date="2026-11-20",
                 digest=copy_digest(entry.text),
             )
@@ -80,7 +107,6 @@ def _client(db_url: str) -> Any:
             cors_origins=[ORIGIN],
             guest_cookie_name="la_lanh_guest",
             guest_cookie_secure=False,
-            month_typed_questions_enabled=True,
         )
     )
     client = TestClient(app, base_url=ORIGIN)
@@ -113,6 +139,7 @@ def _persona(
             failures.append(f"leak:deleted-other-person-saved:{deleted.status_code}")
 
     first_work: dict[str, Any] | None = None
+    by_topic: dict[str, dict[str, Any]] = {}
     for topic in TOPICS:
         one = client.post("/v1/month/answers", json={"topic": topic}, headers=headers)
         two = client.post("/v1/month/answers", json={"topic": topic}, headers=headers)
@@ -131,8 +158,41 @@ def _persona(
             failures.append(f"topic:{topic}:date-in-answer")
         if any(text in one.text for text in seen_texts):
             failures.append(f"topic:{topic}:other-person-text")
+        by_topic[topic] = answer
         if topic == "work":
             first_work = answer
+
+    presets = client.get("/v1/month/status").json().get("presets", [])
+    if len(presets) != 18:
+        failures.append(f"presets:count:{len(presets)}")
+    preset_saved: dict[str, Any] | None = None
+    for item in presets:
+        response = client.post(
+            "/v1/month/answers",
+            json={"topic": item["topic"], "preset": item["id"]},
+            headers=headers,
+        )
+        answer = _answer(response)
+        if answer is None:
+            failures.append(f"preset:{item['id']}:status:{response.status_code}")
+            continue
+        stats["preset_answers"] += 1
+        if answer["preset"] != item["id"] or answer["question"] != item["text"]:
+            failures.append(f"preset:{item['id']}:wrong-question")
+        if not answer["tip"]:
+            failures.append(f"preset:{item['id']}:no-tip")
+        plain = by_topic.get(item["topic"])
+        if plain is not None and any(answer[part] != plain[part] for part in MONTH_PARTS):
+            failures.append(f"preset:{item['id']}:month-parts-differ")
+        for part in ("tip", "theme", "act", "say"):
+            if YES_NO.match(answer[part] or ""):
+                failures.append(f"preset:{item['id']}:yes-no")
+        if DATE_LIKE.search(response.text):
+            failures.append(f"preset:{item['id']}:date-in-answer")
+        if any(text in response.text for text in seen_texts):
+            failures.append(f"preset:{item['id']}:other-person-text")
+        if item["id"] == "mind.sleep":
+            preset_saved = answer
 
     window = client.get("/v1/month/window", params={"topic": "money"}, headers=headers)
     if window.status_code != 200 or not window.json().get("found"):
@@ -147,78 +207,52 @@ def _persona(
             failures.append("window:range")
 
     saved_id = None
-    if first_work is not None:
+    saved_ids: list[str] = []
+    for topic, picked in (("work", first_work), ("mind", preset_saved)):
+        if picked is None:
+            continue
         response = client.post(
             "/v1/month/saved",
-            json={"topic": "work", "answer_key": first_work["answer_key"]},
+            json={"topic": topic, "answer_key": picked["answer_key"]},
             headers=headers,
         )
         if response.status_code != 201:
             failures.append(f"save:{response.status_code}")
-        else:
-            saved_id = response.json()["id"]
-            listed = client.get("/v1/month/saved", headers=headers).json()["items"]
-            if [item["id"] for item in listed] != [saved_id]:
-                failures.append("save:list-mismatch")
+            continue
+        saved_ids.append(response.json()["id"])
+        if response.json()["answer"]["question"] != picked["question"]:
+            failures.append("save:question-mismatch")
+    if saved_ids:
+        saved_id = saved_ids[0]
+        listed = client.get("/v1/month/saved", headers=headers).json()["items"]
+        if sorted(item["id"] for item in listed) != sorted(saved_ids):
+            failures.append("save:list-mismatch")
 
-    for question in persona.get("tarot_questions", []):
-        text = question["text"][:280]
-        if len(text) < 8:
-            continue
-        stats["typed_questions"] += 1
-        response = client.post(
-            "/v1/month/answers",
-            json={"question": text, "consent_version": CONSENT},
-            headers=headers,
-        )
-        if response.status_code == 422 and response.json().get("code") == "CRISIS_NOTICE":
-            stats["typed_false_alarm"] += 1
-            continue
-        if response.status_code != 200:
-            failures.append(f"typed:status:{response.status_code}")
-            continue
-        if text in response.text:
-            failures.append("typed:echoed")
-        body = response.json()
-        if body["status"] == "need_topic":
-            stats["typed_need_topic"] += 1
-            continue
-        stats["typed_answered"] += 1
-        stats[f"typed_topic:{body['answer']['topic']}"] += 1
-        if body["answer"]["reframe"]:
-            stats["typed_reframed"] += 1
-        for part in ("theme", "act", "say"):
-            if YES_NO.match(body["answer"][part]):
-                failures.append("typed:yes-no")
-        if DATE_LIKE.search(response.text):
-            failures.append("typed:date-in-answer")
-
+    questions = [q["text"] for q in persona.get("tarot_questions", []) if len(q["text"]) >= 8]
     tests = persona.get("tests", {})
-    for item in tests.get("crisis_inputs", []):
-        text = item["text"] if isinstance(item, dict) else item
-        stats["crisis_inputs"] += 1
+    crisis = [i["text"] if isinstance(i, dict) else i for i in tests.get("crisis_inputs", [])]
+    for text in [*questions[:1], *crisis[:1]]:
+        stats["free_text_sent"] += 1
         response = client.post(
-            "/v1/month/answers",
-            json={"question": text, "consent_version": CONSENT},
-            headers=headers,
+            "/v1/month/answers", json={"topic": "work", "question": text[:280]}, headers=headers
         )
-        if response.status_code == 422 and response.json().get("code") == "CRISIS_NOTICE":
-            stats["crisis_routed"] += 1
-            if response.json()["notice"]["copy_id"] != "crisis.self_harm.notice.month":
-                failures.append("crisis:wrong-notice")
+        if response.status_code != 422:
+            failures.append(f"free-text:accepted:{response.status_code}")
+        elif text[:280] in response.text:
+            failures.append("free-text:echoed")
         else:
-            failures.append("crisis:missed")
-    for item in tests.get("figurative_inputs", []):
-        text = item["text"] if isinstance(item, dict) else item
-        stats["figurative_inputs"] += 1
-        body = text if len(text) >= 8 else f"{text} tháng này"
-        response = client.post(
-            "/v1/month/answers",
-            json={"question": body[:280], "consent_version": CONSENT},
-            headers=headers,
-        )
-        if response.status_code == 422 and response.json().get("code") == "CRISIS_NOTICE":
-            stats["figurative_flagged"] += 1
+            stats["free_text_refused"] += 1
+    stats["tarot_questions"] += len(questions)
+    for text in questions:
+        lowered = text.lower()
+        hits = [key for key, pattern in PRESET_THEMES.items() if pattern.search(lowered)]
+        if hits:
+            stats["tarot_questions_matching_a_preset"] += 1
+        for key in hits:
+            stats[f"want:{key}"] += 1
+    for key, pattern in PRESET_THEMES.items():
+        if any(pattern.search(text.lower()) for text in questions):
+            stats[f"want_personas:{key}"] += 1
 
     seen_texts.extend(q["text"] for q in persona.get("tarot_questions", []) if len(q["text"]) >= 20)
     return {
@@ -285,44 +319,30 @@ def main() -> None:
             item.split(":status:")[0] if ":status:" in item else item for item in row["failures"]
         )
     by_precision = Counter(row["precision"] for row in rows)
-    crisis_inputs = totals["crisis_inputs"]
-    figurative = totals["figurative_inputs"]
-    typed = totals["typed_questions"]
+    asked = totals["tarot_questions"]
     summary = {
         "git_head": git_head(),
         "personas": len(rows),
         "by_precision": dict(by_precision),
         "seconds": round(time.monotonic() - started, 1),
         "database": "local SQLite per worker (synthetic, deleted with the temp dir)",
-        "copy": "month.* and the two owner drafts served as approved in memory for this run only",
-        "crisis": {
-            "inputs": crisis_inputs,
-            "routed": totals["crisis_routed"],
-            "missed": crisis_inputs - totals["crisis_routed"],
-            "recall": round(totals["crisis_routed"] / crisis_inputs, 4) if crisis_inputs else None,
-        },
-        "false_alarms": {
-            "figurative_inputs": figurative,
-            "figurative_flagged": totals["figurative_flagged"],
-            "typed_questions": typed,
-            "typed_flagged": totals["typed_false_alarm"],
-            "rate": round(
-                (totals["figurative_flagged"] + totals["typed_false_alarm"])
-                / max(1, figurative + typed),
-                4,
-            ),
-        },
-        "typed": {
-            "answered": totals["typed_answered"],
-            "need_topic": totals["typed_need_topic"],
-            "reframed": totals["typed_reframed"],
-            "topics": {
-                k.split(":", 1)[1]: v
-                for k, v in sorted(totals.items())
-                if k.startswith("typed_topic:")
-            },
-        },
+        "copy": "month.* served as approved in memory for this run only",
         "topic_answers": totals["topic_answers"],
+        "preset_answers": totals["preset_answers"],
+        "free_text": {
+            "sent": totals["free_text_sent"],
+            "refused": totals["free_text_refused"],
+        },
+        "persona_wants": {
+            "tarot_questions": asked,
+            "matching_a_preset": totals["tarot_questions_matching_a_preset"],
+            "share": round(totals["tarot_questions_matching_a_preset"] / asked, 4)
+            if asked
+            else None,
+            "personas_per_preset": {key: totals[f"want_personas:{key}"] for key in PRESET_THEMES},
+            "questions_per_preset": {key: totals[f"want:{key}"] for key in PRESET_THEMES},
+            "method": "rough keyword match on the lowercased Tarot question; report only",
+        },
         "failures": dict(failures),
         "failing_personas": [row["persona"] for row in rows if row["failures"]],
     }

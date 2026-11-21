@@ -6,18 +6,18 @@ import { Link, Navigate } from "react-router-dom";
 import {
   ApiProblem,
   askMonth,
-  crisisNoticeFrom,
   deleteSavedMonthAnswer,
   getMonthStatus,
   getMonthWindow,
   listSavedMonthAnswers,
   saveMonthAnswer,
   type MonthAnswer,
+  type MonthPreset,
+  type MonthPresetId,
   type MonthTopic,
   type MonthWindow,
 } from "../../shared/api/client";
 import { BrandMark } from "../../shared/ui/BrandMark";
-import { CrisisNotice } from "../../shared/ui/CrisisNotice";
 import { MONTH_TOPICS, monthCopy } from "./monthCopy";
 import "./month.css";
 
@@ -30,58 +30,25 @@ function shortDate(iso: string): string {
   return `${day}.${month}`;
 }
 
+type Ask = { topic: MonthTopic; preset?: MonthPresetId | null };
+
 /**
  * "Hỏi về tháng này" (US-25, AK2). No counter, no nudge to ask again, nothing saved unless the
- * person taps "Lưu". The typed question lives in this component's state only and is cleared as
- * soon as it is sent.
+ * person taps "Lưu". People pick a topic or a preset question; there is no typed box (owner chose
+ * AS1 on 21.11.2026), so nothing they write is collected.
  */
 export function MonthAskPage() {
   const status = useQuery({ queryKey: MONTH_STATUS_KEY, queryFn: ({ signal }) => getMonthStatus(signal), retry: false });
-  const [typed, setTyped] = useState("");
-  const [consented, setConsented] = useState(false);
   const [answer, setAnswer] = useState<MonthAnswer | null>(null);
-  const [needTopic, setNeedTopic] = useState<string | null>(null);
-  const [crisis, setCrisis] = useState<string | null>(null);
 
   const ask = useMutation({
-    mutationFn: (input: Parameters<typeof askMonth>[0]) => askMonth(input),
-    onMutate: () => {
-      setCrisis(null);
-      setNeedTopic(null);
-    },
-    onSuccess: (result) => {
-      setTyped("");
-      if (result.status === "need_topic") {
-        setAnswer(null);
-        setNeedTopic(result.need_topic ?? null);
-        return;
-      }
-      setAnswer(result.answer ?? null);
-    },
-    onError: (error) => {
-      const notice = crisisNoticeFrom(error);
-      if (notice) {
-        setTyped("");
-        setAnswer(null);
-        setCrisis(notice);
-      }
-    },
+    mutationFn: (input: Ask) => askMonth(input),
+    onSuccess: (result) => setAnswer(result.answer),
   });
 
   if (status.isPending) return <main className="app-page month-page" aria-busy="true" />;
   if (!status.data?.available) return <Navigate replace to="/home" />;
-  const consent = status.data.consent;
-  const typedOn = status.data.typed_questions && consent !== null && consent !== undefined;
-
-  function pick(topic: MonthTopic) {
-    ask.mutate({ topic });
-  }
-
-  function submitTyped() {
-    const question = typed.trim();
-    if (!question || !consent || !consented) return;
-    ask.mutate({ question, consent_version: consent.version });
-  }
+  const presets = status.data.presets ?? [];
 
   return (
     <main className="app-page month-page">
@@ -96,58 +63,75 @@ export function MonthAskPage() {
         <p>{monthCopy("month.ui.intro")}</p>
       </section>
 
-      {crisis ? <CrisisNotice className="month-crisis" text={crisis} /> : null}
-
       {answer ? (
-        <MonthAnswerCard answer={answer} onAgain={() => setAnswer(null)} />
+        <MonthAnswerCard
+          answer={answer}
+          asking={ask.isPending}
+          onAgain={() => setAnswer(null)}
+          onAsk={(input) => ask.mutate(input)}
+          presets={presets.filter((item) => item.topic === answer.topic && item.id !== answer.preset)}
+        />
       ) : (
         <section className="month-ask" aria-labelledby="month-topic-heading">
           <h2 id="month-topic-heading">{monthCopy("month.ui.topic_heading")}</h2>
-          {needTopic ? <p className="month-need-topic">{needTopic}</p> : null}
           <div className="month-topics" role="group" aria-labelledby="month-topic-heading">
             {MONTH_TOPICS.map((item) => (
-              <button disabled={ask.isPending} key={item.key} onClick={() => pick(item.key)} type="button">
+              <button disabled={ask.isPending} key={item.key} onClick={() => ask.mutate({ topic: item.key })} type="button">
                 {item.label}
               </button>
             ))}
           </div>
-          {typedOn ? (
-            <form
-              className="month-typed"
-              onSubmit={(event) => {
-                event.preventDefault();
-                submitTyped();
-              }}
-            >
-              <label>
-                <span>{monthCopy("month.ui.type_label")}</span>
-                <textarea
-                  autoComplete="off"
-                  maxLength={280}
-                  onChange={(event) => setTyped(event.target.value)}
-                  rows={3}
-                  value={typed}
-                />
-              </label>
-              <label className="month-consent">
-                <input checked={consented} onChange={(event) => setConsented(event.target.checked)} type="checkbox" />
-                <span>{consent.text}</span>
-              </label>
-              <button className="electric-button" disabled={ask.isPending || !consented || typed.trim().length < 8} type="submit">
-                {monthCopy("month.ui.type_submit")}
-              </button>
-            </form>
+          {presets.length > 0 ? (
+            <section className="month-presets" aria-labelledby="month-preset-heading">
+              <h2 id="month-preset-heading">{monthCopy("month.ui.preset_heading")}</h2>
+              {MONTH_TOPICS.map((topic) => {
+                const group = presets.filter((item) => item.topic === topic.key);
+                if (group.length === 0) return null;
+                return (
+                  <div className="month-preset-group" key={topic.key}>
+                    <p className="eyebrow">{topic.label}</p>
+                    <PresetList asking={ask.isPending} items={group} onAsk={(input) => ask.mutate(input)} />
+                  </div>
+                );
+              })}
+            </section>
           ) : null}
-          {ask.isError && !crisis ? <p className="month-error" role="alert">{monthCopy("month.ui.error")}</p> : null}
         </section>
       )}
+      {ask.isError ? <p className="month-error" role="alert">{monthCopy("month.ui.error")}</p> : null}
 
       <SavedMonthAnswers />
     </main>
   );
 }
 
-function MonthAnswerCard({ answer, onAgain }: { answer: MonthAnswer; onAgain: () => void }) {
+function PresetList({ items, asking, onAsk }: { items: MonthPreset[]; asking: boolean; onAsk: (input: Ask) => void }) {
+  return (
+    <ul className="month-preset-list">
+      {items.map((item) => (
+        <li key={item.id}>
+          <button disabled={asking} onClick={() => onAsk({ topic: item.topic, preset: item.id })} type="button">
+            {item.text}
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function MonthAnswerCard({
+  answer,
+  asking,
+  onAgain,
+  onAsk,
+  presets,
+}: {
+  answer: MonthAnswer;
+  asking: boolean;
+  onAgain: () => void;
+  onAsk: (input: Ask) => void;
+  presets: MonthPreset[];
+}) {
   const queryClient = useQueryClient();
   const [easier, setEasier] = useState<MonthWindow | null>(null);
   const [saved, setSaved] = useState(false);
@@ -166,7 +150,13 @@ function MonthAnswerCard({ answer, onAgain }: { answer: MonthAnswer; onAgain: ()
   return (
     <article className="month-answer" aria-labelledby="month-answer-topic">
       <p className="eyebrow" id="month-answer-topic">{answer.topic_label}</p>
-      {answer.reframe ? <p className="month-reframe">{answer.reframe}</p> : null}
+      {answer.question ? <h2 className="month-question">{answer.question}</h2> : null}
+      {answer.tip ? (
+        <section>
+          <h2>{monthCopy("month.ui.part_tip")}</h2>
+          <p>{answer.tip}</p>
+        </section>
+      ) : null}
       <section>
         <h2>{monthCopy("month.ui.part_theme")}</h2>
         <p>{answer.theme}</p>
@@ -213,6 +203,13 @@ function MonthAnswerCard({ answer, onAgain }: { answer: MonthAnswer; onAgain: ()
       {save.isError && !(save.error instanceof ApiProblem && save.error.code === "MONTH_ANSWER_CHANGED")
         ? <p className="month-error" role="alert">{monthCopy("month.ui.error")}</p>
         : null}
+
+      {presets.length > 0 ? (
+        <section className="month-presets" aria-labelledby="month-more-presets">
+          <h2 id="month-more-presets">{monthCopy("month.ui.more_presets")}</h2>
+          <PresetList asking={asking} items={presets} onAsk={onAsk} />
+        </section>
+      ) : null}
     </article>
   );
 }
@@ -240,6 +237,8 @@ function SavedMonthAnswers() {
         {saved.data?.map((item) => (
           <li key={item.id}>
             <p className="eyebrow">{item.answer.topic_label}</p>
+            {item.answer.question ? <p className="month-question">{item.answer.question}</p> : null}
+            {item.answer.tip ? <p>{item.answer.tip}</p> : null}
             <p>{item.answer.theme}</p>
             <p>{item.answer.act}</p>
             <blockquote>{item.answer.say}</blockquote>

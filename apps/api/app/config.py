@@ -105,10 +105,6 @@ class Settings(BaseSettings):
     # the owner turns it on (R2 kind 4: new personal-data collection ships switched off). Off,
     # only an exact-time profile is offered the action and the server refuses the others.
     keep_action_all_profiles: bool = False
-    # AK2 (20.11.2026): typed questions in "Hỏi về tháng này". Free text a person types is new
-    # personal-data collection (R2 kind 4), so it ships switched off. Even on, the path stays shut
-    # until the owner approves the consent and crisis sentences (copy registry, owner-only).
-    month_typed_questions_enabled: bool = False
 
     model_config = SettingsConfigDict(
         env_file=("../../.env", ".env"),
