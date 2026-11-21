@@ -3,7 +3,7 @@
 Tác giả: Claude (lượt retro tự động 20.11, 23:36). Người review: Codex, qua vòng tự động.
 Mọi giờ là giờ Việt Nam. File chỉ có metadata kỹ thuật, không có dữ liệu người dùng.
 
-Báo số việc thật, không chia cho chỉ tiêu nào. Retro 18.11 (#748) và 19.11 (#764) đã có nhưng hai PR đó còn mở, chưa gộp.
+Báo số việc thật, không chia cho chỉ tiêu nào. Retro 18.11 và 19.11 (trước ở #748, #764, không ai review) được gộp vào cùng PR này ngày 21.11 để chỉ cần một lượt review.
 
 ## 1. Số chính thức (bản chụp, chép nguyên)
 
@@ -79,7 +79,7 @@ Codex: 44 kết luận review trên 19 PR, 30 đồng ý, 14 yêu cầu sửa. T
 - Bản chụp: 0/1 việc đã chọn đạt tiêu chí; 4 PR đã chọn không gắn việc.
 - Bản sửa an toàn #808 chưa vào integration sau 8 giờ.
 - Trong 11 PR gộp hôm nay không có PR nào cho các việc đã hẹn hạn 20.11: S47, S32, S30 + S49, S35 + S44, S38, S41, S46+, S50, S36, S37, S43, S27+. S30 trễ lần năm, S32 lần bốn.
-- Hai PR retro (#748, #764) và các issue báo động cũ (03.11–14.11) vẫn mở.
+- Hai retro 18.11 và 19.11 nằm trong PR này (gộp 21.11). Các issue báo động cũ (03.11–14.11) vẫn mở.
 - Bộ Daily phục vụ được đứng ở 9/180 từ 17.11.
 
 ## 7. Học từ GitHub và nguồn gốc (kiểm 20.11.2026)
