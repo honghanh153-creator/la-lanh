@@ -1007,6 +1007,22 @@
    "closedBy": {
     "pr": 780
    }
+  },
+  {
+   "id": "L59",
+   "title": "Tài liệu mà script đọc (file luật, prompt review, chuẩn câu chữ) không phải văn bản thuần: đổi nó thì CI chạy test của vòng, không coi là PR chỉ có tài liệu (21.11: #747 chỉ đổi file luật, CI bỏ qua test, file vượt giới hạn của hook và integration đỏ)",
+   "from": "sự cố 21.11, integration đỏ sau #747; hotfix #863",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "open",
+   "test": {
+    "file": "scripts/collab-pr-check-workflow.test.mjs",
+    "name": "L59: a doc that a script reads runs the loop tests; other docs stay docs-only"
+   },
+   "caller": {
+    "file": ".github/workflows/pr-check.yml",
+    "contains": "grep -rqsF -- \"${f##*/}\" scripts/"
+   }
   }
  ]
 }
