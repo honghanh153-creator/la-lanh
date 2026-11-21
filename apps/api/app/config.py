@@ -105,6 +105,11 @@ class Settings(BaseSettings):
     # the owner turns it on (R2 kind 4: new personal-data collection ships switched off). Off,
     # only an exact-time profile is offered the action and the server refuses the others.
     keep_action_all_profiles: bool = False
+    # Hợp gu AL1 (owner, 20.11.2026): the invite-first consent. On, the start screen leads with a
+    # one-field invite link and the self-attested tick may cover the other person's birth date
+    # alone. It also needs every privacy.radar.invite-first.* sentence approved by the owner in
+    # the copy registry; until then the service keeps these paths closed even when this is on.
+    radar_invite_first_consent: bool = False
 
     model_config = SettingsConfigDict(
         env_file=("../../.env", ".env"),

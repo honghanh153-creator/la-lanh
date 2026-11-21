@@ -4570,7 +4570,7 @@
             "type": "string"
           },
           "requires_exact_birth_profile": {
-            "default": true,
+            "default": false,
             "title": "Requires Exact Birth Profile",
             "type": "boolean"
           },
@@ -4774,6 +4774,156 @@
         "title": "RadarAcceptRequest",
         "type": "object"
       },
+      "RadarAskAnswerResponse": {
+        "properties": {
+          "based_on": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RadarAskBasis"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "can_send": {
+            "title": "Can Send",
+            "type": "string"
+          },
+          "question": {
+            "title": "Question",
+            "type": "string"
+          },
+          "question_id": {
+            "title": "Question Id",
+            "type": "string"
+          },
+          "refusal": {
+            "title": "Refusal",
+            "type": "boolean"
+          },
+          "say": {
+            "title": "Say",
+            "type": "string"
+          },
+          "try_today": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Try Today"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          },
+          "why": {
+            "title": "Why",
+            "type": "string"
+          }
+        },
+        "required": [
+          "version",
+          "question_id",
+          "question",
+          "say",
+          "why",
+          "can_send",
+          "refusal"
+        ],
+        "title": "RadarAskAnswerResponse",
+        "type": "object"
+      },
+      "RadarAskBasis": {
+        "properties": {
+          "evidence_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence Ids",
+            "type": "array"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "level_label": {
+            "title": "Level Label",
+            "type": "string"
+          },
+          "technical_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Technical Note"
+          },
+          "theme": {
+            "title": "Theme",
+            "type": "string"
+          }
+        },
+        "required": [
+          "theme",
+          "level_label"
+        ],
+        "title": "RadarAskBasis",
+        "type": "object"
+      },
+      "RadarAskQuestion": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "text"
+        ],
+        "title": "RadarAskQuestion",
+        "type": "object"
+      },
+      "RadarAskQuestionsResponse": {
+        "properties": {
+          "questions": {
+            "items": {
+              "$ref": "#/components/schemas/RadarAskQuestion"
+            },
+            "title": "Questions",
+            "type": "array"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "version",
+          "questions"
+        ],
+        "title": "RadarAskQuestionsResponse",
+        "type": "object"
+      },
       "RadarBoundActionRequest": {
         "additionalProperties": false,
         "properties": {
@@ -4789,6 +4939,37 @@
         "title": "RadarBoundActionRequest",
         "type": "object"
       },
+      "RadarConsentOptionsResponse": {
+        "description": "Whether the invite-first consent screens are live, with their owner-approved sentences.",
+        "properties": {
+          "authorized_input_version": {
+            "title": "Authorized Input Version",
+            "type": "string"
+          },
+          "date_consent_version": {
+            "title": "Date Consent Version",
+            "type": "string"
+          },
+          "invite_first": {
+            "title": "Invite First",
+            "type": "boolean"
+          },
+          "sentences": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Sentences",
+            "type": "object"
+          }
+        },
+        "required": [
+          "invite_first",
+          "authorized_input_version",
+          "date_consent_version"
+        ],
+        "title": "RadarConsentOptionsResponse",
+        "type": "object"
+      },
       "RadarCreateRequest": {
         "additionalProperties": false,
         "properties": {
@@ -4797,7 +4978,9 @@
               "crush",
               "friend",
               "partner",
-              "someone"
+              "someone",
+              "coworker",
+              "family"
             ],
             "title": "Context",
             "type": "string"
@@ -4818,6 +5001,35 @@
           "context"
         ],
         "title": "RadarCreateRequest",
+        "type": "object"
+      },
+      "RadarDateAcceptRequest": {
+        "additionalProperties": false,
+        "description": "The one-field invite (AL1): B's own birth date and B's consent, nothing else.",
+        "properties": {
+          "birth_date": {
+            "format": "date",
+            "title": "Birth Date",
+            "type": "string"
+          },
+          "consent_version": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Consent Version",
+            "type": "string"
+          },
+          "request_id": {
+            "format": "uuid",
+            "title": "Request Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id",
+          "birth_date",
+          "consent_version"
+        ],
+        "title": "RadarDateAcceptRequest",
         "type": "object"
       },
       "RadarInviteResponse": {
@@ -4933,7 +5145,8 @@
             "default": "exact",
             "enum": [
               "exact",
-              "unknown"
+              "unknown",
+              "date_only"
             ],
             "title": "Birth Time Mode",
             "type": "string"
@@ -4949,16 +5162,25 @@
               "crush",
               "friend",
               "partner",
-              "someone"
+              "someone",
+              "coworker",
+              "family"
             ],
             "title": "Context",
             "type": "string"
           },
           "place_id": {
-            "maxLength": 80,
-            "minLength": 2,
-            "title": "Place Id",
-            "type": "string"
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "minLength": 2,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Place Id"
           },
           "recipient_label": {
             "maxLength": 40,
@@ -4975,7 +5197,6 @@
           "recipient_label",
           "context",
           "birth_date",
-          "place_id",
           "consent_version",
           "authorization_attested"
         ],
@@ -12926,6 +13147,28 @@
         ]
       }
     },
+    "/v1/public/radar/consent-options": {
+      "get": {
+        "description": "No personal data; tells the web which consent screens it may show (AL1).",
+        "operationId": "consent_options_v1_public_radar_consent_options_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RadarConsentOptionsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Consent Options",
+        "tags": [
+          "radar-public"
+        ]
+      }
+    },
     "/v1/public/radar/current": {
       "get": {
         "operationId": "current_invite_v1_public_radar_current_get",
@@ -13045,6 +13288,66 @@
           }
         },
         "summary": "Accept Invite",
+        "tags": [
+          "radar-public"
+        ]
+      }
+    },
+    "/v1/public/radar/current/accept-date": {
+      "post": {
+        "description": "AL1 one-field invite. 404 while the invite-first consent is off or unapproved.\n\nNo guest session: the capability cookie (SameSite=Lax, path-bound), the trusted Origin and the\nbound ``request_id`` guard the action, as for decline and invite-link withdrawal. The token is\nsingle use: completing it moves the invite out of ``pending`` under a row lock.",
+        "operationId": "accept_invite_with_date_v1_public_radar_current_accept_date_post",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "la_lanh_radar_invite",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "La Lanh Radar Invite"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RadarDateAcceptRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicRadarResultResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
+          }
+        },
+        "summary": "Accept Invite With Date",
         "tags": [
           "radar-public"
         ]
@@ -14033,6 +14336,103 @@
           }
         },
         "summary": "Owner Result",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
+    "/v1/radar/results/{request_id}/ask": {
+      "get": {
+        "description": "Hợp gu direction B: pre-written questions only, for the owner of a live result.",
+        "operationId": "ask_questions_v1_radar_results__request_id__ask_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RadarAskQuestionsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
+          }
+        },
+        "summary": "Ask Questions",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
+    "/v1/radar/results/{request_id}/ask/{question_id}": {
+      "get": {
+        "operationId": "ask_answer_v1_radar_results__request_id__ask__question_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "question_id",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-z]{1,16}$",
+              "title": "Question Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RadarAskAnswerResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
+          }
+        },
+        "summary": "Ask Answer",
         "tags": [
           "radar"
         ]

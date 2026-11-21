@@ -48,3 +48,8 @@ Their copy still needs owner approval.
   [the plan](../plans/2026-10-29-privacy-export-and-b-rights.md). A request by email for a copy is
   answered by pointing to that button; support never builds an export by hand.
 - Backups keep deleted rows until they age out (P07); a restore must replay the erasure journal.
+
+## Lời mời một ô (AL1, 20.11.2026, mặc định tắt)
+
+Khi `radar_invite_first_consent` bật và owner đã duyệt các câu `privacy.radar.invite-first.*`, B có thể chỉ nhập ngày sinh của mình trên trang lời mời, không cần phiên khách hay hồ sơ. Ngày sinh chỉ ở bộ nhớ một lần tính và không được lưu; hàng `radar_requests` có `recipient_guest_id = null`. Quyền của B: xem và rút bằng receipt HttpOnly trên thiết bị đã đồng ý (30 ngày), hoặc rút bằng link mời (`POST /v1/public/radar/invite/withdraw`). Không có đường "Kết quả bạn đã nhận" theo phiên cho trường hợp này vì B không có phiên.
+
