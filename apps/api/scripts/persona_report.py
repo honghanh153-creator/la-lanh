@@ -126,6 +126,9 @@ def repetition(
     personas_with_headline_repeat = 0
     la_repeat = la_days = 0
     per_persona_la: list[float] = []
+    # Topic (Daily situation) repeats, plan 2026-11-21 (#841): a day counts when its situation
+    # was already served in the previous 2 (3-day window) or 6 (7-day window) days.
+    topic_days = topic_3d = topic_7d = 0
     n = 0
     for pid in ids:
         rows = rows_by_p[pid]
@@ -135,6 +138,10 @@ def repetition(
             for r in rows
         ]
         windows.extend(distinct_in_windows(sit, 14))
+        topics = [r.get("situation") for r in rows]
+        topic_days += sum(1 for t in topics if t)
+        topic_3d += repeats_within(topics, 3)
+        topic_7d += repeats_within(topics, 7)
         heads = [r.get("headline") for r in rows]
         rep = repeats_within(heads, 7)
         headline_repeat_days += rep
@@ -151,6 +158,8 @@ def repetition(
         "windows_ge5_pct": pct(sum(1 for w in windows if w >= 5), len(windows)),
         "situations_per_14d_median": statistics.median(windows) if windows else None,
         "situations_per_14d_min": min(windows) if windows else None,
+        "topic_repeat_3d_pct": pct(topic_3d, topic_days),
+        "topic_repeat_7d_pct": pct(topic_7d, topic_days),
         "headline_repeat_days": headline_repeat_days,
         "personas_with_headline_repeat": personas_with_headline_repeat,
         "la_line_repeat_pct": pct(la_repeat, la_days),
@@ -544,10 +553,12 @@ def render(m: Mapping[str, Any], title: str) -> str:
             "Người",
             "Khung 14 ngày đạt ≥5 chuyện",
             "Trung vị chuyện/14 ngày",
+            "Chủ đề lặp trong 3 ngày",
+            "Chủ đề lặp trong 7 ngày",
             "Ngày lặp tiêu đề (7 ngày)",
             "Lời của Lá lặp",
         ),
-        table_row(*["---"] * 6),
+        table_row(*["---"] * 8),
     ]
     for key, label in (
         ("all", "tất cả"),
@@ -561,6 +572,8 @@ def render(m: Mapping[str, Any], title: str) -> str:
                     r["personas"],
                     fmt(r["windows_ge5_pct"]),
                     r["situations_per_14d_median"],
+                    fmt(r["topic_repeat_3d_pct"]),
+                    fmt(r["topic_repeat_7d_pct"]),
                     r["headline_repeat_days"],
                     fmt(r["la_line_repeat_pct"]),
                 )
