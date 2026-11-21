@@ -40,8 +40,10 @@ const canMove = (o, dropped) => isOwnPr(o) && !o.isDraft && o.baseRefName === in
 // findings since 10.11) and #491 (red check) on copy_registry.json. Its turn is read without the
 // file gate (open: []), so two PRs never wait on each other's turn.
 const waitsOnClaude = (o, opts) => ['claude-fix', 'hold'].includes(prTurn(o, { ...opts, open: [] }).turn);
-// Inside one owner group a 7-week-plan PR goes first on a shared file (#575). Across groups the
-// group order still wins, so the group gate and the file gate never wait on each other.
+// R7 (owner 16.11, code 21.11): on a shared file the lane order decides first (incident →
+// 7-week plan or persona fix → Daily → the rest), the old area order only breaks ties. The tick
+// works lanes in the same order (laneWork), so the lane gate and the file gate never wait on each
+// other. Was: area first, which let any content PR hold a 7-week-plan PR of a later area.
 // Review of 16.11 (item 2): #505 (safety) waited 43.5 h behind an ordinary PR on a shared file. Inside
 // one group an incident goes first, then 7-week plan and persona-threshold fixes (`persona-fix`), then
 // the rest.
@@ -49,7 +51,7 @@ export const personaFixLabel = 'persona-fix';
 const has = (p, name) => (p.labels ?? []).some(l => (l.name ?? l) === name);
 // Trial 18–19.11: Daily-lane PRs rank after the 7-week plan and before the rest (owner 17.11).
 export const fileRank = p => (has(p, 'incident') ? 3 : has(p, label7w) || has(p, personaFixLabel) ? 2 : has(p, dailyLaneLabel) ? 1 : 0);
-const fileOrder = prs => sortByPriority(prs).sort((a, b) => areaOrder.indexOf(classifyArea(a)) - areaOrder.indexOf(classifyArea(b)) || fileRank(b) - fileRank(a));
+const fileOrder = prs => sortByPriority(prs).sort((a, b) => fileRank(b) - fileRank(a) || areaOrder.indexOf(classifyArea(a)) - areaOrder.indexOf(classifyArea(b)));
 
 export function fileBlocker(pr, prs = [], { dropped = [], ...opts } = {}) {
   const mine = new Set(prFiles(pr));
@@ -222,6 +224,50 @@ export function activeArea(turns) {
   return areaOrder.find(area => turns.some(t => t.area === area && machineTurns.has(t.turn))) ?? null;
 }
 
+// R7 (owner 16.11.2026; #604 counted the lanes but the tick still worked one area at a time
+// 21.11.2026): the lanes share the machine in the order incident/safety → 7-week plan → Daily →
+// process. Every PR that is not an incident, a 7-week item or Daily is in the process lane, whatever
+// its area; the old area order (ops → content → privacy → feature) only sorts inside that lane. On
+// 21.11 eight process PRs had waited up to three days without one check, because the single active
+// area was always ops or content.
+// Each lane gets its 1 + 1: a lane that had machine work and got nothing for laneStarveTicks ticks
+// in a row goes first after incidents on the next tick. It then holds the front (sync and
+// reservation), so its PR runs check → review → merge. Incidents always go first.
+export const laneStarveTicks = 2;
+export const laneOrder = ['incident', 'plan7w', 'daily', 'process'];
+export function laneWork({ live, prs = [], incidentKeys = new Set(), kept = new Set(), starved = {} }) {
+  const byNumber = new Map(prs.map(p => [p.number, p]));
+  const labelled = (t, name) => (byNumber.get(t.number)?.labels ?? []).some(l => (l.name ?? l) === name);
+  const laneOf = new Map();
+  for (const t of live) {
+    const key = unitKey(t);
+    laneOf.set(t, incidentKeys.has(key) ? 'incident' : kept.has(key) || labelled(t, label7w) || labelled(t, personaFixLabel) ? 'plan7w'
+      : labelled(t, dailyLaneLabel) ? 'daily' : 'process');
+  }
+  const rank = t => areaOrder.indexOf(t.area);
+  const lanes = Object.fromEntries(laneOrder.map(l => [l, live.filter(t => laneOf.get(t) === l)]));
+  lanes.process = [...lanes.process].sort((a, b) => rank(a) - rank(b));
+  const busy = l => lanes[l].some(t => machineTurns.has(t.turn));
+  const hungry = laneOrder.slice(1).filter(l => (starved[l] ?? 0) >= laneStarveTicks && busy(l));
+  const order = ['incident', ...hungry, ...laneOrder.slice(1).filter(l => !hungry.includes(l))];
+  const work = order.flatMap(l => lanes[l]);
+  return { work, lane: t => laneOf.get(t) ?? null, lanes, hungry, busy };
+}
+
+// After a tick: a lane with machine work counts one more starved tick unless one of its PRs got a
+// merge, a review or a check that ran (a check left `waiting` behind integration does not count).
+export function nextStarved({ starved = {}, lanes, busy, done }) {
+  const served = l => done.some(d => lanes[l].some(t => t.number === d.pr) && (d.merge || d.review || (d.check && d.check.status !== 'waiting')));
+  return Object.fromEntries(laneOrder.slice(1).map(l => [l, busy(l) && !served(l) ? (starved[l] ?? 0) + 1 : 0]));
+}
+
+// Two reviews a tick at most; when the process lane has one waiting, one of the two is its.
+export function reviewSlots(list, lane, slots = 2) {
+  const i = list.findIndex(t => lane(t) === 'process');
+  if (i < slots || list.slice(0, slots).some(t => lane(t) === 'process')) return list;
+  return [...list.slice(0, slots - 1), list[i], ...list.slice(slots - 1).filter((_, j) => j + slots - 1 !== i)];
+}
+
 // #508 (Codex 14.11): a FAIL read from CI stayed in claude-fix after the job was re-run and
 // turned green at the same head, and nothing checked it again. Such a PR gets one new author
 // check per (PR, head, run, attempt). A local FAIL, a guard hit or an older green run stays.
@@ -392,9 +438,9 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       // persisted queue and --status agree and the metric does not depend on report reads.
       const { queue: startBuffer } = bufferStatus(prs, turns, { plan7wPrs: plan7wPrNumbers(turns, now.date) });
       measure(prs, turns);
-      const area = activeArea(turns);
-      // Owner 15.11: the kept 7-week items are worked first, whatever area is active, or the seats
-      // are empty words; the active area follows in its usual order.
+      let area = activeArea(turns);
+      // Owner 15.11: the kept 7-week items are worked first, or the seats are empty words. Since 21.11 (R7) the
+      // rest follows by lane (laneWork), not by one active area.
       // Codex r1 on #544: by stable key, so a PR opened later for a picked item counts; serious
       // incidents first, then the kept 7-week items, then the active area.
       const dayNow = readJson(dayPath, day);
@@ -407,12 +453,11 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       const kept = new Set(dayNow.planned7wKeys ?? []);
       // A dropped item is not worked, even through another PR that names it (Codex r2 on #544).
       const live = turns.filter(t => !gone.has(unitKey(t)));
-      const first = live.filter(t => incidentKeys.has(unitKey(t)));
-      const second = live.filter(t => !incidentKeys.has(unitKey(t)) && kept.has(unitKey(t)));
-      // Trial 18–19.11 (owner 17.11): the Daily lane goes after the kept 7-week items, before the area.
-      const dailyPrs = new Set(prs.filter(p => (p.labels ?? []).some(l => (l.name ?? l) === dailyLaneLabel)).map(p => p.number));
-      const third = live.filter(t => !first.includes(t) && !second.includes(t) && dailyPrs.has(t.number));
-      let work = [...first, ...second, ...third, ...live.filter(t => t.area === area && !first.includes(t) && !second.includes(t) && !third.includes(t))];
+      // R7 lanes (21.11): incidents, kept 7-week items, Daily, then every other PR in the process lane.
+      const lanePlan = laneWork({ live, prs, incidentKeys, kept, starved: dayNow.laneStarved ?? {} });
+      if (lanePlan.hungry.length) log(`lane first after ${laneStarveTicks} ticks without work: ${lanePlan.hungry.join(', ')}`);
+      let work = lanePlan.work;
+      area = work.find(t => machineTurns.has(t.turn))?.area ?? area;
       const done = [];
       const late = () => { const t = time(); return t.hour * 60 + t.minute >= lastStartAt; };
       // 17.11.2026 (#633): a PR ready to merge is merged whatever its area. Merging costs no Codex run
@@ -507,7 +552,7 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
         // waiting: a PR behind the front is behind integration too; it is synced on its own turn.
         if (!['PASS', 'FAIL', 'ci-pending', 'synced', 'waiting'].includes(result?.status)) break;
       }
-      for (const t of [...checked, ...work.filter(t => t.turn === 'codex-review')]) {
+      for (const t of reviewSlots([...checked, ...work.filter(t => t.turn === 'codex-review')], lanePlan.lane)) {
         const fresh = readJson(dayPath, day);
         if (done.filter(d => d.review).length >= 2 || fresh.codexRuns >= dayCap(fresh) - auditReserve || late()) break;
         show({ status: 'running', doing: `Codex review #${t.number}`, expectMinutes: 30, area, turns, done });
@@ -516,6 +561,8 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
         // Usage limit: wait for the reset; busy: a direct review holds the clone. The next run retries.
         if (['limit', 'busy'].includes(result?.status)) break;
       }
+      // R7: each lane's starved ticks, kept in the day state for the next tick.
+      { const d = readJson(dayPath, day); writeJson(dayPath, { ...d, laneStarved: nextStarved({ starved: d.laneStarved ?? {}, lanes: lanePlan.lanes, busy: lanePlan.busy, done }) }); }
       // Owner 06.11.2026: Codex approves one batch of non-sensitive copy a day. The tick runs it at
       // most once a day, from copyBatchAt (08:00), only while copy outside the owner-only groups is
       // pending, inside the daily Codex cap, and never next to an open batch PR on the same file.
