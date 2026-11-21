@@ -36,6 +36,9 @@ FORBIDDEN = (
 )  # fmt: skip
 
 
+TABLE_CONTEXTS = set(radar.CONTEXTS) - set(radar.FALLBACK_CONTEXTS)
+
+
 def _bundle(second_birth: datetime) -> RelationshipBundle:
     engine = NatalChartEngine()
     first = engine.calculate_chart(
@@ -204,7 +207,8 @@ def test_headline_has_no_forced_but_and_no_hedging_kicker() -> None:
         for context in radar.CONTEXTS:
             reading = build_radar_reading(_bundle(birth), context=context)
             assert "nhưng" not in reading["headline"].lower()
-            assert reading["pair_signature"]["kicker"] in radar.TIER_LABELS[context].values()
+            base = radar.FALLBACK_CONTEXTS.get(context, context)
+            assert reading["pair_signature"]["kicker"] in radar.TIER_LABELS[base].values()
     for table in (radar.HEADLINES, radar.TIER_LABELS):
         assert not any("nhưng" in text.lower() for text in _copy_strings(table))
 
@@ -357,9 +361,10 @@ def test_every_theme_and_context_has_copy() -> None:
     themes = set(radar.THEME_PLAIN)
     for table in (radar.HEADLINES, radar.FIT_COPY, radar.TENSION_COPY, radar.SUGGESTIONS):
         assert set(table) == themes
-        assert all(set(row) == set(radar.CONTEXTS) for row in table.values())
+        # AL1: coworker and family read their registry lines, else the "someone" sentence.
+        assert all(set(row) == TABLE_CONTEXTS for row in table.values())
     assert set(radar.FACTOR_COPY) == themes
-    for context in radar.CONTEXTS:
+    for context in TABLE_CONTEXTS:
         covered = [theme for _, _, group in radar.AREAS[context] for theme in group]
         assert sorted(covered) == sorted(themes)  # each theme in exactly one area
         assert set(radar.TIER_LABELS[context]) == {key for key, _ in radar.TIER_BANDS} | {"unclear"}

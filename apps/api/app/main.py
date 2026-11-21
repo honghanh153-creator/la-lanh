@@ -262,6 +262,7 @@ def create_app(
                 generation_prompt_version=OPENAI_REWRITE_PROMPT_VERSION,
                 content_rewrite_service=content_rewrite_service,
                 erasure_journal=erasure_journal,
+                invite_first_consent=resolved_settings.radar_invite_first_consent,
             )
             if app.state.birth_chart_service is not None and engine is not None
             else None

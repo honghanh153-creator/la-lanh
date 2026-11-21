@@ -8,7 +8,19 @@
 
 Radar giúp một người hiểu tương tác với người họ đã biết: chỗ dễ nói chuyện, dễ rung động, nhịp hành động hợp nhau và chỗ dễ cấn. Từ `radar-readable-v2` (29/10/2026, phản hồi owner) Radar mở đầu bằng **một bậc có tên theo ngữ cảnh** kèm một câu lý do, ba mảng theo ngữ cảnh (hợp / cân bằng / cần để ý / chưa rõ) và vài đoạn ngắn; không hiển thị con số. Bậc xếp theo thứ hạng so với phân bố tham chiếu tổng hợp cố định, không phải xác suất thành công. Radar không kết luận soulmate/red flag/định mệnh và không suy ra ý định, cảm xúc hoặc độ an toàn của người kia. (Bài cũ `radar-living-dossier-v1` hiển thị ba chỉ báo 0–100 cho tới khi hết hạn.)
 
+**Câu chữ trên màn hình (AM1, owner duyệt 20.11.2026).** Từ AM1, màn hình gọi `private_check` là “xem riêng” (trước đó “check kín”); nút là `Xem hợp gu`, chữ chờ `Đang xem hai lá số…`, lịch sử `Những người bạn đã xem gần đây`, nút người nhận `Đồng ý & xem kết quả`. Bảng chữ cũ → mới nằm trong PR AM1; test web chặn chữ cũ quay lại. Tài liệu này vẫn dùng “check kín” làm tên khái niệm.
+
 **“Check kín” nghĩa là:** Lá Lành không gửi link/thông báo cho người kia, không tạo hồ sơ cho họ và không đưa họ vào pool. “Kín” không có nghĩa là được phép dùng lén dữ liệu. Người nhập phải xác nhận người kia đã cho phép dùng thông tin sinh cho mục đích này.
+
+## 1b. AL1: chỉ cần ngày sinh (owner duyệt 20.11.2026)
+
+Owner chọn AL1 sau thử 100 người giả (34–45/100 tới được kết quả vì thiếu giờ sinh của chính mình hoặc nơi sinh của người kia; chỉ cần ngày sinh thì 96/100).
+
+- **Ngữ cảnh:** Crush / Bạn bè / Đồng nghiệp / Người yêu / Gia đình (`crush`, `friend`, `coworker`, `partner`, `family`). `someone` vẫn nhận ở API cho kết quả và client cũ. `coworker` và `family` chưa có bảng chữ riêng: mỗi câu đọc `radar.<context>.<path>` trong copy registry khi câu đó đã duyệt, còn khi đang chờ thì dùng câu đã duyệt của `someone` (`FALLBACK_CONTEXTS`).
+- **Cơ sở đọc (`basis`).** Một cặp được đọc ở mức thấp hơn của hai người. Nếu một bên chỉ có ngày sinh (hồ sơ của chủ không có giờ + nơi sinh, hoặc người kia chỉ có ngày sinh), cả hai được đọc **chỉ từ ngày sinh**: lá số lúc 12:00 trưa giờ Việt Nam, `TimePrecision.UNKNOWN`, bỏ Mặt Trăng, các góc dính Mặt Trăng, nhà và góc trục; engine chỉ giữ góc chiếu đúng suốt cả ngày (`DATE_DOMAIN_HALF_WIDTH_DAYS`). Giờ và nơi sinh của người kia, nếu có nhập, khi đó không được dùng. Kết quả có `metadata.basis = "date_only"` và `metadata.basis_note = "Dựa vào: ngày sinh của hai bạn."`, xếp bậc theo phân bố riêng `radar-tier-ref-date-v1` (2.000 cặp tổng hợp đều chỉ có ngày sinh). Giới hạn: ngày sinh được hiểu theo lịch Việt Nam; người sinh ở múi giờ xa có thể lệch một ngày ở vài góc chiếu sát biên.
+- **Không chặn chủ chỉ có ngày sinh.** Tạo lời mời và check riêng chỉ cần chủ có hồ sơ ngày sinh; khóa nguồn lá số khi đọc theo ngày sinh không đòi `profile_level = 3`.
+- **Đồng ý (lời mời là lối chính).** Lối chính là link mời một ô: người kia tự nhập ngày sinh của họ và đồng ý (`POST /v1/public/radar/current/accept-date`, `consent_version = radar-pair-date-v1`), không cần phiên hay hồ sơ; ngày sinh chỉ ở bộ nhớ một lần tính, không lưu; người kia giữ kết quả bằng receipt HttpOnly và rút được như mọi kết quả đã đồng ý. Lối tick tự xác nhận thành lối phụ; nhập **chỉ ngày sinh** của người kia cần lời xác nhận mới `radar-authorized-input-v2` ("chỉ tick khi đã hỏi"). Hai lối này dùng câu chữ quyền riêng tư mới, chỉ owner duyệt: câu nằm trong registry ở trạng thái chờ (`privacy.radar.invite-first.*`, `consent_drafts.py`). Chúng chỉ mở khi **cả hai** điều kiện đúng: `radar_invite_first_consent = true` và mọi câu đã được owner duyệt. Mặc định tắt; `GET /v1/public/radar/consent-options` cho web biết màn nào được hiện và trả đúng các câu đã duyệt.
+- Khi lối mới còn tắt: người được mời vẫn đi đường cũ (tạo hồ sơ rồi đồng ý), nhưng chỉ cần hồ sơ ngày sinh; check riêng vẫn cần ngày sinh + nơi sinh của người kia (giờ có thể "Không rõ giờ") và lời xác nhận cũ. Chủ chỉ có ngày sinh thì check riêng trả 409 và đi lối mời: cặp của họ được đọc theo ngày sinh, nên Lá không thu giờ và nơi sinh của người kia chỉ để bỏ đi.
 
 ## 2. Hai mode
 
@@ -17,7 +29,7 @@ Radar giúp một người hiểu tương tác với người họ đã biết: 
 | `private_check` — chính | A đã được B cho phép dùng thông tin sinh | A nhập trong một phiên tính | A nhận ngay | DOB/time/place chỉ ở server memory; không lưu vào Radar |
 | `consented_invite` — phụ | A chưa được phép nhập hộ hoặc B muốn tự kiểm soát | B mở link, tự nhập chart và consent riêng | A và B nhận bản đọc rút gọn | Lưu trong birth profile mã hóa của B theo consent của B |
 
-Không được tự động chuyển từ mode này sang mode kia. CTA chính luôn là `Check kín ngay`; `Mời họ tự nhập` chỉ xuất hiện dưới cổng quyền sử dụng dữ liệu.
+Không được tự động chuyển từ mode này sang mode kia. CTA chính luôn là `Xem hợp gu` (trước AM1: `Check kín ngay`); `Mời họ tự nhập` chỉ xuất hiện dưới cổng quyền sử dụng dữ liệu.
 
 ## 3. Screen map
 
@@ -31,14 +43,14 @@ Không được tự động chuyển từ mode này sang mode kia. CTA chính l
 | `/radar/continue` | Pair consent | B consent riêng và chạy hai chart | Derived pair result |
 | `/radar/receipt` | Kết quả phía người nhận | B mở lại trong 30 ngày (bằng hạn kết quả) hoặc rút chart khỏi kết quả | HttpOnly receipt-bound read/withdraw |
 
-Ba bước `Bắt đầu → Thông tin → Bản đọc` phải xuất hiện nhất quán trên flow chính và flow lời mời. Màn kết quả không được là ngõ cụt: owner luôn có đường `Check thêm một người`, `Xem các lần check` và điều hướng chính; recipient mở lại bằng receipt trên đúng thiết bị trong 30 ngày (bằng hạn kết quả), có thể rút chart và luôn có đường về Radar. Kết quả hết hạn/đã xóa phải hiển thị terminal state có CTA quay lại thay vì một trang trống.
+Ba bước `Bắt đầu → Thông tin → Bản đọc` phải xuất hiện nhất quán trên flow chính và flow lời mời. Màn kết quả không được là ngõ cụt: owner luôn có đường `Xem thêm một người`, `Xem lại kết quả cũ` (trước 20/11/2026: `Check thêm một người`, `Xem các lần check`) và điều hướng chính; recipient mở lại bằng receipt trên đúng thiết bị trong 30 ngày (bằng hạn kết quả), có thể rút chart và luôn có đường về Radar. Kết quả hết hạn/đã xóa phải hiển thị terminal state có CTA quay lại thay vì một trang trống.
 
 ## 4. Primary user flow
 
 ```mermaid
 flowchart TD
   A["Tap Hợp gu"] --> B["Intro Radar"]
-  B --> C["Check kín một người"]
+  B --> C["Xem hợp gu với một người"]
   C --> D{"Chart A đủ ngày + giờ + nơi sinh?"}
   D -->|Không| E["Hoàn thiện chart A"] --> C
   D -->|Có| F["Nickname + loại quan hệ"]
@@ -60,11 +72,11 @@ flowchart TD
 | Field | Type | Validation | Persistence |
 |---|---|---|---|
 | `recipient_label` | text | trim/collapse; 1–40 chars; escaped on render | AES-GCM only |
-| `context` | enum | `crush`, `friend`, `partner`, `someone` | Plain enum |
+| `context` | enum | `crush`, `friend`, `partner`, `someone`, `coworker`, `family` (AL1) | Plain enum |
 | `birth_date` | ISO date | 18–120 years old | Never persisted by Radar |
-| `birth_time_mode` | enum | `exact` hoặc `unknown` | Chỉ dùng trong request; precision rút gọn được giữ trong result |
+| `birth_time_mode` | enum | `exact`, `unknown` hoặc `date_only` (AL1: không giờ, không nơi; chỉ với `radar-authorized-input-v2` khi lối mới đã mở) | Chỉ dùng trong request; precision rút gọn được giữ trong result |
 | `birth_time_local` | nullable `HH:MM` | bắt buộc khi `exact`; phải null khi `unknown` | Never persisted by Radar |
-| `place_id` | local allow-list ID | must resolve in local place index | Never persisted by Radar |
+| `place_id` | local allow-list ID, nullable | bắt buộc trừ khi `date_only`; must resolve in local place index | Never persisted by Radar |
 
 Local place index dùng catalog `vn-admin-2025-07-01`: browse 34 tỉnh/thành hiện hành và nhận 29 tên tỉnh cũ cho dữ liệu nơi sinh lịch sử. Kết quả tên cũ phải hiện mapping mới; không gọi geocoder ngoài, không xin GPS và không lưu query.
 | `authorization_attested` | boolean | must be exactly `true` | Only attestation timestamp + version |
@@ -82,6 +94,7 @@ Inputs must not enter URL, localStorage/sessionStorage, analytics, logs, error t
 | Permission attestation | Version + timestamp | Same request lifetime | Deleted with result |
 | Invite capability | Hash + temporary encrypted copy | 7 days or terminal state | Revoke |
 | B birth profile in invite mode | Existing encrypted birth domain | Existing guest policy | B withdraw/delete |
+| B birth date in the one-field invite (AL1, off by default) | Request memory only; `recipient_guest_id` stays null | One computation | Receipt withdraw or invite-link withdraw |
 | Recipient result receipt | HttpOnly, SameSite=Strict capability cookie | 30 days, same as the consented result (owner decision P09 D1, 22/10/2026; was 7 days) | B withdraw; inaccessible after expiry |
 
 Private-check retention (owner decision 2026-10-19): A enters B's data under A's attestation alone, so the

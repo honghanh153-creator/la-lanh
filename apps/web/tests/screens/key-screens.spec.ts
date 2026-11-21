@@ -248,7 +248,7 @@ const screens: Array<{ name: string; scenario: Scenario; path: string; ready: (p
   },
   {
     name: "10-radar-start-full-form", path: "/radar/start", scenario: { ...signedIn, deepData: true, ownerClaim: "ok" },
-    ready: (page) => page.getByRole("button", { name: /Check kín ngay/ }),
+    ready: (page) => page.getByRole("button", { name: /^Xem hợp gu$/ }),
   },
   {
     name: "11-card", path: "/card", scenario: signedIn,
