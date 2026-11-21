@@ -12263,6 +12263,12 @@
    "category": "reading",
    "text": "Khi căng, bạn dễ tin người quá nhanh hoặc giúp quá sức mình.",
    "status": "pending"
+  },
+  {
+   "id": "tarot.core.general.swords-7",
+   "category": "reading",
+   "text": "có một điều chưa được nói rõ, và nói ra có thể giúp chuyện nhẹ hơn",
+   "status": "pending"
   }
  ],
  "version": "copy-registry/v1"
