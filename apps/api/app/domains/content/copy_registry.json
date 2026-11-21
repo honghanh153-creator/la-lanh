@@ -1,6 +1,66 @@
 {
  "entries": [
   {
+   "id": "rewrite.headline.automatic-caretaking.01.direct",
+   "category": "reading",
+   "text": "Bạn vẫn nhận giúp thêm dù lịch hôm nay đã kín.",
+   "status": "pending"
+  },
+  {
+   "id": "rewrite.headline.automatic-caretaking.01.roast",
+   "category": "reading",
+   "text": "Lịch kín mít rồi mà vẫn nhận thêm một vụ giúp người khác.",
+   "status": "pending"
+  },
+  {
+   "id": "rewrite.headline.automatic-caretaking.02.direct",
+   "category": "reading",
+   "text": "Bạn giúp thêm một việc, việc của mình lại để sau.",
+   "status": "pending"
+  },
+  {
+   "id": "rewrite.headline.automatic-caretaking.02.roast",
+   "category": "reading",
+   "text": "Việc người ta thì làm ngay, việc của mình thì để sau.",
+   "status": "pending"
+  },
+  {
+   "id": "rewrite.headline.decision-fatigue.01.direct",
+   "category": "reading",
+   "text": "Bạn muốn chọn thật đúng nên chọn mãi chưa xong.",
+   "status": "pending"
+  },
+  {
+   "id": "rewrite.headline.decision-fatigue.01.roast",
+   "category": "reading",
+   "text": "Đi tìm đáp án hoàn hảo mà chưa chốt được cái nào.",
+   "status": "pending"
+  },
+  {
+   "id": "rewrite.headline.decision-fatigue.02.direct",
+   "category": "reading",
+   "text": "Lựa chọn còn nhiều, bạn chưa gạch bớt cái nào.",
+   "status": "pending"
+  },
+  {
+   "id": "rewrite.headline.decision-fatigue.02.roast",
+   "category": "reading",
+   "text": "Danh sách lựa chọn dài như thực đơn trà sữa, chưa gạch nổi món nào.",
+   "status": "pending"
+  },
+  {
+   "id": "rewrite.headline.name-the-need.01.direct",
+   "category": "reading",
+   "text": "Bạn kể khó khăn, chưa nói muốn được giúp gì.",
+   "status": "pending"
+  },
+  {
+   "id": "rewrite.headline.name-the-need.01.roast",
+   "category": "reading",
+   "text": "Bạn kể khổ rồi, còn cần giúp gì thì vẫn bí mật.",
+   "status": "pending"
+  },
+  {
    "id": "daily.action.automatic-caretaking.01",
    "category": "reading",
    "text": "Nói với người nhờ: để mình xem lịch rồi báo lại.",
