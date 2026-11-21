@@ -20,6 +20,8 @@ Daily chọn tình huống (chủ đề, `issue_key`, 15 chủ đề) trong **to
 
 Số nền cho PR code là lượt 200 người trên `collab/integration`, ghi ở mục 6.
 
+**Giới hạn do nội dung (đo khi làm PR 3–4).** Theo các lá số giả trong test, mỗi ngày lá số chỉ có trung bình 2,45 tình huống đủ điều kiện (trung vị 2), không phải 6. Vì vậy cửa sổ 7 ngày không thể sạch lặp. Việc làm được ở đây là phá vòng ngắn: lặp trong 3 ngày giảm mạnh, lặp trong 7 ngày giảm vừa. Muốn giảm sâu hơn phải tăng số tình huống đủ điều kiện cho mỗi lá số, tức thêm nội dung và luật. Đó là việc riêng, ghi ở mục 5.
+
 ## 2. Mục tiêu (US-21, đề xuất AC05 mới)
 
 **US-21 AC05 (mới):** Tình huống của ngày D được chọn trong **pool xếp hạng của ngày D** (tối đa `K = 6` tình huống đủ điều kiện, xếp theo độ hợp lá số như hiện nay). Thứ tự chọn:
@@ -31,8 +33,9 @@ Trong cùng một bậc, ưu tiên hạng cao hơn; cùng hạng thì xếp theo
 
 **Tiêu chí đạt** (200 người giả × 29 ngày từ 21.11, cùng mẫu và đồng hồ cho trước và sau):
 
-- `topic_7d` giảm ít nhất một nửa so với số nền.
-- Trung vị số chủ đề khác nhau trong 14 ngày ≥ 5.
+- `topic_3d` (chủ đề đã gặp trong 2 ngày trước) giảm ít nhất một nửa so với số nền.
+- `topic_7d` giảm.
+- Trung vị số chủ đề khác nhau trong 14 ngày không giảm.
 - `theme_3d` giảm.
 - `headline_7d` không tăng.
 - An toàn không đổi: khủng hoảng bắt đủ, báo nhầm không tăng, không lộ chéo người dùng, không có ngày lỗi.
@@ -64,7 +67,13 @@ Nhờ vậy kết quả của ngày D luôn bằng kết quả đã phục vụ 
 
 **Người chỉ có ngày sinh** (pool cố định theo cung, AC07): lịch tuần vẫn áp dụng. Thứ tự staircase của #778 cho tiêu đề, cảnh và việc nhỏ giữ nguyên, nhưng đếm theo số lần tình huống đó đã xuất hiện trong lịch đã tính lại, không theo `day_index // k`.
 
-**Không đổi:** không thêm cột, bảng, cookie, localStorage hay trường gửi từ app. Không có dữ liệu cá nhân mới; nhóm chủ đề là hằng số nội dung. `catalog_version` (`DAILY_PSYCHOLOGY_MATRIX_VERSION`) được nâng để ngày mới dùng cách chọn mới; plan cũ replay như đã lưu.
+**Không đổi:** không thêm cột, bảng, cookie, localStorage hay trường gửi từ app. Không có dữ liệu cá nhân mới; nhóm chủ đề là hằng số nội dung.
+
+**Bật bằng ngày (theo tiền lệ `daily_variety_from`):**
+- Setting `daily_topic_schedule_from`. Để trống thì giữ cách cũ.
+- Không nâng `catalog_version`, vì nó nằm trong seed của từng người; nâng lên sẽ xáo lại mọi thứ tự xoay.
+- Plan trước ngày bật giữ nguyên hash và định danh: trường `topic_history` không có mặt trong bản dump khi rỗng.
+- Bật trên production là một bước trong lần phát hành (owner quyết lần phát hành).
 
 ## 4. File
 
@@ -73,7 +82,8 @@ Nhờ vậy kết quả của ngày D luôn bằng kết quả đã phục vụ 
 | 1 (PR này) | `docs/plans/2026-11-21-daily-topic-anti-repeat.md` | Plan |
 | 2 | `apps/api/scripts/persona_metrics.py` (+ test), `qa/personas` | Chỉ số `topic_7d`, `topic_3d`, `theme_3d`, số chủ đề/14 ngày vào máy đo người giả, để trước/sau đo bằng code trong repo |
 | 3 | `apps/api/app/domains/readings/daily_rotation.py`, `daily_psychology.py` (+ `tests/readings/test_daily_topic_schedule.py`) | Nhóm chủ đề, hàm chọn thuần (pure) theo AC05 mới và lịch tuần; chưa nối vào app |
-| 4 | `apps/api/app/domains/readings/application.py`, `models.py`, `daily_psychology.py` (`_pick`, `_occurrence_index`), `docs/user-stories/US-21-…md` (AC05) | Nối lịch tuần thay guard 1–2 ngày, nâng `catalog_version`, đo thời gian, số trước/sau 200 người trong PR |
+| 4 | `apps/api/app/domains/readings/application.py`, `models.py`, `daily_psychology.py` (`_pick`, `_occurrence_index`), `app/config.py`, `app/main.py`, `scripts/persona_sim.py` | Nối lịch tuần thay guard 1–2 ngày từ ngày bật, test trên đầu ra thật, số trước/sau 200 người trong PR |
+| 5 | `docs/user-stories/US-21-…md` (AC05), runbook phát hành | AC05 mới, bước bật setting khi phát hành |
 
 Không đụng file của #776 (web) hay #774 (Khám phá), cả hai đã merge. #726 (draft, transit giờ gần đúng) cũng sửa `application.py` và `daily_psychology.py`; PR 4 sẽ làm trên integration mới nhất và báo trong #726.
 
@@ -82,10 +92,20 @@ Không đụng file của #776 (web) hay #774 (Khám phá), cả hai đã merge.
 - **Đổi độ hợp lấy sự mới:** hạng 4–6 vẫn là tình huống lá số đủ điều kiện, nhưng yếu hơn. Tỉ lệ được báo; nếu Codex thấy cao thì giảm `K`.
 - **Chi phí tính:** tối đa 13 lần lập pool mỗi Daily mới. Nếu đo vượt 300 ms thì chỉ lập pool (không render) và cache theo request.
 - **Đổi bộ khoá hay lens** bắt đầu một chuỗi mới (như AC05 cũ).
+- **Trần nội dung:** 2–3 tình huống đủ điều kiện mỗi ngày giới hạn mức giảm của `topic_7d`. Việc tiếp theo (riêng): thêm tình huống đủ điều kiện cho mỗi lá số, đo bằng cùng chỉ số.
 - **Bảo mật / riêng tư (G7, G8):** không đụng phiên, quyền hay log; không lưu và không gửi lịch sử. Mã chủ đề không rời server.
 
 ## 6. Đo
 
 Mẫu: 200 người giả (mỗi người thứ 5 trong `personas-1000.json`), 29 ngày từ 21.11, SQLite tạm, không mạng, chạy qua `collab-test-guard`. Trước = `collab/integration` lúc mở PR 4; sau = PR 4.
 
-Số nền 200 người (integration `fa349885`): _ghi khi lượt chạy xong_.
+Số nền 200 người (integration `fa349885`, 774 giây):
+
+| Chỉ số | Số nền |
+|---|---|
+| `topic_7d` | 79.5% (4.425 / 5.568 ngày, 192 người) |
+| `topic_3d` | 30.3% (1.689 ngày, 134 người) |
+| `theme_3d` | 53.0% |
+| `headline_7d` | 11.9% |
+| `headline_14d` | 33.9% |
+| Chủ đề khác nhau trong 14 ngày (trung vị) | 3 |
