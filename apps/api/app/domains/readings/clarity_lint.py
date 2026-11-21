@@ -34,6 +34,8 @@ from datetime import date
 from itertools import pairwise
 from typing import Any
 
+from app.domains.content.copy_approval import printf_slots
+
 # Ratcheted rules: a count may only go down and no new violating sentence may appear.
 RULES: dict[str, str] = {
     "A1": "thuật ngữ đứng trơ",
@@ -223,7 +225,6 @@ PLACEHOLDERS = re.compile(
     r"(?i:chưa sẵn sàng|đang cập nhật|lorem ipsum)"
     r"|\bTODO\b|\bFIXME\b|\bTBD\b|\bXXX\b"
     r"|\{\{[^{}]*\}\}|\{[A-Za-z_][A-Za-z0-9_.]*\}|\$\{[^{}]*\}"
-    r"|%(?:\([A-Za-z_]\w*\))?[sdif](?![^\W\d_])"
     r"|<[^<>\s][^<>]*>"
     r"|\[[^\[\]]*[A-Z][^\[\]]*\]"
     r"|\b(?:None|undefined|null|NaN|nil)\b"
@@ -1175,8 +1176,18 @@ def count_hedges(text: str) -> int:
     return _count(HEDGES, text)
 
 
+def _printf_slots_not_glued(text: str) -> int:
+    """printf slots (copy_approval.printf_slots) not glued to a following letter ("%sơi")."""
+
+    return sum(
+        1
+        for _, end in printf_slots(text)
+        if end >= len(text) or not (text[end].isalpha() and not text[end].isdigit())
+    )
+
+
 def count_placeholders(text: str) -> int:
-    return _count(PLACEHOLDERS, text)
+    return _count(PLACEHOLDERS, text) + _printf_slots_not_glued(text)
 
 
 def count_house_sign_aspect_words(text: str) -> int:
@@ -1305,7 +1316,7 @@ _SENTENCE_RULES: dict[str, Callable[[str], bool]] = {
     "A4": lambda sentence: bool(META_TALK.search(sentence)),
     "A8": lambda sentence: syllables(sentence) > MAX_SENTENCE_SYLLABLES,
     "A10": lambda sentence: bool(english_words(sentence)),
-    "A11": lambda sentence: bool(PLACEHOLDERS.search(sentence)),
+    "A11": lambda sentence: count_placeholders(sentence) > 0,
     "A14": is_past_event_claim,
     "A16": lambda sentence: bool(HOUSE_SIGN_ASPECT.search(sentence)),
     # S9 is sentence-level (no single phrase), so it is keyed here, not by ``safety_keys``.
