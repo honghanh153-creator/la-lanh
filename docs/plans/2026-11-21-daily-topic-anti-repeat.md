@@ -25,12 +25,11 @@ Số nền cho PR code là lượt 200 người trên `collab/integration`, ghi 
 
 ## 2. Mục tiêu (US-21, đề xuất AC05 mới)
 
-**US-21 AC05 (mới):** Tình huống của ngày D được chọn trong **pool xếp hạng của ngày D** (tối đa `K = 6` tình huống đủ điều kiện, xếp theo độ hợp lá số như hiện nay). Thứ tự chọn:
-1. Tình huống chưa gặp trong `N = 7` ngày trước, và không cùng nhóm chủ đề với 2 ngày trước;
-2. nếu không có: tình huống chưa gặp trong 7 ngày;
-3. nếu vẫn không có: tình huống gặp lâu nhất.
+**US-21 AC05 (mới; bản đã làm ở #842/#855, cập nhật theo đo đạc và góp ý P2 #844, #853):** Tình huống của ngày D được chọn trong **pool của ngày D** (tối đa `K = 6` tình huống đủ điều kiện, xếp theo độ hợp lá số như hiện nay). Thứ tự chọn:
+1. Đi theo **thứ tự xoay cố định riêng của người** (`rotation_order`: hash của seed và mã chủ đề, các chủ đề liền nhau khác nhóm), bắt đầu từ vị trí `day_index`. Chọn tình huống đầu tiên chưa gặp trong 6 ngày trước.
+2. Nếu tất cả đã gặp: chọn tình huống gặp lâu nhất, hoà thì theo cùng thứ tự xoay.
 
-Trong cùng một bậc, ưu tiên hạng cao hơn; cùng hạng thì xếp theo hash ổn định của người và ngày. "Đã gặp" là kết quả của **chính phép chọn này** ở các ngày trước, được **tính lại** từ lá số, transit từng ngày và seed của người đó. Không đọc và không lưu lịch sử (giữ quyết định owner 21.10 ở AC05 cũ). Pool 1 phần tử thì tình huống đứng yên, các ô vẫn đổi (như cũ).
+Không còn bậc "ưu tiên hạng" hay "nhóm chủ đề 2 ngày" riêng. Lượt 200 người cho thấy chọn theo hạng làm pool không đổi lặp ở biên khối (giờ gần đúng 11,9% → 14,7%). Thứ tự xoay theo ngày thì pool không đổi (dù cỡ 2 hay 5) xoay đều toàn cục, không phụ thuộc biên khối hay ngày bật; ví dụ ABAB|BABA của #853 không xảy ra (test với lịch sử bị đặt lại ở các vị trí bất kỳ, cỡ 2–6). "Đã gặp" là kết quả của **chính phép chọn này** ở các ngày trước, được **tính lại** từ lá số, transit từng ngày và seed của người đó. Không đọc và không lưu lịch sử (giữ quyết định owner 21.10 ở AC05 cũ). Pool 1 phần tử thì tình huống đứng yên, các ô vẫn đổi (như cũ).
 
 **Tiêu chí đạt** (200 người giả × 29 ngày từ 21.11, cùng mẫu và đồng hồ cho trước và sau):
 
@@ -67,7 +66,9 @@ AC02, AC03, AC04, AC06 giữ nguyên.
 
 Không mang ước lượng của khối trước sang (góp ý P2 của Codex, #844). Ước lượng đó không thể khớp với những gì khối trước đã phục vụ, vì khối trước lại được chọn dựa trên khối trước nữa, cứ thế ngược về ngày bật. Ví dụ ABC của Codex: mang sang thì mỗi tuần lặp B ở biên.
 
-12 là bội của các cỡ pool thường gặp: 2, 3, 4 và 6. Nhờ vậy pool không đổi vẫn xoay đều qua biên khối (ABCABC|ABCABC), có test cho cả 4 cỡ. Biên khối chỉ có thể lặp khi pool đổi giữa các ngày hoặc có 5 tình huống; lượt 200 người đo phần này.
+Pool không đổi xoay đều qua mọi biên khối nhờ thứ tự xoay theo ngày (mục 2), không cần cỡ khối là bội của cỡ pool. Biên khối chỉ có thể lặp khi pool đổi giữa các ngày.
+
+**Ngày bật (góp ý P2 #853):** lịch sử bắt đầu **lạnh** ở ngày bật. Với ngày D sau ngày bật, chỉ các ngày từ `max(đầu khối, ngày bật)` tới D−1 được tính lại, bằng cách chọn mới. Những ngày trước ngày bật (phục vụ bằng cách cũ) không được dựng lại. Vì vậy lịch sử của mỗi ngày sau ngày bật vẫn khớp tuyệt đối với cái đã phục vụ (test `test_topic_schedule_starts_on_its_own_date`: ngày bật có lịch sử rỗng). Ở đúng ngày bật, chủ đề có thể trùng hôm trước một lần, vì cách cũ (`day_index mod 3`) và thứ tự xoay mới khác nhau; sau đó lịch đi đều.
 
 **Người chỉ có ngày sinh** (pool cố định theo cung, AC07): không cần lịch sử.
 - Pool đi theo một thứ tự cố định riêng cho từng người (`rotation_order`, xen kẽ nhóm chủ đề), theo `day_index % len(pool)`. Mỗi chủ đề quay lại đúng sau `len(pool)` ngày.
