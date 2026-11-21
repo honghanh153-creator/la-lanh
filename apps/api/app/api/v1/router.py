@@ -12,6 +12,7 @@ from app.api.v1.routes.insights import router as insights_router
 from app.api.v1.routes.la_chung import public_router as la_chung_public_router
 from app.api.v1.routes.la_chung import router as la_chung_router
 from app.api.v1.routes.matching import router as matching_router
+from app.api.v1.routes.month_answers import router as month_answers_router
 from app.api.v1.routes.radar import public_router as radar_public_router
 from app.api.v1.routes.radar import router as radar_router
 from app.api.v1.routes.saved_notes import router as saved_notes_router
@@ -37,4 +38,5 @@ router.include_router(daily_notes_router, tags=["daily-note"])
 router.include_router(saved_notes_router, tags=["saved-notes"])
 router.include_router(share_artifacts_router, tags=["share"])
 router.include_router(tarot_router, tags=["tarot"])
+router.include_router(month_answers_router, tags=["month-answers"])
 router.include_router(human_tarot_router, tags=["human-tarot"])

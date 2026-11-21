@@ -10,6 +10,7 @@ import { AppNav } from "../../shared/ui/AppNav";
 import { BrandMark } from "../../shared/ui/BrandMark";
 import { NightSky } from "../../shared/ui/NightSky";
 import { readingModeLabel } from "../../shared/ui/readingLabels";
+import { MonthOverviewCard } from "../month/MonthOverviewCard";
 import { InsightQueryStates } from "./InsightQueryStates";
 import { parseAyanamsa, parseHouseSystem, parseTradition } from "./insightConfig";
 import "./insights.css";
@@ -70,6 +71,8 @@ export function InsightsPage() {
       </section>
 
       <InsightQueryStates insight={insight} />
+
+      <MonthOverviewCard />
 
       {richReading ? (
         <Link className="insight-synthesis" to={`/insights/synthesis?${configQuery}`}>
