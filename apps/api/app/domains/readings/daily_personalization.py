@@ -343,6 +343,22 @@ def _registry_pair(bodies: frozenset[str], kind: str) -> tuple[str, str] | None:
     return None
 
 
+def _sky_situation(bodies: frozenset[str], kind: str) -> tuple[str, str] | None:
+    """(issue, tendency sentence) of a pair rule for a date-only sky contact, if one applies:
+    an existing ``PAIR_RULES`` entry (its approved sentences) or an approved registry rule."""
+
+    rule = next((rule for rule in PAIR_RULES if rule.bodies == bodies), None)
+    if rule is None:
+        return _registry_pair(bodies, kind)
+    if kind == "tense":
+        return rule.tension_issue, rule.tension_meaning
+    if kind == "coop":
+        return rule.cooperative_issue, rule.cooperative_meaning
+    if rule.conjunction_issue and rule.conjunction_meaning:
+        return rule.conjunction_issue, rule.conjunction_meaning
+    return None
+
+
 # Which Daily scene a house door may open (plan 1.1, N-4 under the source rule). Only doors a
 # classical source stands behind and that are not ⚠ are tagged, so a modern-only door (love in
 # house 5) or a ⚠ door (children) never picks the scene. A door with no everyday scene is absent.
@@ -511,6 +527,21 @@ def eligible_daily_situations(plan: ReadingPlan) -> tuple[SupportedSituation, ..
                             (factor.id,),
                             f"extra-sun-{sign}-{extra_key}",
                             (role_priority, 0, int(factor.strength * 4) - step),
+                        )
+                    )
+            # Today's sky against the Sun sign (date-only sky, switched on by the caller).
+            for code in plan.daily_variety.sky_contacts or ():
+                sky_body, sky_kind = code.split(":")
+                found = _sky_situation(frozenset({sky_body, "sun"}), sky_kind)
+                if found and found[0] not in shown:
+                    shown.add(found[0])
+                    situations.append(
+                        SupportedSituation(
+                            found[0],
+                            found[1],
+                            (factor.id,),
+                            f"sky-{sky_body}-{sky_kind}-sun-{sign}",
+                            (role_priority, 0, int(factor.strength * 4) - 6),
                         )
                     )
 

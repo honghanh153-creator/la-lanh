@@ -1258,7 +1258,7 @@ def _pick(plan: ReadingPlan, pool: list[SupportedSituation]) -> SupportedSituati
         return pool[issue_slot]
     if variety.topic_history is not None:
         keys = [situation.issue_key for situation in pool]
-        if plan.precision is TimePrecision.UNKNOWN:
+        if plan.precision is TimePrecision.UNKNOWN and variety.sky_contacts is None:
             # Date-only: the pool is the same every day, so a fixed per-reader order walked by
             # day spaces every topic ``len(pool)`` days apart without any history.
             order = rotation_order(variety.seed, keys)
