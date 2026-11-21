@@ -1014,7 +1014,7 @@
    "from": "sự cố 21.11, integration đỏ sau #747; hotfix #863",
    "who": "claude",
    "due": "2026-11-22",
-   "status": "open",
+   "status": "done",
    "test": {
     "file": "scripts/collab-pr-check-workflow.test.mjs",
     "name": "L59: a doc that a script reads runs the loop tests; other docs stay docs-only"
@@ -1022,6 +1022,9 @@
    "caller": {
     "file": ".github/workflows/pr-check.yml",
     "contains": "grep -rqsF -- \"${f##*/}\" scripts/"
+   },
+   "closedBy": {
+    "pr": 864
    }
   }
  ]
