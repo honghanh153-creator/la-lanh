@@ -15,9 +15,14 @@ previous six, 20.11 release, 1000 personas). This module chooses instead from up
 Inside a tier the better-ranked situation wins, so novelty never skips a stronger situation that is
 also fresh. "Shown" is what this same choice gave on earlier days, recomputed by the caller from the
 chart, each day's transits and the reader's seed (owner decision 21.10.2026: no stored history).
-To keep that bounded, days are cut into ``SCHEDULE_BLOCK_DAYS`` blocks at a per-reader phase; the
-caller recomputes the block from its first day (``schedule``), with the previous block (computed
-without history of its own) as the history at the block start.
+
+To keep that bounded and exact, days are cut into ``SCHEDULE_BLOCK_DAYS`` blocks at a per-reader
+phase and each block starts with an empty history; the caller recomputes the block from its first
+day (``schedule``). A carried-over estimate of the previous block cannot match what that block
+served (it was served against its own previous block, and so on back to the switch date; Codex P2
+on #841), so there is none: the history a day is chosen with is exactly the earlier days of its
+block as served. Twelve days is a multiple of the common pool sizes 2, 3, 4 and 6, so a pool that
+stays the same keeps its rotation across a block boundary (ABCABC|ABCABC).
 
 Pure functions only: no I/O, no clock, no ``random``, nothing stored.
 """
@@ -30,7 +35,7 @@ from hashlib import sha256
 TOPIC_POOL_SIZE = 6
 TOPIC_WINDOW_DAYS = 7
 THEME_WINDOW_DAYS = 3
-SCHEDULE_BLOCK_DAYS = 7
+SCHEDULE_BLOCK_DAYS = 12
 
 # One theme per Daily issue: situations of one theme read alike on consecutive days. A code, not
 # copy; tests require every issue in the catalog to have exactly one.
@@ -115,3 +120,24 @@ def schedule(
         chosen.append(key)
         history.append(key)
     return chosen
+
+
+def rotation_order(
+    seed: str, keys: Sequence[str], themes: Mapping[str, str] = ISSUE_THEMES
+) -> tuple[str, ...]:
+    """A fixed per-reader order of a pool that does not change by day (date-only Daily).
+
+    Walked round-robin by day, every topic comes back exactly every ``len(keys)`` days, so no topic
+    repeats sooner and the per-appearance headline order (``day_index // len(keys)``) moves on at
+    each appearance. Neighbours differ in theme where the pool allows it."""
+
+    def rank(key: str) -> bytes:
+        return sha256(f"{seed}\x1f{_BLOCK_LABEL}\x1f{key}".encode()).digest()
+
+    remaining = sorted(dict.fromkeys(keys), key=rank)
+    order: list[str] = []
+    while remaining:
+        last = themes.get(order[-1]) if order else None
+        index = next((i for i, key in enumerate(remaining) if themes.get(key) != last), 0)
+        order.append(remaining.pop(index))
+    return tuple(order)
