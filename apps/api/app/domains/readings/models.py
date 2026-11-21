@@ -16,6 +16,7 @@ from pydantic import (
     model_validator,
 )
 
+from app.domains.astro.aspects import SUPPORTED_INTERVAL_TRANSIT_ORB_VERSIONS
 from app.domains.astro.models import EngineProvenance, TimePrecision, Tradition, TransitPhase
 
 WESTERN_INTERPRETATION_KNOWLEDGE_VERSION = "western-interpretation-matrix-v7"
@@ -289,6 +290,16 @@ class ReadingPlan(BaseModel):
     daily_selection: DailySelection | None = None
     # Absent on plans stored before B3-1a; canonical keys omit it when None.
     daily_variety: DailyVariety | None = None
+    # Daily step 2: set when the plan's transit was proven over an approximate birth-time window
+    # (its orb is an upper bound). Absent on every earlier plan; canonical keys omit it when None.
+    transit_policy: str | None = Field(default=None, min_length=1, max_length=64)
+    # US-03 AC22: a window plan keeps the day's one transit under every lens, so its factors and
+    # evidence never change with the lens. When that transit does not explain the lens's
+    # situation, this is set: the transit is listed as evidence and no reason sentence is
+    # rendered. The selection still names the transit with the SUPPORTS role, the only shape a
+    # reader before step 2 accepts; that reader ignores this field, its gate rejects the reason
+    # and it plans the day again from the natal chart. Canonical keys omit it when None.
+    transit_reason_withheld: Literal[True] | None = None
 
     @model_validator(mode="after")
     def validate_plan(self) -> "ReadingPlan":
@@ -304,8 +315,25 @@ class ReadingPlan(BaseModel):
                 raise ValueError("only a Daily note carries a frozen daily selection")
             if any(ref not in factor_by_id for ref in selection.support_refs):
                 raise ValueError("daily selection support must come from plan factors")
+            # This rule is unchanged since B1b, so the previous release can load every stored
+            # plan after a rollback (G4, Codex r2 on #726).
             if transit_ids != ({selection.transit_ref} if selection.transit_ref else set()):
                 raise ValueError("a selected Daily plan holds exactly its chosen transit")
+        if self.transit_reason_withheld is not None and (
+            self.transit_policy is None
+            or selection is None
+            or selection.transit_role is not DailyTransitRole.SUPPORTS
+        ):
+            raise ValueError("only a window Daily's kept transit withholds its reason")
+        if self.transit_policy is not None:
+            if self.transit_policy not in SUPPORTED_INTERVAL_TRANSIT_ORB_VERSIONS:
+                raise ValueError("unsupported interval transit policy")
+            if (
+                self.purpose is not ReadingPurpose.DAILY_NOTE
+                or self.precision is not TimePrecision.APPROXIMATE
+                or not any(factor.source is FactorSource.TRANSIT for factor in self.factors)
+            ):
+                raise ValueError("only an approximate Daily with a transit carries the policy")
         if len(factor_by_id) != len(self.factors):
             raise ValueError("factor ids must be unique")
         if any(factor.tradition is not self.tradition for factor in self.factors):
@@ -883,10 +911,18 @@ def experiment_projection_for(
 def canonical_reading_plan_key(plan: ReadingPlan, *, chart_snapshot_id: UUID | None = None) -> str:
     """Immutable plan identity, optionally bound to its persisted chart source."""
 
-    # Plans stored before B1b (daily_selection) or B3-1a (daily_variety) lack the
-    # field; omitting it when None keeps their identity unchanged on re-keying.
+    # Plans stored before B1b (daily_selection), B3-1a (daily_variety) or Daily step 2
+    # (transit_policy, transit_reason_withheld) lack the field; omitting it when None keeps
+    # their identity unchanged.
     excluded = {
-        field for field in ("daily_selection", "daily_variety") if getattr(plan, field) is None
+        field
+        for field in (
+            "daily_selection",
+            "daily_variety",
+            "transit_policy",
+            "transit_reason_withheld",
+        )
+        if getattr(plan, field) is None
     } or None
     factual_key = sha256(
         plan.model_dump_json(exclude_none=False, exclude=excluded).encode()

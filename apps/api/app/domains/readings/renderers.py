@@ -214,8 +214,14 @@ def _slot(name: ClaimSlotName, value: str) -> ClaimSlot:
     return ClaimSlot(name=name, value=value)
 
 
-def canonical_evidence_claim(factor: DerivedFactor) -> EvidenceClaim:
-    """Join a closed claim template using only canonical factor identifiers."""
+def canonical_evidence_claim(factor: DerivedFactor, *, orb_bound: bool = False) -> EvidenceClaim:
+    """Join a closed claim template using only canonical factor identifiers.
+
+    ``orb_bound`` (Daily step 2, Codex point 3): the plan's transit was proven over an approximate
+    birth-time window, so its orb is the worst case over that window, not a measurement. The
+    display shows no number and the orb slot is labelled as a maximum. Use ``plan_evidence_claim``
+    wherever the plan is known.
+    """
 
     parts = factor.id.split(":")
     slots: tuple[ClaimSlot, ...]
@@ -321,12 +327,16 @@ def canonical_evidence_claim(factor: DerivedFactor) -> EvidenceClaim:
             _slot(ClaimSlotName.BODY_A, _body(body_a)),
             _slot(ClaimSlotName.BODY_B, _body(body_b)),
             _slot(ClaimSlotName.ASPECT, _ASPECT_LABELS.get(aspect, aspect)),
-            _slot(ClaimSlotName.ORB, orb),
+            _slot(ClaimSlotName.ORB, f"≤{orb}" if orb_bound else orb),
             _slot(ClaimSlotName.PHASE, _PHASE_LABELS.get(phase, phase)),
         )
+        detail = (
+            f"pha {_PHASE_LABELS.get(phase, phase)}"
+            if orb_bound
+            else f"orb {orb}°, pha {_PHASE_LABELS.get(phase, phase)}"
+        )
         display = (
-            f"{_body(body_a)} đang {_ASPECT_LABELS.get(aspect, aspect)} {_body(body_b)} "
-            f"(orb {orb}°, pha {_PHASE_LABELS.get(phase, phase)})"
+            f"{_body(body_a)} đang {_ASPECT_LABELS.get(aspect, aspect)} {_body(body_b)} ({detail})"
         )
         template = ClaimTemplateId.TRANSIT_CONTACT
     else:  # pragma: no cover - FactorKind is a closed enum and every member is handled.
@@ -337,6 +347,12 @@ def canonical_evidence_claim(factor: DerivedFactor) -> EvidenceClaim:
         slots=slots,
         display_text=display,
     )
+
+
+def plan_evidence_claim(plan: ReadingPlan, factor: DerivedFactor) -> EvidenceClaim:
+    """The evidence claim of ``factor`` as ``plan`` proves it (orb bound for a window plan)."""
+
+    return canonical_evidence_claim(factor, orb_bound=plan.transit_policy is not None)
 
 
 class DeterministicVietnameseRenderer:
@@ -398,7 +414,7 @@ class DeterministicVietnameseRenderer:
                 "separating": ("Hai vị trí đang đi xa góc này sau lần đi qua gần nhất."),
             }.get(transit_factor.phase.value if transit_factor.phase else "", "")
             transit = (
-                f"{canonical_evidence_claim(transit_factor).display_text}. {phase_explanation}"
+                f"{plan_evidence_claim(plan, transit_factor).display_text}. {phase_explanation}"
             ).strip()
         claims = self._evidence_claims(plan, transit_factor, frame)
         base_version = (
@@ -525,6 +541,6 @@ class DeterministicVietnameseRenderer:
         if transit_factor is not None:
             selected_ids.append(transit_factor.id)
         return tuple(
-            canonical_evidence_claim(factor_by_id[factor_id])
+            plan_evidence_claim(plan, factor_by_id[factor_id])
             for factor_id in dict.fromkeys(selected_ids)
         )

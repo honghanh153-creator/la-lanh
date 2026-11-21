@@ -23,7 +23,7 @@ as an exact chart, under ``INTERVAL_TRANSIT_POLICY``:
 * Western only; nodes, Chiron, houses and angles are never read.
 
 It is geometry only: no copy, no persistence, no logging, deterministic for a chart, zone and
-instant. Nothing in the request path calls it yet.
+instant. ``ReadingApplication`` calls it for an approximate Daily; the plan records the policy.
 """
 
 from __future__ import annotations
@@ -34,7 +34,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from app.domains.astro.aspects import (
     ASPECTS,
-    TRANSIT_ORB_VERSION,
+    INTERVAL_TRANSIT_ORB_VERSION,
     angular_distance,
     orb_bounds,
     transit_orb_limit,
@@ -58,7 +58,7 @@ from app.domains.daily.sky_selection import (
 
 # The policy a stored plan names when its transit contacts were proven over a window. A planner
 # accepts an interval snapshot only under a version it lists explicitly (Codex point 4).
-INTERVAL_TRANSIT_POLICY = f"{TRANSIT_ORB_VERSION}+interval-v1"
+INTERVAL_TRANSIT_POLICY = INTERVAL_TRANSIT_ORB_VERSION
 INTERVAL_TRANSIT_TARGETS = (BodyName.SUN, BodyName.MERCURY, BodyName.VENUS, BodyName.MARS)
 # Same step as the engine's own phase (``_transit_phase``): the orb one hour later.
 _PHASE_STEP = timedelta(hours=1)

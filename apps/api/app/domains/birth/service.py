@@ -338,6 +338,19 @@ class BirthChartService:
             profile_revision=stored.profile_revision,
         )
 
+    async def birth_timezone(self, guest_id: UUID, profile_id: UUID) -> str | None:
+        """The stored birthplace zone of this profile, for reading an approximate window.
+
+        Daily step 2 (Codex point 1): the reading service needs only the zone, never the place
+        name, time or coordinates. ``None`` when there is no place or the profile changed.
+        """
+
+        try:
+            state = await self.supplement_state(guest_id)
+        except BirthProfileNotFound:
+            return None
+        return state.timezone_id if state.profile_id == profile_id else None
+
     async def supplement_state(self, guest_id: UUID) -> BirthSupplementState:
         stored = await self._repository.find_supplement(guest_id)
         if stored is None:

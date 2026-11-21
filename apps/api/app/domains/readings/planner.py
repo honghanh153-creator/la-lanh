@@ -1,10 +1,15 @@
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass
 from datetime import date
 from hashlib import sha256
 
-from app.domains.astro.aspects import ASPECTS, transit_orb_limit
+from app.domains.astro.aspects import (
+    ASPECTS,
+    SUPPORTED_INTERVAL_TRANSIT_ORB_VERSIONS,
+    transit_orb_limit,
+)
 from app.domains.astro.models import (
     Aspect,
     BodyName,
@@ -24,6 +29,7 @@ from app.domains.readings.models import (
     BackgroundLens,
     CompositionTarget,
     DailySelection,
+    DailyTransitRole,
     DailyVariety,
     DerivedFactor,
     FactorConfidence,
@@ -188,6 +194,19 @@ def time_stable_bodies(chart: NatalChart) -> frozenset[BodyName]:
     )
 
 
+@dataclass(frozen=True)
+class DayTransit:
+    """The transit decision a window Daily already holds for this day (US-03 AC22).
+
+    ``factor`` is the transit another lens of the same day and chart was served, or ``None``
+    when that lens was served from the natal chart alone. ``policy`` is that plan's
+    ``transit_policy``. A plan made from it repeats the decision instead of choosing again.
+    """
+
+    factor: DerivedFactor | None
+    policy: str | None
+
+
 class ReadingPlanner:
     """Select and compose immutable reading factors without calculating a chart."""
 
@@ -200,7 +219,14 @@ class ReadingPlanner:
         background_lens: BackgroundLens | None = None,
         editorial_seed: str | None = None,
         daily_variety: DailyVariety | None = None,
+        day_transit: DayTransit | None = None,
+        withhold_transit_reason: bool = False,
     ) -> ReadingPlan:
+        """``day_transit`` repeats the transit decision another lens of the same day was served
+        (``transits`` is then not read). ``withhold_transit_reason`` keeps a window Daily's
+        transit as evidence without its reason sentence. Both apply only to the approximate
+        Daily (US-03 AC22) and are ignored elsewhere."""
+
         if background_lens is BackgroundLens.AUTO:
             background_lens = None
         if daily_variety is not None and purpose is not ReadingPurpose.DAILY_NOTE:
@@ -211,30 +237,50 @@ class ReadingPlanner:
             return self._date_only_plan(
                 chart, purpose, background_lens, editorial_seed, daily_variety
             )
+        shared = (
+            day_transit
+            if chart.time_precision is TimePrecision.APPROXIMATE
+            and purpose is ReadingPurpose.DAILY_NOTE
+            and chart.config.tradition is Tradition.WESTERN
+            else None
+        )
+        if shared is not None:
+            transits = None
         self._validate_transits(chart, transits)
+        interval = (
+            transits is not None
+            and transits.orb_policy_version in SUPPORTED_INTERVAL_TRANSIT_ORB_VERSIONS
+        )
         if (
             chart.time_precision is TimePrecision.APPROXIMATE
             and purpose is ReadingPurpose.DAILY_NOTE
             and chart.config.tradition is Tradition.WESTERN
-            and transits is None
+            and (transits is None or interval)
         ):
             # 17.11.2026 (#626): an approximate birth time gets a Daily built from the same
             # time-stable placements as its other readings (#143 E1), instead of an empty LIMITED
-            # plan that served one situation for every day. No transit, aspect, house, angle or
-            # Moon fact is used; public precision stays approximate.
+            # plan that served one situation for every day. Daily step 2: a transit is added only
+            # from a snapshot proven over the birth-time window (``daily.interval_transits``),
+            # and only to a time-stable placement; no aspect, house, angle or Moon fact is used.
             stable = self._stable_placements(chart, purpose)
             selected, hero_refs = self._select_natal(stable, purpose, editorial_seed)
             if hero_refs:
                 return self._daily_plan(
                     chart,
-                    None,
+                    transits,
                     stable,
                     selected,
                     hero_refs,
                     background_lens=background_lens,
                     editorial_seed=editorial_seed,
                     daily_variety=daily_variety,
+                    day_transit=shared,
+                    withhold_transit_reason=withhold_transit_reason,
                 )
+            transits = None
+        if interval and chart.time_precision is TimePrecision.APPROXIMATE:
+            # A window-proven snapshot is used only by the approximate Daily above.
+            transits = None
         if chart.time_precision is not TimePrecision.EXACT:
             approximate = (
                 self._approximate_plan(chart, purpose, background_lens, editorial_seed)
@@ -291,6 +337,8 @@ class ReadingPlanner:
         background_lens: BackgroundLens | None,
         editorial_seed: str | None,
         daily_variety: DailyVariety | None = None,
+        day_transit: DayTransit | None = None,
+        withhold_transit_reason: bool = False,
     ) -> ReadingPlan:
         """Choose the Daily situation, then attach only a transit that explains it.
 
@@ -305,6 +353,10 @@ class ReadingPlanner:
             *,
             has_transit: bool,
             selection: DailySelection | None = None,
+            transit_policy: str | None = None,
+            lens: BackgroundLens | None = background_lens,
+            variety: DailyVariety | None = daily_variety,
+            reason_withheld: bool = False,
         ) -> ReadingPlan:
             return self._build_plan(
                 tradition=chart.config.tradition,
@@ -315,27 +367,93 @@ class ReadingPlanner:
                 factors=tuple(self._assign_roles(factors, hero_refs)),
                 hero_factor_refs=hero_refs,
                 composition=self._composition(has_transit=has_transit),
-                background_lens=background_lens,
+                background_lens=lens,
                 editorial_seed=editorial_seed,
                 daily_selection=selection,
-                daily_variety=daily_variety,
+                daily_variety=variety,
+                transit_policy=transit_policy,
+                transit_reason_withheld=reason_withheld,
             )
 
         def with_transit(transit: DerivedFactor) -> list[DerivedFactor]:
             factors = self._include_transit_dependency(list(natal), candidates, transit)
             return [*factors, transit]
 
-        natal_plan = build(list(natal), has_transit=False)
-        # Every salient contact is considered; nothing is cut before relevance.
-        transit_plans = tuple(
-            (transit, build(with_transit(transit), has_transit=True))
-            for transit in self._transit_pool(
-                chart, transits, ReadingPurpose.DAILY_NOTE, candidates
-            )
+        window = day_transit is not None or (
+            transits is not None
+            and transits.orb_policy_version in SUPPORTED_INTERVAL_TRANSIT_ORB_VERSIONS
         )
-        selection, transit = select_daily_situation(natal_plan, transit_plans)
-        factors = with_transit(transit) if transit is not None else list(natal)
-        return build(factors, has_transit=transit is not None, selection=selection)
+        # US-03 AC22 (Codex r1 and r2 on #726): a window Daily chooses its transit once, from the
+        # chart, the day and the owner's rotation seed only. The lens and the rotation guard pair
+        # (which the service computes per lens) are left out of that choice, so every lens holds
+        # the same factors and evidence. The lens and its guard pair then pick the situation; the
+        # kept transit gives its reason only when it explains that situation.
+        # Exact-time plans keep their earlier lens-dependent choice (#725).
+        choice_lens = None if window else background_lens
+        choice_variety = (
+            daily_variety.model_copy(update={"recent_issue_keys": ()})
+            if window and daily_variety is not None
+            else daily_variety
+        )
+        kept: DerivedFactor | None
+        if day_transit is not None:
+            # Codex r3 on #726: another lens of this day was already served. Its decision is
+            # repeated as stored, so a transit calculation or zone lookup that failed for one
+            # request and worked for the next never gives two lenses different evidence. A
+            # transit whose natal placement this chart no longer offers is not carried over.
+            known = {factor.id for factor in candidates}
+            kept = day_transit.factor
+            if kept is not None and not set(kept.child_refs) <= known:
+                kept = None
+        else:
+            pool = self._transit_pool(chart, transits, ReadingPurpose.DAILY_NOTE, candidates)
+            # Every salient contact is considered; nothing is cut before relevance.
+            selection, kept = select_daily_situation(
+                build(list(natal), has_transit=False, lens=choice_lens, variety=choice_variety),
+                tuple(
+                    (
+                        item,
+                        build(
+                            with_transit(item),
+                            has_transit=True,
+                            lens=choice_lens,
+                            variety=choice_variety,
+                        ),
+                    )
+                    for item in pool
+                ),
+            )
+        reason_withheld = False
+        if window:
+            selection, explains = select_daily_situation(
+                build(list(natal), has_transit=False),
+                ((kept, build(with_transit(kept), has_transit=True)),)
+                if kept is not None and not withhold_transit_reason
+                else (),
+            )
+            if kept is not None and explains is None:
+                # Stored in the shape every earlier reader accepts; see ``transit_reason_withheld``.
+                reason_withheld = True
+                selection = DailySelection(
+                    issue_key=selection.issue_key,
+                    rule_key=selection.rule_key,
+                    support_refs=selection.support_refs,
+                    transit_ref=kept.id,
+                    transit_role=DailyTransitRole.SUPPORTS,
+                )
+        factors = with_transit(kept) if kept is not None else list(natal)
+        policy = None
+        if kept is not None and day_transit is not None:
+            policy = day_transit.policy
+        elif kept is not None and transits is not None and window:
+            policy = transits.orb_policy_version
+        return build(
+            factors,
+            has_transit=kept is not None,
+            selection=selection,
+            transit_policy=policy,
+            reason_withheld=reason_withheld,
+        )
 
     def _date_only_plan(
         self,
@@ -850,6 +968,11 @@ class ReadingPlanner:
     def _validate_transits(chart: NatalChart, transits: TransitToNatalSnapshot | None) -> None:
         if transits is None:
             return
+        interval = transits.orb_policy_version in SUPPORTED_INTERVAL_TRANSIT_ORB_VERSIONS
+        if interval and chart.time_precision is not TimePrecision.APPROXIMATE:
+            raise ValueError("a window-proven transit snapshot is only for an approximate time")
+        if not interval and chart.time_precision is TimePrecision.APPROXIMATE:
+            raise ValueError("an approximate time takes only a window-proven transit snapshot")
         if transits.config.tradition is not chart.config.tradition:
             raise ValueError("transit tradition must match natal tradition")
         if transits.config_hash != chart.config_hash:
@@ -972,6 +1095,8 @@ class ReadingPlanner:
         editorial_seed: str | None,
         daily_selection: DailySelection | None = None,
         daily_variety: DailyVariety | None = None,
+        transit_policy: str | None = None,
+        transit_reason_withheld: bool = False,
     ) -> ReadingPlan:
         rules_version = (
             DAILY_PLANNER_RULES_VERSION if daily_selection is not None else PLANNER_RULES_VERSION
@@ -981,7 +1106,7 @@ class ReadingPlanner:
             if tradition is Tradition.WESTERN
             else JYOTISH_INTERPRETATION_KNOWLEDGE_VERSION
         )
-        payload = {
+        payload: dict[str, object] = {
             "schema_version": "reading-plan/v1",
             "rules_version": rules_version,
             "knowledge_version": knowledge_version,
@@ -1002,6 +1127,10 @@ class ReadingPlanner:
             payload["daily_selection"] = daily_selection.model_dump(mode="json")
         if daily_variety is not None:
             payload["daily_variety"] = daily_variety.model_dump(mode="json")
+        if transit_policy is not None:
+            payload["transit_policy"] = transit_policy
+        if transit_reason_withheld:
+            payload["transit_reason_withheld"] = True
         canonical = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
         return ReadingPlan(
             rules_version=rules_version,
@@ -1021,6 +1150,8 @@ class ReadingPlanner:
             forbidden_language=_PLAN_FORBIDDEN_LANGUAGE,
             daily_selection=daily_selection,
             daily_variety=daily_variety,
+            transit_policy=transit_policy,
+            transit_reason_withheld=True if transit_reason_withheld else None,
         )
 
     @staticmethod

@@ -26,7 +26,7 @@ from app.domains.readings.models import (
     SemanticArena,
     SemanticSection,
 )
-from app.domains.readings.renderers import canonical_evidence_claim
+from app.domains.readings.renderers import plan_evidence_claim
 
 EVIDENCE_GATE_VERSION = "evidence-gate-vi-v2"
 ANTI_INFLUENCE_GATE_VERSION = "anti-influence-gate-vi-v1"
@@ -126,7 +126,9 @@ def evidence_gate(plan: ReadingPlan, candidate: ReadingCandidate) -> GateReport:
         failures.append(GateFailureCode.EVIDENCE_DISCLOSURE)
 
     factor_by_id = {factor.id: factor for factor in plan.factors}
-    canonical_claim_by_id = {factor.id: canonical_evidence_claim(factor) for factor in plan.factors}
+    canonical_claim_by_id = {
+        factor.id: plan_evidence_claim(plan, factor) for factor in plan.factors
+    }
     seen: set[str] = set()
     for claim in candidate.evidence.claims:
         factor = factor_by_id.get(claim.factor_ref)
@@ -152,7 +154,11 @@ def evidence_gate(plan: ReadingPlan, candidate: ReadingCandidate) -> GateReport:
             candidate.natal_user_prose, candidate.transit
         ):
             failures.append(GateFailureCode.EVIDENCE_COMPOSITION)
-    elif claimed_transits:
+    elif claimed_transits and not (
+        # US-03 AC22: a window Daily lists the day's transit as evidence under every lens, with
+        # the reason sentence only when it explains the lens's situation (checked just below).
+        plan.transit_reason_withheld and len(transit_factors) == 1
+    ):
         failures.append(GateFailureCode.EVIDENCE_UNEXPECTED_TRANSIT)
     if plan.daily_selection is not None and not _daily_transit_linked(plan, candidate):
         failures.append(GateFailureCode.EVIDENCE_DAILY_TRANSIT_LINK)
@@ -632,7 +638,10 @@ def _daily_transit_linked(plan: ReadingPlan, candidate: ReadingCandidate) -> boo
     if candidate.transit != expected:
         return False
     if expected is None:
-        return selection.transit_role is DailyTransitRole.NONE
+        # No sentence: either no transit, or a window plan's transit kept as evidence only.
+        return (
+            selection.transit_role is DailyTransitRole.NONE or plan.transit_reason_withheld is True
+        )
     if len(expected.split()) > _WHY_TODAY_MAX_WORDS:
         return False
     transit = next(factor for factor in plan.factors if factor.id == selection.transit_ref)

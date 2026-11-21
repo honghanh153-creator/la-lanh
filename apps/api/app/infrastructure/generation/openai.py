@@ -12,7 +12,7 @@ from app.domains.readings.models import (
     ReadingCandidate,
     ReadingPlan,
 )
-from app.domains.readings.renderers import DeterministicVietnameseRenderer, canonical_evidence_claim
+from app.domains.readings.renderers import DeterministicVietnameseRenderer, plan_evidence_claim
 from app.infrastructure.generation.base import (
     GenerationDisabled,
     GenerationIncomplete,
@@ -274,7 +274,7 @@ def _rewrite_request(
 def _safe_payload(plan: ReadingPlan) -> dict[str, Any]:
     factors: list[dict[str, Any]] = []
     for index, factor in enumerate(plan.factors, start=1):
-        claim = canonical_evidence_claim(factor)
+        claim = plan_evidence_claim(plan, factor)
         labels = [
             {"name": slot.name.value, "value": slot.value}
             for slot in claim.slots
