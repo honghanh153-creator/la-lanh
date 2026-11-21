@@ -1,0 +1,8 @@
+/* Hợp gu C: "Hai bạn tuần này" on Hôm nay (off by default). */
+.radar-weekly { display: grid; margin: 1rem 0; padding: 1rem; border: 1px solid rgb(185 150 255 / 28%); border-radius: 1.3rem; gap: 0.7rem; background: rgb(20 18 52 / 70%); }
+.radar-weekly h2 { display: flex; margin: 0; align-items: center; gap: 0.4rem; font-size: 1rem; }
+.radar-weekly article { display: grid; gap: 0.35rem; color: #d6ccef; font-size: 0.8rem; line-height: 1.5; }
+.radar-weekly article p { margin: 0; }
+.radar-weekly__who { color: #f7f0ff; font-weight: 700; }
+.radar-weekly article button { display: flex; width: fit-content; min-height: 2.75rem; padding: 0 0.7rem; border: 1px solid rgb(185 150 255 / 30%); border-radius: 0.75rem; align-items: center; gap: 0.3rem; color: #d9c6ff; background: transparent; font: inherit; }
+.radar-weekly__note { margin: 0; color: #a99bd0; font-size: 0.72rem; }

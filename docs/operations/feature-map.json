@@ -500,41 +500,42 @@
       "user_path": ["Home", "Thanh điều hướng: bấm Hợp gu"],
       "owner_only": false,
       "key_selectors": [
-        { "role": "link", "name": "Check kín một người" },
+        { "role": "link", "name": "Xem hợp gu với một người" },
+        { "role": "link", "name": "Người bạn đã xem" },
         { "role": "link", "name": "Kết quả bạn đã nhận" }
       ],
       "states": {
         "default": {
           "fixture": "signed-in",
           "walk": [{ "goto": "/home" }, { "click": { "role": "link", "name": "Hợp gu", "within": { "role": "navigation", "name": "Điều hướng chính" } } }],
-          "ready": { "role": "heading", "name": "Check thử hai bạn bắt sóng ở đâu." }
+          "ready": { "role": "heading", "name": "Xem hai bạn hợp nhau ở đâu." }
         }
       }
     },
     {
       "id": "radar-start",
-      "title": "Radar — check kín một người",
+      "title": "Hợp gu — mời một người (AP2: không còn ô tick)",
       "us": ["US-12"],
       "ac": ["US-12 AC01", "US-12 AC02", "US-12 AC05", "US-12 AC09", "US-12 AC10"],
       "routes": ["/radar/start"],
       "source_files": ["apps/web/src/features/radar/RadarPrivateStartPage.tsx", "apps/web/src/features/radar/RadarFlowSteps.tsx", "apps/web/src/features/radar/radarOptions.ts"],
-      "user_path": ["Hợp gu", "Bấm Check kín một người"],
+      "user_path": ["Hợp gu", "Bấm Xem hợp gu với một người"],
       "owner_only": true,
-      "owner_only_reason": "Attestation for another person's birth data: only the owner writes or changes that copy.",
+      "owner_only_reason": "Shows the owner-approved invite sentences (AP2, 21.11.2026) served by the API; only the owner changes them.",
       "key_selectors": [
         { "role": "navigation", "name": "Tiến độ Radar" },
-        { "role": "button", "name": "Check kín ngay" }
+        { "role": "link", "name": "Mời họ tự nhập" }
       ],
       "states": {
         "needs-chart": {
           "fixture": "signed-in",
-          "walk": [{ "goto": "/radar" }, { "click": { "role": "link", "name": "Check kín một người", "exact": true } }],
+          "walk": [{ "goto": "/radar" }, { "click": { "role": "link", "name": "Xem hợp gu với một người", "exact": true } }],
           "ready": { "role": "heading", "name": "Chart của bạn cần có trước." }
         },
-        "form": {
+        "hub": {
           "fixture": "signed-in-deep",
           "walk": [{ "goto": "/radar/start" }],
-          "ready": { "role": "button", "name": "Check kín ngay" }
+          "ready": { "role": "link", "name": "Mời họ tự nhập" }
         }
       }
     },
@@ -545,15 +546,15 @@
       "ac": ["US-12 AC10", "US-13 AC10"],
       "routes": ["/radar/invite", "/vong-la/setup"],
       "source_files": ["apps/web/src/features/radar/RadarStartPage.tsx"],
-      "user_path": ["Hợp gu", "Check kín một người", "Bấm Mời họ tự nhập"],
+      "user_path": ["Hợp gu", "Xem hợp gu với một người", "Bấm Mời họ tự nhập"],
       "owner_only": false,
       "share_sensitive": true,
-      "key_selectors": [{ "role": "button", "name": "Tạo link bật Radar" }],
+      "key_selectors": [{ "role": "button", "name": "Tạo link mời" }],
       "states": {
         "default": {
           "fixture": "signed-in-deep",
           "walk": [{ "goto": "/radar/invite" }],
-          "ready": { "role": "heading", "name": "Bạn muốn check ai?" }
+          "ready": { "role": "heading", "name": "Bạn muốn mời ai?" }
         }
       }
     },
@@ -596,6 +597,26 @@
           "ready": { "role": "button", "name": "Không tham gia" }
         },
         "error": { "manual": "Token hết hạn/thu hồi: không lộ thông tin của người mời (US-09 AC06)." }
+      }
+    },
+    {
+      "id": "radar-card-public",
+      "title": "Hợp gu — trang công khai của link xem thẻ",
+      "us": ["US-22"],
+      "ac": ["US-22 AC11"],
+      "routes": ["/radar/the/:token"],
+      "source_files": ["apps/web/src/features/radar/RadarCardPage.tsx", "apps/web/src/features/radar/RadarShareCard.tsx"],
+      "user_path": ["Người nhận mở link /radar/the/<token> từ người gửi"],
+      "owner_only": false,
+      "share_sensitive": true,
+      "key_selectors": [{ "role": "heading", "name": "Link này không còn mở được." }],
+      "states": {
+        "default": {
+          "fixture": "guest",
+          "walk": [{ "goto": "/radar/the/card-token-test" }],
+          "ready": { "role": "heading", "name": "Link này không còn mở được." }
+        },
+        "shared": { "manual": "Link xem thẻ chỉ có khi bật radar_share_card_links (mặc định tắt, AL1 hướng C). Thẻ: bậc, một câu, quan hệ, tối đa chữ cái đầu; không ngày sinh, không tên thật." }
       }
     },
     {
@@ -648,7 +669,7 @@
       "ac": ["US-13 AC01", "US-13 AC02", "US-13 AC05", "US-13 AC06", "US-13 AC07"],
       "routes": ["/radar/result/:requestId"],
       "source_files": ["apps/web/src/features/radar/RadarOwnerResultPage.tsx", "apps/web/src/features/radar/useRadarHistory.ts", "apps/web/src/features/radar/useRadarOwnerBinding.ts", "apps/web/src/features/radar/useRadarEraseTarget.ts"],
-      "user_path": ["Hợp gu", "Check kín một người", "Nhập thông tin và bấm Check kín ngay", "Màn kết quả"],
+      "user_path": ["Hợp gu", "Xem hợp gu với một người", "Gửi link mời, người ấy tự nhập ngày sinh", "Màn kết quả"],
       "owner_only": false,
       "key_selectors": [{ "role": "button", "name": "Xóa kết quả này" }],
       "states": {

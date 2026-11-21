@@ -31,7 +31,7 @@ function headerBlocks(): Map<string, string[]> {
 
 describe("public share and invite pages", () => {
   it("finds every token route in the router", () => {
-    expect(capabilityRoutePrefixes().sort()).toEqual(["/la-chung/i/", "/radar/i/", "/share/"]);
+    expect(capabilityRoutePrefixes().sort()).toEqual(["/la-chung/i/", "/radar/i/", "/radar/the/", "/share/"]);
   });
 
   it.each(capabilityRoutePrefixes())("static hosting never caches, indexes or leaks %s", (prefix) => {

@@ -38,6 +38,9 @@ class RadarPublicInvite:
     context: str
     voice: str
     expires_at: datetime
+    # Owner AR1 (21.11.2026): the link page offers B the "Hai bạn tuần này" box only when the
+    # feature is on and the sender still has room for another kept pair.
+    weekly_offer: bool = False
 
 
 @dataclass(frozen=True, slots=True)

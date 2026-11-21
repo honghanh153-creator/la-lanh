@@ -9,6 +9,15 @@ from app.config import Settings
 from app.main import create_app
 
 
+@pytest.fixture(autouse=True)
+def stored_private_checks(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Owner AP2 (21.11.2026) retired self-attested private checks for users. Tests still build
+    results through that path, so they turn it on; tests about the retirement pass
+    ``radar_self_attested_checks=False`` explicitly."""
+
+    monkeypatch.setenv("LA_LANH_RADAR_SELF_ATTESTED_CHECKS", "true")
+
+
 @pytest.fixture
 def test_app() -> FastAPI:
     return create_app(

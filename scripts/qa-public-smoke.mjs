@@ -117,28 +117,37 @@ try {
   }
 
   await request("/v1/identity/claim", { method: "POST" });
-  for (const mode of ["exact", "unknown"]) {
-    const { data: radar } = await request("/v1/radar/private-checks", {
-      method: "POST", body: {
-        recipient_label: "QA tổng hợp", context: "friend", voice: "straight_warm",
-        birth_date: "1996-07-21", birth_time_mode: mode,
-        ...(mode === "exact" ? { birth_time_local: "19:40" } : {}),
-        place_id: "vn-dak-lak", consent_version: "radar-authorized-input-v1",
-        authorization_attested: true,
-      },
+  // Owner AP2 (21.11.2026): the self-attested private check is retired; a pair is read only when
+  // the other person types their own birth date through the link.
+  const retired = await request("/v1/radar/private-checks", {
+    method: "POST", expected: 410, body: {
+      recipient_label: "QA tổng hợp", context: "friend", voice: "straight_warm",
+      birth_date: "1996-07-21", birth_time_mode: "unknown", place_id: "vn-dak-lak",
+      consent_version: "radar-authorized-input-v1", authorization_attested: true,
+    },
+  });
+  assert.equal(retired.data.code, "RADAR_PRIVATE_CHECK_RETIRED");
+  completed.push("Radar self-attested check → 410 retired");
+  const { data: options } = await request("/v1/public/radar/consent-options");
+  const { data: invite } = await request("/v1/radar/requests", {
+    method: "POST", body: { recipient_label: "QA tổng hợp", context: "coworker", voice: "straight_warm" },
+  });
+  if (options.invite_first) {
+    const token = invite.share_url.split("/").pop();
+    await request(`/v1/public/radar/${token}`);
+    const { data: radar } = await request("/v1/public/radar/current/accept-date", {
+      method: "POST", body: { request_id: invite.id, birth_date: "1996-07-21", consent_version: options.date_consent_version },
     });
-    assert.equal(radar.mode, "private_check");
-    // radar-result-v2: 2–3 main sections plus the "Xem thêm" layer; mirror the API contract, not a count.
     assert.equal(radar.version, "radar-result-v2");
+    assert.equal(radar.metadata.basis, "date_only");
     const mainKeys = radar.sections.filter((s) => s.layer === "main").map((s) => s.key).join(",");
     assert.ok(["fit,check", "fit,friction,check"].includes(mainKeys), `radar main sections: ${mainKeys}`);
-    const keys = new Set(radar.sections.map((s) => s.key));
-    assert.ok(keys.has("why") && keys.has("perspective"), "radar thiếu phần why/perspective");
     assert.ok(!JSON.stringify(radar).includes("1996-07-21"));
-    await request(`/v1/radar/results/${radar.request_id}`, { anonymous: true, expected: 404 });
-    await request(`/v1/radar/results/${radar.request_id}`, { method: "DELETE", expected: 204 });
-    completed.push(`Radar ${mode} birth time → private report → QA cleanup`);
+    await request(`/v1/radar/results/${invite.id}`, { anonymous: true, expected: 404 });
+    completed.push("Radar one-field invite → date-only pair report");
   }
+  await request(`/v1/radar/results/${invite.id}`, { method: "DELETE", expected: 204 });
+  completed.push("Radar invite → QA cleanup");
 } finally {
   if (createdGuest) {
     await request("/v1/guest-session", { method: "DELETE", expected: 204 });
