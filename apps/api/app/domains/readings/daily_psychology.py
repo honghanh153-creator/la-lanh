@@ -1264,7 +1264,7 @@ def _pick(plan: ReadingPlan, pool: list[SupportedSituation]) -> SupportedSituati
             order = rotation_order(variety.seed, keys)
             return pool[keys.index(order[variety.day_index % len(order)])]
         history = [key or None for key in variety.topic_history]
-        return pool[pick_topic(keys, history)]
+        return pool[pick_topic(keys, history, seed=variety.seed, index=variety.day_index)]
     slot = top_k_slot(variety.day_index, len(pool))
     recent = variety.recent_issue_keys
     if len(pool) >= 2 and len(recent) == 2 and recent[0] == recent[1] == pool[slot].issue_key:

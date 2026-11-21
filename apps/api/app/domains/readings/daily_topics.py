@@ -5,7 +5,12 @@ Spec: ``docs/plans/2026-11-21-daily-topic-anti-repeat.md`` (proposed US-21 AC05)
 Daily used to pick its situation (topic, ``issue_key``) from the day's top 3 by ``day_index mod 3``,
 so a reader met the same three topics in a three-day loop (81% of days repeated a topic seen in the
 previous six, 20.11 release, 1000 personas). This module chooses instead from up to
-``TOPIC_POOL_SIZE`` eligible situations, ranked best first, by three tiers:
+``TOPIC_POOL_SIZE`` eligible situations, ranked best first. The app passes the reader's seed: the
+topic is the first one in the reader's fixed rotation of the pool, from the day's position, that
+was not shown in the previous ``TOPIC_WINDOW_DAYS - 1`` days, else the one shown longest ago. A
+pool that stays the same therefore rotates by day exactly like the top-3 rotation; one that
+changes skips what the reader met this week. Without a seed (pure use) the order is by rank, in
+three tiers:
 
 1. not shown in the previous ``TOPIC_WINDOW_DAYS - 1`` days and not of a theme shown in the previous
    ``THEME_WINDOW_DAYS - 1`` days;
@@ -76,9 +81,18 @@ def pick_topic(
     pool: Sequence[str],
     history: Sequence[str | None],
     themes: Mapping[str, str] = ISSUE_THEMES,
+    *,
+    seed: str | None = None,
+    index: int = 0,
 ) -> int:
     """Index in ``pool`` (ranked best first) of the day's topic, given ``history`` (one entry per
-    earlier day, oldest first, yesterday last; ``None`` = nothing known for that day)."""
+    earlier day, oldest first, yesterday last; ``None`` = nothing known for that day).
+
+    With ``seed``, candidates of one tier are taken in the reader's fixed rotation of the pool,
+    starting at day ``index``, instead of by rank. A pool that stays the same then rotates
+    globally by day (like the top-3 rotation it replaces), whatever the block boundaries or the
+    switch date (measured: rank-first repeated a topic at a short first block for approximate-time
+    readers, whose pool never changes); history only steers a pool that changes."""
 
     if not pool:
         raise ValueError("a topic needs a non-empty pool")
@@ -94,20 +108,35 @@ def pick_topic(
                 return age
         return 0
 
-    fresh = [i for i, key in enumerate(candidates) if not last_seen(key)]
+    if seed is None:
+        order = list(range(len(candidates)))
+    else:
+        rotation = rotation_order(seed, candidates, themes)
+        start = index % len(rotation)
+        order = [candidates.index(key) for key in (*rotation[start:], *rotation[:start])]
+    fresh = [i for i in order if not last_seen(candidates[i])]
+    if seed is not None:
+        # The rotation already keeps neighbouring topics apart in theme; a separate theme tier
+        # would skip the topic that is due and break the rotation of a steady pool.
+        if fresh:
+            return fresh[0]
+        return max(order, key=lambda i: (last_seen(candidates[i]), -order.index(i)))
     for i in fresh:
         if themes.get(candidates[i]) not in recent_themes:
             return i
     if fresh:
         return fresh[0]
-    # Every candidate was shown inside the window: the one shown longest ago, better rank first.
-    return max(range(len(candidates)), key=lambda i: (last_seen(candidates[i]), -i))
+    # Every candidate was shown inside the window: the one shown longest ago, ties in order.
+    return max(order, key=lambda i: (last_seen(candidates[i]), -order.index(i)))
 
 
 def schedule(
     pools: Sequence[Sequence[str]],
     prior: Sequence[str | None] = (),
     themes: Mapping[str, str] = ISSUE_THEMES,
+    *,
+    seed: str | None = None,
+    first_index: int = 0,
 ) -> list[str | None]:
     """Topics for consecutive days, each chosen with ``pick_topic`` against ``prior`` (the days
     before the first pool, oldest first) and the days already scheduled. An empty pool gives
@@ -115,8 +144,11 @@ def schedule(
 
     history: list[str | None] = list(prior)
     chosen: list[str | None] = []
-    for pool in pools:
-        key = pool[pick_topic(pool, history, themes)] if pool else None
+    for offset, pool in enumerate(pools):
+        pick = (
+            pick_topic(pool, history, themes, seed=seed, index=first_index + offset) if pool else 0
+        )
+        key = pool[pick] if pool else None
         chosen.append(key)
         history.append(key)
     return chosen

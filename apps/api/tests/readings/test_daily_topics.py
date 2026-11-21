@@ -140,3 +140,21 @@ def test_rotation_order_is_a_per_reader_permutation_with_themes_apart() -> None:
     assert any(rotation_order(f"seed-{n}", POOL) != order for n in range(10))
     themes = [ISSUE_THEMES[key] for key in order]
     assert all(a != b for a, b in pairwise(themes))
+
+
+@pytest.mark.parametrize("size", [2, 3, 4, 5, 6])
+def test_with_a_seed_a_steady_pool_rotates_by_day_whatever_the_resets(size: int) -> None:
+    """A history that restarts anywhere (a short first block after the switch date, or a block
+    boundary) never breaks the rotation of a pool that stays the same."""
+
+    pool = POOL[:size]
+    days: list[str | None] = []
+    history: list[str | None] = []
+    for index in range(300, 340):
+        if index in (303, 311, 312, 323):  # arbitrary resets
+            history = []
+        key = pool[pick_topic(pool, history, seed="seed-a", index=index)]
+        days.append(key)
+        history.append(key)
+    assert all(days[i] == days[i - size] for i in range(size, len(days)))
+    assert _repeats_within(days, size) == 0
