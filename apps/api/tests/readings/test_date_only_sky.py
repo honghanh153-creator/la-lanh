@@ -159,12 +159,14 @@ async def test_recomputed_history_is_what_a_sky_date_only_reader_was_served() ->
     repository = MemoryReadingRepository()
     service = _service(repository, sky=True)
     served: dict[date, str] = {}
+    headlines: dict[date, str] = {}
     sizes: list[int] = []
     for offset in range(20):
         day = START + timedelta(days=offset)
         projection = await _open(service, snapshot, day)
         candidate: Any = _served(repository, projection)
         served[day] = candidate.semantic_blueprint.mechanism_key.removeprefix("psychology:")
+        headlines[day] = candidate.hook
         plan = _stored_plan(repository, projection.active.revision_id)
         assert plan.daily_variety is not None and plan.daily_variety.sky_contacts is not None
         sizes.append(len(plan.daily_variety.sky_contacts))
@@ -178,6 +180,14 @@ async def test_recomputed_history_is_what_a_sky_date_only_reader_was_served() ->
     assert max(sizes) >= 1  # the sky is read on these days
     days = [served[START + timedelta(days=n)] for n in range(20)]
     assert all(a != b for a, b in pairwise(days))
+    # A topic that returns brings a different headline than last time (per-appearance order).
+    last_headline: dict[str, str] = {}
+    for offset in range(20):
+        day = START + timedelta(days=offset)
+        headline = headlines[day]
+        if served[day] in last_headline:
+            assert headline != last_headline[served[day]], (day, served[day])
+        last_headline[served[day]] = headline
 
 
 def test_the_snapshot_keeps_only_the_sign() -> None:

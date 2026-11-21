@@ -1297,6 +1297,12 @@ def _occurrence_index(plan: ReadingPlan, pool: list[SupportedSituation]) -> int 
     variety = plan.daily_variety
     if variety is None or plan.daily_selection is not None or len(pool) < 2:
         return None
+    if variety.sky_contacts is not None:
+        # Date-only sky (#862): the pool changes by day, so a topic no longer comes back every
+        # ``len(pool)`` days. The topic schedule never serves a topic two days running while
+        # another exists, so ``day_index // 2`` moves on at every return; a headline then comes
+        # back only after six returns (measured: 7-day headline repeats 11.9% with len(pool)).
+        return variety.day_index // 2
     if variety.topic_history is not None:
         # ``rotation_order`` walks the whole pool: a topic comes back every ``len(pool)`` days.
         return variety.day_index // len(pool)
