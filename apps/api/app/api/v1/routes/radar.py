@@ -152,6 +152,8 @@ class PublicRadarInviteResponse(BaseModel):
     consent_version: str = CONSENT_VERSION
     # AL1: a birth date is enough; a fuller profile gives a fuller reading.
     requires_exact_birth_profile: bool = False
+    # AR1: the link page shows B's weekly box only when this is true.
+    weekly_offer: bool = False
     privacy_note: str = (
         "Người mời không nhìn thấy ngày, giờ hoặc nơi sinh của bạn. "
         "Kết quả chỉ mở sau khi bạn tự nhập và đồng ý."
@@ -171,6 +173,9 @@ class RadarDateAcceptRequest(BaseModel):
     request_id: UUID
     birth_date: date
     consent_version: str = Field(min_length=1, max_length=64)
+    # Owner AR1 (21.11.2026): B's own "Hai bạn tuần này" box, unticked by default. Only a tick
+    # keeps B's birth date (encrypted, at most 90 days); without it nothing is kept.
+    keep_weekly: bool = False
 
 
 class RadarConsentOptionsResponse(BaseModel):
@@ -766,6 +771,7 @@ async def current_invite(
         context=invite.context,
         voice=invite.voice,
         expires_at=invite.expires_at,
+        weekly_offer=invite.weekly_offer,
     )
 
 
@@ -841,6 +847,7 @@ async def accept_invite_with_date(
             birth_date=body.birth_date,
             consent_version=body.consent_version,
             expected_request_id=body.request_id,
+            keep_weekly=body.keep_weekly,
         )
     except CsrfRejected:
         return Response(status_code=403, headers=dict(response.headers))
@@ -982,4 +989,5 @@ async def public_preview(
         context=invite.context,
         voice=invite.voice,
         expires_at=invite.expires_at,
+        weekly_offer=invite.weekly_offer,
     )

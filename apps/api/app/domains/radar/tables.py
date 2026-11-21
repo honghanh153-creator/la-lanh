@@ -49,15 +49,23 @@ class RadarRequestRow(Base):
 
 
 class RadarWeeklyPairRow(Base):
-    """A pair the owner chose to keep for "Hai bạn tuần này" (AL1 direction C, off by default).
+    """A pair kept for "Hai bạn tuần này" because the invited person ticked their own box on the
+    link page (owner AR1, 21.11.2026; the only way in).
 
-    Holds the other person's birth date only (no time, no place), encrypted, plus the nickname
-    (encrypted) and the relationship. Expires on its own and is deleted on request, with the
-    owner's guest data, or when the owner turns the pair off.
+    Holds the invited person's birth date only (no time, no place), encrypted, plus the nickname
+    (encrypted) and the relationship. Expires on its own and is deleted when the sender turns it
+    off, with the sender's guest data, or when the invited person withdraws: through the result
+    while it lives (``request_id``), and through the invite link for the whole 90 days
+    (``invite_token_hash``, the same HMAC as the invite's ``token_hash``). ``request_id`` has no
+    foreign key on purpose: the pair outlives the 30-day result.
     """
 
     __tablename__ = "radar_weekly_pairs"
-    __table_args__ = (Index("ix_radar_weekly_principal", "principal_id", "created_at"),)
+    __table_args__ = (
+        Index("ix_radar_weekly_principal", "principal_id", "created_at"),
+        Index("ix_radar_weekly_request", "request_id"),
+        Index("ix_radar_weekly_invite_token", "invite_token_hash"),
+    )
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
     principal_id: Mapped[UUID] = mapped_column(
@@ -72,6 +80,8 @@ class RadarWeeklyPairRow(Base):
     consent_version: Mapped[str] = mapped_column(String(64), nullable=False)
     created_at: Mapped[datetime] = mapped_column(UtcDateTime(), nullable=False)
     expires_at: Mapped[datetime] = mapped_column(UtcDateTime(), nullable=False)
+    request_id: Mapped[UUID | None] = mapped_column(Uuid)
+    invite_token_hash: Mapped[bytes | None] = mapped_column(LargeBinary(32))
 
 
 class RadarShareCardRow(Base):

@@ -53,3 +53,11 @@ Their copy still needs owner approval.
 
 Khi `radar_invite_first_consent` bật và owner đã duyệt các câu `privacy.radar.invite-first.*`, B có thể chỉ nhập ngày sinh của mình trên trang lời mời, không cần phiên khách hay hồ sơ. Ngày sinh chỉ ở bộ nhớ một lần tính và không được lưu; hàng `radar_requests` có `recipient_guest_id = null`. Quyền của B: xem và rút bằng receipt HttpOnly trên thiết bị đã đồng ý (30 ngày), hoặc rút bằng link mời (`POST /v1/public/radar/invite/withdraw`). Không có đường "Kết quả bạn đã nhận" theo phiên cho trường hợp này vì B không có phiên.
 
+
+## "Hai bạn tuần này" do B tự giữ (owner AR1, 21.11.2026)
+
+Trên trang lời mời một ô có một ô riêng, mặc định không tick, chỉ B tick được ("Giữ ngày sinh của tôi, đã mã hoá, tối đa 90 ngày để hai bạn xem phần mỗi tuần. Tôi xoá được bất cứ lúc nào."). Không tick thì không lưu gì. Khi B đã tick:
+
+- Lá giữ ngày sinh của B (chỉ ngày, mã hoá AES-GCM) và tên gọi A đặt (mã hoá), tối đa 90 ngày; A chỉ thấy chữ cái đầu và thẻ tuần, không thấy ngày.
+- B xoá bằng cách rút kết quả (biên nhận, phiên hoặc link) trong 30 ngày đầu; sau đó, hoặc khi A đã xoá kết quả, **mở lại link mời và bấm "Rút chart khỏi kết quả"** vẫn xoá được cặp cho tới hết 90 ngày.
+- B mất link và không còn biên nhận: hỗ trợ không tra được cặp theo ngày sinh (không có chỉ mục theo ngày). Cách xử lý: nhờ A tắt cặp trên Hôm nay, hoặc chờ cặp tự hết hạn; hàng hết hạn bị xoá hẳn mỗi giờ.

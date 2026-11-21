@@ -72,10 +72,13 @@ function OneFieldInvite({ invite, options, decline }: {
   const [month, setMonth] = useState("");
   const [year, setYear] = useState("");
   const [consented, setConsented] = useState(false);
+  // Owner AR1 (21.11.2026): a separate box, unticked by default and ticked only by this person. No tick, nothing kept.
+  const [keepWeekly, setKeepWeekly] = useState(false);
   const birthDate = adultBirthDate(day, month, year);
   const sentences = options.sentences;
+  const weeklyOptIn = invite.weekly_offer === true && options.weekly === true ? options.weekly_sentences?.["recipient-optin"] : undefined;
   const accept = useMutation({
-    mutationFn: () => acceptRadarInviteWithDate(invite.request_id, birthDate ?? "", options.date_consent_version),
+    mutationFn: () => acceptRadarInviteWithDate(invite.request_id, birthDate ?? "", options.date_consent_version, Boolean(weeklyOptIn) && keepWeekly),
     onSuccess: () => void navigate("/radar/receipt", { replace: true }),
   });
   const invalid = accept.error instanceof ApiProblem && accept.error.status === 422;
@@ -87,6 +90,7 @@ function OneFieldInvite({ invite, options, decline }: {
       <fieldset className="radar-date-fieldset"><legend>Ngày sinh của bạn</legend><div className="radar-date-fields"><label><span>Ngày</span><input aria-label="Ngày sinh của bạn — ngày" inputMode="numeric" maxLength={2} onChange={(event) => setDay(event.target.value.replace(/\D/g, ""))} placeholder="DD" required value={day} /></label><i>/</i><label><span>Tháng</span><input aria-label="Ngày sinh của bạn — tháng" inputMode="numeric" maxLength={2} onChange={(event) => setMonth(event.target.value.replace(/\D/g, ""))} placeholder="MM" required value={month} /></label><i>/</i><label><span>Năm</span><input aria-label="Ngày sinh của bạn — năm" inputMode="numeric" maxLength={4} onChange={(event) => setYear(event.target.value.replace(/\D/g, ""))} placeholder="YYYY" required value={year} /></label></div></fieldset>
       {(day || month || year) && !birthDate ? <p className="radar-field-help">Nhập một ngày hợp lệ của người từ 18 tuổi trở lên.</p> : null}
       <label className="consent-check"><input checked={consented} onChange={(event) => setConsented(event.target.checked)} type="checkbox" /><span>{sentences["recipient-consent"]}</span></label>
+      {weeklyOptIn ? <label className="consent-check radar-weekly-optin"><input checked={keepWeekly} onChange={(event) => setKeepWeekly(event.target.checked)} type="checkbox" /><span>{weeklyOptIn}</span></label> : null}
       {invalid ? <p className="matching-message" role="alert">Kiểm tra lại ngày sinh rồi thử lại nhé.</p> : null}
       {accept.isError && !invalid ? <p className="matching-message" role="alert">Chưa xem được kết quả. Bạn chưa đồng ý gì cả, có thể thử lại.</p> : null}
       <button className="matching-primary" disabled={!birthDate || !consented || accept.isPending} type="submit">{accept.isPending ? "Đang xem hai lá số…" : "Đồng ý & xem kết quả"}<ArrowRight /></button>

@@ -72,9 +72,9 @@ CONSENTED_RESULT_TTL = timedelta(days=30)
 # whole time A can (owner decision P09 D1, 22/10/2026; was 7 days).
 RECEIPT_TTL = CONSENTED_RESULT_TTL
 MAX_RETAINED_REQUESTS = 100
-# AL1 direction C (off by default): a kept pair lives 90 days unless deleted sooner (draft for the
-# owner's decision); at most five kept pairs per owner.
-WEEKLY_CONSENT_VERSION = "radar-weekly-v1"
+# AL1 direction C: a kept pair lives 90 days unless deleted sooner (owner AQ1, 21.11.2026); at
+# most five kept pairs per sender. Only the invited person's own box keeps one (owner AR1).
+WEEKLY_CONSENT_VERSION = "radar-weekly-recipient-v1"
 WEEKLY_PAIR_TTL = timedelta(days=90)
 MAX_WEEKLY_PAIRS = 5
 PAGE_SIZE = 20
@@ -246,7 +246,9 @@ class RadarService:
             # when the other person types their own birth date through the link.
             raise RadarRetired
         label = " ".join(recipient_label.split())
-        if keep_weekly and not self.weekly_enabled:
+        if keep_weekly:
+            # Owner AR1 (21.11.2026): a pair is kept only when the invited person ticks their own
+            # box on the link page; the sender cannot keep anyone's birth date.
             raise RadarInvalid
         date_only_input = birth_time_mode == DATE_ONLY_MODE
         accepted_versions = {AUTHORIZED_INPUT_VERSION}
@@ -379,16 +381,6 @@ class RadarService:
                 require_full=basis == BASIS_FULL,
             )
             session.add(row)
-            if keep_weekly:
-                await self._keep_weekly(
-                    session,
-                    principal_id=principal_id,
-                    owner_guest_id=owner_guest_id,
-                    context=context,
-                    label=label,
-                    birth_date=birth_date,
-                    now=current,
-                )
             await session.flush()
         await self._enqueue_rewrite(
             guest_id=owner_guest_id,
@@ -626,7 +618,29 @@ class RadarService:
             context=row.context,
             voice=row.voice,
             expires_at=row.expires_at,
+            weekly_offer=await self._weekly_room(row.principal_id),
         )
+
+    async def _weekly_room(self, principal_id: UUID) -> bool:
+        """AR1: whether the link page may offer B the weekly box (on, approved, room left)."""
+
+        if not self.weekly_enabled:
+            return False
+        async with self._sessions() as session:
+            kept = await self._weekly_count(session, principal_id, datetime.now(UTC))
+        return kept < MAX_WEEKLY_PAIRS
+
+    @staticmethod
+    async def _weekly_count(session: AsyncSession, principal_id: UUID, now: datetime) -> int:
+        kept = await session.scalar(
+            select(func.count())
+            .select_from(RadarWeeklyPairRow)
+            .where(
+                RadarWeeklyPairRow.principal_id == principal_id,
+                RadarWeeklyPairRow.expires_at > now,
+            )
+        )
+        return int(kept or 0)
 
     async def accept(
         self,
@@ -672,15 +686,20 @@ class RadarService:
         consent_version: str,
         expected_request_id: UUID,
         now: datetime | None = None,
+        keep_weekly: bool = False,
     ) -> RadarAcceptResult:
         """The one-field invite (AL1): B types only B's own birth date and consents.
 
         Off unless ``invite_first_enabled``. B needs no profile or session: B's date is read
-        once into a date-only chart in memory and never stored; B keeps the result through the
-        HttpOnly receipt and can withdraw it like any consented result.
+        once into a date-only chart in memory and is not stored unless B ticks the separate
+        "Hai bạn tuần này" box (owner AR1, 21.11.2026; ``keep_weekly``, unticked by default). B
+        keeps the result through the HttpOnly receipt and can withdraw it like any consented
+        result; withdrawing, or using the invite link later, also deletes the kept pair.
         """
 
         if not self.invite_first_enabled or consent_version != DATE_CONSENT_VERSION:
+            raise RadarInvalid
+        if keep_weekly and not self.weekly_enabled:
             raise RadarInvalid
         pending = await self._pending_by_token(token)
         source = await self._source(pending.owner_guest_id)
@@ -701,6 +720,7 @@ class RadarService:
             recipient_guest_id=None,
             consent_version=consent_version,
             expected_request_id=expected_request_id,
+            weekly_date=birth_date if keep_weekly else None,
         )
 
     async def _complete_invite(
@@ -714,6 +734,7 @@ class RadarService:
         recipient_guest_id: UUID | None,
         consent_version: str,
         expected_request_id: UUID,
+        weekly_date: date | None = None,
     ) -> RadarAcceptResult:
         digest = self._hasher.digest("radar-capability", token)
         current = datetime.now(UTC)
@@ -760,6 +781,20 @@ class RadarService:
             row.completed_at = current
             row.expires_at = current + CONSENTED_RESULT_TTL
             row.token_ciphertext = None
+            if weekly_date is not None:
+                await self._keep_weekly(
+                    session,
+                    principal_id=row.principal_id,
+                    owner_guest_id=row.owner_guest_id,
+                    context=row.context,
+                    label=self._envelope.decrypt(
+                        row.recipient_label_ciphertext, context=f"radar-label:{row.id}".encode()
+                    ).decode(),
+                    birth_date=weekly_date,
+                    now=current,
+                    request_id=row.id,
+                    invite_token_hash=digest,
+                )
             await session.flush()
             result = RadarAcceptResult(row.id, receipt, recipient_projection)
             owner_guest_id = row.owner_guest_id
@@ -934,17 +969,14 @@ class RadarService:
         label: str,
         birth_date: date,
         now: datetime,
+        request_id: UUID,
+        invite_token_hash: bytes,
     ) -> None:
-        kept = await session.scalar(
-            select(func.count())
-            .select_from(RadarWeeklyPairRow)
-            .where(
-                RadarWeeklyPairRow.principal_id == principal_id,
-                RadarWeeklyPairRow.expires_at > now,
-            )
-        )
-        if (kept or 0) >= MAX_WEEKLY_PAIRS:
-            raise RadarLimitReached
+        """Keep the pair B opted into. When the sender already has the most pairs (a race with
+        the preview's ``weekly_offer``), nothing is kept: storing less than B allowed is safe."""
+
+        if await self._weekly_count(session, principal_id, now) >= MAX_WEEKLY_PAIRS:
+            return
         pair_id = uuid4()
         session.add(
             RadarWeeklyPairRow(
@@ -962,6 +994,8 @@ class RadarService:
                 consent_version=WEEKLY_CONSENT_VERSION,
                 created_at=now,
                 expires_at=now + WEEKLY_PAIR_TTL,
+                request_id=request_id,
+                invite_token_hash=invite_token_hash,
             )
         )
 
@@ -1203,7 +1237,20 @@ class RadarService:
         if CAPABILITY_PATTERN.fullmatch(token) is None:
             raise RadarUnavailable
         digest = self._hasher.digest("radar-capability", token)
-        await self._withdraw(RadarRequestRow.token_hash == digest, None)
+        try:
+            await self._withdraw(RadarRequestRow.token_hash == digest, None)
+        except RadarUnavailable:
+            # AR1: B's kept weekly pair outlives the 30-day result; the invite link still
+            # deletes it for its whole 90 days.
+            if not await self._delete_weekly_by_invite(digest):
+                raise
+
+    async def _delete_weekly_by_invite(self, digest: bytes) -> bool:
+        async with self._sessions() as session, session.begin():
+            deleted = await session.execute(
+                delete(RadarWeeklyPairRow).where(RadarWeeklyPairRow.invite_token_hash == digest)
+            )
+        return bool(getattr(deleted, "rowcount", 0))
 
     async def _withdraw(
         self, condition: ColumnElement[bool], expected_request_id: UUID | None
@@ -1232,6 +1279,9 @@ class RadarService:
             row.withdrawn_at = current
             await session.execute(
                 delete(RadarShareCardRow).where(RadarShareCardRow.request_id == row.id)
+            )
+            await session.execute(
+                delete(RadarWeeklyPairRow).where(RadarWeeklyPairRow.request_id == row.id)
             )
             if self._erasure_journal is not None:
                 self._erasure_journal.record(session, ErasureKind.RADAR_WITHDRAWN, row.id, current)

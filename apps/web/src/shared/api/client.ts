@@ -228,8 +228,8 @@ export type RadarPrivateCheckInput = {
   birth_time_local: string | null;
   place_id: string | null;
   authorization_attested: boolean;
-  /** Hợp gu C (off by default): keep this pair for "Hai bạn tuần này". */
-  keep_weekly?: boolean;
+  /** Always false since owner AR1 (21.11.2026): only the invited person's own box keeps a pair. */
+  keep_weekly?: false;
 };
 /** Which Hợp gu consent screens are live (AL1), with their owner-approved sentences only. */
 export type RadarConsentOptions = {
@@ -241,7 +241,7 @@ export type RadarConsentOptions = {
   card_links?: boolean;
   /** Hợp gu C: "Hai bạn tuần này" and its owner-approved sentences (off by default). */
   weekly?: boolean;
-  weekly_sentences?: Partial<Record<"optin-label" | "optin-help" | "home-note", string>>;
+  weekly_sentences?: Partial<Record<"optin-label" | "optin-help" | "home-note" | "recipient-optin", string>>;
 };
 export type RadarWeeklyItem = { id: string; context: string; initial?: string | null; week_of: string; easy?: string | null; watch?: string | null; try_line?: string | null; quiet?: string | null; expires_at: string };
 /** A Hợp gu card link as its owner sees it; never the token once created. */
@@ -260,6 +260,8 @@ export type PublicRadarInvite = {
   consent_version: string;
   requires_exact_birth_profile: boolean;
   privacy_note: string;
+  /** Owner AR1 (21.11.2026): whether the link page may offer the "Hai bạn tuần này" box. */
+  weekly_offer?: boolean;
 };
 export type RadarResult = {
   /** Owner views only (AL1): the relationship the owner chose. */
@@ -1432,11 +1434,12 @@ export function getRadarConsentOptions(signal?: AbortSignal): Promise<RadarConse
 }
 
 /** AL1 one-field invite: B's own birth date and consent; only live when the server says so. */
-export function acceptRadarInviteWithDate(requestId: string, birthDate: string, consentVersion: string): Promise<RadarResult> {
+/** AL1 one-field invite. ``keepWeekly`` is the invited person's own "Hai bạn tuần này" box (owner AR1), unticked by default. */
+export function acceptRadarInviteWithDate(requestId: string, birthDate: string, consentVersion: string, keepWeekly = false): Promise<RadarResult> {
   return request<RadarResult>("/public/radar/current/accept-date", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ request_id: requestId, birth_date: birthDate, consent_version: consentVersion }),
+    body: JSON.stringify({ request_id: requestId, birth_date: birthDate, consent_version: consentVersion, keep_weekly: keepWeekly }),
   });
 }
 

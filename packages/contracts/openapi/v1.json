@@ -4617,6 +4617,11 @@
           "voice": {
             "title": "Voice",
             "type": "string"
+          },
+          "weekly_offer": {
+            "default": false,
+            "title": "Weekly Offer",
+            "type": "boolean"
           }
         },
         "required": [
@@ -5128,6 +5133,11 @@
             "minLength": 1,
             "title": "Consent Version",
             "type": "string"
+          },
+          "keep_weekly": {
+            "default": false,
+            "title": "Keep Weekly",
+            "type": "boolean"
           },
           "request_id": {
             "format": "uuid",

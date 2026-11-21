@@ -306,3 +306,4 @@
 /* Hợp gu C: keep a pair for "Hai bạn tuần này" (off by default). */
 .radar-weekly-optin { display: grid; grid-template-columns: auto 1fr; gap: 0.6rem; padding: 0.8rem; border: 1px solid rgb(185 150 255 / 26%); border-radius: 1rem; color: #eee9fa; font-size: 0.74rem; line-height: 1.45; }
 .radar-weekly-optin small { display: block; margin-top: 0.25rem; color: #b9addb; }
+.radar-public__card .radar-weekly-optin { border-color: rgb(185 150 255 / 26%); background: transparent; }

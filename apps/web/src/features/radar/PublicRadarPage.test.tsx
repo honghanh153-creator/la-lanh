@@ -22,6 +22,8 @@ const invite = {
   privacy_note: "private",
 } as const;
 
+const WEEKLY_OPTIN = "Giữ ngày sinh của tôi, đã mã hoá, tối đa 90 ngày để hai bạn xem phần mỗi tuần. Tôi xoá được bất cứ lúc nào.";
+
 function renderInvite() {
   return render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
     <MemoryRouter initialEntries={["/radar/i/token"]}>
@@ -61,8 +63,43 @@ describe("PublicRadarPage", () => {
     await user.click(screen.getByRole("checkbox", { name: "Câu đồng ý." }));
     await user.click(submit);
 
-    await waitFor(() => expect(acceptRadarInviteWithDate).toHaveBeenCalledWith("request-1", expect.stringMatching(/^1996-07-\d{2}$/), "radar-pair-date-v1"));
+    await waitFor(() => expect(acceptRadarInviteWithDate).toHaveBeenCalledWith("request-1", expect.stringMatching(/^1996-07-\d{2}$/), "radar-pair-date-v1", false));
     expect(await screen.findByText("receipt page")).toBeInTheDocument();
+    // No weekly offer from the server: no second box, nothing kept.
+    expect(screen.queryByRole("checkbox", { name: WEEKLY_OPTIN })).not.toBeInTheDocument();
+  });
+
+  // Owner AR1 (21.11.2026): the recipient's own weekly box, word for word, separate and unticked; only a tick keeps the date.
+  it.each([
+    [false, false],
+    [true, true],
+  ])("offers the separate weekly box unticked and sends keep_weekly only when ticked (tick=%s)", async (tick, kept) => {
+    vi.mocked(getPublicRadarInvite).mockResolvedValue({ ...invite, weekly_offer: true });
+    vi.mocked(getRadarConsentOptions).mockResolvedValue({
+      invite_first: true,
+      sentences: { "recipient-heading": "Tiêu đề.", "recipient-body": "Thân bài.", "recipient-consent": "Câu đồng ý.", "recipient-decline": "Câu từ chối." },
+      authorized_input_version: "radar-authorized-input-v2",
+      date_consent_version: "radar-pair-date-v1",
+      weekly: true,
+      weekly_sentences: { "recipient-optin": WEEKLY_OPTIN },
+    });
+    vi.mocked(acceptRadarInviteWithDate).mockResolvedValue({} as Awaited<ReturnType<typeof acceptRadarInviteWithDate>>);
+    const user = userEvent.setup();
+    renderInvite();
+
+    const box = await screen.findByRole("checkbox", { name: WEEKLY_OPTIN });
+    expect(box).not.toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Câu đồng ý." })).not.toBeChecked();
+    await user.type(screen.getByLabelText("Ngày sinh của bạn — ngày"), "21");
+    await user.type(screen.getByLabelText("Ngày sinh của bạn — tháng"), "07");
+    await user.type(screen.getByLabelText("Ngày sinh của bạn — năm"), "1996");
+    await user.click(screen.getByRole("checkbox", { name: "Câu đồng ý." }));
+    // The weekly box alone never enables the result, and the consent tick never ticks it.
+    expect(box).not.toBeChecked();
+    if (tick) await user.click(box);
+    await user.click(screen.getByRole("button", { name: /Đồng ý & xem kết quả/ }));
+
+    await waitFor(() => expect(acceptRadarInviteWithDate).toHaveBeenCalledWith("request-1", expect.stringMatching(/^1996-07-\d{2}$/), "radar-pair-date-v1", kept));
   });
 
   it("keeps the current invite page while the one-field invite is off", async () => {

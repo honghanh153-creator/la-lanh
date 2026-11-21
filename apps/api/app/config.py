@@ -110,10 +110,9 @@ class Settings(BaseSettings):
     # (owner AQ1/AP2); it still needs the owner-approved privacy.radar.invite-first.* sentences.
     radar_invite_first_consent: bool = True
     # Hợp gu AL1 direction C: revocable links to a frozen share card. Owner AQ1 (21.11.2026)
-    # wants it on, but the privacy page has no approved line about card links yet (item for the
-    # owner), so it stays off at release until she approves that line. The image card needs no
-    # switch.
-    radar_share_card_links: bool = False
+    # turned it on and AT1 (21.11.2026) approved the privacy-page line about card links, so it is
+    # on at release. The image card needs no switch.
+    radar_share_card_links: bool = True
     # Hợp gu AL1 direction C, "Hai bạn tuần này": keeping a pair stores the other person's birth
     # date (encrypted, at most 90 days). Owner AQ1 (21.11.2026) approved its three sentences and
     # turned it on with the release.

@@ -24,6 +24,10 @@ from app.main import create_app
 from tests.radar.test_reading import FORBIDDEN, JARGON
 
 ORIGIN = "http://127.0.0.1:5173"
+RECIPIENT_OPTIN = (
+    "Giữ ngày sinh của tôi, đã mã hoá, tối đa 90 ngày để hai bạn xem phần mỗi tuần. "
+    "Tôi xoá được bất cứ lúc nào."
+)
 
 
 def _chart(day: date):  # type: ignore[no-untyped-def]
@@ -50,7 +54,7 @@ def approved(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_every_line_is_registered_and_plain() -> None:
-    """Reading lines wait for Codex; the three opt-in sentences are owner-approved (AQ1, 21.11)."""
+    """Reading lines wait for Codex; the opt-in sentences are owner-approved (AQ1/AR1, 21.11)."""
 
     registry = load_registry()
     for entry_id in weekly.registry_ids():
@@ -71,6 +75,8 @@ def test_every_line_is_registered_and_plain() -> None:
         "optin-label": "Giữ cặp này để mỗi tuần xem hai bạn tuần này.",
         "optin-help": registry["privacy.radar.weekly.optin-help"].text,
         "home-note": "Chỉ hiện chữ cái đầu của tên. Bấm tắt là xoá luôn cặp này.",
+        # Owner AR1 (21.11.2026), word for word: the invited person's own box.
+        "recipient-optin": RECIPIENT_OPTIN,
     }
 
 
@@ -147,6 +153,42 @@ CHECK = {
     "consent_version": "radar-authorized-input-v1",
     "authorization_attested": True,
 }
+B_DATE = "1996-07-21"
+
+
+def _invite(
+    client: TestClient, headers: dict[str, str], label: str = "Mèo Hoang"
+) -> tuple[TestClient, dict[str, Any], str, dict[str, Any]]:
+    """A sends a link; B (no session, no profile) opens it. Returns (B's client, invite, token)."""
+
+    invite = client.post(
+        "/v1/radar/requests",
+        headers=headers,
+        json={"recipient_label": label, "context": "partner"},
+    ).json()
+    token = invite["share_url"].rsplit("/", 1)[-1]
+    recipient = TestClient(client.app, base_url=ORIGIN)
+    preview = recipient.get(f"/v1/public/radar/{token}")
+    assert preview.status_code == 200
+    return recipient, invite, token, preview.json()
+
+
+def _accept(recipient: TestClient, invite: dict[str, Any], *, keep: bool | None) -> Any:
+    body: dict[str, Any] = {
+        "request_id": invite["id"],
+        "birth_date": B_DATE,
+        "consent_version": "radar-pair-date-v1",
+    }
+    if keep is not None:
+        body["keep_weekly"] = keep
+    return recipient.post(
+        "/v1/public/radar/current/accept-date", headers={"Origin": ORIGIN}, json=body
+    )
+
+
+def _kept(database: Path) -> int:
+    with sqlite3.connect(database) as connection:
+        return int(connection.execute("SELECT COUNT(*) FROM radar_weekly_pairs").fetchone()[0])
 
 
 def test_switched_off_keeps_nothing(tmp_path: Path) -> None:
@@ -155,13 +197,11 @@ def test_switched_off_keeps_nothing(tmp_path: Path) -> None:
         headers = _owner(client)
         options = client.get("/v1/public/radar/consent-options").json()
         assert options["weekly"] is False and options["weekly_sentences"] == {}
-        refused = client.post(
-            "/v1/radar/private-checks", headers=headers, json={**CHECK, "keep_weekly": True}
-        )
-        assert refused.status_code == 422
+        recipient, invite, _, preview = _invite(client, headers)
+        assert preview["weekly_offer"] is False
+        assert _accept(recipient, invite, keep=True).status_code == 422
         assert client.get("/v1/radar/weekly").status_code == 404
-        with sqlite3.connect(database) as connection:
-            assert connection.execute("SELECT COUNT(*) FROM radar_weekly_pairs").fetchone()[0] == 0
+        assert _kept(database) == 0
 
 
 def test_switch_alone_does_not_open_it(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -171,35 +211,38 @@ def test_switch_alone_does_not_open_it(tmp_path: Path, monkeypatch: pytest.Monke
         assert client.get("/v1/public/radar/consent-options").json()["weekly"] is False
 
 
+def test_the_sender_can_never_keep_a_pair(tmp_path: Path) -> None:
+    """AR1: the old sender-side box is gone, on every path (private checks included)."""
+
+    database = tmp_path / "sender.db"
+    with _client(database, on=True) as client:
+        headers = _owner(client)
+        refused = client.post(
+            "/v1/radar/private-checks", headers=headers, json={**CHECK, "keep_weekly": True}
+        )
+        assert refused.status_code == 422
+        assert _kept(database) == 0
+
+
 @pytest.mark.usefixtures("approved")
-def test_kept_pair_shows_an_initial_only_and_is_deletable(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    import app.domains.radar.service as service_module
-
-    registry = load_registry()
-    sentences = {key: registry[f"privacy.radar.weekly.{key}"].text for key in weekly.PRIVACY_KEYS}
-    monkeypatch.setattr(service_module, "weekly_sentences", lambda: sentences)
-    import app.api.v1.routes.radar as routes
-
-    monkeypatch.setattr(routes, "weekly_sentences", lambda: sentences)
+def test_only_the_recipients_own_tick_keeps_the_pair(tmp_path: Path) -> None:
     database = tmp_path / "on.db"
     with _client(database, on=True) as client:
         headers = _owner(client)
         options = client.get("/v1/public/radar/consent-options").json()
-        assert options["weekly"] is True and set(options["weekly_sentences"]) == set(sentences)
+        assert options["weekly"] is True
+        assert options["weekly_sentences"]["recipient-optin"] == RECIPIENT_OPTIN
 
-        made = client.post(
-            "/v1/radar/private-checks", headers=headers, json={**CHECK, "keep_weekly": True}
-        )
-        assert made.status_code == 200
-        plain = client.post(
-            "/v1/radar/private-checks",
-            headers=headers,
-            json={**CHECK, "recipient_label": "Ai khác", "birth_date": "1990-01-01"},
-        )
-        assert plain.status_code == 200  # not kept: the default is No
+        # Default is No: no field, or an explicit false, keeps nothing.
+        for keep in (None, False):
+            recipient, invite, _, preview = _invite(client, headers, label="Ai khác")
+            assert preview["weekly_offer"] is True
+            assert _accept(recipient, invite, keep=keep).status_code == 200
+        assert _kept(database) == 0
+        assert client.get("/v1/radar/weekly").json()["items"] == []
 
+        recipient, invite, _, _ = _invite(client, headers)
+        assert _accept(recipient, invite, keep=True).status_code == 200
         listed = client.get("/v1/radar/weekly")
         assert listed.status_code == 200
         assert listed.headers["cache-control"].startswith("no-store")
@@ -208,18 +251,114 @@ def test_kept_pair_shows_an_initial_only_and_is_deletable(
         item = items[0]
         assert item["initial"] == "M." and item["context"] == "partner"
         assert item["easy"] or item["watch"] or item["quiet"]
-        for raw in ("1996", "Mèo", "Hoang", "vn-hanoi"):
+        for raw in ("1996", "Mèo", "Hoang"):
             assert raw not in listed.text
 
         with sqlite3.connect(database) as connection:
             stored = connection.execute(
-                "SELECT birth_date_ciphertext, label_ciphertext FROM radar_weekly_pairs"
+                "SELECT birth_date_ciphertext, label_ciphertext, consent_version, expires_at,"
+                " created_at FROM radar_weekly_pairs"
             ).fetchone()
         assert "1996" not in stored[0] and "Mèo" not in stored[1]
+        assert stored[2] == "radar-weekly-recipient-v1"
+        kept_days = (datetime.fromisoformat(stored[3]) - datetime.fromisoformat(stored[4])).days
+        assert kept_days == 90
 
         stranger = TestClient(client.app, base_url=ORIGIN)
         assert stranger.get("/v1/radar/weekly").status_code == 404
         assert client.delete(f"/v1/radar/weekly/{item['id']}", headers=headers).status_code == 204
         assert client.get("/v1/radar/weekly").json()["items"] == []
-        with sqlite3.connect(database) as connection:
-            assert connection.execute("SELECT COUNT(*) FROM radar_weekly_pairs").fetchone()[0] == 0
+        assert _kept(database) == 0
+
+
+@pytest.mark.usefixtures("approved")
+def test_withdrawing_the_result_deletes_the_kept_pair(tmp_path: Path) -> None:
+    database = tmp_path / "withdraw.db"
+    with _client(database, on=True) as client:
+        headers = _owner(client)
+        recipient, invite, _, _ = _invite(client, headers)
+        assert _accept(recipient, invite, keep=True).status_code == 200
+        assert _kept(database) == 1
+        withdrawn = recipient.post(
+            "/v1/public/radar/receipt/withdraw",
+            headers={"Origin": ORIGIN},
+            json={"request_id": invite["id"]},
+        )
+        assert withdrawn.status_code == 204
+        assert _kept(database) == 0
+
+
+@pytest.mark.usefixtures("approved")
+def test_the_invite_link_deletes_the_pair_after_the_result_is_gone(tmp_path: Path) -> None:
+    """The pair outlives the 30-day result; B can still delete it with the link (AR1)."""
+
+    database = tmp_path / "link.db"
+    with _client(database, on=True) as client:
+        headers = _owner(client)
+        recipient, invite, token, _ = _invite(client, headers)
+        assert _accept(recipient, invite, keep=True).status_code == 200
+        # The result is gone (here: the sender deleted it); the kept pair is not tied to it.
+        assert (
+            client.delete(f"/v1/radar/results/{invite['id']}", headers=headers).status_code == 204
+        )
+        assert _kept(database) == 1
+
+        new_device = TestClient(client.app, base_url=ORIGIN)
+        assert (
+            new_device.post(
+                "/v1/public/radar/invite/withdraw",
+                headers={"Origin": "https://evil.test"},
+                json={"token": token},
+            ).status_code
+            == 403
+        )
+        assert _kept(database) == 1
+        deleted = new_device.post(
+            "/v1/public/radar/invite/withdraw", headers={"Origin": ORIGIN}, json={"token": token}
+        )
+        assert deleted.status_code == 204
+        assert _kept(database) == 0
+        again = new_device.post(
+            "/v1/public/radar/invite/withdraw", headers={"Origin": ORIGIN}, json={"token": token}
+        )
+        assert again.status_code == 404
+
+
+@pytest.mark.usefixtures("approved")
+def test_no_room_means_no_offer_and_nothing_kept(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import app.domains.radar.service as service_module
+
+    monkeypatch.setattr(service_module, "MAX_WEEKLY_PAIRS", 1)
+    database = tmp_path / "full.db"
+    with _client(database, on=True) as client:
+        headers = _owner(client)
+        recipient, invite, _, _ = _invite(client, headers)
+        assert _accept(recipient, invite, keep=True).status_code == 200
+        recipient, invite, _, preview = _invite(client, headers, label="Ai khác")
+        assert preview["weekly_offer"] is False
+        # A tick sent anyway (an old tab) still gives the result and keeps nothing more.
+        assert _accept(recipient, invite, keep=True).status_code == 200
+        assert _kept(database) == 1
+
+
+@pytest.mark.usefixtures("approved")
+def test_expired_pairs_and_card_links_are_purged(tmp_path: Path) -> None:
+    import asyncio
+    from datetime import timedelta
+
+    from app.domains.radar.retention import purge_expired_keepsakes
+
+    database = tmp_path / "purge.db"
+    with _client(database, on=True) as client:
+        headers = _owner(client)
+        recipient, invite, _, _ = _invite(client, headers)
+        assert _accept(recipient, invite, keep=True).status_code == 200
+        sessions = cast(FastAPI, client.app).state.database.sessions
+        now = datetime.now(UTC)
+        assert asyncio.run(purge_expired_keepsakes(sessions, now=now))["weekly_pairs"] == 0
+        assert _kept(database) == 1
+        later = now + timedelta(days=91)
+        assert asyncio.run(purge_expired_keepsakes(sessions, now=later))["weekly_pairs"] == 1
+        assert _kept(database) == 0

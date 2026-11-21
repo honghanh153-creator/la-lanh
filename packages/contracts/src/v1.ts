@@ -3528,6 +3528,11 @@ export interface components {
             requires_exact_birth_profile: boolean;
             /** Voice */
             voice: string;
+            /**
+             * Weekly Offer
+             * @default false
+             */
+            weekly_offer: boolean;
         };
         /**
          * PublicRadarResultResponse
@@ -3740,6 +3745,11 @@ export interface components {
             birth_date: string;
             /** Consent Version */
             consent_version: string;
+            /**
+             * Keep Weekly
+             * @default false
+             */
+            keep_weekly: boolean;
             /**
              * Request Id
              * Format: uuid

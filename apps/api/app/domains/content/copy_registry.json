@@ -13541,6 +13541,24 @@
    "approver": "owner",
    "date": "2026-11-21",
    "digest": "4c3e71e16b796af77777c73c72dde31f3650eedacf9bd5cdf7d4cd77d22a4c73"
+  },
+  {
+   "id": "privacy.radar.weekly.recipient-optin",
+   "category": "privacy",
+   "text": "Giữ ngày sinh của tôi, đã mã hoá, tối đa 90 ngày để hai bạn xem phần mỗi tuần. Tôi xoá được bất cứ lúc nào.",
+   "status": "approved",
+   "approver": "owner",
+   "date": "2026-11-21",
+   "digest": "9ac01aac9e3f4e48332002d0f1e10dcea8b85e902403b9b7b2ff46aa24af7bdb"
+  },
+  {
+   "id": "privacy.radar.cards.privacy-page",
+   "category": "privacy",
+   "text": "Nếu bạn gửi link xem thẻ Hợp gu, ai có link cũng xem được thẻ: bậc hợp, một câu về hai bạn và mối quan hệ, kèm chữ cái đầu của tên nếu bạn chọn. Thẻ không có ngày sinh hay tên thật. Link hết hạn cùng lúc với kết quả, bạn thu hồi được bất cứ lúc nào, và link mất khi kết quả bị xoá hoặc bị rút. Trang thẻ không cho trình duyệt lưu lại và không cho công cụ tìm kiếm ghi lại.",
+   "status": "approved",
+   "approver": "owner",
+   "date": "2026-11-21",
+   "digest": "8487d7ccf009ba09a8d9c12bf15f104dd6f6bead0b2c1ed67ffa04cf47d8ed18"
   }
  ],
  "version": "copy-registry/v1"

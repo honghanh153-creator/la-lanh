@@ -86,6 +86,23 @@ describe("ConsentPage privacy details", () => {
     expect(screen.getByText(weekly!.text)).toBeInTheDocument();
   });
 
+  // Owner AT1 (21.11.2026): the card-link line, word for word, in its own block after "Hai bạn tuần này"
+  // and before "Tải bản sao dữ liệu".
+  it("shows the owner-approved card-link line in the Thẻ Hợp gu block (AT1)", () => {
+    renderPrivacyPage();
+    const registry = JSON.parse(readFileSync(join(process.cwd(), "../api/app/domains/content/copy_registry.json"), "utf8")) as {
+      entries: { id: string; category: string; text: string; status: string; approver?: string; date?: string }[];
+    };
+    const card = registry.entries.find((item) => item.id === "privacy.radar.cards.privacy-page");
+    expect(card).toMatchObject({ category: "privacy", status: "approved", approver: "owner", date: "2026-11-21" });
+    const line = screen.getByText(card!.text);
+    expect(line.closest("details")?.querySelector("summary")?.textContent).toBe("Thẻ Hợp gu");
+    const summaries = [...document.querySelectorAll("details.consent-detail > summary")].map((node) => node.textContent);
+    const at = summaries.indexOf("Thẻ Hợp gu");
+    expect(summaries[at - 1]).toBe("Hai bạn tuần này");
+    expect(summaries[at + 1]).toBe("Tải bản sao dữ liệu");
+  });
+
   it("gives network users a visible link to the corresponding source", () => {
     renderPrivacyPage();
 

@@ -8,6 +8,7 @@ from app.db.session import Database
 from app.domains.erasure_journal.replay import purge_entries
 from app.domains.history.postgres import PostgresHistoryRepository
 from app.domains.human_tarot.service import HumanTarotService
+from app.domains.radar.retention import purge_expired_keepsakes
 from app.infrastructure.crypto import (
     AesGcmEnvelopeCipher,
     SecretHasher,
@@ -62,6 +63,9 @@ async def _cleanup(batch_size: int) -> int:
             "Human Tarot: " + " ".join(f"{key}={value}" for key, value in human_tarot.items()),
             flush=True,
         )
+        # Hợp gu: kept weekly pairs (90 days) and card links leave the database when they expire.
+        radar = await purge_expired_keepsakes(database.sessions, now=now)
+        print("Hợp gu: " + " ".join(f"{key}={value}" for key, value in radar.items()), flush=True)
         return removed
     finally:
         await database.dispose()

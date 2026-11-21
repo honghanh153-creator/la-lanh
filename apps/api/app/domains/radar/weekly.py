@@ -1,12 +1,13 @@
 """ "Hai bạn tuần này" (Hợp gu AL1 direction C, second half; off by default).
 
-A pair the owner chose to keep gets a short weekly card: one easy thing, one thing that may
-snag, one thing to try. It is computed from the current sky against both people's date-only
+A pair the invited person chose to keep (their own box on the link page, owner AR1) gets a short
+weekly card on the sender's Hôm nay: one easy thing, one thing that may snag, one thing to try.
+It is computed from the current sky against both people's date-only
 charts (the same reduction as a date-only reading): this week's Sun, Mercury, Venus and Mars at
 midweek noon in Vietnam, against each person's Sun, Mercury, Venus and Mars. No event is
 predicted and no date is named; the same pair and week always give the same card.
 
-Keeping a pair stores the other person's birth date (encrypted) beyond the 24-hour check. That
+Keeping a pair stores the invited person's birth date (encrypted) beyond the result. That
 is new personal-data collection, so it sits behind ``radar_weekly_pairs`` and the owner's
 approval of its sentences (``privacy.radar.weekly.*``), and every pair is deletable.
 """
@@ -35,7 +36,9 @@ THEMES = tuple(POINT_THEMES.values())
 EASY_ANGLES = (0.0, 60.0, 120.0)
 WATCH_ANGLES = (90.0, 180.0)
 ORB = 3.0
-PRIVACY_KEYS = ("optin-label", "optin-help", "home-note")
+# "recipient-optin" is B's own box on the link page (owner AR1, 21.11.2026), the only way a pair
+# is kept. "optin-help" is the privacy-page line; "home-note" sits under the card on Hôm nay.
+PRIVACY_KEYS = ("optin-label", "optin-help", "home-note", "recipient-optin")
 
 
 @dataclass(frozen=True)
