@@ -15,6 +15,7 @@ from app.domains.readings.daily_topics import (
     TOPIC_WINDOW_DAYS,
     block_start,
     pick_topic,
+    rotation_order,
     schedule,
 )
 
@@ -130,3 +131,12 @@ def test_a_steady_pool_keeps_its_rotation_across_block_boundaries(size: int) -> 
     days = block * 4  # four blocks, each recomputed from an empty history
     assert all(days[i] == days[i - size] for i in range(size, len(days)))
     assert _repeats_within(days, size) == 0
+
+
+def test_rotation_order_is_a_per_reader_permutation_with_themes_apart() -> None:
+    order = rotation_order("seed-a", POOL)
+    assert sorted(order) == sorted(POOL)
+    assert order == rotation_order("seed-a", POOL)
+    assert any(rotation_order(f"seed-{n}", POOL) != order for n in range(10))
+    themes = [ISSUE_THEMES[key] for key in order]
+    assert all(a != b for a, b in pairwise(themes))
