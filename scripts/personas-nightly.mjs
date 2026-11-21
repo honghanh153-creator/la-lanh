@@ -25,6 +25,7 @@ import { codexBin, codexModel } from './codex-review.mjs';
 import { opsAlert } from './collab-turn.mjs';
 import { cutoffMs, dayCap, dayStatePath, hhmmOf, integration, lastStartAt, makeGh, readJson, repo, stateDir, vnNow, writeJson } from './collab-trust.mjs';
 import { isMain } from './is-main.mjs';
+import { writeRunReceipt } from './collab-run-receipt.mjs';
 
 export const sampleSize = 200;
 export const codexSampleSize = 10;
@@ -456,7 +457,7 @@ export function raiseNew(date, state, reasons, { alert = opsAlert, gh = () => ma
 }
 const transcriptRows = (dir, role) => readFileSync(join(dir, role, 'transcript.jsonl'), 'utf8').split('\n').filter(Boolean).map(l => JSON.parse(l));
 
-export function finish(date, { alert = opsAlert, gh = () => makeGh() } = {}) {
+export function finish(date, { alert = opsAlert, gh = () => makeGh(), receipt = writeRunReceipt } = {}) {
   const state = readState(date);
   const dir = dayDir(date);
   const clone = join(nightlyDir(), 'clone-end');
@@ -474,6 +475,8 @@ export function finish(date, { alert = opsAlert, gh = () => makeGh() } = {}) {
   writeFileSync(join(out, 'metrics.json'), `${JSON.stringify({ date, seed: state.seed, start: state.start, end: state.end, ids: state.ids, appChanges: state.appChanges, unknownChanges: state.unknownChanges, comparison: cmp.rows, safety: cmp.safety, leaks: leaks.length, judged, codex: codexCmp, runs: state.runs }, null, 1)}\n`);
   const raised = raiseNew(date, state, reasons, { alert, gh });
   writeState(date, state);
+  // Research item 3 (owner 21.11): the run's receipt names the integration commit it measured.
+  try { receipt({ kind: 'personas', result: 'ok', sha: state.end, counts: { personas: (state.ids ?? []).length, safetyReasons: reasons.length } }); } catch {}
   return { status: 'finished', report: join(out, 'report.md'), alert: raised.raised.length > 0, reasons: raised.raised, allReasons: reasons, issue: raised.issue };
 }
 
