@@ -20,7 +20,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from app.domains.content.copy_approval import approved_copy
-from app.domains.radar.reading import LEVEL_LABELS, THEME_PLAIN
+from app.domains.radar.reading import LEVEL_LABELS
 
 ASK_VERSION = "radar-ask-v1"
 PREFIX = "radar.ask."
@@ -171,7 +171,7 @@ def answer(reading: dict[str, Any], question_id: str) -> Answer:
         based_on = None
     else:
         theme = str(lead["key"])
-        why = _text(base + "why").format(theme=THEME_PLAIN[theme])
+        why = _text(base + "why")
         based_on = {
             "theme": theme,
             "label": lead.get("label"),

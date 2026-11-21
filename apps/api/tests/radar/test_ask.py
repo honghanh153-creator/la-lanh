@@ -12,7 +12,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.config import Settings
-from app.domains.content.copy_approval import load_registry
+from app.domains.content.copy_approval import load_registry, text_lint_problems
 from app.domains.radar import ask
 from app.main import create_app
 from tests.radar.test_reading import FORBIDDEN, JARGON
@@ -63,6 +63,10 @@ def test_every_line_is_registered_pending_and_follows_the_rules() -> None:
     for topic in ask.TOPICS:
         for level in ask.ANSWER_LEVELS.values():
             assert "người ấy" not in registry[f"radar.ask.{topic}.{level}.why"].text
+    # The copy lint (#411) allows no template slot: every line is a whole sentence as stored.
+    assert not [
+        entry_id for entry_id in ask.registry_ids() if text_lint_problems(registry[entry_id].text)
+    ]
 
 
 def test_nothing_shows_while_the_lines_are_pending() -> None:
@@ -93,7 +97,9 @@ def test_answer_reads_the_pair_facts_watch_first_and_is_deterministic() -> None:
     first = ask.answer(reading, "message").as_dict()
     assert first == ask.answer(reading, "message").as_dict()
     assert first["say"] == "Nói ý chính ngay câu đầu để không ai phải đoán."
-    assert first["why"].startswith("Ở trí tưởng tượng chung,")
+    # "Vì sao" is the stored sentence as is; the theme it came from is in "Dựa vào".
+    assert first["why"] == "Hai bạn dễ hiểu lệch nhau, nên câu càng rõ càng đỡ nhầm."
+    assert first["based_on"]["theme"] == "clarity"
     assert first["based_on"]["evidence_ids"] == ["syn:clarity"]
     assert first["can_send"] == "Tối thứ Sáu bạn rảnh không? Mình muốn rủ đi ăn."
     good = ask.answer(_reading("crush", communication="good"), "message").as_dict()

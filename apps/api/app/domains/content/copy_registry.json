@@ -13248,7 +13248,7 @@
   {
    "id": "radar.ask.message.good.why",
    "category": "reading",
-   "text": "Ở {theme}, hai bạn hợp nhau.",
+   "text": "Hai bạn hợp nhau.",
    "status": "pending"
   },
   {
@@ -13266,7 +13266,7 @@
   {
    "id": "radar.ask.message.balanced.why",
    "category": "reading",
-   "text": "Ở {theme}, hai bạn ở mức vừa: có lúc hiểu nhanh, có lúc cần nói rõ hơn.",
+   "text": "Hai bạn ở mức vừa: có lúc hiểu nhanh, có lúc cần nói rõ hơn.",
    "status": "pending"
   },
   {
@@ -13284,7 +13284,7 @@
   {
    "id": "radar.ask.message.watch.why",
    "category": "reading",
-   "text": "Ở {theme}, hai bạn dễ hiểu lệch nhau, nên câu càng rõ càng đỡ nhầm.",
+   "text": "Hai bạn dễ hiểu lệch nhau, nên câu càng rõ càng đỡ nhầm.",
    "status": "pending"
   },
   {
@@ -13302,7 +13302,7 @@
   {
    "id": "radar.ask.timing.good.why",
    "category": "reading",
-   "text": "Ở {theme}, hai bạn khá hợp nhịp.",
+   "text": "Hai bạn khá hợp nhịp.",
    "status": "pending"
   },
   {
@@ -13320,7 +13320,7 @@
   {
    "id": "radar.ask.timing.balanced.why",
    "category": "reading",
-   "text": "Ở {theme}, hai bạn ở mức vừa, lúc khớp lúc không.",
+   "text": "Hai bạn ở mức vừa, lúc khớp lúc không.",
    "status": "pending"
   },
   {
@@ -13338,7 +13338,7 @@
   {
    "id": "radar.ask.timing.watch.why",
    "category": "reading",
-   "text": "Ở {theme}, đây là chỗ hai bạn cần để ý.",
+   "text": "Đây là chỗ hai bạn cần để ý.",
    "status": "pending"
   },
   {
@@ -13356,7 +13356,7 @@
   {
    "id": "radar.ask.together.good.why",
    "category": "reading",
-   "text": "Ở {theme}, hai bạn hợp nhau.",
+   "text": "Hai bạn hợp nhau.",
    "status": "pending"
   },
   {
@@ -13374,7 +13374,7 @@
   {
    "id": "radar.ask.together.balanced.why",
    "category": "reading",
-   "text": "Ở {theme}, hai bạn ở mức vừa: có lúc ăn ý, có lúc cần bàn thêm.",
+   "text": "Hai bạn ở mức vừa: có lúc ăn ý, có lúc cần bàn thêm.",
    "status": "pending"
   },
   {
@@ -13392,7 +13392,7 @@
   {
    "id": "radar.ask.together.watch.why",
    "category": "reading",
-   "text": "Ở {theme}, đây là chỗ hai bạn dễ va nhau.",
+   "text": "Đây là chỗ hai bạn dễ va nhau.",
    "status": "pending"
   },
   {
@@ -13410,7 +13410,7 @@
   {
    "id": "radar.ask.direct.good.why",
    "category": "reading",
-   "text": "Ở {theme}, hai bạn dễ nghe nhau.",
+   "text": "Hai bạn dễ nghe nhau.",
    "status": "pending"
   },
   {
@@ -13428,7 +13428,7 @@
   {
    "id": "radar.ask.direct.balanced.why",
    "category": "reading",
-   "text": "Ở {theme}, hai bạn ở mức vừa, nói rõ thì dễ hiểu nhau hơn.",
+   "text": "Hai bạn ở mức vừa, nói rõ thì dễ hiểu nhau hơn.",
    "status": "pending"
   },
   {
@@ -13446,7 +13446,7 @@
   {
    "id": "radar.ask.direct.watch.why",
    "category": "reading",
-   "text": "Ở {theme}, hai bạn dễ để chuyện nhỏ thành lớn.",
+   "text": "Hai bạn dễ để chuyện nhỏ thành lớn.",
    "status": "pending"
   },
   {
