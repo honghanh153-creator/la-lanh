@@ -3,6 +3,7 @@
 Việc: điều kiện owner đặt cho bản phát hành 20.11: Daily đang xoay theo ngày lịch và không xét người đó đã đọc gì. Phiên điều phối giao ngày 21.11.
 Agent: Claude (content-nguoi-moi). Review: Codex.
 Mức: **M**. Đổi cách chọn tình huống Daily, đổi AC05 của US-21; không thu dữ liệu mới, không migration.
+So sánh phương án (§7.2): comment Plan trên PR #841.
 
 ## 1. Vấn đề, có số
 
@@ -44,7 +45,7 @@ Trong cùng một bậc, ưu tiên hạng cao hơn; cùng hạng thì xếp theo
 
 AC02, AC03, AC04, AC06 giữ nguyên.
 - AC04: plan đã đóng băng replay đúng như đã lưu.
-- AC06: ngày bị ép ngoại lệ không dịch vị trí của ngày sau. Mục này được thay bằng lịch tuần ở mục 3, có test.
+- AC06: ngày bị ép ngoại lệ không dịch vị trí của ngày sau. Mục này được thay bằng lịch theo khối ở mục 3, có test.
 
 ## 3. Cách làm
 
@@ -58,14 +59,21 @@ AC02, AC03, AC04, AC06 giữ nguyên.
 | `self-judgment` | comparison-loop, perfect-before-start |
 | `needs` | name-the-need |
 
-**Lịch tuần, không lưu.** Ngày được cắt thành khối 7 ngày, lệch pha theo HMAC của người (giống khối ⚠ trong `variant_rotation.py`). Để chọn ngày D:
-- tính lại pool của từng ngày từ đầu khối tới D, và chọn lần lượt theo AC05 mới;
-- lịch sử đầu khối là lịch của khối trước, cũng tính lại theo cùng cách nhưng không có lịch sử trước nó.
+**Lịch theo khối, không lưu, khớp tuyệt đối.**
+- Ngày được cắt thành khối **12 ngày**, lệch pha theo HMAC của người (giống khối ⚠ trong `variant_rotation.py`).
+- Để chọn ngày D: tính lại pool của từng ngày từ đầu khối tới D, rồi chọn lần lượt theo AC05 mới. Mỗi khối bắt đầu với lịch sử rỗng.
+- Vì vậy lịch sử dùng cho ngày D đúng bằng các ngày trước đó trong khối, như chúng đã được phục vụ (có test).
+- Tối đa 11 lần tính lại cho mỗi Daily mới; plan giữ 6 ngày gần nhất.
 
-Nhờ vậy kết quả của ngày D luôn bằng kết quả đã phục vụ ở ngày D, vì cùng hàm, cùng đầu vào. Số lần tính tối đa là 13 pool cho mỗi ngày, mỗi người tính một lần mỗi ngày (plan đã lưu thì replay).
-- Ở biên khối có thể lặp nhẹ, vì khối trước được tính không có lịch sử. Lượt 200 người đo phần này.
+Không mang ước lượng của khối trước sang (góp ý P2 của Codex, #844). Ước lượng đó không thể khớp với những gì khối trước đã phục vụ, vì khối trước lại được chọn dựa trên khối trước nữa, cứ thế ngược về ngày bật. Ví dụ ABC của Codex: mang sang thì mỗi tuần lặp B ở biên.
 
-**Người chỉ có ngày sinh** (pool cố định theo cung, AC07): lịch tuần vẫn áp dụng. Thứ tự staircase của #778 cho tiêu đề, cảnh và việc nhỏ giữ nguyên, nhưng đếm theo số lần tình huống đó đã xuất hiện trong lịch đã tính lại, không theo `day_index // k`.
+12 là bội của các cỡ pool thường gặp: 2, 3, 4 và 6. Nhờ vậy pool không đổi vẫn xoay đều qua biên khối (ABCABC|ABCABC), có test cho cả 4 cỡ. Biên khối chỉ có thể lặp khi pool đổi giữa các ngày hoặc có 5 tình huống; lượt 200 người đo phần này.
+
+**Người chỉ có ngày sinh** (pool cố định theo cung, AC07): không cần lịch sử.
+- Pool đi theo một thứ tự cố định riêng cho từng người (`rotation_order`, xen kẽ nhóm chủ đề), theo `day_index % len(pool)`. Mỗi chủ đề quay lại đúng sau `len(pool)` ngày.
+- Chỉ số lượt xuất hiện cho staircase của #778 là `day_index // len(pool)`: toàn cục, không đặt lại theo khối (góp ý P2 của Codex, #844).
+- Test 90 ngày của AC03 và test thứ tự tiêu đề chạy cả khi bật lịch mới.
+- Người có lá số đầy đủ giữ cách xoay tiêu đề, cảnh và việc nhỏ theo ngày như cũ.
 
 **Không đổi:** không thêm cột, bảng, cookie, localStorage hay trường gửi từ app. Không có dữ liệu cá nhân mới; nhóm chủ đề là hằng số nội dung.
 
@@ -81,8 +89,8 @@ Nhờ vậy kết quả của ngày D luôn bằng kết quả đã phục vụ 
 |---|---|---|
 | 1 (PR này) | `docs/plans/2026-11-21-daily-topic-anti-repeat.md` | Plan |
 | 2 | `apps/api/scripts/persona_metrics.py` (+ test), `qa/personas` | Chỉ số `topic_7d`, `topic_3d`, `theme_3d`, số chủ đề/14 ngày vào máy đo người giả, để trước/sau đo bằng code trong repo |
-| 3 | `apps/api/app/domains/readings/daily_rotation.py`, `daily_psychology.py` (+ `tests/readings/test_daily_topic_schedule.py`) | Nhóm chủ đề, hàm chọn thuần (pure) theo AC05 mới và lịch tuần; chưa nối vào app |
-| 4 | `apps/api/app/domains/readings/application.py`, `models.py`, `daily_psychology.py` (`_pick`, `_occurrence_index`), `app/config.py`, `app/main.py`, `scripts/persona_sim.py` | Nối lịch tuần thay guard 1–2 ngày từ ngày bật, test trên đầu ra thật, số trước/sau 200 người trong PR |
+| 3 (#842) | `apps/api/app/domains/readings/daily_topics.py` (mới, + `tests/readings/test_daily_topics.py`) | Nhóm chủ đề, hàm chọn thuần theo AC05 mới, lịch theo khối, thứ tự cố định cho pool không đổi; chưa nối vào app |
+| 4 | `apps/api/app/domains/readings/application.py`, `models.py`, `daily_psychology.py` (`_pick`, `_occurrence_index`), `app/config.py`, `app/main.py`, `scripts/persona_sim.py` | Nối lịch theo khối thay guard 1–2 ngày từ ngày bật, test trên đầu ra thật, số trước/sau 200 người trong PR |
 | 5 | `docs/user-stories/US-21-…md` (AC05), runbook phát hành | AC05 mới, bước bật setting khi phát hành |
 
 Không đụng file của #776 (web) hay #774 (Khám phá), cả hai đã merge. #726 (draft, transit giờ gần đúng) cũng sửa `application.py` và `daily_psychology.py`; PR 4 sẽ làm trên integration mới nhất và báo trong #726.
@@ -90,7 +98,7 @@ Không đụng file của #776 (web) hay #774 (Khám phá), cả hai đã merge.
 ## 5. Rủi ro
 
 - **Đổi độ hợp lấy sự mới:** hạng 4–6 vẫn là tình huống lá số đủ điều kiện, nhưng yếu hơn. Tỉ lệ được báo; nếu Codex thấy cao thì giảm `K`.
-- **Chi phí tính:** tối đa 13 lần lập pool mỗi Daily mới. Nếu đo vượt 300 ms thì chỉ lập pool (không render) và cache theo request.
+- **Chi phí tính:** tối đa 11 lần lập pool mỗi Daily mới. Nếu đo vượt 300 ms thì chỉ lập pool (không render) và cache theo request.
 - **Đổi bộ khoá hay lens** bắt đầu một chuỗi mới (như AC05 cũ).
 - **Trần nội dung:** 2–3 tình huống đủ điều kiện mỗi ngày giới hạn mức giảm của `topic_7d`. Việc tiếp theo (riêng): thêm tình huống đủ điều kiện cho mỗi lá số, đo bằng cùng chỉ số.
 - **Bảo mật / riêng tư (G7, G8):** không đụng phiên, quyền hay log; không lưu và không gửi lịch sử. Mã chủ đề không rời server.
