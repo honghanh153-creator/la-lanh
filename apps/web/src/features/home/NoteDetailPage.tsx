@@ -19,7 +19,7 @@ import {
   writeCachedDailyNote,
 } from "../../shared/storage/noteCache";
 import { useReadingUpdateActivation } from "../../shared/hooks/useReadingUpdateActivation";
-import { dailyMoodKey, readDailyMood, useDailyActionView } from "../../shared/hooks/useDailyActionView";
+import { dailyMoodKey, readDailyMood, useDailyActionView, useReadOnlyToday } from "../../shared/hooks/useDailyActionView";
 import { useDailyExperiment } from "../../shared/hooks/useDailyExperiment";
 import { saveNoteLocally } from "../../shared/storage/savedNoteCache";
 import "../../shared/styles/signal-note.css";
@@ -95,6 +95,8 @@ export function NoteDetailPage() {
     retry: false,
   });
   const actionView = useDailyActionView(note?.id, activeReading, moodQuery.data?.mood);
+  // "Hôm nay chỉ muốn đọc" (#700): shared with Home, in memory only.
+  const readOnlyToday = useReadOnlyToday(note?.id);
   const shownExperiment = actionView.lighterShown
     ? activeReading?.lighter_action?.experiment
     : activeReading?.experiment;
@@ -147,6 +149,7 @@ export function NoteDetailPage() {
             experimentError={dailyExperiment.errorMessage}
             experimentStatus={dailyExperiment.status}
             lighter={actionView.canSwitch ? { shown: actionView.lighterShown, onSwitch: actionView.switchAction } : null}
+            readOnly={{ readOnly: readOnlyToday.readOnly, onToggle: readOnlyToday.toggle }}
             onChoose={chooseExperiment}
             onReflect={(outcome) => {
               const held = dailyExperiment.experiment;
