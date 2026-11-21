@@ -23,6 +23,7 @@ import hmac
 from collections.abc import Mapping, Sequence
 from datetime import date
 from hashlib import sha256
+from math import gcd
 from uuid import UUID
 
 VARIETY_KEY_VERSION = 1
@@ -99,6 +100,54 @@ def axis_slot(seed: str, axis: str, n: int, index: int) -> int:
     if index < 0:
         raise ValueError("day_index must not be negative")
     return cycle_order(seed, axis, index // n, n)[index % n]
+
+
+def round_robin_slot(seed: str, axis: str, n: int, step: int) -> int:
+    """Value of ``axis`` at ``step`` of one fixed per-person order, walked round-robin.
+
+    Any ``n`` steps in a row are all different, and a value comes back exactly every ``n`` steps
+    (no cycle boundary where a value can return after two steps, as with ``axis_slot``). Used
+    where a step is one appearance of a situation, not a calendar day.
+    """
+
+    if step < 0:
+        raise ValueError("step must not be negative")
+    return cycle_order(seed, axis, 0, n)[step % n]
+
+
+def _stride(period: int, n: int) -> int:
+    """Extra step an axis takes each time the axes before it finish a full period.
+
+    Coprime with ``n`` after adding ``period``, so the axis meets every value once against each
+    combination of the earlier axes; never a full turn, so the axis still changes at the boundary.
+    """
+
+    for stride in range(1, n + 1):
+        if gcd(period + stride, n) == 1 and (1 + stride) % n != 0:
+            return stride
+    return 0  # n == 2 with an even period: plain alternation keeps consecutive steps different
+
+
+def staircase_slots(seed: str, axes: Sequence[tuple[str, int]], step: int) -> tuple[int, ...]:
+    """One value per axis at ``step``, each axis walking its own fixed per-person order.
+
+    The first axis comes back exactly every ``n`` steps (as ``round_robin_slot``). Each later axis
+    moves one place per step plus a coprime stride whenever the axes before it complete their
+    period, so the whole combination repeats only after the product of the axis sizes (US-21 AC03:
+    a whole card never comes back within 90 days), while every axis with two or more values still
+    changes on every step (AC02). Plain round-robin on every axis would repeat the whole card after
+    the least common multiple of the sizes: 24 steps for 6 headlines, 8 scenes and 24 actions.
+    """
+
+    if step < 0:
+        raise ValueError("step must not be negative")
+    slots: list[int] = []
+    period = 1
+    for axis, n in axes:
+        index = step if period == 1 else step + _stride(period, n) * (step // period)
+        slots.append(cycle_order(seed, axis, 0, n)[index % n])
+        period *= n
+    return tuple(slots)
 
 
 def top_k_slot(index: int, pool_size: int) -> int:
