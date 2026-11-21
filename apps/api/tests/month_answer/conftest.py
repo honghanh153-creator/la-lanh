@@ -35,14 +35,12 @@ def _approved(entry: CopyEntry) -> CopyEntry:
 
 @pytest.fixture
 def approve_month(monkeypatch: pytest.MonkeyPatch) -> Callable[..., None]:
-    """Serve the pending month sentences as if approved (``owner=True`` adds consent and crisis)."""
+    """Serve the pending month sentences as if Codex had approved them."""
 
-    def apply(*, owner: bool = False) -> None:
+    def apply() -> None:
         registry = dict(load_registry())
         for key, entry in registry.items():
-            month = key.startswith("month.")
-            owner_month = key in {"consent.month.typed_question", "crisis.self_harm.notice.month"}
-            if month or (owner and owner_month):
+            if key.startswith("month."):
                 registry[key] = _approved(entry)
         monkeypatch.setattr(copy_approval, "_runtime_registry", lambda: registry)
 

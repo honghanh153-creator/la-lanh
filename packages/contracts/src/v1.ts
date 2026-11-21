@@ -3168,22 +3168,17 @@ export interface components {
         };
         /** MonthAnswerRequest */
         MonthAnswerRequest: {
-            /** Consent Version */
-            consent_version?: string | null;
-            /** Question */
-            question?: string | null;
-            topic?: components["schemas"]["Topic"] | null;
+            preset?: components["schemas"]["PresetId"] | null;
+            topic: components["schemas"]["Topic"];
         };
         /** MonthAnswerResponse */
         MonthAnswerResponse: {
-            answer?: components["schemas"]["MonthAnswerView"] | null;
-            /** Need Topic */
-            need_topic?: string | null;
+            answer: components["schemas"]["MonthAnswerView"];
             /**
              * Status
-             * @enum {string}
+             * @constant
              */
-            status: "answered" | "need_topic";
+            status: "answered";
         };
         /** MonthAnswerView */
         MonthAnswerView: {
@@ -3196,12 +3191,15 @@ export interface components {
             disclaimer: string;
             /** Month */
             month: string;
-            /** Reframe */
-            reframe: string | null;
+            preset: components["schemas"]["PresetId"] | null;
+            /** Question */
+            question: string | null;
             /** Say */
             say: string;
             /** Theme */
             theme: string;
+            /** Tip */
+            tip: string | null;
             topic: components["schemas"]["Topic"];
             /** Topic Label */
             topic_label: string;
@@ -3212,15 +3210,6 @@ export interface components {
             detail: string;
             /** Line */
             line: string;
-        };
-        /** MonthConsent */
-        MonthConsent: {
-            /** Copy Id */
-            copy_id: string;
-            /** Text */
-            text: string;
-            /** Version */
-            version: string;
         };
         /** MonthOverviewItem */
         MonthOverviewItem: {
@@ -3243,15 +3232,24 @@ export interface components {
             /** Month */
             month: string;
         };
+        /** MonthPresetView */
+        MonthPresetView: {
+            id: components["schemas"]["PresetId"];
+            /** Text */
+            text: string;
+            topic: components["schemas"]["Topic"];
+        };
         /** MonthStatusResponse */
         MonthStatusResponse: {
             /** Available */
             available: boolean;
-            consent?: components["schemas"]["MonthConsent"] | null;
             /** Month */
             month: string;
-            /** Typed Questions */
-            typed_questions: boolean;
+            /**
+             * Presets
+             * @default []
+             */
+            presets: components["schemas"]["MonthPresetView"][];
         };
         /** MonthWindowResponse */
         MonthWindowResponse: {
@@ -3430,6 +3428,11 @@ export interface components {
             /** Active */
             active: boolean;
         };
+        /**
+         * PresetId
+         * @enum {string}
+         */
+        PresetId: "work.hard_talk" | "work.too_much" | "work.shifts" | "money.month_end" | "money.ask_back" | "money.say_no" | "love.closer" | "love.say_tired" | "love.far" | "family.parents_ask" | "family.my_path" | "family.compare" | "study.many_exams" | "study.exam_energy" | "study.start_project" | "mind.homesick" | "mind.sleep" | "mind.heavy";
         /** ProblemResponse */
         ProblemResponse: {
             /** Code */
@@ -8576,13 +8579,6 @@ export interface operations {
                 content: {
                     "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
-            };
-            /** @description Precondition Required */
-            428: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
             };
             /** @description Service Unavailable */
             503: {

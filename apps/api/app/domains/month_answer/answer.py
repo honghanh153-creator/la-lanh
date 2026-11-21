@@ -26,17 +26,17 @@ from app.domains.month_answer.facts import (
     MonthFact,
     Topic,
 )
-from app.domains.month_answer.question import QuestionKind
+from app.domains.month_answer.presets import (
+    PresetId,
+    ask_id,
+    preset_copy_ids,
+    preset_topic,
+    tip_id,
+)
 
-ANSWER_VERSION = "month-answer-v1"
+ANSWER_VERSION = "month-answer-v2"
 PARTS = ("theme", "act", "say")
 LINE_IDS = ("month.line.disclaimer", "month.line.window")
-REFRAME_KINDS = (
-    QuestionKind.OUTCOME,
-    QuestionKind.TIMING,
-    QuestionKind.SHOULD,
-    QuestionKind.OTHER_MIND,
-)
 
 TOPIC_LABELS: dict[Topic, str] = {
     Topic.WORK: "Công việc",
@@ -107,13 +107,15 @@ class MonthAnswer:
     month: str
     topic: Topic
     topic_label: str
-    reframe: str | None
+    preset: PresetId | None
+    question: str | None  # the preset question as shown; never anything a person typed
+    tip: str | None  # the preset's one plain thing to try
     theme: str
     act: str
     say: str
     basis: Basis
     disclaimer: str
-    answer_key: str  # stable id of (facts, copy ids, kind): what "Lưu" stores
+    answer_key: str  # stable id of (facts, copy ids, preset): what "Lưu" stores
 
 
 def copy_ids(topic: Topic, planet: BodyName) -> tuple[str, ...]:
@@ -124,7 +126,7 @@ def required_copy_ids() -> tuple[str, ...]:
     """Every sentence an answer can need. The feature shows only when all are approved."""
 
     ids = [cid for topic in Topic for planet in ANSWER_PLANETS for cid in copy_ids(topic, planet)]
-    ids += [f"month.reframe.{kind.value}" for kind in REFRAME_KINDS]
+    ids += list(preset_copy_ids())
     ids += list(LINE_IDS)
     return tuple(ids)
 
@@ -135,19 +137,25 @@ def feature_ready(source: CopySource = approved_copy) -> bool:
 
 def compose(
     fact: MonthFact,
-    kind: QuestionKind = QuestionKind.HOW,
+    preset: PresetId | None = None,
     source: CopySource = approved_copy,
 ) -> MonthAnswer | None:
-    """The answer, or ``None`` while any sentence it needs is not approved."""
+    """The answer, or ``None`` while any sentence it needs is not approved.
 
+    With a preset, the answer also carries that preset's question and its one thing to try. The
+    preset must belong to the fact's topic.
+    """
+
+    if preset is not None and preset_topic(preset) is not fact.topic:
+        raise ValueError("preset does not belong to this topic")
     ids = copy_ids(fact.topic, fact.planet)
+    preset_ids = (ask_id(preset), tip_id(preset)) if preset is not None else ()
     parts = [source(cid) for cid in ids]
     disclaimer = source("month.line.disclaimer")
-    reframe_id = f"month.reframe.{kind.value}" if kind in REFRAME_KINDS else None
-    reframe = source(reframe_id) if reframe_id else None
+    question, tip = (source(cid) for cid in preset_ids) if preset_ids else (None, None)
     if any(part is None for part in parts) or disclaimer is None:
         return None
-    if reframe_id is not None and reframe is None:
+    if preset is not None and (question is None or tip is None):
         return None
     theme, act, say = (part for part in parts if part is not None)
     key_material = "|".join(
@@ -161,15 +169,18 @@ def compose(
             fact.house_basis.value,
             str(fact.house),
             fact.sign.value,
-            kind.value,
+            preset.value if preset is not None else "",
             *ids,
+            *preset_ids,
         )
     )
     return MonthAnswer(
         month=fact.month,
         topic=fact.topic,
         topic_label=TOPIC_LABELS[fact.topic],
-        reframe=reframe,
+        preset=preset,
+        question=question,
+        tip=tip,
         theme=theme,
         act=act,
         say=say,

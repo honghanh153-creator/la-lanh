@@ -1,10 +1,9 @@
 """Hỏi Lá bằng lá số (AK2, 20.11.2026): month answers, the on-tap easier window, the month card.
 
-- ``GET /month/status``: whether the feature can show (every sentence approved) and whether the
-  typed-question path is on. No personal data.
-- ``POST /month/answers``: a topic, or (when switched on) a typed question. The typed text goes
-  through the crisis guard before anything else, is read into closed labels (topic, kind) in memory
-  and dropped: never stored, logged, echoed or sent anywhere (retention: the request itself).
+- ``GET /month/status``: whether the feature can show (every sentence approved) and the preset
+  questions. No personal data.
+- ``POST /month/answers``: a topic, optionally one of its preset questions. There is no typed
+  question (owner chose AS1 on 21.11.2026), so the request holds closed values only.
 - ``GET /month/window?topic=``: the easier window. Only the "Xem lúc nào dễ hơn" tap calls it; the
   answer itself never carries a date.
 - ``GET /month/overview``: the Khám phá card, no dates.
@@ -15,23 +14,17 @@ from __future__ import annotations
 import logging
 from typing import Annotated, Literal, cast
 
-from fastapi import APIRouter, Depends, Header, Query, Request, Response
+from fastapi import APIRouter, Header, Query, Request, Response
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
 
-from app.api.crisis_guard import crisis_guard
 from app.domains.birth.errors import BirthDomainError
 from app.domains.content.copy_approval import approved_copy
 from app.domains.guest.errors import GuestDomainError
 from app.domains.guest.service import GuestSessionService
 from app.domains.month_answer.answer import feature_ready
 from app.domains.month_answer.facts import Topic
-from app.domains.month_answer.question import (
-    QUESTION_MAX_CHARS,
-    QUESTION_MIN_CHARS,
-    QuestionKind,
-    read_question,
-)
+from app.domains.month_answer.presets import PresetId, ask_id, preset_topic
 from app.domains.month_answer.service import (
     MonthAnswerService,
     MonthAnswerUnavailable,
@@ -42,34 +35,26 @@ from app.infrastructure.csrf import require_trusted_origin, trusted_origins
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-MONTH_CRISIS_COPY_ID = "crisis.self_harm.notice.month"
-TYPED_CONSENT_COPY_ID = "consent.month.typed_question"
-TYPED_CONSENT_VERSION = "month-typed-question-v1"
-NEED_TOPIC_COPY_ID = "month.line.need_topic"
 NO_STORE = {"Cache-Control": "no-store, max-age=0"}
 
 
-class MonthConsent(BaseModel):
-    version: str
-    copy_id: str
+class MonthPresetView(BaseModel):
+    id: PresetId
+    topic: Topic
     text: str
 
 
 class MonthStatusResponse(BaseModel):
     available: bool
-    typed_questions: bool
     month: str
-    consent: MonthConsent | None = None
+    presets: tuple[MonthPresetView, ...] = ()
 
 
 class MonthAnswerRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    topic: Topic | None = None
-    question: str | None = Field(
-        default=None, min_length=QUESTION_MIN_CHARS, max_length=QUESTION_MAX_CHARS
-    )
-    consent_version: str | None = Field(default=None, max_length=64)
+    topic: Topic
+    preset: PresetId | None = None
 
 
 class MonthBasis(BaseModel):
@@ -81,7 +66,9 @@ class MonthAnswerView(BaseModel):
     month: str
     topic: Topic
     topic_label: str
-    reframe: str | None
+    preset: PresetId | None
+    question: str | None
+    tip: str | None
     theme: str
     act: str
     say: str
@@ -91,9 +78,8 @@ class MonthAnswerView(BaseModel):
 
 
 class MonthAnswerResponse(BaseModel):
-    status: Literal["answered", "need_topic"]
-    answer: MonthAnswerView | None = None
-    need_topic: str | None = None
+    status: Literal["answered"]
+    answer: MonthAnswerView
 
 
 class MonthWindowResponse(BaseModel):
@@ -146,41 +132,31 @@ def _domain_problem(error: BirthDomainError | GuestDomainError) -> JSONResponse:
     return _problem(error.status_code, error.code)
 
 
-def typed_questions_on(request: Request) -> bool:
-    """The typed path needs the switch and the owner-approved consent and crisis sentences."""
-
-    settings = request.app.state.settings
-    return bool(
-        getattr(settings, "month_typed_questions_enabled", False)
-        and approved_copy(TYPED_CONSENT_COPY_ID) is not None
-        and approved_copy(MONTH_CRISIS_COPY_ID) is not None
-    )
+def _presets() -> tuple[MonthPresetView, ...]:
+    views: list[MonthPresetView] = []
+    for preset in PresetId:
+        text = approved_copy(ask_id(preset))
+        if text is None:
+            return ()
+        views.append(MonthPresetView(id=preset, topic=preset_topic(preset), text=text))
+    return tuple(views)
 
 
 @router.get("/month/status", response_model=MonthStatusResponse)
 async def month_status(request: Request, response: Response) -> MonthStatusResponse:
     response.headers.update(NO_STORE)
-    typed = typed_questions_on(request)
-    consent_text = approved_copy(TYPED_CONSENT_COPY_ID) if typed else None
+    available = feature_ready() and getattr(request.app.state, "astro_engine", None) is not None
     return MonthStatusResponse(
-        available=feature_ready() and getattr(request.app.state, "astro_engine", None) is not None,
-        typed_questions=typed,
+        available=available,
         month=today_in_vietnam().strftime("%Y-%m"),
-        consent=(
-            MonthConsent(
-                version=TYPED_CONSENT_VERSION, copy_id=TYPED_CONSENT_COPY_ID, text=consent_text
-            )
-            if consent_text is not None
-            else None
-        ),
+        presets=_presets() if available else (),
     )
 
 
 @router.post(
     "/month/answers",
     response_model=MonthAnswerResponse,
-    responses={401: {}, 403: {}, 404: {}, 409: {}, 422: {}, 428: {}, 503: {}},
-    dependencies=[Depends(crisis_guard("question", notice_id=MONTH_CRISIS_COPY_ID))],
+    responses={401: {}, 403: {}, 404: {}, 409: {}, 422: {}, 503: {}},
 )
 async def month_answer(
     body: MonthAnswerRequest,
@@ -197,31 +173,16 @@ async def month_answer(
     except GuestDomainError as error:
         return _domain_problem(error)
 
-    topic = body.topic
-    kind = QuestionKind.HOW
-    if body.question is not None:
-        if not typed_questions_on(request):
-            return _problem(403, "MONTH_TYPED_QUESTIONS_OFF")
-        if body.consent_version != TYPED_CONSENT_VERSION:
-            return _problem(428, "MONTH_TYPED_CONSENT_REQUIRED")
-        labels = read_question(body.question)
-        kind = labels.kind
-        topic = topic or labels.topic
-        if topic is None:
-            need = approved_copy(NEED_TOPIC_COPY_ID)
-            if need is None:
-                return _problem(503, "MONTH_ANSWER_UNAVAILABLE")
-            return MonthAnswerResponse(status="need_topic", need_topic=need)
-    if topic is None:
-        return _problem(422, "MONTH_TOPIC_REQUIRED")
+    if body.preset is not None and preset_topic(body.preset) is not body.topic:
+        return _problem(422, "MONTH_PRESET_TOPIC_MISMATCH")
     try:
-        answer = await _service(request).answer(guest.id, topic, kind)
+        answer = await _service(request).answer(guest.id, body.topic, body.preset)
     except (BirthDomainError, GuestDomainError) as error:
         return _domain_problem(error)
     except MonthAnswerUnavailable:
         return _problem(503, "MONTH_ANSWER_UNAVAILABLE")
     except Exception as error:
-        # The exception type only: never the message or the body (it may hold the typed question).
+        # The exception type only: never the message (it could carry chart details).
         logger.error("month_answer_failed", extra={"error_type": type(error).__name__})
         return _problem(503, "MONTH_ANSWER_UNAVAILABLE")
     return MonthAnswerResponse(
@@ -230,7 +191,9 @@ async def month_answer(
             month=answer.month,
             topic=answer.topic,
             topic_label=answer.topic_label,
-            reframe=answer.reframe,
+            preset=answer.preset,
+            question=answer.question,
+            tip=answer.tip,
             theme=answer.theme,
             act=answer.act,
             say=answer.say,

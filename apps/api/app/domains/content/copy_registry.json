@@ -13021,30 +13021,6 @@
    "status": "pending"
   },
   {
-   "id": "month.reframe.outcome",
-   "category": "reading",
-   "text": "Lá không đoán được chuyện này sẽ ra sao. Đây là việc giúp bạn có thêm cơ hội.",
-   "status": "pending"
-  },
-  {
-   "id": "month.reframe.timing",
-   "category": "reading",
-   "text": "Lá không đoán ngày chuyện này xảy ra. Đây là việc bạn làm được từ bây giờ.",
-   "status": "pending"
-  },
-  {
-   "id": "month.reframe.should",
-   "category": "reading",
-   "text": "Lá không chọn thay bạn. Đây là điều giúp bạn tự cân nhắc.",
-   "status": "pending"
-  },
-  {
-   "id": "month.reframe.other_mind",
-   "category": "reading",
-   "text": "Lá không đoán được người khác nghĩ gì. Đây là việc bạn làm được ở phía mình.",
-   "status": "pending"
-  },
-  {
    "id": "month.line.disclaimer",
    "category": "reading",
    "text": "Đây là một góc nhìn để bạn tự quyết, không phải điều chắc chắn sẽ xảy ra.",
@@ -13057,21 +13033,219 @@
    "status": "pending"
   },
   {
-   "id": "month.line.need_topic",
+   "id": "month.preset.work.hard_talk.ask",
    "category": "reading",
-   "text": "Lá chưa rõ câu này thuộc chuyện gì. Bạn chọn một mảng bên dưới nhé.",
+   "text": "Làm sao nói chuyện khó với sếp?",
    "status": "pending"
   },
   {
-   "id": "consent.month.typed_question",
-   "category": "consent",
-   "text": "Câu bạn gõ chỉ dùng để Lá chọn mảng và cách trả lời ngay lúc này. Lá không lưu câu này, không ghi lại và không gửi cho ai.",
+   "id": "month.preset.work.hard_talk.tip",
+   "category": "reading",
+   "text": "Hẹn sếp một lúc riêng, nói một chuyện chính và nói rõ bạn cần sếp giúp gì.",
    "status": "pending"
   },
   {
-   "id": "crisis.self_harm.notice.month",
-   "category": "crisis",
-   "text": "Mình rất tiếc vì bạn đang phải chịu điều này. Lá không thể hỗ trợ tình huống này. Nếu bạn có thể làm hại bản thân lúc này, hãy tìm một người bạn tin cậy ở cạnh và nhờ hỗ trợ khẩn cấp.",
+   "id": "month.preset.work.too_much.ask",
+   "category": "reading",
+   "text": "Việc dồn nhiều quá, nên làm việc nào trước?",
+   "status": "pending"
+  },
+  {
+   "id": "month.preset.work.too_much.tip",
+   "category": "reading",
+   "text": "Viết hết việc ra giấy, khoanh ba việc gấp nhất rồi làm việc nhỏ nhất trước.",
+   "status": "pending"
+  },
+  {
+   "id": "month.preset.work.shifts.ask",
+   "category": "reading",
+   "text": "Tăng ca, đổi ca liên tục, giữ sức thế nào?",
+   "status": "pending"
+  },
+  {
+   "id": "month.preset.work.shifts.tip",
+   "category": "reading",
+   "text": "Giữ giờ ngủ đều nhất có thể, ăn bữa chính trước ca và để sẵn chai nước bên cạnh.",
+   "status": "pending"
+  },
+  {
+   "id": "month.preset.money.month_end.ask",
+   "category": "reading",
+   "text": "Cuối tháng hết tiền, xoay sao cho đỡ?",
+   "status": "pending"
+  },
+  {
+   "id": "month.preset.money.month_end.tip",
+   "category": "reading",
+   "text": "Ghi số tiền còn lại, chia đều cho số ngày tới lúc có tiền và lo tiền ăn trước.",
+   "status": "pending"
+  },
+  {
+   "id": "month.preset.money.ask_back.ask",
+   "category": "reading",
+   "text": "Nhắc người khác trả tiền sao cho khỏi mất lòng?",
+   "status": "pending"
+  },
+  {
+   "id": "month.preset.money.ask_back.tip",
+   "category": "reading",
+   "text": "Nhắn ngắn, nói rõ số tiền và hẹn một ngày trả. Hỏi lại tiền của mình thì không cần xin lỗi.",
+   "status": "pending"
+  },
+  {
+   "id": "month.preset.money.say_no.ask",
+   "category": "reading",
+   "text": "Bạn rủ đi ăn mà mình đang kẹt tiền, từ chối sao?",
+   "status": "pending"
+  },
+  {
+   "id": "month.preset.money.say_no.tip",
+   "category": "reading",
+   "text": "Nói thật là tháng này bạn đang giữ tiền, rồi rủ lại một việc không tốn tiền.",
+   "status": "pending"
+  },
+  {
+   "id": "month.preset.love.closer.ask",
+   "category": "reading",
+   "text": "Làm sao để hai người gần nhau hơn?",
+   "status": "pending"
+  },
+  {
+   "id": "month.preset.love.closer.tip",
+   "category": "reading",
+   "text": "Mỗi tối dành mười lăm phút cất điện thoại, hỏi người kia hôm nay có chuyện gì vui.",
+   "status": "pending"
+  },
+  {
+   "id": "month.preset.love.say_tired.ask",
+   "category": "reading",
+   "text": "Nói với người thương là mình mệt sao cho khỏi cãi?",
+   "status": "pending"
+  },
+  {
+   "id": "month.preset.love.say_tired.tip",
+   "category": "reading",
+   "text": "Nói về mình trước, như \"Dạo này mình mệt\", rồi nói một việc cụ thể bạn muốn người kia phụ.",
+   "status": "pending"
+  },
+  {
+   "id": "month.preset.love.far.ask",
+   "category": "reading",
+   "text": "Người thương ở xa, ít nhắn, mình nên nói gì?",
+   "status": "pending"
+  },
+  {
+   "id": "month.preset.love.far.tip",
+   "category": "reading",
+   "text": "Hỏi nhẹ dạo này người kia bận gì, rồi hẹn một giờ gọi nhau cố định mỗi tuần.",
+   "status": "pending"
+  },
+  {
+   "id": "month.preset.family.parents_ask.ask",
+   "category": "reading",
+   "text": "Bố mẹ hỏi chuyện điểm, việc làm, trả lời sao?",
+   "status": "pending"
+  },
+  {
+   "id": "month.preset.family.parents_ask.tip",
+   "category": "reading",
+   "text": "Kể một việc bạn đang làm được, rồi nói bước tiếp theo của bạn trong một câu.",
+   "status": "pending"
+  },
+  {
+   "id": "month.preset.family.my_path.ask",
+   "category": "reading",
+   "text": "Nói với bố mẹ về con đường mình chọn thế nào?",
+   "status": "pending"
+  },
+  {
+   "id": "month.preset.family.my_path.tip",
+   "category": "reading",
+   "text": "Chuẩn bị ba ý: bạn chọn gì, vì sao, bạn tự lo được phần nào. Nói lúc cả nhà đang rảnh.",
+   "status": "pending"
+  },
+  {
+   "id": "month.preset.family.compare.ask",
+   "category": "reading",
+   "text": "Bố mẹ hay so mình với người khác, nói sao?",
+   "status": "pending"
+  },
+  {
+   "id": "month.preset.family.compare.tip",
+   "category": "reading",
+   "text": "Nói nhẹ nhàng rằng bị so làm bạn nản, rồi kể bố mẹ nghe bạn đang cố gắng chuyện gì.",
+   "status": "pending"
+  },
+  {
+   "id": "month.preset.study.many_exams.ask",
+   "category": "reading",
+   "text": "Nhiều môn thi dồn, chia ôn thế nào?",
+   "status": "pending"
+  },
+  {
+   "id": "month.preset.study.many_exams.tip",
+   "category": "reading",
+   "text": "Xếp môn thi trước lên đầu, mỗi buổi ôn một môn chính và dành mười phút xem lại môn khác.",
+   "status": "pending"
+  },
+  {
+   "id": "month.preset.study.exam_energy.ask",
+   "category": "reading",
+   "text": "Mùa thi mệt quá, giữ sức thế nào?",
+   "status": "pending"
+  },
+  {
+   "id": "month.preset.study.exam_energy.tip",
+   "category": "reading",
+   "text": "Ngủ đủ đêm trước hôm thi giúp nhiều hơn thức thêm hai tiếng. Ăn sáng rồi hãy đi thi.",
+   "status": "pending"
+  },
+  {
+   "id": "month.preset.study.start_project.ask",
+   "category": "reading",
+   "text": "Đồ án chưa có ý, bắt đầu từ đâu?",
+   "status": "pending"
+  },
+  {
+   "id": "month.preset.study.start_project.tip",
+   "category": "reading",
+   "text": "Xem lại ba bài mẫu bạn thích, ghi điều bạn thích ở mỗi bài, rồi chọn một hướng làm thử.",
+   "status": "pending"
+  },
+  {
+   "id": "month.preset.mind.homesick.ask",
+   "category": "reading",
+   "text": "Nhớ nhà quá, làm gì cho đỡ?",
+   "status": "pending"
+  },
+  {
+   "id": "month.preset.mind.homesick.tip",
+   "category": "reading",
+   "text": "Gọi video cho nhà mười phút, rồi ra ngoài đi bộ hoặc nấu một món quen ở nhà.",
+   "status": "pending"
+  },
+  {
+   "id": "month.preset.mind.sleep.ask",
+   "category": "reading",
+   "text": "Thức khuya hoài, làm sao ngủ sớm hơn?",
+   "status": "pending"
+  },
+  {
+   "id": "month.preset.mind.sleep.tip",
+   "category": "reading",
+   "text": "Tối nay để điện thoại xa giường trước giờ ngủ nửa tiếng. Sớm hơn hôm qua một chút là được.",
+   "status": "pending"
+  },
+  {
+   "id": "month.preset.mind.heavy.ask",
+   "category": "reading",
+   "text": "Mấy hôm nay nặng lòng, làm gì cho nhẹ?",
+   "status": "pending"
+  },
+  {
+   "id": "month.preset.mind.heavy.tip",
+   "category": "reading",
+   "text": "Viết ra điều đang làm bạn nặng lòng, kể cho một người bạn tin, và đi ngủ sớm một tối.",
    "status": "pending"
   }
  ],

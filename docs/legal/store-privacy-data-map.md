@@ -281,18 +281,14 @@ never sent; lean conclusions and reasons stay local. No new data type, recipient
 exact time, recomputes the chart from the existing encrypted supplement; it collects no new
 birth, place or identity field and calls no third party or AI service.
 
-- **Topic path (on):** the request carries a closed topic label only. Answers, the on-tap easier
-  window and the Khám phá month card are computed per request and not stored, cached or logged
-  (`Cache-Control: no-store`). No row is written; a test compares every table's row count.
-- **Typed-question path (built, off):** `LA_LANH_MONTH_TYPED_QUESTIONS_ENABLED=false` by default
-  (R2 kind 4). Even when switched on it stays shut until the owner approves the consent sentence
-  `consent.month.typed_question` and the crisis notice `crisis.self_harm.notice.month`. When on,
-  the text passes the crisis guard first, is read in memory into two closed labels (topic and
-  question kind), and is dropped. Retention: the request only. It is never stored, logged, echoed
-  in the answer or sent to any processor; the answer never quotes it.
+- **Request:** closed values only: a topic label and, optionally, one of 18 preset question ids.
+  There is no typed-question box (owner chose AS1 on 2026-11-21), so no free text is collected and
+  no consent or separate crisis notice is needed for this screen. A request carrying free text is
+  rejected by validation and never read.
+- **Answers:** answers, the on-tap easier window and the Khám phá month card are computed per
+  request and not stored, cached or logged (`Cache-Control: no-store`). No row is written; a test
+  compares every table's row count.
 - **Saving:** nothing is saved automatically. Explicit "Lưu" and its own deletable list come in a
   separate change with its own retention, export and erasure entries.
-- **Declarations:** while the typed path is off, App Privacy and Data Safety answers do not change
-  (derived astrology content is already declared). Before switching it on, re-check whether
-  processing typed text without storing it counts as "collected" under the current Apple and Google
-  definitions and update this map, the in-app privacy copy and the policy together.
+- **Declarations:** App Privacy and Data Safety answers do not change (no new data type; derived
+  astrology content is already declared).
