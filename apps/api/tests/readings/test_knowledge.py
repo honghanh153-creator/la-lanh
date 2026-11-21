@@ -547,3 +547,31 @@ def test_ambiguous_date_only_result_does_not_pick_one_candidate_as_fact() -> Non
     assert "bạch dương" not in prose
     assert "moon" not in prose
     assert "nhà" not in prose
+
+
+def test_two_placements_in_one_sign_name_the_style_once() -> None:
+    # New-user persona run 20.11.2026: Sun and Venus both in Capricorn read
+    # "Bạn vừa có xu hướng X, vừa có xu hướng X."
+    heroes = ("natal:sun:sign:capricorn", "natal:venus:sign:capricorn")
+    plan = _controlled_full_plan(body_b="venus", sign_a="capricorn", sign_b="capricorn")
+    frame = full_frame(plan.model_copy(update={"hero_factor_refs": heroes}))
+
+    assert "vừa có xu hướng" not in frame.thesis
+    assert frame.thesis.startswith("Bạn có xu hướng ")
+    other = full_frame(
+        _controlled_full_plan(body_b="venus", sign_a="capricorn", sign_b="leo").model_copy(
+            update={"hero_factor_refs": ("natal:sun:sign:capricorn", "natal:venus:sign:leo")}
+        )
+    )
+    assert "vừa có xu hướng" in other.thesis
+
+
+def test_sextile_headline_is_not_circular_when_a_need_is_initiative() -> None:
+    # "Bạn có thể giữ quyền chủ động mà vẫn được đổi cách làm. Hai nhu cầu này hỗ trợ nhau
+    # khi bạn chủ động." said the same thing twice (production journey 20.11.2026).
+    frame = full_frame(_controlled_full_plan(body_a="pluto", body_b="uranus", aspect="sextile"))
+
+    assert frame.hook.count("chủ động") == 1
+    assert "hỗ trợ nhau" in frame.hook
+    plain = full_frame(_controlled_full_plan(aspect="sextile"))
+    assert plain.hook.endswith("hỗ trợ nhau khi bạn chủ động.")

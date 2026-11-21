@@ -155,6 +155,33 @@ describe("ReadingDetailPage", () => {
     expect(vi.mocked(getInsightOverview).mock.lastCall?.[0]).toMatchObject({ tradition: "jyotish" });
   });
 
+  it("leaves out an everyday line an earlier card already showed and names the watch section plainly", async () => {
+    const western = await vi.mocked(getInsightOverview).getMockImplementation()?.({ tradition: "western" } as never);
+    const moon = western!.reading!.claims[0];
+    vi.mocked(getInsightOverview).mockResolvedValue({
+      ...western!,
+      reading: {
+        ...western!.reading!,
+        claims: [
+          moon,
+          {
+            id: "mercury-sign", domain: "mind", title: "Mạch suy nghĩ", summary: "Sao Thủy ở Bọ Cạp.", confidence: "high",
+            hook: "Đầu óc bạn làm việc nhanh hơn khi có chiều sâu.", meaning: "Sao Thủy mô tả cách bạn nói điều mình nghĩ.",
+            manifestation: "", watch_for: "", micro_action: "Viết ý chính trong một câu.",
+            evidence: ["Sao Thủy ở Bọ Cạp"], factor_refs: ["natal:mercury:sign:scorpio"],
+          },
+        ],
+      },
+    } as never);
+    renderPage("/insights/overview?tradition=western");
+
+    expect(await screen.findByText("Viết ý chính trong một câu.")).toBeInTheDocument();
+    expect(screen.getAllByText("Ngoài đời có thể trông như…")).toHaveLength(1);
+    expect(screen.getAllByText("Điều cần để ý")).toHaveLength(1);
+    expect(screen.queryByText("Chỗ dễ lệch nhịp")).not.toBeInTheDocument();
+    expect(screen.queryByText("Sao Thủy ở Bọ Cạp.")).not.toBeInTheDocument();
+  });
+
   it("keeps Lá đọc sâu and links to the overview", async () => {
     renderPage("/insights/synthesis?tradition=western");
     expect(await screen.findByRole("link", { name: "Xem bản đọc tổng quan" })).toHaveAttribute("href", "/insights/overview?tradition=western");
