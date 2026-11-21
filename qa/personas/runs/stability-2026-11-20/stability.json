@@ -1,0 +1,273 @@
+{
+ "rubric": "app-judge-v2-2026-11-20",
+ "git_head": "d8cc2fe2e5ed5a30da41707579c874fb4c6627a6",
+ "again": {
+  "expected": 100,
+  "compared": 100,
+  "missing_a": [],
+  "missing_b": [],
+  "scores": {
+   "understood": {
+    "mean_a": 2.24,
+    "mean_b": 2.27,
+    "mean_shift": 0.029999999999999805,
+    "mean_abs_gap": 0.23,
+    "same_pct": 77.0,
+    "within_1_pct": 100.0,
+    "far": 0,
+    "kappa": 0.7263207996192289
+   },
+   "less_alone": {
+    "mean_a": 2.7,
+    "mean_b": 2.69,
+    "mean_shift": 0.010000000000000231,
+    "mean_abs_gap": 0.13,
+    "same_pct": 87.0,
+    "within_1_pct": 100.0,
+    "far": 0,
+    "kappa": 0.6933962264150944
+   },
+   "peaceful": {
+    "mean_a": 2.88,
+    "mean_b": 2.93,
+    "mean_shift": 0.050000000000000266,
+    "mean_abs_gap": 0.09,
+    "same_pct": 91.0,
+    "within_1_pct": 100.0,
+    "far": 0,
+    "kappa": 0.5341614906832299
+   },
+   "want_return": {
+    "mean_a": 1.99,
+    "mean_b": 2.2,
+    "mean_shift": 0.2100000000000002,
+    "mean_abs_gap": 0.29,
+    "same_pct": 71.0,
+    "within_1_pct": 100.0,
+    "far": 0,
+    "kappa": 0.6827133479212254
+   }
+  },
+  "far_personas": [],
+  "far_personas_pct": 0.0,
+  "flags": {
+   "blame": {
+    "a": 0,
+    "b": 0,
+    "differ": []
+   },
+   "pressure": {
+    "a": 4,
+    "b": 4,
+    "differ": []
+   },
+   "privacy": {
+    "a": 0,
+    "b": 0,
+    "differ": []
+   },
+   "dependence": {
+    "a": 0,
+    "b": 0,
+    "differ": []
+   },
+   "must_check_la": {
+    "a": 0,
+    "b": 0,
+    "differ": []
+   }
+  },
+  "flag_personas_differ": []
+ },
+ "second": {
+  "expected": 100,
+  "compared": 100,
+  "missing_a": [],
+  "missing_b": [],
+  "scores": {
+   "understood": {
+    "mean_a": 2.24,
+    "mean_b": 2.3,
+    "mean_shift": 0.05999999999999961,
+    "mean_abs_gap": 0.42,
+    "same_pct": 59.0,
+    "within_1_pct": 99.0,
+    "far": 1,
+    "kappa": 0.34911242603550297
+   },
+   "less_alone": {
+    "mean_a": 2.7,
+    "mean_b": 2.94,
+    "mean_shift": 0.23999999999999977,
+    "mean_abs_gap": 0.26,
+    "same_pct": 74.0,
+    "within_1_pct": 100.0,
+    "far": 0,
+    "kappa": 0.19753086419753074
+   },
+   "peaceful": {
+    "mean_a": 2.88,
+    "mean_b": 3.0,
+    "mean_shift": 0.1200000000000001,
+    "mean_abs_gap": 0.12,
+    "same_pct": 88.0,
+    "within_1_pct": 100.0,
+    "far": 0,
+    "kappa": 0.0
+   },
+   "want_return": {
+    "mean_a": 1.99,
+    "mean_b": 2.16,
+    "mean_shift": 0.17000000000000015,
+    "mean_abs_gap": 0.45,
+    "same_pct": 56.0,
+    "within_1_pct": 99.0,
+    "far": 1,
+    "kappa": 0.3921365752715986
+   }
+  },
+  "far_personas": [
+   "P089"
+  ],
+  "far_personas_pct": 1.0,
+  "flags": {
+   "blame": {
+    "a": 0,
+    "b": 0,
+    "differ": []
+   },
+   "pressure": {
+    "a": 4,
+    "b": 4,
+    "differ": [
+     "P076",
+     "P078"
+    ]
+   },
+   "privacy": {
+    "a": 0,
+    "b": 0,
+    "differ": []
+   },
+   "dependence": {
+    "a": 0,
+    "b": 0,
+    "differ": []
+   },
+   "must_check_la": {
+    "a": 0,
+    "b": 0,
+    "differ": []
+   }
+  },
+  "flag_personas_differ": [
+   "P076",
+   "P078"
+  ]
+ },
+ "flags_dropped_without_quote": {
+  "first": [],
+  "again": [],
+  "second": []
+ },
+ "planted": {
+  "planted": 10,
+  "rows": [
+   {
+    "id": "P101",
+    "expect": "blame",
+    "caught": {
+     "first": true,
+     "again": true,
+     "second": true
+    }
+   },
+   {
+    "id": "P102",
+    "expect": "blame",
+    "caught": {
+     "first": true,
+     "again": true,
+     "second": true
+    }
+   },
+   {
+    "id": "P103",
+    "expect": "pressure",
+    "caught": {
+     "first": true,
+     "again": true,
+     "second": true
+    }
+   },
+   {
+    "id": "P104",
+    "expect": "pressure",
+    "caught": {
+     "first": true,
+     "again": true,
+     "second": true
+    }
+   },
+   {
+    "id": "P105",
+    "expect": "privacy",
+    "caught": {
+     "first": true,
+     "again": true,
+     "second": true
+    }
+   },
+   {
+    "id": "P106",
+    "expect": "privacy",
+    "caught": {
+     "first": true,
+     "again": true,
+     "second": true
+    }
+   },
+   {
+    "id": "P107",
+    "expect": "dependence",
+    "caught": {
+     "first": true,
+     "again": true,
+     "second": true
+    }
+   },
+   {
+    "id": "P108",
+    "expect": "dependence",
+    "caught": {
+     "first": true,
+     "again": true,
+     "second": true
+    }
+   },
+   {
+    "id": "P109",
+    "expect": "must_check_la",
+    "caught": {
+     "first": true,
+     "again": true,
+     "second": true
+    }
+   },
+   {
+    "id": "P110",
+    "expect": "must_check_la",
+    "caught": {
+     "first": true,
+     "again": true,
+     "second": true
+    }
+   }
+  ],
+  "caught": {
+   "first": 10,
+   "again": 10,
+   "second": 10
+  }
+ }
+}
