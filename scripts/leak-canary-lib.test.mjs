@@ -351,21 +351,50 @@ test("#691 AC3: a mark planted in any PNG metadata chunk turns the check red", (
     ["eXIf XPComment at an odd offset", pngChunk("eXIf", exifBlock({ tag: 0x9c9c, type: 1, value: Buffer.concat([Buffer.alloc(1), utf16le("zqcanary690safety\0")]) })), "safety-text"],
     ["eXIf UserComment (UTF-16BE, Exif IFD)", pngChunk("eXIf", exifBlock({ big: true, tag: 0x9286, type: 7, inExifIfd: true, value: Buffer.concat([Buffer.from("UNICODE\0", "latin1"), utf16be("mood Đuối")]) })), "mood"],
     ["eXIf UTF-16BE at an odd offset", pngChunk("eXIf", exifBlock({ big: true, tag: 0x9c9c, type: 1, value: Buffer.concat([Buffer.alloc(1), utf16be("Quảng Ngãi")]) })), "birthplace"],
-    ["sPLT palette name", pngChunk("sPLT", Buffer.concat([Buffer.from("born 1994-02-13\0\x08", "latin1"), Buffer.alloc(6)])), "birth-date"],
+    // EXIF writes dates as "YYYY:MM:DD HH:MM:SS" (Codex #768 r2): one case per date tag.
+    ["eXIf DateTime", pngChunk("eXIf", exifBlock({ tag: 0x0132, type: 2, value: Buffer.from("1994:02:13 00:00:00\0", "latin1") })), "birth-date"],
+    ["eXIf DateTimeOriginal (Exif IFD)", pngChunk("eXIf", exifBlock({ tag: 0x9003, type: 2, inExifIfd: true, value: Buffer.from("1994:02:13 00:00:00\0", "latin1") })), "birth-date"],
+    ["eXIf DateTimeDigitized (Exif IFD, big-endian)", pngChunk("eXIf", exifBlock({ big: true, tag: 0x9004, type: 2, inExifIfd: true, value: Buffer.from("1994:02:13 00:00:00\0", "latin1") })), "birth-date"],
+    ["eXIf GPSDateStamp", pngChunk("eXIf", exifBlock({ tag: 0x001d, type: 2, value: Buffer.from("1994:02:13\0", "latin1") })), "birth-date"],
+    ["tEXt Creation Time (RFC 1123)", pngChunk("tEXt", Buffer.from("Creation Time\0Sun, 13 Feb 1994 00:00:00 GMT", "latin1")), "birth-date"],
+    ["iTXt XMP date", pngChunk("iTXt", Buffer.from("XML:com.adobe.xmp\0\0\0\0\0<xmp:CreateDate>1994-02-13T00:00:00</xmp:CreateDate>", "utf8")), "birth-date"],
+    ["sPLT palette name",pngChunk("sPLT", Buffer.concat([Buffer.from("born 1994-02-13\0\x08", "latin1"), Buffer.alloc(6)])), "birth-date"],
     ["tIME", pngChunk("tIME", time), "birth-date"],
     ["unknown chunk", pngChunk("prVt", Buffer.from("mood Đuối", "utf8")), "mood"],
   ];
   for (const [name, chunk, kind] of cases) assert.ok(metadataFindings(png(chunk)).includes(kind), name);
 });
 
+// The birth date in every way a file, a header or a log can write it: any one separator between
+// the parts, the three part orders, with or without leading zeros, and with the month as a word.
+test("#691 AC3: the birth date is found in every date spelling, not only the ones the app writes", () => {
+  const spellings = [
+    "1994:02:13 00:00:00", "1994:02:13", "1994 02 13", "1994_02_13", "1994.2.13", "1994\\02\\13",
+    "13 02 1994", "13_02_1994", "13:02:1994", "13.2.1994", "13-2-1994",
+    "02/13/1994", "2/13/1994", "02-13-1994",
+    "13 Feb 1994", "13-Feb-1994", "13 February 1994", "Feb 13, 1994", "February 13th, 1994", "1994 Feb 13",
+    "13 tháng 2 năm 1994", "13 tháng 02, 1994", "13 thg 2, 1994", "ngay 13 thang 2 nam 1994",
+  ];
+  for (const text of spellings) assert.deepEqual(findMarks(`taken ${text} end`, marks), ["birth-date"], text);
+});
+
+test("#691 AC3: another date, or the same digits inside a longer number, is not the birth date", () => {
+  const others = [
+    "1994:02:14 00:00:00", "1994:12:13", "1993:02:13", "13 Mar 1994", "Feb 13, 1995", "14 tháng 2 năm 1994",
+    "13 tháng 12 năm 1994", "v1994.2.130", "21994:02:13x", "id 213 1994 7", "2026:11:21 03:46:59",
+  ];
+  for (const text of others) assert.deepEqual(findMarks(`taken ${text} end`, marks), [], text);
+});
+
 test("#691 AC3: metadata without a mark stays clean in every reading", () => {
   const harmless = png(
     pngChunk("eXIf", exifBlock({ tag: 0x0131, type: 2, value: Buffer.from("canvas export\0", "latin1") })),
     pngChunk("eXIf", exifBlock({ tag: 0x9c9c, type: 1, value: utf16le("ảnh chia sẻ\0") })),
+    pngChunk("eXIf", exifBlock({ tag: 0x9003, type: 2, inExifIfd: true, value: Buffer.from("2026:11:21 09:30:00\0", "latin1") })),
     pngChunk("sPLT", Buffer.concat([Buffer.from("web safe\0\x08", "latin1"), Buffer.alloc(6)])),
   );
-  assert.deepEqual(pngMetadata(harmless).chunks, ["IHDR", "eXIf", "eXIf", "sPLT", "IDAT", "IEND"]);
-  assert.equal(pngMetadata(harmless).texts.length, 3);
+  assert.deepEqual(pngMetadata(harmless).chunks, ["IHDR", "eXIf", "eXIf", "eXIf", "sPLT", "IDAT", "IEND"]);
+  assert.equal(pngMetadata(harmless).texts.length, 4);
   assert.deepEqual(metadataFindings(harmless), []);
 });
 

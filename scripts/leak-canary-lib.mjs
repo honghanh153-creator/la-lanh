@@ -55,7 +55,35 @@ export const NOT_CHECKED = Object.freeze([
 const stripAccents = (text) => text.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D");
 const fold = (text) => String(text).normalize("NFC").toLowerCase();
 
-// Every spelling of a mark that would still identify the value: {kind, forms, clock}.
+const MONTH_WORDS = ["jan(?:uary)?", "feb(?:ruary)?", "mar(?:ch)?", "apr(?:il)?", "may", "june?", "july?", "aug(?:ust)?", "sep(?:t(?:ember)?)?", "oct(?:ober)?", "nov(?:ember)?", "dec(?:ember)?"];
+
+// The birth date as other writers spell it (Codex #768 r2: EXIF writes "YYYY:MM:DD"). A list of
+// fixed spellings always misses one, so the date is matched by its parts: the three part orders
+// (year-month-day, day-month-year, month-day-year) with any one character that is not a letter or
+// a digit between the parts, with or without leading zeros; and the month as a word, in English
+// ("13 Feb 1994", "February 13th, 1994") or Vietnamese ("13 tháng 2 năm 1994", "13 thg 2, 1994").
+// A digit just before or after the date means a longer number, not this date. The patterns run on
+// folded text (lower case), with and without accents.
+function datePatterns({ day, month, year }) {
+  const part = (value) => (Number(value) < 10 ? `0?${Number(value)}` : String(Number(value)));
+  const [d, m, y] = [part(day), part(month), String(year)];
+  const sep = "[^0-9a-z]";
+  const gap = "[^0-9a-z]{0,2}";
+  const word = MONTH_WORDS[Number(month) - 1];
+  const ordinal = "(?:st|nd|rd|th)?";
+  const vietnamese = `th(?:áng|ang|g)\\.?\\s?${m}(?![0-9])${gap}(?:n[aă]m)?`;
+  return [
+    `${y}${sep}${m}${sep}${d}`,
+    `${d}${sep}${m}${sep}${y}`,
+    `${m}${sep}${d}${sep}${y}`,
+    `${d}${ordinal}${gap}${word}${gap}${y}`,
+    `${word}${gap}${d}${ordinal}${gap}${y}`,
+    `${y}${gap}${word}${gap}${d}`,
+    `${d}${gap}${vietnamese}${gap}${y}`,
+  ].map((body) => new RegExp(`(?<![0-9])${body}(?![0-9])`));
+}
+
+// Every spelling of a mark that would still identify the value: {kind, forms, clock, patterns}.
 // In a log line, `clock` marks are searched after the line's own timestamp is masked (see maskLogTime).
 export function buildMarks({ canary = CANARY, placeId = null, secrets = [] } = {}) {
   const { day, month, year, hour, minute } = canary;
@@ -66,8 +94,9 @@ export function buildMarks({ canary = CANARY, placeId = null, secrets = [] } = {
       forms: [
         `${year}-${month}-${day}`, `${day}/${month}/${year}`, `${day}-${month}-${year}`,
         `${day}.${month}.${year}`, `${year}${month}${day}`, `${day}${month}${year}`,
-        `${Number(day)}/${Number(month)}/${year}`, `${year}/${month}/${day}`,
+        `${Number(day)}/${Number(month)}/${year}`, `${year}/${month}/${day}`, `${month}${day}${year}`,
       ],
+      patterns: datePatterns(canary),
     },
     { kind: "birth-time", clock: true, forms: [`${hour}:${minute}`, `${hour}h${minute}`] },
     {
@@ -132,7 +161,9 @@ export function findMarks(text, marks, { logLine = false } = {}) {
   for (const mark of marks) {
     const haystacks = mark.clock ? masked : plain;
     const forms = [...mark.forms, ...mark.forms.map((form) => fold(stripAccents(form)))];
-    if (forms.some((form) => haystacks.some((view) => view.includes(form)))) kinds.push(mark.kind);
+    const spelled = forms.some((form) => haystacks.some((view) => view.includes(form)));
+    const matched = (mark.patterns ?? []).some((pattern) => haystacks.some((view) => pattern.test(view)));
+    if (spelled || matched) kinds.push(mark.kind);
   }
   return kinds;
 }

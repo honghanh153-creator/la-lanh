@@ -34,7 +34,7 @@ Yêu cầu gốc: US-03 AC12 và mục 21 (DoD delta: network, URL, history, log
 | Bộ nhớ trình duyệt | localStorage, sessionStorage, mọi mục trong Cache (địa chỉ, header và nội dung câu trả lời đã lưu), tiêu đề trang |
 | Tên file | tên file khi tải ảnh note, tải Lá Khai Sinh, tải dữ liệu của tôi; tên file app đưa vào bảng chia sẻ; header `Content-Disposition` của mọi câu trả lời |
 | Ảnh chia sẻ | bản SVG mà ảnh được vẽ từ đó, chữ mô tả ảnh (alt), tiêu đề màn, tiêu đề và chữ app đưa vào bảng chia sẻ |
-| Thông tin kèm trong ảnh PNG | mọi phần của file PNG tải về không phải điểm ảnh: chữ (tEXt, zTXt, iTXt), EXIF (cả chữ ghi hai byte mỗi ký tự, hai chiều byte), tên bảng màu gợi ý (sPLT), giờ sửa file, hồ sơ màu, phần lạ |
+| Thông tin kèm trong ảnh PNG | mọi phần của file PNG tải về không phải điểm ảnh: chữ (tEXt, zTXt, iTXt), EXIF (cả chữ ghi hai byte mỗi ký tự, hai chiều byte, và các trường ngày), tên bảng màu gợi ý (sPLT), giờ sửa file, hồ sơ màu, phần lạ |
 
 Về file và ảnh (#691):
 
@@ -44,6 +44,14 @@ Về file và ảnh (#691):
 - Lượt chạy phải lấy được đủ 5 thứ: ảnh note (tải, chia sẻ), Lá Khai Sinh (tải, chia sẻ), file dữ liệu. Thiếu một thứ thì lượt chạy đỏ.
 
 Thân request gửi tới API là đường được phép, nên không bị tìm. Nó chỉ được dùng để chứng minh mỗi dấu đã thật sự tới API. Dấu nào chưa tới API thì lượt chạy đỏ, vì khi đó chưa kiểm được gì.
+
+Ngày sinh được tìm theo từng phần (ngày, tháng, năm), không theo một danh sách cách viết cố định:
+
+- ba thứ tự: năm-tháng-ngày, ngày-tháng-năm, tháng-ngày-năm;
+- giữa các phần là một ký tự bất kỳ không phải chữ hay số (`-`, `/`, `.`, `:`, dấu cách, `_`…), có hoặc không có số 0 đứng đầu; viết liền thì phải đủ số 0;
+- tháng viết bằng chữ, tiếng Anh ("13 Feb 1994", "February 13th, 1994") hoặc tiếng Việt ("13 tháng 2 năm 1994", "13 thg 2, 1994").
+
+Nếu ngay trước hoặc ngay sau có thêm một chữ số thì đó là một số dài hơn, không tính là ngày sinh.
 
 Giờ sinh được tìm ở mọi chỗ, cả khi viết kèm giây. Chỉ một thứ được bỏ qua: giờ ghi ở đầu dòng nhật ký máy chủ khi ngay sau nó là mức của dòng viết hoa (`INFO`, `WARNING`, `ERROR`…), vì đó là giờ của dòng nhật ký chứ không phải dữ liệu. Dòng nhật ký mở đầu bằng một giờ mà không có mức theo sau thì vẫn bị tìm, vì đó có thể chính là giờ sinh. Còn một trường hợp chưa phân biệt được: app in giờ sinh ở đầu dòng rồi viết ngay một chữ mức viết hoa sau nó. Nếu lượt chạy rơi đúng phút trùng giờ sinh giả và app ghi giờ hiện tại vào một chỗ tìm khác, lượt chạy có thể đỏ nhầm; khi đó xem chỗ tìm trong báo cáo rồi mới kết luận.
 
@@ -80,6 +88,22 @@ Tên chỗ tìm dùng được: `server-log`, `request-url`, `request-referer`, 
 Với `web-storage`, dấu được ghi vào Cache thật của trang (trong nội dung một câu trả lời đã lưu), nên lượt chạy chỉ đỏ khi phần đọc bộ nhớ thật sự đọc được nó. Với các chỗ tìm còn lại, dấu được thêm vào danh sách đã thu, nên chỉ thử được phần tìm dấu.
 
 Riêng thông tin kèm trong ảnh PNG có test dựng một file PNG có chèn dấu ở từng loại phần (chữ, chữ nén, EXIF chữ thường và EXIF hai byte mỗi ký tự, tên bảng màu, giờ sửa file, phần lạ) và chờ máy kiểm báo đỏ. Các file thử có mã kiểm (CRC) đúng như file PNG thật.
+
+Bảng ca thử cho thông tin kèm trong ảnh PNG (#691 AC3). Khi thêm một loại phần hoặc một kiểu ghi mới, thêm một dòng ở đây và một ca trong test, trong cùng PR:
+
+| Phần của file PNG | Kiểu ghi được thử | Dấu dùng để thử |
+|---|---|---|
+| tEXt | chữ Latin-1; chữ UTF-8; "Creation Time" kiểu `13 Feb 1994` | ngày sinh, nơi sinh |
+| zTXt, iTXt | chữ nén; ngày kiểu XMP `1994-02-13T…` | chữ an toàn, câu hỏi Tarot, ngày sinh |
+| eXIf, chữ một byte | ImageDescription | ngày sinh |
+| eXIf, trường ngày | DateTime, DateTimeOriginal, DateTimeDigitized, GPSDateStamp (kiểu `1994:02:13`), ở IFD0 và Exif IFD, cả hai chiều byte | ngày sinh |
+| eXIf, chữ hai byte | XPComment, UserComment; hai chiều byte; vị trí chẵn và lẻ | câu hỏi Tarot, chữ an toàn, mood, nơi sinh |
+| sPLT | tên bảng màu | ngày sinh |
+| tIME | giờ sửa file | ngày sinh |
+| Phần lạ | chữ UTF-8 | mood |
+| Thông tin kèm sạch | EXIF có ngày khác, chữ thường, tên bảng màu thường | không được báo |
+
+Ghi lại để lần rà sau không sót: vòng review đầu của #768 đã tìm ra chỗ đọc EXIF còn thiếu (chữ hai byte, tên bảng màu) nhưng chưa thử cách EXIF viết ngày (`YYYY:MM:DD`). Vòng sau mới thấy. Từ đó ngày sinh được tìm theo từng phần như mô tả ở trên, và bảng này liệt kê đủ các trường ngày để rà cả nhóm một lần.
 
 Phần tìm dấu có test riêng, không cần trình duyệt: `node --test scripts/leak-canary-lib.test.mjs` (chạy trong `pnpm collab:test`).
 
