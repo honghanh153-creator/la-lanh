@@ -10,6 +10,8 @@ import string
 
 import pytest
 
+from app.domains.content import copy_approval
+from app.domains.content.copy_approval import CopyEntry, copy_digest, load_registry, parse_registry
 from app.domains.tarot import phrasing, provenance, roles, stance
 from app.domains.tarot.engine import (
     _POSITIONS,
@@ -241,3 +243,63 @@ def test_frames_keep_their_slots_and_codes() -> None:
             assert "core" not in slots(direct)  # framed prose reads the clause, never the field
         if role.field in {roles.RoleField.CORE, roles.RoleField.OPTION}:
             assert all("core_sentence" in slots(f) for f in (*role.frames, *role.roast))
+
+
+# ---------------------------------------------------------------- registry rewrites (journey 21.11)
+
+BLAME = re.compile(r"(?<!\w)(?:giấu|tránh|lừa|che)(?!\w)", re.IGNORECASE)
+SEVEN_SWORDS = phrasing.registry_id("general", "swords-7")
+PREFIX = SEVEN_SWORDS.removesuffix("general.swords-7")
+
+
+def _tarot_core_entries() -> list[CopyEntry]:
+    return [e for key, e in load_registry().items() if key.startswith(PREFIX)]
+
+
+def test_registry_rewrites_name_a_real_card_and_follow_the_overlay_rules() -> None:
+    ids = {card.id for card in all_cards()}
+    entries = _tarot_core_entries()
+    assert SEVEN_SWORDS in {entry.id for entry in entries}
+    for entry in entries:
+        topic, card_id = entry.id.removeprefix(PREFIX).split(".")
+        sentence = entry.text
+        label = (entry.id, sentence)
+        assert topic in phrasing.CORE_SENTENCES and card_id in ids, label
+        assert entry.category == "reading", label
+        assert sentence == sentence.strip() and not sentence.endswith((".", "!", "?")), label
+        assert sentence[:1].islower(), label
+        assert len(sentence.split()) <= 18, label
+        assert not OVERLAY_ADVICE.search(sentence), label
+        assert not BLAME.search(sentence), label
+        assert not any(re.search(p, sentence) for p in roles.DECISION_OR_PREDICTION), label
+        assert not any(marker in sentence for marker in stance.MARKERS.values()), label
+
+
+def test_a_pending_rewrite_keeps_the_current_sentence() -> None:
+    entry = load_registry()[SEVEN_SWORDS]
+    current = phrasing.CORE_SENTENCES["general"]["swords-7"]
+    served = phrasing.core_sentence("swords-7", TarotContext.GENERAL, "x")
+    assert served == (current if entry.status == "pending" else entry.text)
+
+
+def test_an_approved_rewrite_is_what_the_reading_says(monkeypatch: pytest.MonkeyPatch) -> None:
+    text = load_registry()[SEVEN_SWORDS].text
+    approved = {
+        "id": SEVEN_SWORDS,
+        "category": "reading",
+        "text": text,
+        "status": "approved",
+        "approver": "codex",
+        "date": "2026-11-21",
+        "digest": copy_digest(text),
+    }
+    registry = parse_registry({"version": copy_approval.REGISTRY_VERSION, "entries": [approved]})
+    monkeypatch.setattr(copy_approval, "_runtime_registry", lambda: registry)
+
+    assert phrasing.core_sentence("swords-7", TarotContext.GENERAL, "x") == text
+    work = phrasing.CORE_SENTENCES["work"].get("swords-7", "x")
+    assert phrasing.core_sentence("swords-7", TarotContext.WORK, "x") == work
+    reading = _render(TarotSpreadMap.ONE_FOCUS, ("swords-7",), context=TarotContext.GENERAL)
+    assert reading.summary.startswith(f"{phrasing.capitalized(text)}.")
+    assert "đang giấu hoặc tránh nói rõ" not in reading.summary
+    ENGINE.validate(reading)
