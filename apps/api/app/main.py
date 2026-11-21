@@ -284,7 +284,12 @@ def create_app(
                 PostgresResonanceRepository(database.sessions, envelope, erasure_journal)
             )
             app.state.experiment_service = ExperimentService(
-                PostgresExperimentRepository(database.sessions, envelope, erasure_journal)
+                PostgresExperimentRepository(
+                    database.sessions,
+                    envelope,
+                    erasure_journal,
+                    keep_action_all_profiles=resolved_settings.keep_action_all_profiles,
+                )
             )
             app.state.saved_note_service = SavedNoteService(
                 PostgresSavedNoteRepository(database.sessions, envelope, erasure_journal),
@@ -309,6 +314,7 @@ def create_app(
                         resolved_settings.guest_hash_key.get_secret_value().encode()
                     ),
                     daily_variety_from=resolved_settings.daily_variety_from,
+                    keep_action_all_profiles=resolved_settings.keep_action_all_profiles,
                 )
         try:
             yield

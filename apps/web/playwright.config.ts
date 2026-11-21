@@ -23,6 +23,8 @@ export default defineConfig({
   },
   projects: [
     {
+      // Despite the name, the iPhone 13 preset runs WebKit (Safari's engine) at 3x density. On the
+      // Linux CI runner WebKit renders in software and is several times slower than on a Mac (#763).
       name: "mobile-chromium",
       use: { ...devices["iPhone 13"], serviceWorkers: "block" },
     },
