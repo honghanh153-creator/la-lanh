@@ -157,7 +157,7 @@ MOOD_ACTION_CATALOG: dict[str, dict[str, tuple[tuple[str, str, str], ...]]] = {
             ("01", "93e2b89b4fd18b23fc74da28d205b6b595cd4e8da9803e52468b80cbcf45af4b", "boundary"),
         ),
         "decision-fatigue": (
-            ("01", "584571e85c91d4195cd0a370cc4e7c63605dacd3be2d90fd0da4aae5cfd43c5d", "rest"),
+            ("01", "04190eb3e03808a175ed29b0556871dc33a1cca57696732937546c3c93aa2fe3", "rest"),
         ),
         "perfect-before-start": (
             (
@@ -307,18 +307,63 @@ _AMOUNTS = (
 _WORD = re.compile(r"\w+")
 
 
-def within_five_minutes(text: str) -> bool:
-    """False when the sentence names a duration longer than five minutes, or an unclear one."""
+# A spoken minute count right before "phút": "năm", "mười", "mười lăm", "hai mươi", digits.
+_UNITS = {
+    "một": 1, "mốt": 1, "hai": 2, "ba": 3, "bốn": 4, "tư": 4,
+    "năm": 5, "lăm": 5, "sáu": 6, "bảy": 7, "tám": 8, "chín": 9,
+}  # fmt: skip
+_NUMBER_WORDS = frozenset(_UNITS) | _TENS
 
+
+def _spoken_number(tokens: list[str]) -> int | None:
+    """The value of a run of Vietnamese number words, or None when it is not one number."""
+
+    if not tokens:
+        return None
+    if tokens[0] == "mười":
+        tens, rest = 10, tokens[1:]
+    elif len(tokens) >= 2 and tokens[1] == "mươi" and tokens[0] in _UNITS:
+        tens, rest = _UNITS[tokens[0]] * 10, tokens[2:]
+    else:
+        tens, rest = 0, tokens
+    if len(rest) > 1 or (rest and rest[0] not in _UNITS) or (not tens and not rest):
+        return None
+    return tens + (_UNITS[rest[0]] if rest else 0)
+
+
+def _minutes_at(words: list[str], index: int) -> float | None:
+    """Minutes named by the "phút" at ``index``, with a trailing "rưỡi"; None when unclear."""
+
+    start = index
+    while start > 0 and words[start - 1] in _NUMBER_WORDS:
+        start -= 1
+    before = words[index - 1] if index else ""
+    if start == index and before.isdigit():
+        value: float | None = int(before)
+    else:
+        value = _spoken_number(words[start:index])
+    if value is not None and index + 1 < len(words) and words[index + 1] == "rưỡi":
+        value += 0.5
+    return value
+
+
+def _within_minutes(text: str, limit: int) -> bool:
     words = _WORD.findall(unicodedata.normalize("NFC", text).casefold())
     for index, word in enumerate(words):
         amount = words[index - 1] if index else ""
         if word == "phút":
-            if amount not in _UP_TO_FIVE or (index >= 2 and words[index - 2] in _TENS):
+            minutes = _minutes_at(words, index)
+            if minutes is None or minutes > limit:
                 return False
         elif word in {"giờ", "tiếng"} and (amount in _AMOUNTS or amount.isdigit()):
             return False
     return True
+
+
+def within_five_minutes(text: str) -> bool:
+    """False when the sentence names a duration longer than five minutes, or an unclear one."""
+
+    return _within_minutes(text, 5)
 
 
 def issue_key_of(mechanism_key: str | None) -> str | None:
@@ -389,16 +434,7 @@ def mood_store_gaps(issue_keys: Iterable[str]) -> list[str]:
 def within_ten_minutes(text: str) -> bool:
     """False when the sentence names a duration longer than ten minutes, or an unclear one."""
 
-    words = _WORD.findall(unicodedata.normalize("NFC", text).casefold())
-    for index, word in enumerate(words):
-        amount = words[index - 1] if index else ""
-        if word == "phút":
-            short = amount in _UP_TO_FIVE or amount == "mười"
-            if not short or (index >= 2 and words[index - 2] in _TENS | _UP_TO_FIVE):
-                return False
-        elif word in {"giờ", "tiếng"} and (amount in _AMOUNTS or amount.isdigit()):
-            return False
-    return True
+    return _within_minutes(text, 10)
 
 
 def _slot(revision_id: UUID, issue_key: str | None) -> tuple[str, str] | None:
