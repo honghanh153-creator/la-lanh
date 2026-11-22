@@ -36,7 +36,10 @@ export function sameFileHolds(prs, turns) {
 export function trialMerge(a, b, { dir = opsDir(), run = execFileSync } = {}) {
   const git = (args, opts = {}) => run('/usr/bin/git', ['-C', dir, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 120000, ...opts });
   try {
-    git(['fetch', '--quiet', '--no-tags', 'origin', `+refs/pull/${a.number}/head:refs/probe/${a.number}`, `+refs/pull/${b.number}/head:refs/probe/${b.number}`]);
+    // --no-write-fetch-head (Codex r1 on #850): the ops clone is shared, and ops-run.sh and
+    // collab-cron.sh pick the reviewed code to run by reading FETCH_HEAD right after their own fetch of
+    // collab/integration. A probe fetch that rewrote FETCH_HEAD in between would hand them a PR head.
+    git(['fetch', '--quiet', '--no-tags', '--no-write-fetch-head', 'origin',`+refs/pull/${a.number}/head:refs/probe/${a.number}`, `+refs/pull/${b.number}/head:refs/probe/${b.number}`]);
   } catch (error) { return { result: 'unknown', why: `fetch: ${clean(String(error.stderr ?? error.message).split('\n')[0], 160)}` }; }
   try {
     git(['cat-file', '-e', `${a.headRefOid}^{commit}`]);
