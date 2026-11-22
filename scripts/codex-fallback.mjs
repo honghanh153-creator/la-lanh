@@ -20,7 +20,7 @@ import { auditReserve } from './collab-audit.mjs';
 import { groupExec } from './collab-heal.mjs';
 import { claimPr, mayTouch, releasePr } from './collab-pr-claim.mjs';
 import { codeLines, sizeCap } from './collab-size.mjs';
-import { agentMarker, classifyArea, clean, codexFallbackCap, dayCap, dayStatePath, integration, readJson, repo, reviewState, stateDir, vnNow, writeJson } from './collab-trust.mjs';
+import { agentMarker, classifyArea, clean, codexFallbackCap, dayCap, dayStatePath, integration, readJson, repo, reviewState, stateDir, trustedComments, verifyReceipt, vnNow, writeJson } from './collab-trust.mjs';
 import { modePath } from './collab-usage.mjs';
 
 export const fallbackSubCap = codexFallbackCap;
@@ -91,7 +91,33 @@ export function fallbackBrief({ pr, turn, findings = '', conflicts = [], checkTa
 // The latest signed REQUEST_CHANGES at the head: its body is the finding list.
 export function headFindings(pr) {
   const last = reviewState(pr).last;
-  return last?.verdict?.verdict === 'REQUEST_CHANGES' && last.verdict.sha === pr.headRefOid ? String(last.body ?? '') : '';
+  if (last?.verdict?.verdict === 'REQUEST_CHANGES' && last.verdict.sha === pr.headRefOid) return String(last.body ?? '');
+  return secondReviewProblem(pr)?.findings ?? '';
+}
+
+// Owner 22.11.2026 (L69): "tôi cần có phản biện nên ko muốn codex làm 1 mình". A PR Codex fixed in
+// Claude's place merges only after a second critic that is not Codex (Claude, or Gemini on the web
+// driven by a Claude session: scripts/collab-second-review.mjs) approves the same head. An APPROVE
+// counts only with its local receipt; an unsigned REQUEST_CHANGES counts (it can only be stricter).
+export const secondReviewers = ['Claude', 'Gemini'];
+const fixedMark = `${agentMarker} fallback pr=`;
+export const codexFixed = pr => trustedComments(pr.comments).some(c => String(c.body ?? '').includes(fixedMark));
+export function parseSecondReview(body) {
+  const text = String(body ?? '');
+  const v = /^Phản biện: (APPROVE|REQUEST_CHANGES) @ ([0-9a-f]{40})\s*$/m.exec(text);
+  const r = /^Reviewer: (Claude|Gemini)\s*$/m.exec(text);
+  const id = /^Second-receipt: ([0-9a-f]{32})\s*$/m.exec(text);
+  return v && r ? { verdict: v[1], sha: v[2], reviewer: r[1], receipt: id?.[1] ?? null } : null;
+}
+export function secondReviewProblem(pr) {
+  if (!codexFixed(pr)) return null;
+  const last = trustedComments(pr.comments)
+    .map(c => ({ c, s: parseSecondReview(c.body) }))
+    .filter(({ c, s }) => s?.sha === pr.headRefOid && (s.verdict === 'REQUEST_CHANGES' || verifyReceipt({ kind: 'second', pr: pr.number, head: s.sha, base: null, result: s.verdict }, s.receipt, c.url)))
+    .at(-1);
+  if (!last) return { turn: 'hold', reason: 'Codex đã sửa PR này: chờ phản biện thứ hai (Claude hoặc Gemini) @ head' };
+  if (last.s.verdict === 'APPROVE') return null;
+  return { turn: 'claude-fix', reason: `phản biện thứ hai (${last.s.reviewer}) REQUEST_CHANGES @ head`, findings: String(last.c.body ?? '') };
 }
 
 const git = (args, cwd, run) => String(run('/usr/bin/git', args, { cwd, encoding: 'utf8', timeout: 300000, maxBuffer: 64 * 1024 * 1024 })).trim();

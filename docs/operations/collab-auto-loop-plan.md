@@ -199,6 +199,19 @@ Session mà owner đang trực tiếp trò chuyện không bị lịch này ch�
 | REQUEST_CHANGES @ head | Claude (sửa) |
 | APPROVE @ head đủ điều kiện | Merge |
 | Draft / `needs-owner` / xếp chồng chờ PR cha / bị `Bỏ #N` hôm nay | Giữ |
+| Codex đã sửa thay Claude, chưa có phản biện thứ hai @ head | Giữ (chờ Claude hoặc Gemini) |
+
+### 4.4 Chế độ chuyển sang Codex và phản biện thứ hai (owner 22.11.2026)
+
+Owner: "chuyển qua codex khi claude gần hết. giữ 5% claude để duy trì nếu cần" và "tôi cần có phản biện nên ko muốn codex làm 1 mình".
+
+- Từ 95% giới hạn tuần Claude, lượt Claude sửa chuyển sang Codex (`scripts/codex-fallback.mjs`, R1/R8). Codex ghi file trong clone riêng, không mạng, test trước khi push, không force.
+- **Codex không bao giờ vừa sửa vừa duyệt một mình.** PR có dấu `fallback pr=` (Codex đã sửa) cần thêm một dòng `Phản biện: APPROVE @ <head>` với `Reviewer: Claude` hoặc `Reviewer: Gemini`, có biên nhận cục bộ (`Second-receipt:`), trước khi merge. Thiếu thì PR giữ; `REQUEST_CHANGES` thì quay lại lượt sửa.
+- Người phản biện thứ hai do một phiên Claude điều khiển (dùng phần 5% giữ lại, nhẹ nhất có thể):
+  1. `node scripts/collab-second-review.mjs --list` xem PR đang chờ.
+  2. Gemini trên web (owner cho Claude điều khiển 22.11): `node scripts/collab-second-review.mjs --brief N | pbcopy`, mở `gemini.google.com` trong trình duyệt tích hợp (tài khoản owner tự đăng nhập), dán bằng phím, gửi, đọc câu trả lời bằng đọc chữ của trang (không chụp màn hình). Chỉ gửi diff và văn bản PR công khai; không gửi trí nhớ, transcript, file riêng (R14).
+  3. Lưu câu trả lời vào file tạm, rồi `--post N --reviewer Gemini --verdict <theo dòng "Kết luận"> --head <SHA> --notes <file>`. Phiên Claude không tự đổi kết luận của Gemini; thấy Gemini sai rõ thì đăng thêm phản biện của chính Claude (`--reviewer Claude`), lần mới nhất cho head quyết định.
+  4. Còn lượt Claude thì Claude tự phản biện là đủ; Gemini dùng khi Claude gần hết.
 
 `--tick`: chỉ làm việc trong **nhóm ưu tiên đang mở**: nhóm sớm nhất còn việc cho máy (author check, Codex review, merge). PR đang chờ Claude sửa không chặn máy; Claude vẫn sửa theo thứ tự nhóm (sửa 31.10.2026 sau 2 giờ đứng yên): PR quy trình trước, rồi content xong hết mới tới privacy, rồi tính năng mới. Tối đa 2 lượt Codex và 2 merge mỗi lần; giờ được đọc lại trước mỗi việc nên không bắt đầu việc mới từ 23:35 (trước 14.11.2026 là 23:30). Lượt Claude ghi vào `~/.cache/la-lanh-collab/claude-queue.json` cho autopilot.
 

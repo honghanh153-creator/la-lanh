@@ -1216,6 +1216,25 @@
    "closedBy": {
     "pr": 894
    }
+  },
+  {
+   "id": "L69",
+   "title": "Codex must not fix and approve alone: a PR Codex fixed in Claude's place needs a second critic (Claude or Gemini web) on the same head",
+   "from": "owner 22.11.2026: tôi cần có phản biện nên ko muốn codex làm 1 mình",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-second-review.test.mjs",
+    "name": "L69: a PR Codex fixed waits for a second critic that is not Codex; the gate refuses until then"
+   },
+   "caller": {
+    "file": "scripts/collab-merge.mjs",
+    "contains": "const second = secondReviewProblem(pr);"
+   },
+   "closedBy": {
+    "pr": 894
+   }
   }
  ]
 }

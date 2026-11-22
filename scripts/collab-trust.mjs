@@ -116,7 +116,7 @@ const isReceiptId = value => /^[0-9a-f]{32}$/.test(String(value ?? ''));
 // owner-answer (#611, 17.11.2026): a recorded owner answer for some of the owner's four kinds on a PR;
 // its result is the sorted, comma-joined kind list, so the kinds are under the MAC too.
 export const answerKindsRe = /^(?:cost_access|release|sensitive_copy|data_collection)(?:,(?:cost_access|release|sensitive_copy|data_collection)){0,3}$/;
-const receiptKinds = { verdict: ['APPROVE', 'REQUEST_CHANGES'], check: ['PASS', 'FAIL'], 'owner-answer': { includes: r => answerKindsRe.test(String(r ?? '')) && String(r).split(',').join(',') === [...new Set(String(r).split(','))].sort().join(',') } };
+const receiptKinds = { verdict: ['APPROVE', 'REQUEST_CHANGES'], check: ['PASS', 'FAIL'], second: ['APPROVE', 'REQUEST_CHANGES'], 'owner-answer': { includes: r => answerKindsRe.test(String(r ?? '')) && String(r).split(',').join(',') === [...new Set(String(r).split(','))].sort().join(',') } };
 
 function readKey({ create = false } = {}) {
   const path = verdictKeyPath();

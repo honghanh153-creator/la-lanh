@@ -16,6 +16,7 @@ import { withFileLock } from './collab-lock.mjs';
 import { bufferStatus, dailyLaneLabel, queueTopUp, wipCount } from './collab-buffer.mjs';
 import { afterDecision, disputeView, settleDisputes } from './collab-disagree.mjs';
 import { isMain } from './is-main.mjs';
+import { secondReviewProblem } from './codex-fallback.mjs';
 import { activeReservation, followHead, releaseReservation, reserve } from './collab-reservation.mjs';
 
 export { codexDailyCap };
@@ -108,6 +109,9 @@ export function prTurn(pr, { dropped = [], open = [], preflight = {}, baseFiles,
   if (!last || last.sha !== head) return out('codex-review', last ? `verdict cuối cho ${last.sha.slice(0, 7)}` : 'chưa có verdict');
   if (last.verdict === 'REQUEST_CHANGES') return out('claude-fix', 'REQUEST_CHANGES @ head');
   if (state.stale) return out('codex-review', `review lại: ${clean(state.stale, 200)}`);
+  // L69: a PR Codex fixed needs a second critic that is not Codex before it merges.
+  const second = secondReviewProblem(pr);
+  if (second) return out(second.turn, second.reason);
   return out('merge', 'APPROVE @ head');
 }
 

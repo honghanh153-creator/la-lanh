@@ -6,7 +6,7 @@ import { agentMarker, clean, dayStatePath, fixForwardIssue, integration, isOwnPr
 import { afterDecision, disputeView } from './collab-disagree.mjs';
 import { isMain } from './is-main.mjs';
 import { mergeAllowed, releaseReservation, withMergeLock } from './collab-reservation.mjs';
-import { currentMode, fallbackHoldReason, holdForClaude } from './codex-fallback.mjs';
+import { currentMode, fallbackHoldReason, holdForClaude, secondReviewProblem } from './codex-fallback.mjs';
 
 // Merge-queue rules (P1-A/P1-B, 12.11.2026): the latest signed PASS must be for the live tip of
 // collab/integration, and the latest signed APPROVE must be for the head and still valid for that tip
@@ -26,6 +26,9 @@ export function mergeGate(pr, { baseFiles, disputes = disputeView(), mode = 'nor
   // L68: in Codex fallback only a small low-risk PR merges; the rest waits for Claude.
   const fallbackHold = mode === 'fallback' ? fallbackHoldReason(pr) : null;
   if (fallbackHold) reasons.push(fallbackHold);
+  // L69: Codex never fixes and approves alone.
+  const second = secondReviewProblem(pr);
+  if (second) reasons.push(second.reason);
   const deletion = deletionProblem(pr);
   if (deletion) reasons.push(deletion);
   if (pr.mergeable !== 'MERGEABLE') reasons.push(`GitHub báo mergeable=${pr.mergeable}`);
