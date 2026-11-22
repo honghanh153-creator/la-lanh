@@ -1368,6 +1368,22 @@
    "closedBy": {
     "pr": 903
    }
+  },
+  {
+   "id": "L76",
+   "title": "One command chains author check, Codex review and merge for a PR with persisted state, retries with backoff, a 3-hour deadline, at most 2 fix rounds and a stop at 23:35; Claude is woken only for a fix or a decision, with a standard brief for a small fresh session",
+   "from": "owner 22.11.2026: okie bạn làm đi và báo cáo nhé (plan: cut self-wake and session relays, item 3 machine chaining)",
+   "who": "claude",
+   "due": "2026-11-23",
+   "status": "open",
+   "test": {
+    "file": "scripts/collab-chain.test.mjs",
+    "name": "L76: one command runs check → review → merge, waiting through busy steps without waking Claude"
+   },
+   "caller": {
+    "file": "docs/operations/collab-auto-loop-plan.md",
+    "contains": "node scripts/collab-chain.mjs --pr N"
+   }
   }
  ]
 }
