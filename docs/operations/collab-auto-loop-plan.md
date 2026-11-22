@@ -199,19 +199,20 @@ Session mà owner đang trực tiếp trò chuyện không bị lịch này ch�
 | REQUEST_CHANGES @ head | Claude (sửa) |
 | APPROVE @ head đủ điều kiện | Merge |
 | Draft / `needs-owner` / xếp chồng chờ PR cha / bị `Bỏ #N` hôm nay | Giữ |
-| Codex đã sửa thay Claude, chưa có phản biện thứ hai @ head | Giữ (chờ Claude hoặc Gemini) |
+| Codex đã sửa thay Claude, chưa có phản biện thứ hai @ head | Giữ (chờ Antigravity, Claude hoặc Gemini) |
 
 ### 4.4 Chế độ chuyển sang Codex và phản biện thứ hai (owner 22.11.2026)
 
 Owner: "chuyển qua codex khi claude gần hết. giữ 5% claude để duy trì nếu cần" và "tôi cần có phản biện nên ko muốn codex làm 1 mình".
 
 - Từ 95% giới hạn tuần Claude, lượt Claude sửa chuyển sang Codex (`scripts/codex-fallback.mjs`, R1/R8). Codex ghi file trong clone riêng, không mạng, test trước khi push, không force.
-- **Codex không bao giờ vừa sửa vừa duyệt một mình.** PR có dấu `fallback pr=` (Codex đã sửa) cần thêm một dòng `Phản biện: APPROVE @ <head>` với `Reviewer: Claude` hoặc `Reviewer: Gemini`, có biên nhận cục bộ (`Second-receipt:`), trước khi merge. Thiếu thì PR giữ; `REQUEST_CHANGES` thì quay lại lượt sửa.
-- Người phản biện thứ hai do một phiên Claude điều khiển (dùng phần 5% giữ lại, nhẹ nhất có thể):
+- **Codex không bao giờ vừa sửa vừa duyệt một mình.** PR có dấu `fallback pr=` (Codex đã sửa) cần thêm một dòng `Phản biện: APPROVE @ <head>` với `Reviewer: Antigravity`, `Reviewer: Claude` hoặc `Reviewer: Gemini`, có biên nhận cục bộ (`Second-receipt:`), trước khi merge. Thiếu thì PR giữ; `REQUEST_CHANGES` thì quay lại lượt sửa.
+- **Antigravity trước** (owner 22.11: "ưu tiên anti hơn gemini"; L70). Antigravity là ứng dụng agent của Google trên máy owner, không tốn lượt Claude, nên vòng tự động tự chạy: mỗi lượt tick một bước (`scripts/collab-antigravity.mjs`, cả khi không ở chế độ chuyển sang Codex). Bước 1 mở một cuộc trò chuyện (`agentapi new-conversation --model=pro`) với diff PR công khai; các lượt sau đọc câu trả lời qua cổng nội bộ của ứng dụng (token lấy từ file daemon vào env, không in, không ghi log). Câu trả lời chỉ được tính khi Antigravity không dùng công cụ nào (lệnh, file, trình duyệt), dòng đầu đúng mẫu `Kết luận: ...` và có trong 20 phút; sai thì bỏ, PR vẫn giữ, lượt sau mở lại. Kết quả đăng như các phản biện khác (`Reviewer: Antigravity`, có biên nhận). Ứng dụng tắt thì bước này báo lỗi trong log và người phản biện dự phòng dưới đây làm thay.
+- Dự phòng khi Antigravity không chạy: một phiên Claude điều khiển (dùng phần 5% giữ lại, nhẹ nhất có thể):
   1. `node scripts/collab-second-review.mjs --list` xem PR đang chờ.
   2. Gemini trên web (owner cho Claude điều khiển 22.11): `node scripts/collab-second-review.mjs --brief N | pbcopy`, mở `gemini.google.com` trong trình duyệt tích hợp (tài khoản owner tự đăng nhập), dán bằng phím, gửi, đọc câu trả lời bằng đọc chữ của trang (không chụp màn hình). Chỉ gửi diff và văn bản PR công khai; không gửi trí nhớ, transcript, file riêng (R14).
   3. Lưu câu trả lời vào file tạm, rồi `--post N --reviewer Gemini --verdict <theo dòng "Kết luận"> --head <SHA> --notes <file>`. Phiên Claude không tự đổi kết luận của Gemini. Sau một `REQUEST_CHANGES` cho head, head đó không được duyệt nữa: phải có bản sửa mới (head mới) rồi phản biện lại (Gemini tìm ra lỗ này ở lần phản biện đầu, 22.11). Bất đồng kéo dài đi theo R4.
-  4. Còn lượt Claude thì Claude tự phản biện là đủ; Gemini dùng khi Claude gần hết.
+  4. Còn lượt Claude thì Claude tự phản biện là đủ; Gemini web dùng khi Claude gần hết và Antigravity không chạy.
 
 `--tick`: chỉ làm việc trong **nhóm ưu tiên đang mở**: nhóm sớm nhất còn việc cho máy (author check, Codex review, merge). PR đang chờ Claude sửa không chặn máy; Claude vẫn sửa theo thứ tự nhóm (sửa 31.10.2026 sau 2 giờ đứng yên): PR quy trình trước, rồi content xong hết mới tới privacy, rồi tính năng mới. Tối đa 2 lượt Codex và 2 merge mỗi lần; giờ được đọc lại trước mỗi việc nên không bắt đầu việc mới từ 23:35 (trước 14.11.2026 là 23:30). Lượt Claude ghi vào `~/.cache/la-lanh-collab/claude-queue.json` cho autopilot.
 

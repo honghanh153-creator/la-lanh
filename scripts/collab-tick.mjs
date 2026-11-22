@@ -24,6 +24,7 @@ import { noteTickGap, tickGapSubject } from './collab-tick-gap.mjs';
 import { areaWatch, areaWatchSubject } from './collab-area-label.mjs';
 import { paceSubject, usageTick } from './collab-usage.mjs';
 import { currentMode, fallbackStep } from './codex-fallback.mjs';
+import { runAntigravity } from './collab-antigravity.mjs';
 
 const auditDeps = await loadAuditDeps();
 // The tick's night audit, with the promise register and the disagreement log (L22) wired in.
@@ -83,7 +84,13 @@ export function runTick(gh = makeGh(), preflight = () => missingTools(), { run =
     audit: () => nightAudit(gh),
     incidents: () => realSources(gh, vnNow().date).alerts(),
     mergeAudit: options => runMergeAudit(options),
-    fallback: ({ turns, prs }) => fallbackStep({ gh, mode: usageNow()?.mode ?? currentMode(), turns, prs, log }) });
+    // L70: Antigravity reviews PRs Codex fixed (any mode: it costs no Claude); then the Codex fix step.
+    fallback: ({ turns, prs }) => {
+      let second = null;
+      try { second = runAntigravity({ gh, prs, log }); } catch (error) { log(`antigravity failed: ${clean(error.message, 200)}`); }
+      const fix = fallbackStep({ gh, mode: usageNow()?.mode ?? currentMode(), turns, prs, log });
+      return second || fix ? { second, fix } : null;
+    } });
 }
 
 if (isMain(import.meta.url)) {

@@ -1235,6 +1235,25 @@
    "closedBy": {
     "pr": 894
    }
+  },
+  {
+   "id": "L70",
+   "title": "Antigravity first as the second critic: the loop runs it without Claude, and an answer counts only when no tool was used",
+   "from": "owner 22.11.2026: tôi vừa bật antigravity trên máy cũng có thể sử dụng để phản biện và làm các PR, ưu tiên anti hơn gemini",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-antigravity.test.mjs",
+    "name": "L70: one step per tick: start, wait, then post a signed second review that the gate counts"
+   },
+   "caller": {
+    "file": "scripts/collab-tick.mjs",
+    "contains": "second = runAntigravity({ gh, prs, log });"
+   },
+   "closedBy": {
+    "pr": 894
+   }
   }
  ]
 }

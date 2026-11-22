@@ -24,8 +24,8 @@ const ghFor = state => ({
 test('L69: a PR Codex fixed waits for a second critic that is not Codex; the gate refuses until then', () => {
   assert.equal(secondReviewProblem(pr([])), null, 'a PR Claude wrote needs no second critic');
   assert.equal(codexFixed(pr()), true);
-  assert.deepEqual(secondReviewProblem(pr()), { turn: 'hold', reason: 'Codex đã sửa PR này: chờ phản biện thứ hai (Claude hoặc Gemini) @ head' });
-  assert.ok(mergeGate(pr(), { disputes: {} }).reasons.includes('Codex đã sửa PR này: chờ phản biện thứ hai (Claude hoặc Gemini) @ head'));
+  assert.deepEqual(secondReviewProblem(pr()), { turn: 'hold', reason: 'Codex đã sửa PR này: chờ phản biện thứ hai (Antigravity, Claude hoặc Gemini) @ head' });
+  assert.ok(mergeGate(pr(), { disputes: {} }).reasons.includes('Codex đã sửa PR này: chờ phản biện thứ hai (Antigravity, Claude hoặc Gemini) @ head'));
   assert.ok(!mergeGate(pr([]), { disputes: {} }).reasons.some(r => /phản biện thứ hai/.test(r)));
   assert.deepEqual(waiting([pr(), { ...pr([]), number: 902 }]).map(p => p.number), [901]);
   const untrusted = { ...comment(`Phản biện: APPROVE @ ${SHA}\nReviewer: Gemini`, '2026-11-22T09:00:00Z'), authorAssociation: 'NONE' };
