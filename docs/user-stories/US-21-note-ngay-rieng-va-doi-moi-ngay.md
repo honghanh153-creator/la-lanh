@@ -71,6 +71,18 @@ cho phép.
     hai ngày liền kề trùng tối đa 40% trên 5 trục (tình huống, tiêu đề, cảnh, việc nhỏ, transit).
   - **Giới hạn:** phép tính dùng góc nhìn (lens) hiện tại và catalog hiện hành; đổi lens, đổi lá số hoặc
     đổi catalog là một chuỗi mới.
+- **AC05 (mới, từ ngày bật `daily_topic_schedule_from`; plan `docs/plans/2026-11-21-daily-topic-anti-repeat.md`, #841, #855):**
+  Tình huống của ngày D lấy trong pool xếp hạng của ngày D, tối đa 6 tình huống đủ điều kiện. Chọn tình huống đầu tiên
+  theo thứ tự xoay cố định riêng của người đó (bắt đầu từ vị trí của ngày) mà người đó **chưa gặp trong 6 ngày trước**.
+  Nếu không có, chọn tình huống gặp lâu nhất. "Đã gặp" là kết quả của chính phép chọn này ở các ngày trước trong khối
+  12 ngày của người đó, **tính lại** từ lá số, transit từng ngày và seed. Không đọc lịch sử, không lưu, không gửi gì
+  (giữ quyết định owner 21.10). Mỗi khối bắt đầu rỗng, nên lịch sử khớp tuyệt đối với cái đã phục vụ. Pool không đổi
+  (giờ gần đúng, chỉ có ngày sinh) xoay đều theo ngày như AC05 cũ. Người chỉ có ngày sinh đếm lượt xuất hiện bằng
+  `day_index // cỡ pool` (toàn cục), nên AC03 giữ nguyên.
+  - **Bằng chứng (200 người giả × 29 ngày):** chủ đề lặp trong 3 ngày 30,3% → 21,2% (giờ chính xác 24,0% → 7,0%);
+    trong 7 ngày 79,5% → 73,2%; tiêu đề lặp trong 7 ngày 11,9% → 8,4%; trung vị số chủ đề trong 14 ngày 3 → 4.
+  - **Giới hạn:** lặp trong 7 ngày bị chặn bởi số tình huống đủ điều kiện (trung bình 2,3 mỗi ngày). Mở rộng pool ở
+    #847, #848, #849, #851 (câu chờ duyệt).
 - **AC06:** Ngày bị ép ngoại lệ D thì D+1 ở đúng vị trí danh nghĩa (không dịch). Báo cáo có số lượt và
   tỷ lệ ngoại lệ. *(Phản ví dụ của Codex)*
 
@@ -84,6 +96,12 @@ cho phép.
     huống vì cung và nguyên tố cho cùng một tình huống. Mặt Trời ở ranh giới hai cung chưa được gì
     thêm. Chưa có: tính chất, các hành tinh khác chắc cung từ ngày sinh, transit chắc chắn; nên
     chưa tới 4–6.
+  - *Trạng thái 20.11.2026 (chạy thử người dùng cũ):* thêm **tính chất** của cung Mặt Trời
+    (`SUN_MODALITY_ISSUES`: thống lĩnh → đổi kế hoạch, kiên định → nói rõ nhu cầu, linh hoạt →
+    mở nhiều việc cùng lúc), xếp dưới nguyên tố, cùng một yếu tố Mặt Trời theo ngày sinh. 6 cung
+    có 3 tình huống, 6 cung (Bạch Dương, Kim Ngưu, Song Tử, Cự Giải, Bọ Cạp, Bảo Bình) có 2; không
+    cung nào còn 1.
+    Không thêm câu chữ mới. Vẫn chưa có: các hành tinh khác chắc cung, transit chắc chắn.
 - **AC08:** Không dùng Mặt Trăng, cung mọc, nhà. Bài ghi rõ là bản đọc từ ngày sinh.
   - Câu nói về **pha** chỉ hiện khi pha chắc trên miền ngày sinh (`phase_allowed`).
   - "Ngày N" theo AC09.

@@ -97,3 +97,10 @@
 .clab__matrix table { border-collapse: collapse; }
 .clab__matrix th { padding: 4px 6px; font-size: 12px; text-align: center; white-space: nowrap; }
 .clab__matrix td { padding: 4px; text-align: center; }
+
+.clab__pixel { display: grid; gap: 12px; justify-items: center; max-width: 960px; margin: 16px auto 0; padding: 16px; border-radius: 24px; background: linear-gradient(180deg, #fffdf6 0%, #f1ebff 100%); box-shadow: 0 8px 28px rgba(75, 39, 143, .1); }
+.clab__pixel h2 { justify-self: stretch; margin: 0; font-size: 18px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; }
+.clab__pixel h2 small { color: var(--clab-violet); font-size: 13px; font-weight: 600; }
+.clab__pixel-stage { display: grid; place-items: center; min-height: 200px; }
+.clab__pixel-table { border-collapse: collapse; font-size: 13px; }
+.clab__pixel-table th, .clab__pixel-table td { padding: 4px 10px; text-align: left; }
