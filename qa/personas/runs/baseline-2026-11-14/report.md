@@ -18,12 +18,12 @@ Ngưỡng: `persona-thresholds-v1-2026-11-14` (qa/personas/thresholds.md). Code:
 
 ## Lặp lại theo dữ liệu đã nhập
 
-| Nhóm | Người | Khung 14 ngày đạt ≥5 chuyện | Trung vị chuyện/14 ngày | Ngày lặp tiêu đề (7 ngày) | Lời của Lá lặp |
-| --- | --- | --- | --- | --- | --- |
-| tất cả | 100 | 9.5% | 1.0 | 1479 | 94% |
-| chỉ ngày sinh | 30 | 0% | 1.0 | 690 | 100% |
-| giờ khoảng | 20 | 0% | 1.0 | 460 | 100% |
-| giờ + nơi chính xác | 50 | 19% | 4.0 | 329 | 88.1% |
+| Nhóm | Người | Khung 14 ngày đạt ≥5 chuyện | Trung vị chuyện/14 ngày | Chủ đề lặp trong 3 ngày | Chủ đề lặp trong 7 ngày | Ngày lặp tiêu đề (7 ngày) | Tiêu đề lặp trong 14 ngày | Chủ đề quay lại cùng tiêu đề | Lời của Lá lặp |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| tất cả | 100 | 9.5% | 1.0 | 63.4% | 86.5% | 1479 | 64.4% | 0.9% | 94% |
+| chỉ ngày sinh | 30 | 0% | 1.0 | 96.6% | 96.6% | 690 | 79.3% | 0% | 100% |
+| giờ khoảng | 20 | 0% | 1.0 | — | — | 460 | 79.3% | — | 100% |
+| giờ + nơi chính xác | 50 | 19% | 4.0 | 45.4% | 81.1% | 329 | 49.6% | 1.4% | 88.1% |
 
 ## Mood
 
