@@ -4,7 +4,7 @@
  "from": "phiên điều phối 22.11 (xung đột lặp lại ở scripts/collab-lessons.json)",
  "who": "claude",
  "due": "2026-11-23",
- "status": "open",
+ "status": "done",
  "test": {
   "file": "scripts/collab-lessons.test.mjs",
   "name": "L65: lessons in scripts/lessons/ and the old file form one register; a duplicate id or a misnamed file is a problem, and due dates and Codex-confirmed closes cover both"
@@ -12,5 +12,8 @@
  "caller": {
   "file": "scripts/collab-lessons.mjs",
   "contains": "const files = existsSync(dir) ? readdirSync(dir).filter(f => f.endsWith('.json')).sort() : [];"
+ },
+ "closedBy": {
+  "pr": 887
  }
 }
