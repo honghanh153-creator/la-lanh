@@ -12265,6 +12265,186 @@
    "status": "pending"
   },
   {
+   "id": "lighter.slow.missing-context.01",
+   "category": "reading",
+   "text": "Đọc lại tin nhắn một lần nữa thật chậm, trước khi đoán ý người gửi.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.slow.too-many-open-loops.01",
+   "category": "reading",
+   "text": "Ngồi yên một phút rồi mới mở thêm việc mới.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.slow.changed-plan.01",
+   "category": "reading",
+   "text": "Đợi năm phút rồi mới báo đổi kế hoạch cho người khác.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.slow.comparison-loop.01",
+   "category": "reading",
+   "text": "Tắt trang đang xem người khác rồi thở chậm năm hơi.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.slow.automatic-caretaking.01",
+   "category": "reading",
+   "text": "Trước khi nhận giúp ai, đếm chậm đến mười rồi mới trả lời.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.slow.decision-fatigue.01",
+   "category": "reading",
+   "text": "Ghi quyết định đó ra giấy, đợi năm phút rồi mới chọn.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.slow.perfect-before-start.01",
+   "category": "reading",
+   "text": "Đọc lại bản nháp một lần thật chậm, không sửa chữ nào.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.slow.group-pressure.01",
+   "category": "reading",
+   "text": "Chưa trả lời nhóm vội, đợi năm phút rồi mới gõ.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.slow.avoid-small-conflict.01",
+   "category": "reading",
+   "text": "Thở chậm năm hơi trước khi nói điều làm bạn khó chịu.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.slow.defend-old-choice.01",
+   "category": "reading",
+   "text": "Nghe người kia nói hết rồi mới trả lời, không ngắt lời.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.slow.capacity-before-agreement.01",
+   "category": "reading",
+   "text": "Khi có người nhờ, hẹn trả lời sau năm phút thay vì nhận ngay.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.slow.quick-reply.01",
+   "category": "reading",
+   "text": "Đợi mười phút rồi mới gửi câu trả lời đang gõ dở.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.slow.repair-reply.01",
+   "category": "reading",
+   "text": "Ngồi yên một phút trước khi nhắn thêm để chữa câu vừa gửi.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.slow.specific-feedback.01",
+   "category": "reading",
+   "text": "Đọc lại lời góp ý một lần thật chậm, trước khi trả lời.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.slow.name-the-need.01",
+   "category": "reading",
+   "text": "Ngồi yên một phút và hỏi mình đang cần gì lúc này.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.clear.missing-context.01",
+   "category": "reading",
+   "text": "Viết một câu hỏi ngắn để hỏi lại phần bạn còn chưa rõ.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.clear.too-many-open-loops.01",
+   "category": "reading",
+   "text": "Chọn một việc đang dở và làm tiếp đúng một bước nhỏ của nó.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.clear.changed-plan.01",
+   "category": "reading",
+   "text": "Ghi ra một dòng: kế hoạch mới bắt đầu từ việc gì.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.clear.comparison-loop.01",
+   "category": "reading",
+   "text": "Viết ra một việc nhỏ bạn đã làm xong hôm qua.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.clear.automatic-caretaking.01",
+   "category": "reading",
+   "text": "Ghi ra một việc của chính bạn cần xong trong hôm nay.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.clear.decision-fatigue.01",
+   "category": "reading",
+   "text": "Viết hai lựa chọn ra giấy rồi gạch bớt một cái.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.clear.perfect-before-start.01",
+   "category": "reading",
+   "text": "Gửi bản nháp đang có cho một người, ghi rõ đây là bản chưa xong.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.clear.group-pressure.01",
+   "category": "reading",
+   "text": "Viết ra một câu nói rõ ý của bạn trước khi vào nhóm.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.clear.avoid-small-conflict.01",
+   "category": "reading",
+   "text": "Viết ra đúng một câu bạn muốn người kia biết.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.clear.defend-old-choice.01",
+   "category": "reading",
+   "text": "Viết ra một kết quả mới bạn cần kiểm tra lại trong hôm nay.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.clear.capacity-before-agreement.01",
+   "category": "reading",
+   "text": "Mở lịch hôm nay và đánh dấu một khoảng trống thật sự.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.clear.quick-reply.01",
+   "category": "reading",
+   "text": "Gõ câu trả lời vào ghi chú trước, đọc lại một lần rồi mới gửi.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.clear.repair-reply.01",
+   "category": "reading",
+   "text": "Gửi một câu ngắn nói rõ ý bạn muốn nói lúc nãy.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.clear.specific-feedback.01",
+   "category": "reading",
+   "text": "Hỏi người góp ý đúng một câu: nên sửa chỗ nào trước.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.clear.name-the-need.01",
+   "category": "reading",
+   "text": "Viết ra một việc cụ thể bạn muốn được giúp.",
+   "status": "pending"
+  },
+  {
    "id": "privacy.radar.landing-no-notify",
    "category": "privacy",
    "text": "Không gửi link, không tạo hồ sơ cho người ấy, không đưa họ vào danh sách tìm người.",

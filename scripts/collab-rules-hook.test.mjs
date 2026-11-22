@@ -56,24 +56,44 @@ test('rules hook: a long session gets a changed rule on its next prompt or tool 
 test('rules hook: a sub-agent and its parent each get a changed rule, keyed by agent', () => {
   const { home, repo, publish } = fixture();
   run(home, { hook_event_name: 'SessionStart', source: 'startup', session_id: 's1', cwd: repo });
-  assert.match(ctx(run(home, { hook_event_name: 'PostToolUse', session_id: 's1', agent_id: 'a1', cwd: repo, tool_name: 'Bash' })), /Luật owner đang hiệu lực/);
+  assert.match(ctx(run(home, { hook_event_name: 'PostToolUse', session_id: 's1', agent_id: 'a1', cwd: repo, tool_name: 'Bash' })), /^Luật owner bản [0-9a-f]+: docs\/operations\/luat-dang-hieu-luc\.md/);
   publish(sheet.replace(R9, R9.replace('Làm tới 23:59.', 'Làm tới 23:59, kể cả cuối tuần.')));
-  assert.match(ctx(run(home, { hook_event_name: 'PostToolUse', session_id: 's1', agent_id: 'a1', cwd: repo, tool_name: 'Bash' })), /vừa đổi .*R9/);
+  assert.match(ctx(run(home, { hook_event_name: 'PostToolUse', session_id: 's1', agent_id: 'a1', cwd: repo, tool_name: 'Bash' })), /vừa đổi: R9/);
   assert.equal(run(home, { hook_event_name: 'PostToolUse', session_id: 's1', agent_id: 'a1', cwd: repo, tool_name: 'Bash' }), null);
   const parent = run(home, { hook_event_name: 'PostToolUse', session_id: 's1', cwd: repo, tool_name: 'Bash' });
   assert.match(ctx(parent), /vừa đổi .*dòng đổi: R9/, 'the parent still gets the change after the child saw it');
-  assert.match(ctx(run(home, { hook_event_name: 'PostToolUse', session_id: 's1', agent_id: 'a2', cwd: repo, tool_name: 'Bash' })), /kể cả cuối tuần/);
+  assert.match(ctx(run(home, { hook_event_name: 'PostToolUse', session_id: 's1', agent_id: 'a2', cwd: repo, tool_name: 'Bash' })), new RegExp(`bản ${rulesVersion(sheet.replace(R9, R9.replace('Làm tới 23:59.', 'Làm tới 23:59, kể cả cuối tuần.')))}`));
   // An unsafe agent id never shares or overwrites the parent's record.
   assert.equal(run(home, { hook_event_name: 'PostToolUse', session_id: 's1', agent_id: '../s1', cwd: repo, tool_name: 'Bash' })?.hookSpecificOutput?.hookEventName ?? 'PostToolUse', 'PostToolUse');
   assert.equal(run(home, { hook_event_name: 'PostToolUse', session_id: 's1', cwd: repo, tool_name: 'Bash' }), null);
 });
 
-test('rules hook: resume, clear and compact deliver again even when the version did not change', () => {
-  const { home, repo } = fixture();
+test('rules hook: clear and compact deliver the full sheet again; a resume of the same version gets one line', () => {
+  const { home, repo, publish } = fixture();
   run(home, { hook_event_name: 'SessionStart', source: 'startup', session_id: 's1', cwd: repo });
-  for (const source of ['resume', 'clear', 'compact']) {
+  for (const source of ['clear', 'compact']) {
     assert.match(ctx(run(home, { hook_event_name: 'SessionStart', source, session_id: 's1', cwd: repo })), /\| R1 \|/, source);
   }
+  const resumed = ctx(run(home, { hook_event_name: 'SessionStart', source: 'resume', session_id: 's1', cwd: repo }));
+  assert.equal(resumed.split('\n').length, 1);
+  assert.match(resumed, new RegExp(`^Luật owner bản ${rulesVersion(sheet)}: `));
+  // A resume after the hash moved gets the full new sheet.
+  publish(sheet.replace(R9, R9.replace('Làm tới 23:59.', 'Làm tới 23:59, kể cả cuối tuần.')));
+  assert.match(ctx(run(home, { hook_event_name: 'SessionStart', source: 'resume', session_id: 's1', cwd: repo })), /vừa đổi .*R9[\s\S]*kể cả cuối tuần/);
+});
+
+// L66 (22.11.2026): one session received up to 20 full copies, mostly one per sub-agent.
+test('L66: a session with many sub-agents gets the full sheet once; the rest are one-line pointers', () => {
+  const { home, repo } = fixture();
+  const outs = [run(home, { hook_event_name: 'SessionStart', source: 'startup', session_id: 's1', cwd: repo })];
+  for (let i = 0; i < 12; i++) outs.push(run(home, { hook_event_name: 'PostToolUse', session_id: 's1', agent_id: `a${i}`, cwd: repo, tool_name: 'Bash' }));
+  outs.push(run(home, { hook_event_name: 'SessionStart', source: 'resume', session_id: 's1', cwd: repo }));
+  outs.push(run(home, { hook_event_name: 'UserPromptSubmit', session_id: 's1', cwd: repo, prompt: 'x' }));
+  const texts = outs.map(ctx).filter(Boolean);
+  assert.equal(texts.filter(t => t.includes('| R3 |')).length, 1, 'one full copy');
+  for (const t of texts.slice(1)) { assert.equal(t.split('\n').length, 1); assert.ok(t.length < 200, t); }
+  const log = readFileSync(join(home, 'rules', 'deliveries.jsonl'), 'utf8').trim().split('\n').map(l => JSON.parse(l));
+  assert.deepEqual(log.map(d => d.kind), ['full', ...Array(12).fill('pointer'), 'pointer']);
 });
 
 test('rules hook: missing or unsafe session ids never share one "seen" key', () => {
