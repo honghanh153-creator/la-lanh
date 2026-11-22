@@ -36,6 +36,7 @@ from scripts.persona_metrics import (
     repeats_ever,
     repeats_within,
     retention,
+    same_line_on_return,
 )
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -126,6 +127,12 @@ def repetition(
     personas_with_headline_repeat = 0
     la_repeat = la_days = 0
     per_persona_la: list[float] = []
+    # Topic (Daily situation) repeats, plan 2026-11-21 (#841): a day counts when its situation
+    # was already served in the previous 2 (3-day window) or 6 (7-day window) days.
+    topic_days = topic_3d = topic_7d = 0
+    # #856 (Workflow session): does a returning situation bring back its last headline?
+    returns = returns_same = 0
+    headline_repeat_14 = headline_days = 0
     n = 0
     for pid in ids:
         rows = rows_by_p[pid]
@@ -135,7 +142,16 @@ def repetition(
             for r in rows
         ]
         windows.extend(distinct_in_windows(sit, 14))
+        topics = [r.get("situation") for r in rows]
+        topic_days += sum(1 for t in topics if t)
+        topic_3d += repeats_within(topics, 3)
+        topic_7d += repeats_within(topics, 7)
         heads = [r.get("headline") for r in rows]
+        back, same = same_line_on_return([r.get("situation") for r in rows], heads)
+        returns += back
+        returns_same += same
+        headline_repeat_14 += repeats_within(heads, 14)
+        headline_days += sum(1 for h in heads if h)
         rep = repeats_within(heads, 7)
         headline_repeat_days += rep
         personas_with_headline_repeat += rep > 0
@@ -151,7 +167,12 @@ def repetition(
         "windows_ge5_pct": pct(sum(1 for w in windows if w >= 5), len(windows)),
         "situations_per_14d_median": statistics.median(windows) if windows else None,
         "situations_per_14d_min": min(windows) if windows else None,
+        "topic_repeat_3d_pct": pct(topic_3d, topic_days),
+        "topic_repeat_7d_pct": pct(topic_7d, topic_days),
         "headline_repeat_days": headline_repeat_days,
+        "headline_repeat_14d_pct": pct(headline_repeat_14, headline_days),
+        "situation_returns": returns,
+        "same_headline_on_return_pct": pct(returns_same, returns),
         "personas_with_headline_repeat": personas_with_headline_repeat,
         "la_line_repeat_pct": pct(la_repeat, la_days),
         "la_line_repeat_median_persona_pct": round(100 * statistics.median(per_persona_la), 1)
@@ -544,10 +565,14 @@ def render(m: Mapping[str, Any], title: str) -> str:
             "Người",
             "Khung 14 ngày đạt ≥5 chuyện",
             "Trung vị chuyện/14 ngày",
+            "Chủ đề lặp trong 3 ngày",
+            "Chủ đề lặp trong 7 ngày",
             "Ngày lặp tiêu đề (7 ngày)",
+            "Tiêu đề lặp trong 14 ngày",
+            "Chủ đề quay lại cùng tiêu đề",
             "Lời của Lá lặp",
         ),
-        table_row(*["---"] * 6),
+        table_row(*["---"] * 10),
     ]
     for key, label in (
         ("all", "tất cả"),
@@ -561,7 +586,11 @@ def render(m: Mapping[str, Any], title: str) -> str:
                     r["personas"],
                     fmt(r["windows_ge5_pct"]),
                     r["situations_per_14d_median"],
+                    fmt(r["topic_repeat_3d_pct"]),
+                    fmt(r["topic_repeat_7d_pct"]),
                     r["headline_repeat_days"],
+                    fmt(r["headline_repeat_14d_pct"]),
+                    fmt(r["same_headline_on_return_pct"]),
                     fmt(r["la_line_repeat_pct"]),
                 )
             )

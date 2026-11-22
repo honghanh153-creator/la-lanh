@@ -63,7 +63,10 @@ const unreviewed = (registry, rejected) => selectPending(registry).filter(e => r
 // approved) sat behind about 500 bundle lines and no persona ever saw one. Copy that a finished
 // feature waits on goes first; the rest keeps registry order. The same holds for the rewrites of the
 // Daily headlines that say the reader is tired (rewrite.headline.*, #788): code waits only on them.
-export const firstInBatch = [/^lighter\./, /^rewrite\.headline\./];
+// 20.11.2026: "Hỏi về tháng này" (US-25, #794) stays hidden until all of its month.* sentences
+// (answers and screen labels) are approved, and the Khám phá planet lines (insight.everyday.* and insight.watch.*, #775) wait the
+// same way; both go first too. Owner-only copy never enters the batch (selectPending).
+export const firstInBatch = [/^lighter\./, /^rewrite\.headline\./, /^month\./, /^insight\.(everyday|watch)\./];
 const rank = e => (firstInBatch.some(re => re.test(String(e.id ?? ''))) ? 0 : 1);
 export const batchFor = (registry, rejected = {}) =>
   unreviewed(registry, rejected).map((e, i) => [rank(e), i, e]).sort((a, b) => a[0] - b[0] || a[1] - b[1]).map(([, , e]) => e).slice(0, batchSize);
