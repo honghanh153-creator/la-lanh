@@ -1356,7 +1356,7 @@
    "from": "owner 22.11.2026: okie bạn làm đi và báo cáo nhé (plan: cut self-wake and session relays, item 4 no relaying through Claude)",
    "who": "claude",
    "due": "2026-11-23",
-   "status": "open",
+   "status": "done",
    "test": {
     "file": "scripts/collab-progress.test.mjs",
     "name": "L75: sessions write progress to one shared board; the report reads it; only blocked or decision asks for a message"
@@ -1364,6 +1364,9 @@
    "caller": {
     "file": "scripts/collab-turn.mjs",
     "contains": "progressLines(readProgress())"
+   },
+   "closedBy": {
+    "pr": 903
    }
   }
  ]
