@@ -254,18 +254,26 @@ export function laneWork({ live, prs = [], incidentKeys = new Set(), kept = new 
   return { work, lane: t => laneOf.get(t) ?? null, lanes, hungry, busy };
 }
 
-// After a tick: a lane with machine work counts one more starved tick unless one of its PRs got a
-// merge, a review or a check that ran (a check left `waiting` behind integration does not count).
+// After a tick: a lane with machine work counts one more starved tick unless one of its PRs made
+// progress: a merge that merged, a review that was posted, a check with a result (PASS or FAIL), or
+// the front synced to integration. Codex auto-1 on #843: a stale PR behind the front reads
+// `ci-pending` every tick from CI (`waiting` in local mode), and a busy, refused, limited or failed
+// call changes nothing; counting those reset the counter each tick, so the lane never went first.
+export const progressed = d => d.merge?.status === 'merged' || d.review?.status === 'posted' || ['PASS', 'FAIL', 'synced'].includes(d.check?.status);
 export function nextStarved({ starved = {}, lanes, busy, done }) {
-  const served = l => done.some(d => lanes[l].some(t => t.number === d.pr) && (d.merge || d.review || (d.check && d.check.status !== 'waiting')));
+  const served = l => done.some(d => lanes[l].some(t => t.number === d.pr) && progressed(d));
   return Object.fromEntries(laneOrder.slice(1).map(l => [l, busy(l) && !served(l) ? (starved[l] ?? 0) + 1 : 0]));
 }
 
-// Two reviews a tick at most; when the process lane has one waiting, one of the two is its.
+// Two reviews a tick at most; when the process lane has one waiting, one of the two is its. Codex
+// auto-1 on #843 (P2): the reserved slot never displaces an incident review; it takes the place of
+// the last non-incident review in the first slots, and none when both slots are incidents.
 export function reviewSlots(list, lane, slots = 2) {
   const i = list.findIndex(t => lane(t) === 'process');
   if (i < slots || list.slice(0, slots).some(t => lane(t) === 'process')) return list;
-  return [...list.slice(0, slots - 1), list[i], ...list.slice(slots - 1).filter((_, j) => j + slots - 1 !== i)];
+  const j = list.slice(0, slots).findLastIndex(t => lane(t) !== 'incident');
+  if (j < 0) return list;
+  return [...list.slice(0, j), list[i], ...list.filter((_, k) => k >= j && k !== i)];
 }
 
 // #508 (Codex 14.11): a FAIL read from CI stayed in claude-fix after the job was re-run and

@@ -762,6 +762,48 @@ test('R7: lanes go incident → 7-week → Daily → process; a lane starved for
   assert.deepEqual(reviewSlots([t(5), t(2), t(4)], lane).map(x => x.number), [5, 2, 4], 'already in a slot: unchanged');
 });
 
+test('L64: a lane counts as served only when its PR made progress; a stale PR reading ci-pending every tick still starves its lane, which then goes first', () => {
+  const t = (number, turn, area = 'content') => ({ number, turn, area, key: `pr:${number}` });
+  const prs = [{ number: 2, labels: [{ name: 'ke-hoach-7-tuan' }] }];
+  const { lanes, busy } = laneWork({ live: [t(2, 'claude-check'), t(5, 'claude-check', 'ops')], prs });
+  const after = done => nextStarved({ starved: { process: 1 }, lanes, busy, done }).process;
+  for (const [why, d] of [
+    ['ci-pending (production CI path)', { check: { status: 'ci-pending' } }], ['waiting (local path)', { check: { status: 'waiting' } }],
+    ['busy check', { check: { status: 'busy' } }], ['refused check', { check: { status: 'refused' } }], ['preflight', { check: { status: 'preflight' } }],
+    ['refused merge', { merge: { status: 'refused' } }], ['empty merge result', { merge: {} }],
+    ['busy review', { review: { status: 'busy' } }], ['usage limit', { review: { status: 'limit' } }], ['review error', { review: { status: 'error' } }],
+  ]) assert.equal(after([{ pr: 5, ...d }]), 2, `${why} is not progress`);
+  for (const [why, d] of [['check PASS', { check: { status: 'PASS' } }], ['check FAIL', { check: { status: 'FAIL' } }], ['front synced', { check: { status: 'synced' } }],
+    ['merged', { merge: { status: 'merged' } }], ['review posted', { review: { status: 'posted' } }]]) assert.equal(after([{ pr: 5, ...d }]), 0, `${why} serves the lane`);
+  // Repeated ticks: the 7-week PR is checked every tick; the stale process PR reads CI pending.
+  const date = '2026-11-05';
+  const open = [
+    pr({ number: 2, title: 'feat(tarot): plan item', labels: [{ name: 'ke-hoach-7-tuan' }] }),
+    pr({ number: 5, title: 'ops(collab): stale process PR', labels: [{ name: 'area:ops' }] }),
+  ];
+  const order = [];
+  const logs = []; const t0 = Date.parse('2026-11-05T11:05:00+07:00');
+  const run = minutes => tick({ gh: plannedGh(open, date), log: l => logs.push(l), nowMs: () => t0 + minutes * 60000, now: { date, hour: 11, minute: 5 }, merge: () => ({}), review: () => ({ status: 'posted' }), heavyFree: () => true,
+    check: n => { order.push(n); return { status: n === 5 ? 'ci-pending' : 'FAIL' }; } });
+  run(0);
+  assert.equal(trust.readJson(trust.dayStatePath(date), {}).laneStarved?.process, 1);
+  run(10);
+  assert.equal(trust.readJson(trust.dayStatePath(date), {}).laneStarved?.process, 2, 'two ticks of ci-pending: still starved');
+  // The 7-week PR took the front in the first tick; its 90-minute reservation protects that CI run.
+  // Once it ends, the starved lane is first and its PR gets the front (sync and reservation).
+  order.length = 0;
+  run(100);
+  assert.equal(order[0], 5, 'the starved process lane goes first after two ticks');
+  assert.ok(logs.some(l => /^reservation #5 until/.test(l)), 'and its PR gets the front');
+});
+
+test('L64: the reserved process review never displaces an incident review', () => {
+  const t = number => ({ number, key: `pr:${number}` });
+  const lane = x => ({ 1: 'incident', 2: 'incident', 3: 'plan7w', 5: 'process' })[x.number];
+  assert.deepEqual(reviewSlots([t(1), t(2), t(5)], lane).map(x => x.number), [1, 2, 5], 'two incidents keep both slots');
+  assert.deepEqual(reviewSlots([t(1), t(3), t(5)], lane).map(x => x.number), [1, 5, 3], 'the process review takes the non-incident slot');
+});
+
 test('r2: every CLI entry loads and exits without hanging on an import cycle', () => {
   for (const [file, args, expect] of [['collab-tick.mjs', ['--self-test'], /collab-tick ok/], ['codex-review.mjs', [], /Usage/], ['collab-merge.mjs', [], /Usage/], ['collab-check.mjs', [], /Usage/]]) {
     const result = spawnSync(process.execPath, [join(import.meta.dirname, file), ...args], { encoding: 'utf8', timeout: 10000, env: { ...process.env, LA_LANH_COLLAB_HOME: trust.stateDir } });
