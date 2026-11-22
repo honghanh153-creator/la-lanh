@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { appendFileSync, mkdirSync, mkdtempSync, readFileSync, utimesSync, writeFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
-  costOf, modeFor, modePath, paceLimit, paceSubject, paceWatch, projectOf, readUsage, scanFile, todayShares, usageHealth, usageLine, usagePath, usageTick,
+  costOf, modeFor, modePath, scanEnabled, scanFlagPath, paceLimit, paceSubject, paceWatch, projectOf, readUsage, scanFile, todayShares, usageHealth, usageLine, usagePath, usageTick,
 } from './collab-usage.mjs';
 import { renderBoard } from './collab-status.mjs';
 import { runTick } from './collab-tick.mjs';
@@ -162,4 +162,20 @@ test('Codex #893: a null, empty or false percent is no reading; a drop across mi
   const cache = readFileSync(join(h, 'state', 'claude-usage-scan.json'), 'utf8');
   assert.doesNotMatch(cache, /msg_secretid|Users|la-lanh|s\.jsonl/);
   assert.match(cache, /[0-9a-f]{16}/);
+});
+
+test('R2(4): the transcript scan is off by default; it reads nothing until the owner creates the flag file', () => {
+  const h = home();
+  reading(h, 40, ago(5));
+  const root = join(h, 'projects', '-Users-x-Documents-la-lanh');
+  mkdirSync(root, { recursive: true });
+  writeFileSync(join(root, 's.jsonl'), line('m1', 'claude-opus-5-5', { output_tokens: 1e6 }));
+  assert.equal(scanEnabled(h), false);
+  const off = usageTick({ home: h, root: join(h, 'projects'), now: NOW });
+  assert.match(off.line, /hôm nay theo dự án: tắt \(chờ owner bật\)/);
+  assert.equal(existsSync(join(h, 'state', 'claude-usage-scan.json')), false, 'no scan cache written while off');
+  writeFileSync(scanFlagPath(h), '');
+  const on = usageTick({ home: h, root: join(h, 'projects'), now: NOW });
+  assert.match(on.line, /hôm nay theo dự án: la-lanh 100%/);
+  assert.equal(existsSync(join(h, 'state', 'claude-usage-scan.json')), true);
 });
