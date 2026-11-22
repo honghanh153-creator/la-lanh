@@ -14,14 +14,35 @@ export const receiptKinds = { tick: 'vòng tự động', 'night-audit': 'soát 
 export const receiptResults = ['ok', 'error', 'skipped'];
 export const receiptsPath = () => join(stateDir, 'run-receipts.jsonl');
 
-export function codeSha(dir = join(stateDir, 'ops'), run = execFileSync) {
+// The commit of the code that is running: the tree this module was loaded from. The tick runs from
+// its own pinned worktree (collab-cron.sh `pin`) while the shared ops tree may move on to a newer
+// commit mid-run, so the shared tree is never the answer (Codex r1 on #858).
+export const codeRoot = join(import.meta.dirname, '..');
+export function codeSha(dir = codeRoot, run = execFileSync) {
   try {
     const sha = String(run('/usr/bin/git', ['-C', dir, 'rev-parse', 'HEAD'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 10000 })).trim();
     return isSha(sha) ? sha : null;
   } catch { return null; }
 }
+// Read once, when the code is loaded, so a later checkout of the same tree cannot rename a run.
+export const runningSha = codeSha();
 
-export function writeRunReceipt({ kind, result, counts = {}, sha = codeSha(), at = new Date(), path = receiptsPath() }) {
+// What a producer's real outcome means for its receipt (Codex r1 on #858).
+// Tick: `locked` is collab-turn.mjs's answer when another tick holds the lock; nothing ran.
+export function tickReceiptResult(status) {
+  const s = String(status ?? '');
+  if (/error/.test(s)) return 'error';
+  return ['locked', 'busy'].includes(s) ? 'skipped' : 'ok';
+}
+// Night audit: no receipt (null) when it neither read nor judged; a Codex failure is an error even
+// though the audit still saves and posts its record (`judged` + codexError).
+export function auditReceiptResult(r) {
+  if (!['judged', 'updated', 'error', 'limit'].includes(r?.status)) return null;
+  if (r.status === 'error' || r.codexError) return 'error';
+  return r.status === 'limit' ? 'skipped' : 'ok';
+}
+
+export function writeRunReceipt({ kind, result, counts = {}, sha = runningSha, at = new Date(), path = receiptsPath() }) {
   if (!receiptKinds[kind]) throw new Error(`unknown receipt kind: ${kind}`);
   if (!receiptResults.includes(result)) throw new Error(`unknown receipt result: ${result}`);
   const numbers = Object.fromEntries(Object.entries(counts).filter(([k, v]) => /^[a-z][a-zA-Z]{0,30}$/.test(k) && Number.isFinite(v)).slice(0, 10));

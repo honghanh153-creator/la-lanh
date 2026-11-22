@@ -23,7 +23,7 @@ import { runNightAudit } from './collab-audit-night.mjs';
 import { noteTickGap, tickGapSubject } from './collab-tick-gap.mjs';
 import { areaWatch, areaWatchSubject } from './collab-area-label.mjs';
 import { probeHolds } from './collab-merge-probe.mjs';
-import { readReceipts, receiptSummary, renderReceipts, writeRunReceipt } from './collab-run-receipt.mjs';
+import { auditReceiptResult, readReceipts, receiptSummary, renderReceipts, tickReceiptResult, writeRunReceipt } from './collab-run-receipt.mjs';
 
 const auditDeps = await loadAuditDeps();
 // The tick's night audit, with the promise register and the disagreement log (L22) wired in.
@@ -74,8 +74,9 @@ export function runTick(gh = makeGh(), preflight = () => missingTools(), { run =
     // Research item 3: a night audit that read or judged anything leaves a receipt.
     audit: () => {
       const r = nightAudit(gh);
-      if (['judged', 'updated', 'error', 'limit'].includes(r?.status)) {
-        try { receipt({ kind: 'night-audit', result: r.status === 'error' ? 'error' : r.status === 'limit' ? 'skipped' : 'ok', counts: { final: r.final ? 1 : 0 } }); } catch {}
+      const outcome = auditReceiptResult(r);
+      if (outcome) {
+        try { receipt({ kind: 'night-audit', result: outcome, counts: { final: r.final ? 1 : 0 } }); } catch {}
       }
       return r;
     },
@@ -86,8 +87,7 @@ export function runTick(gh = makeGh(), preflight = () => missingTools(), { run =
   try { probe({ list: () => planTurns(gh, vnNow()), log }); } catch (error) { log(`merge probe failed: ${clean(error.message, 200)}`); }
   // Research item 3 (owner 21.11): the tick's own receipt, with the commit of the code that ran.
   try {
-    const status = String(result?.status ?? '');
-    receipt({ kind: 'tick', result: /error/.test(status) ? 'error' : status === 'busy' ? 'skipped' : 'ok', counts: { done: Array.isArray(result?.done) ? result.done.length : 0 } });
+    receipt({ kind: 'tick', result: tickReceiptResult(result?.status), counts: { done: Array.isArray(result?.done) ? result.done.length : 0 } });
   } catch (error) { log(`run receipt failed: ${clean(error.message, 200)}`); }
   return result;
 }
