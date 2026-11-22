@@ -1007,6 +1007,177 @@
    "closedBy": {
     "pr": 780
    }
+  },
+  {
+   "id": "L59",
+   "title": "Tài liệu mà script đọc (file luật, prompt review, chuẩn câu chữ) không phải văn bản thuần: đổi nó thì CI chạy test của vòng, không coi là PR chỉ có tài liệu (21.11: #747 chỉ đổi file luật, CI bỏ qua test, file vượt giới hạn của hook và integration đỏ)",
+   "from": "sự cố 21.11, integration đỏ sau #747; hotfix #863",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-pr-check-workflow.test.mjs",
+    "name": "L59: a doc that a script reads runs the loop tests; other docs stay docs-only"
+   },
+   "caller": {
+    "file": ".github/workflows/pr-check.yml",
+    "contains": "grep -rqsF -- \"${f##*/}\" scripts/"
+   },
+   "closedBy": {
+    "pr": 864
+   }
+  },
+  {
+   "id": "L60",
+   "title": "PR sự cố chỉ có nhãn incident (thiếu severity) vẫn được làm trước; chỉ khi ghi rõ severity:P2 trở xuống mới không ưu tiên (21.11: hotfix #863 đứng sau việc thường trong lúc integration đỏ)",
+   "from": "sự cố 21.11 (#747, #863)",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-quota.test.mjs",
+    "name": "L60: an incident PR without a severity goes first; only an explicit P2 or lower does not"
+   },
+   "caller": {
+    "file": "scripts/collab-quota.mjs",
+    "contains": "u.incident ||= serious(labels.map(name => ({ name })));"
+   },
+   "closedBy": {
+    "pr": 864
+   }
+  },
+  {
+   "id": "L61",
+   "title": "PR sự cố trượt kiểm đầu vào (thân PR sai mẫu) thì báo động ngay, không âm thầm nằm ở claude-fix (21.11: hotfix #863 đứng chờ vì gộp nhiều cổng trên một dòng trong lúc integration đỏ)",
+   "from": "sự cố 21.11 (#747, #863)",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-merge-gate.test.mjs",
+    "name": "L61: a preflight failure on an incident PR raises an ops alert at once; other PRs stay quiet"
+   },
+   "caller": {
+    "file": "scripts/collab-tick.mjs",
+    "contains": "try { incidentAlert(pr, result, text => opsAlert(gh, text, incidentPreflightSubject)); } catch {}"
+   },
+   "closedBy": {
+    "pr": 864
+   }
+  },
+  {
+   "id": "L62",
+   "title": "Cổng chặn xoá hàng loạt trên CI chỉ đếm phần PR thật sự đổi (từ điểm tách nhánh); PR chỉ nằm sau bản chung không bị chặn nhầm, PR xoá thật vẫn bị chặn (#852 22.11: báo xoá 921 dòng cho thay đổi +143/−3)",
+   "from": "CI #852 22.11 (phiên điều phối coi là sự cố hàng chung)",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-size.test.mjs",
+    "name": "L62: the CI deletion guard reads only what the PR changes; a branch that is just behind passes, a real mass deletion still fails"
+   },
+   "caller": {
+    "file": "scripts/collab-size.mjs",
+    "contains": "const why = deletionProblem({ files: gitDeletionFiles(base, head, { run: execFileSync }), labels: JSON.parse(labelsJson) });"
+   },
+   "closedBy": {
+    "pr": 872
+   }
+  },
+  {
+   "id": "L55",
+   "title": "Soát đêm xét mỗi lần merge theo luật đang chạy lúc merge: 23 PR merge trước khi có biên nhận ký (#456) bị đếm là thiếu review ngày 15.11, và L11, L13 bị báo thiếu bằng chứng (#828)",
+   "from": "nhìn lại thử nghiệm 3+3 (#829), issue #828 mục 1 và 3",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-audit.test.mjs",
+    "name": "L55: a merge before signed receipts is judged by the rule of its time; after it an unsigned APPROVE still does not count"
+   },
+   "caller": {
+    "file": "scripts/collab-audit.mjs",
+    "contains": "const last = verdictAtMerge(pr);"
+   },
+   "closedBy": {
+    "pr": 838
+   }
+  },
+  {
+   "id": "L56",
+   "title": "Gói bằng chứng soát đêm chứa đủ comment của một ngày bận; phần không vừa thì số ghi là cận dưới; bất đồng soát đêm tìm thấy được ghi vào sổ một lần (#828: 5/7 ngày thử nghiệm không đo được M1 và bất đồng; #738 ngày 19.11 không vào sổ)",
+   "from": "nhìn lại thử nghiệm 3+3 (#829), issue #828 mục 2",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-audit-night.test.mjs",
+    "name": "#828: a final judgement writes the disagreement it found into the log once; a re-run adds nothing"
+   },
+   "caller": {
+    "file": "scripts/collab-audit-night.mjs",
+    "contains": "if (final && record.final && judgement?.result?.unrecorded?.items?.length) recordFound({ date, items: judgement.result.unrecorded.items });"
+   },
+   "closedBy": {
+    "pr": 838
+   }
+  },
+  {
+   "id": "L57",
+   "title": "Tick ngừng từ 30 phút thì ghi một dòng kèm nguyên nhân đọc từ máy (Mac ngủ, khởi động lại hay không rõ); chỉ \"không rõ\" mới báo động (21.11: không có dòng tick nào 07:45–10:04, không ai biết vì sao)",
+   "from": "phiên điều phối 21.11, tick log sáng 21.11",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-tick-gap.test.mjs",
+    "name": "L57: a tick gap is written once with its cause; only an unexplained gap alerts"
+   },
+   "caller": {
+    "file": "scripts/collab-tick.mjs",
+    "contains": "try { gapNote({ log, alert: text => opsAlert(gh, text, tickGapSubject) }); }"
+   },
+   "closedBy": {
+    "pr": 838
+   }
+  },
+  {
+   "id": "L58",
+   "title": "PR vào collab/integration không có nhãn area thì rơi vào nhóm cuối và không bao giờ tới lượt: tick gắn area:ops cho PR chỉ đổi file quy trình, còn lại báo động sau hai tick (21.11: 8 PR quy trình chờ tới ba ngày, chưa lần nào được check hay review)",
+   "from": "phiên điều phối 21.11; soát làn quy trình",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-area-label.test.mjs",
+    "name": "L58: an unlabelled workflow PR is labelled area:ops; any other unlabelled PR alerts after two ticks, once per set"
+   },
+   "caller": {
+    "file": "scripts/collab-tick.mjs",
+    "contains": "try { areaNote({ gh, log, alert: text => opsAlert(gh, text, areaWatchSubject), resolve: text => resolveOpsAlert(gh, text, areaWatchSubject) }); }"
+   },
+   "closedBy": {
+    "pr": 838
+   }
+  },
+  {
+   "id": "L64",
+   "title": "Làn việc chỉ tính là được phục vụ khi PR của nó thật sự tiến (check có kết quả, review đã đăng, merge xong, front được đồng bộ); PR cũ chỉ đọc \"CI chưa xong\" mỗi tick vẫn làm làn bị bỏ đói và lên đầu sau 2 tick (21.11: 8 PR quy trình chờ tới 3 ngày; Codex auto-1 P1 trên #843)",
+   "from": "sự cố làn quy trình bị bỏ đói 21.11; Codex auto-1 trên #843",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-loop.test.mjs",
+    "name": "L64: a lane counts as served only when its PR made progress; a stale PR reading ci-pending every tick still starves its lane, which then goes first"
+   },
+   "caller": {
+    "file": "scripts/collab-turn.mjs",
+    "contains": "laneStarved: nextStarved({ starved: d.laneStarved ?? {}, lanes: lanePlan.lanes, busy: lanePlan.busy, done })"
+   },
+   "closedBy": {
+    "pr": 843
+   }
   }
  ]
 }
