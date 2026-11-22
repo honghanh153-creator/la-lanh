@@ -236,7 +236,7 @@
    },
    "caller": {
     "file": "scripts/collab-merge.mjs",
-    "contains": "mergeGate(pr, { baseFiles: gh.compareFiles })"
+    "contains": "mergeGate(pr, { baseFiles: gh.compareFiles, mode })"
    },
    "closedBy": {
     "pr": 456
@@ -1196,6 +1196,25 @@
    },
    "closedBy": {
     "pr": 893
+   }
+  },
+  {
+   "id": "L68",
+   "title": "Codex fallback: in fallback mode the merge gate holds risky PRs for Claude and Codex fixes claude-fix turns",
+   "from": "owner 22.11.2026 (usage plan), item 1: chuyển qua codex khi claude gần hết, giữ 5% claude",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "done",
+   "test": {
+    "file": "scripts/codex-fallback.test.mjs",
+    "name": "L68: in fallback the merge gate holds a risky PR for Claude; normal mode does not"
+   },
+   "caller": {
+    "file": "scripts/collab-tick.mjs",
+    "contains": "fallbackStep({ gh, mode: usageNow()?.mode ?? currentMode(), turns, prs, log })"
+   },
+   "closedBy": {
+    "pr": 894
    }
   }
  ]
