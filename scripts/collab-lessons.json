@@ -1311,6 +1311,22 @@
    "closedBy": {
     "pr": 900
    }
+  },
+  {
+   "id": "L73",
+   "title": "Spend split by what started the turn (owner, schedule, Autofix, background task, other session, subagent) × context size; scheduled tasks no longer count as background wake-ups; per-PR and per-lot cost use each project's share",
+   "from": "owner 22.11.2026: okie bạn làm đi và báo cáo nhé (plan: cut self-wake and session relays, item 1 measure)",
+   "who": "claude",
+   "due": "2026-11-23",
+   "status": "open",
+   "test": {
+    "file": "scripts/collab-throughput.test.mjs",
+    "name": "L73: spend is split by what started the turn × the context each call carried"
+   },
+   "caller": {
+    "file": "scripts/collab-throughput.mjs",
+    "contains": "split: usageNote?.today?.measured ? usageNote.today : null"
+   }
   }
  ]
 }

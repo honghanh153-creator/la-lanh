@@ -11,8 +11,10 @@
 // - First-pass acceptance over 7 days: a Codex fix (fallback-runs.jsonl) passes when no later Codex fix
 //   was needed on that PR and no review asked for changes on its head; an Antigravity critic run
 //   (antigravity-runs.jsonl) passes when its answer was counted, not dropped.
-// - Share of today's Claude spend started by background-task completions and by messages from other
-//   sessions (collab-usage.mjs `triggerOf`).
+// - Share of today's Claude spend by what started the turn (collab-usage.mjs `triggerOf`), by the
+//   context each call carried, and the costliest pairs (owner plan 22.11 "cắt tự chạy và nhắn qua lại",
+//   L73). Target: calls above 500k context under 10% of spend. Per merged PR and per passed lot use
+//   only that project's share of today's spend.
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { lastSecond } from './codex-fallback.mjs';
@@ -82,16 +84,33 @@ export function mergedToday(gh, now = new Date()) {
 const rate = ({ pass, fail }) => (pass + fail ? `${pct(pass / (pass + fail))} (${pass}/${pass + fail})` : 'chưa có lượt');
 
 // The board lines. Every input is optional; a missing number is said, not guessed.
-export function throughputLines({ budget = {}, merged = null, goVuong = null, codex = null, antigravity = null, triggers = null }) {
+export const TRIGGER_NAMES = { task: 'việc nền xong', session: 'tin phiên khác', owner: 'owner', schedule: 'lịch', autofix: 'Autofix', subagent: 'trợ lý', other: 'khác' };
+export const CTX_NAMES = { '<100k': 'dưới 100k', '100-200k': '100–200k', '200-500k': '200–500k', '>500k': 'trên 500k' };
+export const bigCtxTarget = 0.1;
+const listShares = (shares, names) => Object.entries(names).filter(([k]) => shares[k] > 0.005).map(([k, n]) => `${n} ${pct(shares[k])}`).join(' · ') || 'chưa có';
+export function throughputLines({ budget = {}, merged = null, goVuong = null, codex = null, antigravity = null, split = null, projectShares = null }) {
+  const share = name => (projectShares ? projectShares.find(p => p.project === name)?.share ?? 0 : null);
   const out = [];
   const { today, daily } = budget;
   out.push(`Claude hôm nay: ${today === null || today === undefined ? 'chưa có số' : `${pts(today)} điểm tuần`} / ngân sách ngày ${daily === null || daily === undefined ? 'chưa biết (thiếu giờ đặt lại)' : `${pts(daily)} điểm`}${Number.isFinite(today) && Number.isFinite(daily) && today > daily ? ' ⚠️ vượt' : ''}`);
+  const la = share('la-lanh');
   if (merged === null) out.push('Lá Lành: chưa đọc được số PR merge hôm nay');
-  else out.push(`Lá Lành: ${merged} PR merge hôm nay${merged && Number.isFinite(today) ? ` · ${pts(today / merged)} điểm Claude mỗi PR` : ''}`);
+  else out.push(`Lá Lành: ${merged} PR merge hôm nay${merged && Number.isFinite(today) && la !== null ? ` · ${pts(today * la / merged)} điểm Claude mỗi PR` : ''}`);
   if (!goVuong) out.push('Gỡ Vướng: chưa có file trạng thái');
-  else out.push(`Gỡ Vướng${goVuong.old ? ' (số cũ hơn 3 giờ)' : ''}: ${goVuong.streams.map(s => `${s.name} qua ${s.passedToday} lô, tồn ${s.backlog}, lỡ lịch ${s.missedSchedules}${s.missedSchedules ? ' ⚠️' : ''}`).join('; ') || 'không có luồng'}`);
+  else {
+    const lots = goVuong.streams.reduce((a, s) => a + s.passedToday, 0);
+    const other = share('dự án khác');
+    const perLot = lots && Number.isFinite(today) && other !== null ? ` · ${pts(today * other / lots)} điểm Claude mỗi lô đạt` : '';
+    out.push(`Gỡ Vướng${goVuong.old ? ' (số cũ hơn 3 giờ)' : ''}: ${goVuong.streams.map(s => `${s.name} qua ${s.passedToday} lô, tồn ${s.backlog}, lỡ lịch ${s.missedSchedules}${s.missedSchedules ? ' ⚠️' : ''}`).join('; ') || 'không có luồng'}${perLot}`);
+  }
   out.push(`Đạt ngay lần đầu (7 ngày): Codex sửa ${codex ? rate(codex) : 'chưa có số'} · Antigravity phản biện ${antigravity ? rate(antigravity) : 'chưa có số'}`);
-  out.push(triggers ? `Claude hôm nay do việc nền xong: ${pct(triggers.task ?? 0)} · do tin phiên khác: ${pct(triggers.session ?? 0)}` : 'Claude hôm nay theo nguồn: chưa có số');
+  if (!split) { out.push('Claude hôm nay theo nguồn: chưa có số'); return out; }
+  out.push(`Claude hôm nay theo nguồn: ${listShares(split.triggerShares ?? {}, TRIGGER_NAMES)}`);
+  const big = split.ctxShares?.['>500k'] ?? 0;
+  out.push(`Theo độ dài phiên: ${listShares(split.ctxShares ?? {}, CTX_NAMES)}${big >= bigCtxTarget ? ` ⚠️ trên 500k cần dưới ${pct(bigCtxTarget)}` : ''}`);
+  const top = Object.entries(split.cellShares ?? {}).sort((a, b) => b[1] - a[1]).slice(0, 3).filter(([, v]) => v > 0.005)
+    .map(([k, v]) => { const [t, b] = k.split('|'); return `${TRIGGER_NAMES[t] ?? t} × ${CTX_NAMES[b] ?? b} ${pct(v)}`; });
+  if (top.length) out.push(`Tốn nhất: ${top.join(' · ')}`);
   return out;
 }
 
@@ -109,6 +128,7 @@ function throughputRead({ gh, prs = [], usageNote = null, home = stateDir, now =
     goVuong: readGoVuong(home, now),
     codex: codexFirstPass(recent(readLines(fallbackRunsPath(home)), now), prs),
     antigravity: antigravityFirstPass(recent(readLines(antigravityRunsPath(home)), now)),
-    triggers: usageNote?.today?.measured ? usageNote.today.triggerShares : null,
+    split: usageNote?.today?.measured ? usageNote.today : null,
+    projectShares: usageNote?.today?.measured ? usageNote.today.shares : null,
   });
 }
