@@ -1014,7 +1014,7 @@
    "from": "CI #852 22.11 (phiên điều phối coi là sự cố hàng chung)",
    "who": "claude",
    "due": "2026-11-22",
-   "status": "open",
+   "status": "done",
    "test": {
     "file": "scripts/collab-size.test.mjs",
     "name": "L62: the CI deletion guard reads only what the PR changes; a branch that is just behind passes, a real mass deletion still fails"
@@ -1022,6 +1022,9 @@
    "caller": {
     "file": "scripts/collab-size.mjs",
     "contains": "const why = deletionProblem({ files: gitDeletionFiles(base, head, { run: execFileSync }), labels: JSON.parse(labelsJson) });"
+   },
+   "closedBy": {
+    "pr": 872
    }
   }
  ]
