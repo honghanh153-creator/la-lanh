@@ -3,8 +3,9 @@
 // when Claude is nearly used up ("chuyển qua codex khi claude gần hết. giữ 5% claude để duy trì nếu cần").
 // - Weekly %: the autopilot scheduled task writes {"percent","at"} to state/claude-usage.json each run
 //   (from the desktop app's "Weekly · all models" number). The loop cannot read that number itself.
-// - Mode: below 85% normal, 85–94% saving (Claude only for incident or safety work), 95% or more
-//   fallback (Claude-fix turns go to Codex; 5% stays in reserve). A reading older than 3 hours is
+// - Mode (owner 22.11 "okie 1-2-3", L71): below 75% normal; 75–84% shift (no Claude sample reviews,
+//   fixes go to Codex, reviews to Antigravity); 85–94% saving (Claude only for incidents); 95% or more
+//   fallback (no Claude: Codex, Antigravity and machine checks keep the queues moving; 5% reserve). A reading older than 3 hours is
 //   unknown: the last mode is kept, never a guess.
 // - Today's share per project: local transcripts (~/.claude/projects) priced at the public per-model
 //   API prices. Only a share is shown on the public board (no amounts, R14); other projects are one
@@ -16,6 +17,7 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { readJson, stateDir, vnNow, writeJson } from './collab-trust.mjs';
 
+export const shiftAt = 75;
 export const savingAt = 85;
 export const fallbackAt = 95;
 export const staleMs = 3 * 3600 * 1000;
@@ -27,10 +29,12 @@ export const modePath = (home = stateDir) => join(home, 'state', 'claude-mode.js
 export const scanPath = (home = stateDir) => join(home, 'state', 'claude-usage-scan.json');
 export const projectsRoot = (user = homedir()) => join(user, '.claude', 'projects');
 
-export const MODES = { normal: 'bình thường', saving: 'tiết kiệm', fallback: 'chuyển sang Codex' };
+export const MODES = { normal: 'bình thường', shift: 'chuyển bớt', saving: 'tiết kiệm', fallback: 'chuyển sang Codex' };
+// Modes in which Codex takes Claude's fix turns (L71). Below fallback, incidents stay with Claude.
+export const codexFixModes = ['shift', 'saving', 'fallback'];
 export function modeFor(percent) {
   if (!Number.isFinite(percent)) return null;
-  return percent >= fallbackAt ? 'fallback' : percent >= savingAt ? 'saving' : 'normal';
+  return percent >= fallbackAt ? 'fallback' : percent >= savingAt ? 'saving' : percent >= shiftAt ? 'shift' : 'normal';
 }
 
 // The current mode, from the latest reading. Writes the mode file only on a fresh reading, so a stale
@@ -164,8 +168,9 @@ export function usageLine(usage, today = null) {
 export function usageHealth(usage) {
   const out = [];
   if (!usage.fresh) out.push(`⚠️ Số lượt Claude ${usage.at ? 'cũ hơn 3 giờ' : 'chưa có'}: giữ chế độ ${MODES[usage.mode]}. Tác vụ autopilot ghi số mỗi lượt chạy.`);
-  if (usage.mode === 'saving') out.push(`⚠️ Claude đã dùng ${usage.percent}% tuần: chỉ dùng Claude cho sự cố và việc an toàn.`);
-  if (usage.mode === 'fallback') out.push(`⚠️ Claude đã dùng ${usage.percent}% tuần: lượt sửa của Claude chuyển sang Codex, giữ 5% cho việc gấp.`);
+  if (usage.mode === 'shift') out.push(`⚠️ Claude đã dùng ${usage.percent}% tuần: lượt sửa sang Codex, phản biện sang Antigravity, bỏ lượt Claude kiểm mẫu.`);
+  if (usage.mode === 'saving') out.push(`⚠️ Claude đã dùng ${usage.percent}% tuần: Claude chỉ làm sự cố; lượt sửa khác sang Codex.`);
+  if (usage.mode === 'fallback') out.push(`⚠️ Claude đã dùng ${usage.percent}% tuần: không dùng Claude; Codex, Antigravity và máy chạy tiếp, giữ 5% cho việc gấp.`);
   return out;
 }
 
@@ -181,7 +186,7 @@ export function paceWatch({ usage, alert, home = stateDir }) {
   if (!over) return null;
   const sent = readJson(join(home, 'state', 'claude-pace-alert.json'), {});
   if (sent.day === over.day) return null;
-  alert(`Hôm nay Claude đã dùng thêm ${Math.round(over.gained)}% giới hạn tuần (tuần đang ở ${usage.percent}%). Nhịp đều là ${Math.round(100 / 7)}% mỗi ngày; mức báo là ${Math.round(paceLimit)}%. Từ ${savingAt}% vòng chỉ dùng Claude cho sự cố, từ ${fallbackAt}% chuyển việc sửa sang Codex.`);
+  alert(`Hôm nay Claude đã dùng thêm ${Math.round(over.gained)}% giới hạn tuần (tuần đang ở ${usage.percent}%). Nhịp đều là ${Math.round(100 / 7)}% mỗi ngày; mức báo là ${Math.round(paceLimit)}%. Từ ${shiftAt}% việc sửa sang Codex, phản biện sang Antigravity; từ ${savingAt}% Claude chỉ làm sự cố; từ ${fallbackAt}% không dùng Claude.`);
   writeJson(join(home, 'state', 'claude-pace-alert.json'), { day: over.day, gained: over.gained });
   return over;
 }

@@ -21,7 +21,7 @@ import { groupExec } from './collab-heal.mjs';
 import { claimPr, mayTouch, releasePr } from './collab-pr-claim.mjs';
 import { codeLines, sizeCap } from './collab-size.mjs';
 import { agentMarker, classifyArea, clean, codexFallbackCap, dayCap, dayStatePath, integration, readJson, repo, reviewState, stateDir, trustedComments, verifyReceipt, vnNow, writeJson } from './collab-trust.mjs';
-import { modePath } from './collab-usage.mjs';
+import { codexFixModes, modePath } from './collab-usage.mjs';
 
 export const fallbackSubCap = codexFallbackCap;
 export const fallbackSession = 'codex-fallback';
@@ -110,15 +110,21 @@ export function parseSecondReview(body) {
   const id = /^Second-receipt: ([0-9a-f]{32})\s*$/m.exec(text);
   return v && r ? { verdict: v[1], sha: v[2], reviewer: r[1], receipt: id?.[1] ?? null } : null;
 }
-export function secondReviewProblem(pr) {
-  if (!codexFixed(pr)) return null;
-  const last = trustedComments(pr.comments)
+// The latest counted second review for the live head: a REQUEST_CHANGES, or an APPROVE with its receipt.
+export function lastSecond(pr) {
+  return trustedComments(pr.comments)
     .map(c => ({ c, s: parseSecondReview(c.body) }))
     .filter(({ c, s }) => s?.sha === pr.headRefOid && (s.verdict === 'REQUEST_CHANGES' || verifyReceipt({ kind: 'second', pr: pr.number, head: s.sha, base: null, result: s.verdict }, s.receipt, c.url)))
-    .at(-1);
-  if (!last) return { turn: 'hold', reason: 'Codex đã sửa PR này: chờ phản biện thứ hai (Antigravity, Claude hoặc Gemini) @ head' };
-  if (last.s.verdict === 'APPROVE') return null;
-  return { turn: 'claude-fix', reason: `phản biện thứ hai (${last.s.reviewer}) REQUEST_CHANGES @ head`, findings: String(last.c.body ?? '') };
+    .at(-1) ?? null;
+}
+// L71 (owner 22.11 "okie 1-2-3"): Antigravity critiques every ready PR. Its REQUEST_CHANGES sends any
+// PR back to a fix; its APPROVE is required only where Codex fixed (L69), so a PR Claude wrote is
+// never held when Antigravity is off.
+export function secondReviewProblem(pr) {
+  const last = lastSecond(pr);
+  if (last?.s.verdict === 'REQUEST_CHANGES') return { turn: 'claude-fix', reason: `phản biện thứ hai (${last.s.reviewer}) REQUEST_CHANGES @ head`, findings: String(last.c.body ?? '') };
+  if (last || !codexFixed(pr)) return null;
+  return { turn: 'hold', reason: 'Codex đã sửa PR này: chờ phản biện thứ hai (Antigravity, Claude hoặc Gemini) @ head' };
 }
 
 const git = (args, cwd, run) => String(run('/usr/bin/git', args, { cwd, encoding: 'utf8', timeout: 300000, maxBuffer: 64 * 1024 * 1024 })).trim();
@@ -183,24 +189,29 @@ export function runFallbackFix(turn, { gh, run = execFileSync, exec = null, test
     const head = git(['rev-parse', 'HEAD'], dir, run);
     // No force: a branch that moved meanwhile rejects the push and the fix waits for the next tick.
     git(['push', '--quiet', 'origin', `HEAD:refs/heads/${pr.headRefName}`], dir, run);
-    gh.comment('pr', number, `Codex sửa thay Claude (chế độ chuyển sang Codex, owner 22.11.2026) cho: ${clean(turn.reason, 200)}. Commit mới ${head.slice(0, 12)}; file: ${files.slice(0, 20).join(', ')}. Head mới đi qua Author check và một lượt Codex review read-only như thường.\n\n${agentMarker} fallback pr=${number} head=${head} -->`);
+    gh.comment('pr', number, `Codex sửa thay Claude (Claude tuần đã cao, owner 22.11.2026) cho: ${clean(turn.reason, 200)}. Commit mới ${head.slice(0, 12)}; file: ${files.slice(0, 20).join(', ')}. Head mới đi qua Author check và một lượt Codex review read-only như thường.\n\n${agentMarker} fallback pr=${number} head=${head} -->`);
     try { appendFileSync(join(home, 'fallback-runs.jsonl'), `${JSON.stringify({ pr: number, from: pr.headRefOid, head, reason: turn.reason, at: new Date().toISOString() })}\n`); } catch {}
     log(`fallback fixed #${number} @ ${head.slice(0, 12)}`);
     return { status: 'pushed', pr: number, head };
   } finally { releasePr(number, { session: fallbackSession }); }
 }
 
-// One step per tick (collab-turn.mjs `fallback`). Outside fallback the hold labels come off; in
-// fallback the first claude-fix turn nobody holds goes to Codex.
+// One step per tick (collab-turn.mjs `fallback`). Outside fallback the hold labels come off first.
+// L71 (owner 22.11 "okie 1-2-3"): from 75% of the Claude week the first claude-fix turn nobody holds
+// goes to Codex; below 95% a PR labelled `incident` stays with Claude.
+export const incidentLabel = 'incident';
+const isIncident = pr => (pr?.labels ?? []).some(l => (l.name ?? l) === incidentLabel);
 export function fallbackStep({ gh, mode, turns = [], prs = [], fix = runFallbackFix, log = () => {} }) {
   if (mode !== 'fallback') {
     const held = prs.filter(p => (p.labels ?? []).some(l => (l.name ?? l) === holdLabel));
     for (const p of held) {
       try { gh.raw(['pr', 'edit', String(p.number), '--repo', repo, '--remove-label', holdLabel]); log(`fallback hold removed #${p.number}`); } catch (error) { log(`fallback hold remove failed #${p.number}: ${clean(error.message, 200)}`); }
     }
-    return held.length ? { status: 'released', prs: held.map(p => p.number) } : null;
+    if (held.length) return { status: 'released', prs: held.map(p => p.number) };
   }
-  const next = turns.find(t => t.turn === 'claude-fix' && mayTouch(t.number, fallbackSession).ok);
+  if (!codexFixModes.includes(mode)) return null;
+  const byNumber = new Map(prs.map(p => [p.number, p]));
+  const next = turns.find(t => t.turn === 'claude-fix' && (mode === 'fallback' || !isIncident(byNumber.get(t.number))) && mayTouch(t.number, fallbackSession).ok);
   return next ? fix(next, { gh, log }) : null;
 }
 

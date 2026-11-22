@@ -1,7 +1,9 @@
-// Antigravity as the second critic for PRs Codex fixed (owner 22.11.2026, L70: "tôi vừa bật antigravity
+// Antigravity as the second critic (owner 22.11.2026, L70: "tôi vừa bật antigravity
 // trên máy cũng có thể sử dụng để phản biện ... ưu tiên anti hơn gemini"). Antigravity is Google's agent
 // app on the owner's Mac; it answers without Claude tokens, so the loop can run it while Claude is out.
-// One step per tick: start a conversation for one waiting PR, or read the answer of the one started.
+// L71 (owner 22.11 "okie 1-2-3"): it critiques every ready PR, not only the ones Codex fixed. PRs Codex
+// fixed come first (their merge waits for it), then PRs at Codex review or merge with no critic yet.
+// One step per tick: start a conversation for one PR, or read the answer of the one started.
 // - Start: `agentapi new-conversation` (the app's own CLI) with the public PR diff only (R14).
 // - Read: the app's local HTTP API (GetCascadeTrajectorySteps). The CSRF token comes from the app's
 //   daemon file into the child env only; it is never printed, logged or posted.
@@ -13,8 +15,8 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { readdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import { clean, makeGh, readJson, repo, stateDir, writeJson } from './collab-trust.mjs';
-import { secondReviewProblem } from './codex-fallback.mjs';
+import { clean, isOwnPr, makeGh, readJson, repo, stateDir, writeJson } from './collab-trust.mjs';
+import { lastSecond, secondReviewProblem } from './codex-fallback.mjs';
 import { postSecond, secondBrief } from './collab-second-review.mjs';
 import { isMain } from './is-main.mjs';
 
@@ -44,12 +46,22 @@ export function parseCritic(text) {
   return m ? m[1] : null;
 }
 
+// Open PRs with no second critic for their head, in the order Antigravity takes them.
+const readyTurns = new Set(['codex-review', 'merge']);
+export function secondTargets(prs = [], turns = []) {
+  const ready = new Set(turns.filter(t => readyTurns.has(t.turn)).map(t => t.number));
+  const open = prs.filter(pr => !lastSecond(pr));
+  const held = open.filter(pr => secondReviewProblem(pr)?.turn === 'hold');
+  // Only the owner's own branches (never a fork): the diff goes to an agent that may run commands.
+  return [...held, ...open.filter(pr => ready.has(pr.number) && isOwnPr(pr) && !held.includes(pr))];
+}
+
 // One tick step. Returns what it did, or null when no PR waits for a second critic.
-export function antigravityStep({ gh, prs = [], start, steps, home = stateDir, nowMs = Date.now(), log = () => {} }) {
-  const waiting = prs.filter(pr => secondReviewProblem(pr)?.turn === 'hold');
+export function antigravityStep({ gh, prs = [], turns = [], start, steps, home = stateDir, nowMs = Date.now(), log = () => {} }) {
+  const waiting = secondTargets(prs, turns);
   const all = readJson(statePath(home), {});
   const save = () => writeJson(statePath(home), all);
-  const live = new Map(waiting.map(pr => [String(pr.number), pr]));
+  const live = new Map(prs.filter(pr => !lastSecond(pr)).map(pr => [String(pr.number), pr]));
   for (const n of Object.keys(all)) if (live.get(n)?.headRefOid !== all[n].head) { delete all[n]; log(`antigravity #${n}: head moved or PR no longer waiting, dropped`); }
   const [n, job] = Object.entries(all)[0] ?? [];
   if (job) {
@@ -97,7 +109,7 @@ export function conversationSteps(id, { env = appEnv() } = {}) {
   return JSON.parse(r.stdout)?.steps ?? [];
 }
 
-export const runAntigravity = ({ gh, prs, log }) => antigravityStep({ gh, prs, log, start: (b, t) => startConversation(b, t), steps: id => conversationSteps(id) });
+export const runAntigravity = ({ gh, prs, turns, log }) => antigravityStep({ gh, prs, turns, log, start: (b, t) => startConversation(b, t), steps: id => conversationSteps(id) });
 
 if (isMain(import.meta.url)) {
   if (process.argv.includes('--step')) {

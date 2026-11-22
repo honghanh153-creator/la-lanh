@@ -88,7 +88,7 @@ export function runTick(gh = makeGh(), preflight = () => missingTools(), { run =
     // L70: Antigravity reviews PRs Codex fixed (any mode: it costs no Claude); then the Codex fix step.
     fallback: ({ turns, prs }) => {
       let second = null;
-      try { second = runAntigravity({ gh, prs, log }); } catch (error) { log(`antigravity failed: ${clean(error.message, 200)}`); }
+      try { second = runAntigravity({ gh, prs, turns, log }); } catch (error) { log(`antigravity failed: ${clean(error.message, 200)}`); }
       const fix = fallbackStep({ gh, mode: usageNow()?.mode ?? currentMode(), turns, prs, log });
       return second || fix ? { second, fix } : null;
     } });

@@ -13,7 +13,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { codexDailyCap, codexFallbackCap, cutoffAt, hhmmOf, lastStartAt, planOpensAt } from './collab-trust.mjs';
-import { fallbackAt, savingAt } from './collab-usage.mjs';
+import { fallbackAt, savingAt, shiftAt } from './collab-usage.mjs';
 import { ownerKinds } from './collab-review-policy.mjs';
 import { isMain } from './is-main.mjs';
 
@@ -44,6 +44,7 @@ export const codeFacts = () => ({
   lastStartAt: hhmmOf(lastStartAt),
   cutoffAt: hhmmOf(cutoffAt),
   ownerKinds: [...ownerKinds],
+  claudeShiftAt: shiftAt,
   claudeSavingAt: savingAt,
   claudeFallbackAt: fallbackAt,
   codexFallbackCap,
@@ -75,7 +76,7 @@ export function problems(text, code = codeFacts()) {
   const mentions = [
     ['R8', String(facts.codexDailyCap)],
     // L68: the Claude usage thresholds and the fallback sub-cap.
-    ['R1', `${facts.claudeSavingAt}%`], ['R1', `${facts.claudeFallbackAt}%`], ['R8', `${facts.codexFallbackCap} lần`],
+    ['R1', `${facts.claudeShiftAt}%`], ['R1', `${facts.claudeSavingAt}%`], ['R1', `${facts.claudeFallbackAt}%`], ['R8', `${facts.codexFallbackCap} lần`],
     ['R9', facts.cutoffAt], ['R9', facts.lastStartAt],
     ...(Array.isArray(facts.reportSlots) ? facts.reportSlots.map(s => ['R5', s]) : []),
   ];

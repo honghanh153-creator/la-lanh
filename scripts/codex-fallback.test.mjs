@@ -70,12 +70,23 @@ test('L68: fallback step sends one claude-fix to Codex in fallback, and removes 
   const turns = [{ number: 5, turn: 'codex-review' }, { number: 7, turn: 'claude-fix', reason: 'xung đột' }, { number: 8, turn: 'claude-fix' }];
   assert.deepEqual(fallbackStep({ gh: {}, mode: 'fallback', turns, fix: t => { seen.push(t.number); return { status: 'pushed', pr: t.number }; } }), { status: 'pushed', pr: 7 });
   assert.deepEqual(seen, [7]);
-  assert.equal(fallbackStep({ gh: {}, mode: 'saving', turns, fix: () => assert.fail('no Codex fix outside fallback') }), null);
+  assert.equal(fallbackStep({ gh: {}, mode: 'normal', turns, fix: () => assert.fail('no Codex fix below 75%') }), null);
   const edits = [];
   const out = fallbackStep({ gh: { raw: a => edits.push(a) }, mode: 'normal', prs: [{ number: 3, labels: [{ name: holdLabel }] }, { number: 4, labels: [] }] });
   assert.deepEqual(out, { status: 'released', prs: [3] });
   assert.deepEqual(edits[0].slice(0, 3), ['pr', 'edit', '3']);
   assert.ok(edits[0].includes('--remove-label'));
+});
+
+test('L71: from 75% Codex takes fix turns; below 95% a PR labelled incident stays with Claude', () => {
+  const turns = [{ number: 7, turn: 'claude-fix' }, { number: 8, turn: 'claude-fix' }];
+  const prs = [{ number: 7, labels: [{ name: 'incident' }] }, { number: 8, labels: [] }];
+  const fixed = mode => fallbackStep({ gh: {}, mode, turns, prs, fix: t => ({ status: 'pushed', pr: t.number }) });
+  assert.equal(fixed('normal'), null);
+  assert.deepEqual(fixed('shift'), { status: 'pushed', pr: 8 }, 'shift: the incident PR stays with Claude');
+  assert.deepEqual(fixed('saving'), { status: 'pushed', pr: 8 }, 'saving: Claude does incidents only');
+  assert.deepEqual(fixed('fallback'), { status: 'pushed', pr: 7 }, 'fallback: no Claude, Codex takes incidents too');
+  assert.equal(fallbackStep({ gh: {}, mode: 'shift', turns: [turns[0]], prs, fix: () => assert.fail('incident stays with Claude') }), null);
 });
 
 test('runFallbackFix: workspace-write with no network, test before push, counted, push without force, claim released', () => {

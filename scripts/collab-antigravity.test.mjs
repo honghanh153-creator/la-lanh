@@ -5,9 +5,11 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 process.env.LA_LANH_COLLAB_HOME = mkdtempSync(join(tmpdir(), 'antigravity-'));
-const { agentMarker } = await import('./collab-trust.mjs');
+const { agentMarker, ownerLogin } = await import('./collab-trust.mjs');
 const { secondReviewProblem } = await import('./codex-fallback.mjs');
-const { antigravityStep, appEnv, parseCritic, readAnswer, startConversation, statePath } = await import('./collab-antigravity.mjs');
+const { mergeGate } = await import('./collab-merge.mjs');
+const { postSecond } = await import('./collab-second-review.mjs');
+const { antigravityStep, appEnv, parseCritic, readAnswer, secondTargets, startConversation, statePath } = await import('./collab-antigravity.mjs');
 
 const SHA = 'a'.repeat(40);
 let id = 300;
@@ -86,6 +88,28 @@ test('L70: a REQUEST_CHANGES goes back to a fix; tool use, a bad format, a slow 
   moved.run();
   const out = antigravityStep({ gh: moved.gh, prs: [pr(moved.state, 'd'.repeat(40))], home: moved.home, start: () => 'conv-new', steps: () => assert.fail('the old conversation is not read') });
   assert.equal(out.status, 'started', 'the old head is dropped and the new head gets a new critic');
+});
+
+test('L71: Antigravity critiques every ready PR; Codex-fixed first; its REQUEST_CHANGES blocks any PR, its APPROVE is needed only after Codex', () => {
+  const claudePr = (n, comments = []) => ({ number: n, title: 'ops: y', headRefOid: 'b'.repeat(40), comments, labels: [], author: { login: ownerLogin }, isCrossRepository: false, files: [{ path: 'scripts/b.mjs', additions: 2 }] });
+  const fixed = { number: 901, title: 'ops(loop): x', headRefOid: SHA, comments: [fixedNote], labels: [] };
+  const turns = [{ number: 902, turn: 'merge' }, { number: 903, turn: 'claude-fix' }, { number: 904, turn: 'codex-review' }, { number: 901, turn: 'hold' }];
+  const prs = [claudePr(902), claudePr(903), claudePr(904), fixed];
+  assert.deepEqual(secondTargets(prs, turns).map(p => p.number), [901, 902, 904], 'Codex-fixed first, then PRs at review or merge');
+  assert.deepEqual(secondTargets(prs, []).map(p => p.number), [901], 'without turns only the held PR');
+  assert.deepEqual(secondTargets([{ ...claudePr(902), isCrossRepository: true }, { ...claudePr(904), author: { login: 'someone' } }], turns), [], 'never a fork or a stranger');
+  const home = mkdtempSync(join(tmpdir(), 'ag-every-'));
+  const started = [];
+  const out = antigravityStep({ gh: { raw: () => 'diff --git a/x b/x\n+y' }, prs: [claudePr(902)], turns, home, start: (b, t) => { started.push(t); return 'conv-1'; }, steps: () => [] });
+  assert.deepEqual(out, { status: 'started', pr: 902 }, 'a PR Claude wrote gets a critic too');
+  assert.equal(secondReviewProblem(claudePr(902)), null, 'its APPROVE is not required');
+  const state = { comments: [] };
+  const gh = { pr: () => claudePr(902, state.comments), comment: (k, n, body) => { const c = comment(body, '2026-11-22T10:00:00Z'); state.comments.push(c); return `${c.url}\n`; } };
+  postSecond({ gh, number: 902, reviewer: 'Antigravity', verdict: 'REQUEST_CHANGES', head: 'b'.repeat(40), notes: 'Kết luận: REQUEST_CHANGES\nP1 scripts/b.mjs:1 sai' });
+  assert.equal(secondReviewProblem(claudePr(902, state.comments)).turn, 'claude-fix');
+  assert.ok(mergeGate(claudePr(902, state.comments), { disputes: {} }).reasons.some(r => /Antigravity\) REQUEST_CHANGES/.test(r)));
+  assert.throws(() => postSecond({ gh, number: 902, reviewer: 'Claude', verdict: 'APPROVE', head: 'b'.repeat(40), notes: 'ok' }), /không chờ phản biện thứ hai/);
+  assert.deepEqual(secondTargets([claudePr(902, state.comments)], turns), [], 'one critic per head');
 });
 
 test('the app token goes to the child env only, never into the command line', () => {

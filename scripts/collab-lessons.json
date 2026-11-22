@@ -1268,10 +1268,29 @@
    },
    "caller": {
     "file": "scripts/collab-tick.mjs",
-    "contains": "second = runAntigravity({ gh, prs, log });"
+    "contains": "second = runAntigravity({ gh, prs, turns, log });"
    },
    "closedBy": {
     "pr": 894
+   }
+  },
+  {
+   "id": "L71",
+   "title": "Shift work early: from 75% of the Claude week Codex fixes and Antigravity critiques every ready PR; 85% Claude does incidents only; 95% no Claude",
+   "from": "owner 22.11.2026: okie 1-2-3 (plan from the coordinator: shift at 75/85/95, Antigravity critiques every PR)",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "done",
+   "test": {
+    "file": "scripts/codex-fallback.test.mjs",
+    "name": "L71: from 75% Codex takes fix turns; below 95% a PR labelled incident stays with Claude"
+   },
+   "caller": {
+    "file": "scripts/collab-antigravity.mjs",
+    "contains": "const waiting = secondTargets(prs, turns);"
+   },
+   "closedBy": {
+    "pr": 0
    }
   }
  ]

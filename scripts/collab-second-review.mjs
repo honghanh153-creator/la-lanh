@@ -10,7 +10,7 @@
 // The critic's notes are posted as a quote, so no line in them can read as a verdict.
 import { readFileSync } from 'node:fs';
 import { agentMarker, bindReceipt, clean, isSha, makeGh, repo, signReceipt } from './collab-trust.mjs';
-import { secondReviewers, secondReviewProblem } from './codex-fallback.mjs';
+import { lastSecond, secondReviewers, secondReviewProblem } from './codex-fallback.mjs';
 import { isMain } from './is-main.mjs';
 
 export const briefLimit = 60000;
@@ -47,7 +47,8 @@ export function postSecond({ gh, number, reviewer, verdict, head, notes }) {
   if (!String(notes ?? '').trim()) throw new Error('thiếu ghi chú của người phản biện');
   const pr = gh.pr(number);
   if (pr.headRefOid !== head) throw new Error(`head đã đổi (${String(pr.headRefOid).slice(0, 7)}): đọc diff mới rồi phản biện lại`);
-  if (secondReviewProblem(pr)?.turn !== 'hold') throw new Error('PR không chờ phản biện thứ hai (đã duyệt, hoặc đã có yêu cầu sửa cho head này)');
+  // L71: any PR may get one second critic per head; the first counted one stands for that head.
+  if (lastSecond(pr)) throw new Error('PR không chờ phản biện thứ hai (đã duyệt, hoặc đã có yêu cầu sửa cho head này)');
   const receipt = signReceipt({ kind: 'second', pr: number, head, base: null, result: verdict });
   const url = String(gh.comment('pr', number, secondComment({ verdict, head, reviewer, receipt, notes, number }))).trim();
   if (!bindReceipt({ kind: 'second', pr: number, id: receipt, url })) throw new Error('đã đăng nhưng không gắn được biên nhận: phản biện này không được tính');
