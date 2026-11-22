@@ -19,6 +19,7 @@
 //        node scripts/collab-disagree.mjs --withdraw --id D --note "…"   (the dispute became moot, e.g. agreed on a new head)
 //        node scripts/collab-disagree.mjs --settle | --status
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { agentMarker, clean, isAutoReview, isSha, isTrusted, makeGh, parseVerdict, repo, stateDir, vnNow } from './collab-trust.mjs';
@@ -65,6 +66,24 @@ export function append(e, path = logPath) {
   mkdirSync(dirname(path), { recursive: true });
   appendFileSync(path, `${JSON.stringify(e)}\n`);
   return e;
+}
+
+// #828: a disagreement the night audit found and nobody logged (19.11, #738) is written once, as the
+// program's record (arm 2). The winner is not known from the comments, so it stays "unknown"; the
+// key makes a re-run of the same day add nothing.
+export const foundKey = (date, pr, codex) => `audit:${date}:${pr}:${createHash('sha256').update(String(codex ?? '')).digest('hex').slice(0, 12)}`;
+export function recordFound({ date, items = [], at = new Date(), path = logPath }) {
+  const known = new Set(read(path).map(e => e.key).filter(Boolean));
+  const added = [];
+  for (const i of items) {
+    const pr = Number(/^pr#(\d+)$/.exec(String(i.pr ?? ''))?.[1]);
+    if (!Number.isInteger(pr) || pr <= 0) continue;
+    const key = foundKey(date, pr, i.codex);
+    if (known.has(key)) continue;
+    known.add(key);
+    added.push(append({ at: at.toISOString(), date, pr, claude: clean(i.claude, 300), codex: clean(i.codex, 300), winner: 'unknown', source: 'audit', key }, path));
+  }
+  return added;
 }
 
 export function read(path = logPath) {
