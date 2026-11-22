@@ -779,7 +779,8 @@ class LighterActionProjection(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     action: str = Field(min_length=1, max_length=LIGHTER_ACTION_MAX_CHARS)
-    weight: Literal["light"] = "light"
+    # "light" for Đuối (#627); "slow" for Căng and "clear" for Lạc trôi (#701).
+    weight: Literal["light", "slow", "clear"] = "light"
     experiment: ExperimentProjection | None = None
 
 
@@ -837,6 +838,10 @@ class ReadingContentProjection(BaseModel):
     experiment: ExperimentProjection | None = None
     # Daily only, and only while approved lighter actions exist.
     lighter_action: LighterActionProjection | None = None
+    # Daily only (#701): shown first on a day saved as Căng (slow) or Lạc trôi (clear). The
+    # server never reads the mood; the reader's device chooses, as for the lighter action.
+    slow_action: LighterActionProjection | None = None
+    clear_action: LighterActionProjection | None = None
 
 
 class AvailableReadingUpdate(BaseModel):

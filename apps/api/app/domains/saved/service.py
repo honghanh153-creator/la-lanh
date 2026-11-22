@@ -30,8 +30,11 @@ class SavedNoteService:
         if reading is not None and reading.purpose is not ReadingPurpose.DAILY_NOTE:
             raise ValueError("saved daily notes require a daily reading revision")
         if reading is not None:
-            # The lighter action (#627) is a live Daily offer, not part of the saved copy.
-            reading = reading.model_copy(update={"lighter_action": None})
+            # The lighter (#627), slow and clear (#701) actions are live Daily offers, not part
+            # of the saved copy.
+            reading = reading.model_copy(
+                update={"lighter_action": None, "slow_action": None, "clear_action": None}
+            )
         note = await self._daily_notes.find_owned(guest_id, daily_note_id)
         snapshot: dict[str, object] = {
             "daily_note_id": str(note.id),
