@@ -26,7 +26,15 @@ type ReadingContentProps = {
   toolbar?: ReactNode;
 };
 
-export type LighterSwitch = { shown: boolean; onSwitch: () => void };
+/** The mood's alternative action and how to switch to it (#627, #701). */
+export type LighterSwitch = {
+  shown: boolean;
+  onSwitch: () => void;
+  /** The alternative to show; defaults to the lighter action. */
+  action?: NonNullable<ReadingContentModel["lighter_action"]> | null;
+  /** The switch label while the card's action is shown; defaults to the lighter one. */
+  label?: string;
+};
 
 const ACTION_HEADING = "Thử một việc nhỏ";
 export const SHOW_ORIGINAL_ACTION = "Xem việc ban đầu";
@@ -127,12 +135,13 @@ function ExperimentSection({
   status: DailyExperimentStatus;
 }) {
   // The lighter action replaces what is shown, never the note itself (US-04 AC14).
-  const lighterAction = lighter?.shown ? content.lighter_action : null;
+  const alternative = lighter ? (lighter.action ?? content.lighter_action) : null;
+  const lighterAction = lighter?.shown ? alternative : null;
   const experiment = lighterAction ? lighterAction.experiment : content.experiment;
   const plainAction = lighterAction ? lighterAction.action : content.sections.micro_action;
-  const switchButton = lighter && content.lighter_action ? (
+  const switchButton = lighter && alternative ? (
     <button className="text-button reading-content__lighter-switch" onClick={lighter.onSwitch} type="button">
-      {lighter.shown ? SHOW_ORIGINAL_ACTION : SHOW_LIGHTER_ACTION}
+      {lighter.shown ? SHOW_ORIGINAL_ACTION : (lighter.label ?? SHOW_LIGHTER_ACTION)}
     </button>
   ) : null;
   if (!experiment) {

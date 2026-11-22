@@ -27,7 +27,7 @@ import {
   type ResonanceChoice,
   type SignalContext,
 } from "../../shared/api/client";
-import { applySavedMood, dailyMoodKey, readDailyMood, resetDailyActionChoice, useDailyActionView, type DailyActionChoice } from "../../shared/hooks/useDailyActionView";
+import { applySavedMood, dailyMoodKey, offersKeepableAction, readDailyMood, resetDailyActionChoice, useDailyActionView, type DailyActionChoice } from "../../shared/hooks/useDailyActionView";
 import { useDailyExperiment } from "../../shared/hooks/useDailyExperiment";
 import { currentSessionEpoch, sessionGeneration } from "../../shared/session/sessionIdentity";
 import { useReadingUpdateActivation } from "../../shared/hooks/useReadingUpdateActivation";
@@ -54,7 +54,7 @@ import { useOnboardingMotion } from "../../shared/ui/onboardingMotion";
 import { AppNav } from "../../shared/ui/AppNav";
 import { AppSheet } from "../../shared/ui/AppSheet";
 import { BrandMark } from "../../shared/ui/BrandMark";
-import { ExperimentControls, SHOW_LIGHTER_ACTION, SHOW_ORIGINAL_ACTION } from "../../shared/ui/ReadingContent";
+import { ExperimentControls, SHOW_ORIGINAL_ACTION } from "../../shared/ui/ReadingContent";
 import { ReadingUpdateGift } from "../../shared/ui/ReadingUpdateGift";
 import { WHY_TODAY_ID } from "../../shared/ui/readingLabels";
 import { ResonanceFeedback } from "../../shared/ui/ResonanceFeedback";
@@ -167,10 +167,10 @@ export function HomePage() {
   // The kept action is the same server state the note page uses (US-03 AC33). It is read only
   // when today's reading offers an action that can be kept.
   const shownExperiment = (actionView.lighterShown
-    ? activeReading?.lighter_action?.experiment
+    ? actionView.alternative?.experiment
     : activeReading?.experiment) ?? null;
   const dailyExperiment = useDailyExperiment({
-    enabled: Boolean(note?.id && (activeReading?.experiment || activeReading?.lighter_action?.experiment)),
+    enabled: Boolean(note?.id && offersKeepableAction(activeReading)),
     onChosen: () => setMessage("Đã giữ một việc nhỏ để thử hôm nay. Bạn có thể dừng bất cứ lúc nào."),
     onUndone: () => setMessage("Đã bỏ giữ việc nhỏ. Không có streak hay đánh dấu hoàn thành nào được tạo."),
     onReflected: () => setMessage("Đã lưu phần nhìn lại riêng cho thử nghiệm này."),
@@ -661,7 +661,7 @@ function HomeDailySignal({
   const experiment = activeReading.experiment;
   const body = activeReading.sections.manifestation || activeReading.sections.thesis;
   // The lighter action replaces what is shown, never the note itself (US-04 AC14).
-  const lighter = actionView.lighterShown ? activeReading.lighter_action : null;
+  const lighter = actionView.lighterShown ? actionView.alternative : null;
   const action = lighter?.action || experiment?.action || activeReading.sections.micro_action;
 
   return (
@@ -682,7 +682,7 @@ function HomeDailySignal({
               <p>{action}</p>
               {actionView.canSwitch ? (
                 <button className="text-button home-daily-signal__lighter-switch" onClick={actionView.switchAction} type="button">
-                  {actionView.lighterShown ? SHOW_ORIGINAL_ACTION : SHOW_LIGHTER_ACTION}
+                  {actionView.lighterShown ? SHOW_ORIGINAL_ACTION : actionView.alternativeLabel}
                 </button>
               ) : null}
               {kept ? <div className="home-daily-signal__kept">{kept}</div> : null}

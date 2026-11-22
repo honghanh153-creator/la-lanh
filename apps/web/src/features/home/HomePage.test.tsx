@@ -516,6 +516,37 @@ describe("HomePage rich reading", () => {
     expect(screen.getAllByText(LA_MOOD_REACTIONS.Chill).length).toBeGreaterThan(0);
   });
 
+  it.each([
+    ["Căng", "slow_action", "Đợi năm phút rồi mới gửi câu trả lời.", "Xem việc chậm lại"],
+    ["Lạc trôi", "clear_action", "Viết ra một việc duy nhất cần xong trước trưa.", "Xem một bước rõ"],
+  ] as const)("shows the %s action after that check-in and lets the reader switch back (#701)", async (mood, field, text, label) => {
+    const user = userEvent.setup();
+    const original = vibe.sections.micro_action;
+    const offers = {
+      ...vibe,
+      lighter_action: { action: "Uống một ly nước rồi ngồi yên hai phút.", weight: "light" as const, experiment: null },
+      slow_action: { action: "Đợi năm phút rồi mới gửi câu trả lời.", weight: "slow" as const, experiment: null },
+      clear_action: { action: "Viết ra một việc duy nhất cần xong trước trưa.", weight: "clear" as const, experiment: null },
+    };
+    vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(offers)));
+    renderPage();
+
+    expect(await screen.findByText(original)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Chọn cảm giác hôm nay" }));
+    await user.click(screen.getByRole("button", { name: new RegExp(mood) }));
+    expect(await screen.findByText(text)).toBeInTheDocument();
+    expect(offers[field].action).toBe(text);
+    expect(screen.queryByText(original)).not.toBeInTheDocument();
+    // The note itself never changes (US-04 AC14); only the action shown does.
+    expect(screen.getByText(vibe.sections.hook)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Xem việc ban đầu" }));
+    expect(screen.getByText(original)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: label }));
+    expect(screen.getByText(text)).toBeInTheDocument();
+    expect(JSON.stringify({ ...localStorage, ...sessionStorage })).not.toContain(text);
+  });
+
   it("shows the lighter action after a Đuối check-in and lets the reader switch back (#627)", async () => {
     const user = userEvent.setup();
     const original = vibe.sections.micro_action;

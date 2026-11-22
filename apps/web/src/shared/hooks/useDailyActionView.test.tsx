@@ -122,3 +122,40 @@ describe("useDailyActionView (#627)", () => {
     await waitFor(() => expect(result.current.lighterShown).toBe(true));
   });
 });
+
+describe("mood alternatives for Căng and Lạc trôi (#701)", () => {
+  const all = {
+    lighter_action: { action: "Uống một ly nước rồi ngồi yên hai phút.", weight: "light", experiment: null },
+    slow_action: { action: "Đợi năm phút rồi mới gửi câu trả lời.", weight: "slow", experiment: null },
+    clear_action: { action: "Viết ra một việc duy nhất cần xong trước trưa.", weight: "clear", experiment: null },
+  } as unknown as ReadingContent;
+
+  it("shows the slow action for Căng and the clear one for Lạc trôi, each with its own switch label", () => {
+    const tense = setup("Căng", all).result.current;
+    expect(tense).toMatchObject({ lighterShown: true, canSwitch: true, alternativeLabel: "Xem việc chậm lại" });
+    expect(tense.alternative?.action).toBe("Đợi năm phút rồi mới gửi câu trả lời.");
+    const floating = setup("Lạc trôi", all).result.current;
+    expect(floating).toMatchObject({ lighterShown: true, alternativeLabel: "Xem một bước rõ" });
+    expect(floating.alternative?.action).toBe("Viết ra một việc duy nhất cần xong trước trưa.");
+    const drained = setup("Đuối", all).result.current;
+    expect(drained.alternative?.action).toBe("Uống một ly nước rồi ngồi yên hai phút.");
+    expect(drained.alternativeLabel).toBe("Xem việc nhẹ hơn");
+  });
+
+  it("keeps the card's action for Rực, Chill, an unsaved mood, or a reading without that offer", () => {
+    for (const mood of ["Rực", "Chill", null] as const) {
+      expect(setup(mood, all).result.current).toMatchObject({ lighterShown: false, canSwitch: false, alternative: null });
+    }
+    const onlyLighter = { lighter_action: all.lighter_action } as unknown as ReadingContent;
+    expect(setup("Căng", onlyLighter).result.current).toMatchObject({ lighterShown: false, canSwitch: false, alternative: null });
+  });
+
+  it("lets the reader switch back to the card's action and forward again", async () => {
+    const { result } = setup("Căng", all);
+    // The query cache notifies on the next tick, so each step waits for the hook to settle.
+    act(() => result.current.switchAction());
+    await waitFor(() => expect(result.current).toMatchObject({ lighterShown: false, canSwitch: true }));
+    act(() => result.current.switchAction());
+    await waitFor(() => expect(result.current.lighterShown).toBe(true));
+  });
+});
