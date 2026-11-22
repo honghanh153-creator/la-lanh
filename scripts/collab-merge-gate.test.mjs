@@ -467,3 +467,24 @@ test('#737: an expired holder may reserve again at the same head once integratio
   assert.equal(r.reserve(61, RH1, { nowMs: later + 60000, tip: tip2, lockWaitMs: 0 }).reservation.pr, 61, 'integration moved: it may reserve again');
   r._resetReservation();
 });
+
+// L61 (21.11.2026): hotfix #863 waited silently in claude-fix because its body grouped several gates
+// on one line, while collab/integration stayed red.
+test('L61: a preflight failure on an incident PR raises an ops alert at once; other PRs stay quiet', async () => {
+  const { incidentPreflightAlert } = await import('./collab-preflight.mjs');
+  const { runTick } = await import('./collab-tick.mjs');
+  const fail = { status: 'FAIL', reasons: ['PR body thiếu cổng G3, G4'] };
+  const alerts = [];
+  assert.equal(incidentPreflightAlert({ number: 863, labels: [{ name: 'incident' }] }, fail, t => alerts.push(t)), true);
+  assert.match(alerts[0], /^PR sự cố #863 bị chặn ở kiểm đầu vào: PR body thiếu cổng G3, G4\./);
+  assert.equal(incidentPreflightAlert({ number: 5, labels: [{ name: 'area:ops' }] }, fail, t => alerts.push(t)), false, 'not an incident');
+  assert.equal(incidentPreflightAlert({ number: 863, labels: ['incident'] }, { status: 'PASS', reasons: [] }, t => alerts.push(t)), false, 'passed');
+  assert.equal(alerts.length, 1);
+  // The tick's preflight goes through it, and a failing alert never changes the preflight result.
+  const seen = [];
+  const gh = { raw: () => '', json: () => [], pr: n => ({ number: n, labels: [{ name: 'incident' }], body: 'trống', files: [] }) };
+  const given = runTick(gh, () => [], { run: g => g, gapNote: () => null, areaNote: () => null, probe: () => [], receipt: () => {}, proofs: () => null,
+    incidentAlert: (pr, result) => { seen.push([pr.number, result.status]); throw new Error('gh down'); } });
+  assert.equal(given.prPreflight(863).status, 'FAIL');
+  assert.deepEqual(seen, [[863, 'FAIL']]);
+});
