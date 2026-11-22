@@ -140,3 +140,26 @@ test('L67: the board shows the usage line, the tick feeds it and the warnings, a
   assert.ok(Array.isArray(broken.health()), 'a failed usage read never breaks the tick');
   assert.equal(typeof usageTick, 'function');
 });
+
+test('Codex #893: a null, empty or false percent is no reading; a drop across midnight is a weekly reset; the scan cache keeps no paths or ids', () => {
+  const h = home();
+  reading(h, 97, ago(10));
+  assert.equal(readUsage({ home: h, now: NOW }).mode, 'fallback');
+  for (const bad of [null, '', false, ' ']) {
+    reading(h, bad, ago(5));
+    const u = readUsage({ home: h, now: NOW });
+    assert.deepEqual([u.fresh, u.mode], [false, 'fallback'], `${JSON.stringify(bad)} keeps the saved mode`);
+  }
+  const r = home();
+  mkdirSync(join(r, 'state'), { recursive: true });
+  writeFileSync(modePath(r), JSON.stringify({ mode: 'fallback', percent: 96, at: '2026-11-21T15:00:00Z', dayStart: { day: '2026-11-21', percent: 80 } }));
+  reading(r, 11, ago(5));
+  assert.deepEqual(readUsage({ home: r, now: NOW }).dayStart, { day: '2026-11-22', percent: 0 }, '96% yesterday, 11% today: 11 points gained, not 0');
+  const root = join(h, 'projects', '-Users-x-Documents-la-lanh');
+  mkdirSync(root, { recursive: true });
+  writeFileSync(join(root, 's.jsonl'), line('msg_secretid', 'claude-opus-5-5', { output_tokens: 1e6 }));
+  todayShares({ home: h, root: join(h, 'projects'), now: NOW });
+  const cache = readFileSync(join(h, 'state', 'claude-usage-scan.json'), 'utf8');
+  assert.doesNotMatch(cache, /msg_secretid|Users|la-lanh|s\.jsonl/);
+  assert.match(cache, /[0-9a-f]{16}/);
+});
