@@ -1070,7 +1070,7 @@
    "from": "phiên điều phối 22.11 (mục nghiên cứu 2, bước 2; số liệu từ #850 và phiên Content)",
    "who": "claude",
    "due": "2026-11-23",
-   "status": "open",
+   "status": "done",
    "test": {
     "file": "scripts/collab-loop.test.mjs",
     "name": "L63: a clean trial merge on the copy registry releases a same-file hold; a conflict, an unknown, a new head or another shared file keeps it"
@@ -1078,6 +1078,9 @@
    "caller": {
     "file": "scripts/collab-turn.mjs",
     "contains": "const shared = sharing.filter(o => !cleanRelease(pr, o, view));"
+   },
+   "closedBy": {
+    "pr": 883
    }
   }
  ]
