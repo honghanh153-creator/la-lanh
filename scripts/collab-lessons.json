@@ -1311,6 +1311,25 @@
    "closedBy": {
     "pr": 900
    }
+  },
+  {
+   "id": "L77",
+   "title": "A new read of local transcripts shipped on by default; R2(4) says new personal-data collection is built and left off",
+   "from": "Codex review #893 (data_collection hold), 22.11.2026",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-usage.test.mjs",
+    "name": "R2(4): the transcript scan is off by default; it reads nothing until the owner creates the flag file"
+   },
+   "caller": {
+    "file": "scripts/collab-usage.mjs",
+    "contains": "if (scanEnabled(home))"
+   },
+   "closedBy": {
+    "pr": 893
+   }
   }
  ]
 }
