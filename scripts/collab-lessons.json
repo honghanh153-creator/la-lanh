@@ -1349,6 +1349,22 @@
    "closedBy": {
     "pr": 902
    }
+  },
+  {
+   "id": "L75",
+   "title": "Sessions write item progress to one shared board on the Mac (state/progress) instead of messaging the coordinator; the scheduled reports read it through ops-run.sh report; an immediate message only for a blocked item or a decision",
+   "from": "owner 22.11.2026: okie bạn làm đi và báo cáo nhé (plan: cut self-wake and session relays, item 4 no relaying through Claude)",
+   "who": "claude",
+   "due": "2026-11-23",
+   "status": "open",
+   "test": {
+    "file": "scripts/collab-progress.test.mjs",
+    "name": "L75: sessions write progress to one shared board; the report reads it; only blocked or decision asks for a message"
+   },
+   "caller": {
+    "file": "scripts/collab-turn.mjs",
+    "contains": "progressLines(readProgress())"
+   }
   }
  ]
 }

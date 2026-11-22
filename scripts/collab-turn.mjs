@@ -1,4 +1,5 @@
 // Whose turn is it on each open PR? `--report` replaces the registry PRs; `--tick` is the launchd safety net.
+import { progressLines, readProgress } from './collab-progress.mjs';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { agentMarker, areaOrder, copyBatchAt, classifyArea, clean, codexDailyCap, dayCap, dayStatePath, integration, isOwnPr, makeGh, readJson, repo, reviewState, sortByPriority, stateDir, trustedComments, vnNow, writeJson, isSha } from './collab-trust.mjs';
@@ -775,7 +776,8 @@ if (isMain(import.meta.url)) {
     } else {
       const { prs, turns } = planTurns(gh);
       const { lines } = bufferStatus(prs, turns, { plan7wPrs: plan7wPrNumbers(turns, vnNow().date) });
-      process.stdout.write(`${args.includes('--json') ? JSON.stringify(turns, null, 2) : [renderReport(turns), ...lines].join('\n')}\n`);
+      // L75: the reports read the shared progress board (sessions write there instead of messaging).
+      process.stdout.write(`${args.includes('--json') ? JSON.stringify(turns, null, 2) : [renderReport(turns), ...lines, ...progressLines(readProgress())].join('\n')}\n`);
     }
   } catch (error) { process.stderr.write(`collab-turn failed: ${clean(error.message, 500)}\n`); process.exitCode = 1; }
 }
