@@ -38,6 +38,8 @@ export function secondComment({ verdict, head, reviewer, receipt, notes, number 
 }
 
 // Posts only when the live head is the reviewed head and the PR is waiting for a second critic.
+// After a REQUEST_CHANGES on a head only a new fix (a new head) can be approved: the session that
+// drives Gemini cannot overrule the critic on the same head (Gemini, first second review, 22.11.2026).
 export function postSecond({ gh, number, reviewer, verdict, head, notes }) {
   if (!secondReviewers.includes(reviewer)) throw new Error(`reviewer phải là ${secondReviewers.join(' hoặc ')} (Codex không tự phản biện)`);
   if (!['APPROVE', 'REQUEST_CHANGES'].includes(verdict)) throw new Error('verdict phải là APPROVE hoặc REQUEST_CHANGES');
@@ -45,7 +47,7 @@ export function postSecond({ gh, number, reviewer, verdict, head, notes }) {
   if (!String(notes ?? '').trim()) throw new Error('thiếu ghi chú của người phản biện');
   const pr = gh.pr(number);
   if (pr.headRefOid !== head) throw new Error(`head đã đổi (${String(pr.headRefOid).slice(0, 7)}): đọc diff mới rồi phản biện lại`);
-  if (!secondReviewProblem(pr)) throw new Error('PR không chờ phản biện thứ hai');
+  if (secondReviewProblem(pr)?.turn !== 'hold') throw new Error('PR không chờ phản biện thứ hai (đã duyệt, hoặc đã có yêu cầu sửa cho head này)');
   const receipt = signReceipt({ kind: 'second', pr: number, head, base: null, result: verdict });
   const url = String(gh.comment('pr', number, secondComment({ verdict, head, reviewer, receipt, notes, number }))).trim();
   if (!bindReceipt({ kind: 'second', pr: number, id: receipt, url })) throw new Error('đã đăng nhưng không gắn được biên nhận: phản biện này không được tính');

@@ -44,12 +44,16 @@ test('L69: postSecond signs, binds and posts; the latest critic for the head dec
   assert.throws(() => postSecond({ gh, number: 901, reviewer: 'Codex', verdict: 'APPROVE', head: SHA, notes: 'ok' }), /Codex không tự phản biện/);
   assert.throws(() => postSecond({ gh, number: 901, reviewer: 'Gemini', verdict: 'APPROVE', head: OLD, notes: 'ok' }), /head đã đổi/);
   assert.throws(() => postSecond({ gh, number: 901, reviewer: 'Gemini', verdict: 'APPROVE', head: SHA, notes: ' ' }), /thiếu ghi chú/);
-  postSecond({ gh, number: 901, reviewer: 'Gemini', verdict: 'REQUEST_CHANGES', head: SHA, notes: 'Kết luận: REQUEST_CHANGES\nP1 a.mjs:3 sai' });
-  assert.equal(secondReviewProblem(pr(state.comments)).turn, 'claude-fix');
   postSecond({ gh, number: 901, reviewer: 'Claude', verdict: 'APPROVE', head: SHA, notes: 'Kết luận: APPROVE\nĐã sửa đúng' });
   assert.equal(secondReviewProblem(pr(state.comments)), null);
   assert.ok(!mergeGate(pr(state.comments), { disputes: {} }).reasons.some(r => /phản biện thứ hai/.test(r)));
   assert.throws(() => postSecond({ gh, number: 901, reviewer: 'Gemini', verdict: 'APPROVE', head: SHA, notes: 'x' }), /không chờ phản biện thứ hai/);
+  // Gemini 22.11: after REQUEST_CHANGES on a head, the driving session cannot approve that head.
+  const asked = { comments: [fixedNote] };
+  const gh2 = ghFor(asked);
+  postSecond({ gh: gh2, number: 901, reviewer: 'Gemini', verdict: 'REQUEST_CHANGES', head: SHA, notes: 'Kết luận: REQUEST_CHANGES\nP1 a.mjs:3 sai' });
+  assert.equal(secondReviewProblem(pr(asked.comments)).turn, 'claude-fix');
+  assert.throws(() => postSecond({ gh: gh2, number: 901, reviewer: 'Claude', verdict: 'APPROVE', head: SHA, notes: 'Gemini sai' }), /đã có yêu cầu sửa cho head này/);
   // A new head (another Codex fix) needs a new critic.
   assert.equal(secondReviewProblem({ ...pr(state.comments), headRefOid: OLD }).turn, 'hold');
 });
