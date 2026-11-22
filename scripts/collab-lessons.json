@@ -1337,7 +1337,7 @@
    "from": "owner 22.11.2026: okie bạn làm đi và báo cáo nhé (plan: cut self-wake and session relays, item 2 Autofix wake-ups on lessons conflicts)",
    "who": "claude",
    "due": "2026-11-23",
-   "status": "open",
+   "status": "done",
    "test": {
     "file": "scripts/collab-conflict-heal.test.mjs",
     "name": "L74: a branch that only clashes on the lessons file is merged by the machine and pushed, not sent to Claude"
@@ -1345,6 +1345,9 @@
    "caller": {
     "file": "scripts/collab-tick.mjs",
     "contains": "conflictHeal({ gh, log })"
+   },
+   "closedBy": {
+    "pr": 902
    }
   }
  ]
