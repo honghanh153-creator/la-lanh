@@ -66,6 +66,17 @@ test('only a PR merged into integration with a trusted Codex APPROVE confirms a 
   assert.equal(confirmClosed({ number: N, state: 'MERGED', baseRefName: 'collab/integration', headRefOid: sha, comments: [approve, later] }), false, 'the last verdict counts');
 });
 
+// L55 (#828): #456 and #496 merged before signed receipts existed, so L11 and L13 stayed
+// "unconfirmed" and overdue every night although Codex had approved the merged head.
+test('L55: a lesson PR merged before signed receipts is confirmed by the automatic APPROVE of its time', () => {
+  const legacy = (verdict, createdAt) => ({ authorAssociation: 'OWNER', createdAt, body: `Review verdict: ${verdict} @ ${sha}\nReviewer: Codex (auto, scripts/codex-review.mjs)\n<!-- la-lanh-agent codex-auto-review sha=${sha} p2=0 -->` });
+  const merged = mergedAt => ({ number: N, state: 'MERGED', baseRefName: 'collab/integration', headRefOid: sha, mergedAt });
+  assert.equal(confirmClosed({ ...merged('2026-11-14T21:04:30Z'), comments: [legacy('APPROVE', '2026-11-14T21:04:00Z')] }), true, '#496 merged at 21:04Z on 14.11');
+  assert.equal(confirmClosed({ ...merged('2026-11-14T21:04:30Z'), comments: [legacy('APPROVE', '2026-11-14T21:04:00Z'), legacy('REQUEST_CHANGES', '2026-11-14T21:04:10Z')] }), false, 'the last verdict at the merge decides');
+  assert.equal(confirmClosed({ ...merged('2026-11-14T21:04:30Z'), comments: [{ ...legacy('APPROVE', '2026-11-14T21:04:00Z'), body: `Review verdict: APPROVE @ ${sha}` }] }), false, 'a hand-written verdict is not the Codex review');
+  assert.equal(confirmClosed({ ...merged('2026-11-16T00:00:00Z'), comments: [legacy('APPROVE', '2026-11-15T23:59:00Z')] }), false, 'after #456 an unsigned APPROVE does not confirm');
+});
+
 test('overdue and unconfirmed lessons are reported, not hidden', () => {
   const dir = mkdtempSync(join(tmpdir(), 'lessons-cache-'));
   const reg = { lessons: [
