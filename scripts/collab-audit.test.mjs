@@ -12,12 +12,12 @@ import { asPosted } from './collab-test-post.mjs';
 const head = 'e'.repeat(40);
 const output = JSON.stringify({ verdict: 'APPROVE', sha: head, complete: true, summary: 'ok', findings: [] });
 const digest = createHash('sha256').update(output).digest('hex');
-const verdict = (body, at = '2026-11-14T03:00:00Z') => ({ authorAssociation: 'OWNER', createdAt: at, body });
+const verdict = (body, at = '2026-11-16T03:00:00Z') => ({ authorAssociation: 'OWNER', createdAt: at, body });
 // #456 P1-B: a verdict counts only with a local receipt bound to its comment, as codex-review.mjs
 // posts it. `auto(n, d)` is that signed APPROVE for PR n with Output SHA-256 d. Synthetic ids only.
 const auto = (n, d, at) => asPosted(trust, verdict(`Review verdict: APPROVE @ ${head}\nReviewer: Codex (auto, scripts/codex-review.mjs)\n\nok\n\nOutput SHA-256: \`${d}\`\n${trust.verdictSeal({ head, p2: 0, base: null, receipt: trust.signReceipt({ kind: 'verdict', pr: n, head, base: null, result: 'APPROVE', p2: 0 }) })}`, at));
 const real = auto(7, digest);
-const pr = (n, comments, extra = {}) => ({ number: n, title: `fix: ${n}`, headRefOid: head, createdAt: '2026-11-14T01:00:00Z', mergedAt: '2026-11-14T04:00:00Z', comments, ...extra });
+const pr = (n, comments, extra = {}) => ({ number: n, title: `fix: ${n}`, headRefOid: head, createdAt: '2026-11-16T01:00:00Z', mergedAt: '2026-11-16T04:00:00Z', comments, ...extra });
 const outputs = [{ pr: 7, head12: head.slice(0, 12), digest, out: JSON.parse(output) }];
 
 test('forged marker is not a real receipt', () => {
@@ -28,10 +28,28 @@ test('forged marker is not a real receipt', () => {
   assert.match(receipt(pr(7, [auto(7, '0'.repeat(64))]), outputs).why, /không có file output Codex khớp/, 'a signed verdict still needs a matching output file');
   assert.match(receipt(pr(8, [real]), outputs).why, /không có verdict/, 'a receipt signed for another PR does not count');
   assert.match(receipt(pr(8, [auto(8, digest)]), outputs).why, /không có file output Codex khớp/, 'a real output of another PR does not count');
-  const late = { ...real, createdAt: '2026-11-14T05:00:00Z' };
+  const late = { ...real, createdAt: '2026-11-16T05:00:00Z' };
   assert.match(receipt(pr(7, [late]), outputs).why, /không có verdict/, 'a verdict posted after the merge does not count');
-  const then = verdict(`Review verdict: REQUEST_CHANGES @ ${head}\nReviewer: Codex\n<!-- la-lanh-agent codex-auto-review sha=${head} -->`, '2026-11-14T03:30:00Z');
+  const then = verdict(`Review verdict: REQUEST_CHANGES @ ${head}\nReviewer: Codex\n<!-- la-lanh-agent codex-auto-review sha=${head} -->`, '2026-11-16T03:30:00Z');
   assert.match(receipt(pr(7, [real, then]), outputs).why, /REQUEST_CHANGES/);
+});
+
+// L55 (#828): the night audit judged the merges of 15.11 by the signed-receipt rule of #456, which
+// came in at 03:09:42Z that day. 23 merges made earlier under the old gate were counted as unreviewed.
+test('L55: a merge before signed receipts is judged by the rule of its time; after it an unsigned APPROVE still does not count', () => {
+  const legacy = (at, extra = '') => verdict(`Review verdict: APPROVE @ ${head}\nReviewer: Codex (auto, scripts/codex-review.mjs)\n\nOutput SHA-256: \`${digest}\`\n<!-- la-lanh-agent codex-auto-review sha=${head} p2=0 -->${extra}`, at);
+  const early = { createdAt: '2026-11-14T22:00:00Z', mergedAt: '2026-11-14T23:15:45Z' };
+  assert.deepEqual(receipt(pr(7, [legacy('2026-11-14T23:15:41Z')], early), outputs), { ok: true }, 'an automatic APPROVE of the merged head with its output counts before #456');
+  const changes = verdict(`Review verdict: REQUEST_CHANGES @ ${head}\nReviewer: Codex (auto, scripts/codex-review.mjs)\n<!-- la-lanh-agent codex-auto-review sha=${head} p2=0 -->`, '2026-11-14T23:01:08Z');
+  assert.deepEqual(receipt(pr(7, [changes, legacy('2026-11-14T23:15:41Z')], early), outputs), { ok: true }, 'an earlier REQUEST_CHANGES followed by the APPROVE of the merged head');
+  assert.match(receipt(pr(7, [legacy('2026-11-14T23:15:41Z'), { ...changes, createdAt: '2026-11-14T23:15:43Z' }], early), outputs).why, /REQUEST_CHANGES/, 'the last verdict still decides');
+  assert.match(receipt(pr(7, [verdict(`Review verdict: APPROVE @ ${head}`, '2026-11-14T23:15:41Z')], early), outputs).why, /không phải review tự động/, 'a hand-written verdict is still not a receipt');
+  const forged = verdict(`Review verdict: APPROVE @ ${head}\nReviewer: Codex (auto, scripts/codex-review.mjs)\n\nOutput SHA-256: \`${'0'.repeat(64)}\`\n<!-- la-lanh-agent codex-auto-review sha=${head} p2=0 -->`, '2026-11-14T23:15:41Z');
+  assert.match(receipt(pr(7, [forged], early), outputs).why, /không có file output Codex khớp/, 'the output file is still required');
+  const atRule = { createdAt: '2026-11-15T02:00:00Z', mergedAt: trust.signedReceiptsFrom };
+  assert.deepEqual(receipt(pr(7, [legacy('2026-11-15T03:09:00Z')], atRule), outputs), { ok: true }, '#456 itself merged under the old gate');
+  const after = { createdAt: '2026-11-15T03:00:00Z', mergedAt: '2026-11-15T03:16:57Z' };
+  assert.match(receipt(pr(7, [legacy('2026-11-15T03:16:00Z')], after), outputs).why, /không có verdict/, 'after #456 an unsigned APPROVE never counts');
 });
 
 // Codex r1 on #486 (P1): after a real REQUEST_CHANGES, a forged OWNER APPROVE copied that review's

@@ -1085,6 +1085,82 @@
    }
   },
   {
+   "id": "L55",
+   "title": "Soát đêm xét mỗi lần merge theo luật đang chạy lúc merge: 23 PR merge trước khi có biên nhận ký (#456) bị đếm là thiếu review ngày 15.11, và L11, L13 bị báo thiếu bằng chứng (#828)",
+   "from": "nhìn lại thử nghiệm 3+3 (#829), issue #828 mục 1 và 3",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-audit.test.mjs",
+    "name": "L55: a merge before signed receipts is judged by the rule of its time; after it an unsigned APPROVE still does not count"
+   },
+   "caller": {
+    "file": "scripts/collab-audit.mjs",
+    "contains": "const last = verdictAtMerge(pr);"
+   },
+   "closedBy": {
+    "pr": 838
+   }
+  },
+  {
+   "id": "L56",
+   "title": "Gói bằng chứng soát đêm chứa đủ comment của một ngày bận; phần không vừa thì số ghi là cận dưới; bất đồng soát đêm tìm thấy được ghi vào sổ một lần (#828: 5/7 ngày thử nghiệm không đo được M1 và bất đồng; #738 ngày 19.11 không vào sổ)",
+   "from": "nhìn lại thử nghiệm 3+3 (#829), issue #828 mục 2",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-audit-night.test.mjs",
+    "name": "#828: a final judgement writes the disagreement it found into the log once; a re-run adds nothing"
+   },
+   "caller": {
+    "file": "scripts/collab-audit-night.mjs",
+    "contains": "if (final && record.final && judgement?.result?.unrecorded?.items?.length) recordFound({ date, items: judgement.result.unrecorded.items });"
+   },
+   "closedBy": {
+    "pr": 838
+   }
+  },
+  {
+   "id": "L57",
+   "title": "Tick ngừng từ 30 phút thì ghi một dòng kèm nguyên nhân đọc từ máy (Mac ngủ, khởi động lại hay không rõ); chỉ \"không rõ\" mới báo động (21.11: không có dòng tick nào 07:45–10:04, không ai biết vì sao)",
+   "from": "phiên điều phối 21.11, tick log sáng 21.11",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-tick-gap.test.mjs",
+    "name": "L57: a tick gap is written once with its cause; only an unexplained gap alerts"
+   },
+   "caller": {
+    "file": "scripts/collab-tick.mjs",
+    "contains": "try { gapNote({ log, alert: text => opsAlert(gh, text, tickGapSubject) }); }"
+   },
+   "closedBy": {
+    "pr": 838
+   }
+  },
+  {
+   "id": "L58",
+   "title": "PR vào collab/integration không có nhãn area thì rơi vào nhóm cuối và không bao giờ tới lượt: tick gắn area:ops cho PR chỉ đổi file quy trình, còn lại báo động sau hai tick (21.11: 8 PR quy trình chờ tới ba ngày, chưa lần nào được check hay review)",
+   "from": "phiên điều phối 21.11; soát làn quy trình",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-area-label.test.mjs",
+    "name": "L58: an unlabelled workflow PR is labelled area:ops; any other unlabelled PR alerts after two ticks, once per set"
+   },
+   "caller": {
+    "file": "scripts/collab-tick.mjs",
+    "contains": "try { areaNote({ gh, log, alert: text => opsAlert(gh, text, areaWatchSubject), resolve: text => resolveOpsAlert(gh, text, areaWatchSubject) }); }"
+   },
+   "closedBy": {
+    "pr": 838
+   }
+  },
+  {
    "id": "L64",
    "title": "Làn việc chỉ tính là được phục vụ khi PR của nó thật sự tiến (check có kết quả, review đã đăng, merge xong, front được đồng bộ); PR cũ chỉ đọc \"CI chưa xong\" mỗi tick vẫn làm làn bị bỏ đói và lên đầu sau 2 tick (21.11: 8 PR quy trình chờ tới 3 ngày; Codex auto-1 P1 trên #843)",
    "from": "sự cố làn quy trình bị bỏ đói 21.11; Codex auto-1 trên #843",
