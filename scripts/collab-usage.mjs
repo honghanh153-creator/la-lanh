@@ -12,6 +12,7 @@
 // - Pace alert: one ops alert a day when the weekly % gained today passes 70% of an even weekly pace
 //   (0.7 × 100/7 = 10 points in one Vietnam day).
 import { closeSync, existsSync, openSync, readdirSync, readSync, statSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { readJson, stateDir, vnNow, writeJson } from './collab-trust.mjs';
@@ -38,14 +39,17 @@ export function modeFor(percent) {
 export function readUsage({ home = stateDir, now = new Date() } = {}) {
   const last = readJson(modePath(home), null);
   const raw = readJson(usagePath(home), null);
-  const percent = Number(raw?.percent);
+  // Only a real number counts: Number(null), Number('') and Number(false) are 0 (Codex P1 on #893).
+  const p = raw?.percent;
+  const percent = typeof p === 'number' || (typeof p === 'string' && p.trim() !== '') ? Number(p) : NaN;
   const at = Date.parse(raw?.at ?? '');
   const fresh = Number.isFinite(percent) && percent >= 0 && percent <= 100 && Number.isFinite(at) && now - at <= staleMs && at - now <= 5 * 60000;
   if (!fresh) return { percent: Number.isFinite(percent) ? percent : null, at: raw?.at ?? null, fresh: false, mode: last?.mode ?? 'normal', dayStart: last?.dayStart ?? null };
   const day = vnNow(new Date(at)).date;
-  // A drop means the weekly window reset: today's gain counts from zero.
+  // A drop below the previous reading (even across midnight) or below today's base means the weekly
+  // window reset: today's gain counts from zero.
   let dayStart = last?.dayStart?.day === day ? last.dayStart : { day, percent };
-  if (percent < dayStart.percent) dayStart = { day, percent: 0 };
+  if (percent < dayStart.percent || (Number.isFinite(last?.percent) && percent < last.percent)) dayStart = { day, percent: 0 };
   const state = { mode: modeFor(percent), percent, at: raw.at, dayStart };
   if (JSON.stringify(state) !== JSON.stringify(last)) writeJson(modePath(home), state);
   return { percent, at: raw.at, fresh: true, mode: state.mode, dayStart };
@@ -75,6 +79,9 @@ export const projectOf = dir => (/-la-lanh(?:$|-|--)/.test(dir) ? 'la-lanh' : 'd
 // Cost per Vietnam day for one transcript file, read from a saved offset so a long session is not
 // parsed again every tick. One assistant message can span several lines with the same id and usage:
 // the last ids seen are kept with the offset.
+// The scan cache keeps no transcript path, message id or text: paths and ids are stored as short
+// one-way hashes, next to cost numbers per day (Codex P2 on #893, data minimization).
+export const hashed = x => createHash('sha256').update(String(x)).digest('hex').slice(0, 16);
 export const chunkBytes = 8 * 1024 * 1024;
 export function scanFile(path, prev = null, { stat = statSync(path), chunk = chunkBytes } = {}) {
   const fresh = !prev || stat.size < prev.offset || stat.ino !== prev.ino;
@@ -99,7 +106,7 @@ export function scanFile(path, prev = null, { stat = statSync(path), chunk = chu
         try { e = JSON.parse(line); } catch { continue; }
         const m = e?.message;
         if (e?.type !== 'assistant' || !m?.usage) continue;
-        if (m.id) { if (seen.has(m.id)) continue; seen.add(m.id); rec.ids.push(m.id); }
+        if (m.id) { const h = hashed(m.id); if (seen.has(h)) continue; seen.add(h); rec.ids.push(h); }
         const t = Date.parse(e.timestamp ?? '');
         if (!Number.isFinite(t)) continue;
         const day = vnNow(new Date(t)).date;
@@ -145,8 +152,9 @@ export function todayShares({ home = stateDir, root = projectsRoot(), now = new 
     try { stat = statSync(path); } catch { continue; }
     if (stat.mtimeMs < dayStartMs) continue;
     let rec;
-    try { rec = scanFile(path, cache[path], { stat }); } catch { continue; }
-    next[path] = rec;
+    const key = hashed(path);
+    try { rec = scanFile(path, cache[key], { stat }); } catch { continue; }
+    next[key] = rec;
     if (rec.days[today]) cost[project] = (cost[project] ?? 0) + rec.days[today];
   }
   try { writeJson(scanPath(home), next); } catch {}
