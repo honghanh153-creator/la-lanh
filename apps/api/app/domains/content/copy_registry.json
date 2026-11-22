@@ -4,7 +4,10 @@
    "id": "rewrite.headline.automatic-caretaking.01.direct",
    "category": "reading",
    "text": "Bạn vẫn nhận giúp thêm dù lịch hôm nay đã kín.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "be182ee0eb1e16b24cf3d0b6f81af1942e87806f711c131f34c459f9bc19b1d4"
   },
   {
    "id": "rewrite.headline.automatic-caretaking.01.roast",
@@ -16,7 +19,10 @@
    "id": "rewrite.headline.automatic-caretaking.02.direct",
    "category": "reading",
    "text": "Bạn giúp thêm một việc, việc của mình lại để sau.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "6bf4deebc7afbdac3f5e69684dcfd85191962aed910b004adf0be6a4264c14af"
   },
   {
    "id": "rewrite.headline.automatic-caretaking.02.roast",
@@ -28,7 +34,10 @@
    "id": "rewrite.headline.decision-fatigue.01.direct",
    "category": "reading",
    "text": "Bạn muốn chọn thật đúng nên chọn mãi chưa xong.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "e29a7de054fb5f07908619509b32b5e9d07bd4980842efb8854892f0c3c1b4c6"
   },
   {
    "id": "rewrite.headline.decision-fatigue.01.roast",
@@ -40,7 +49,10 @@
    "id": "rewrite.headline.decision-fatigue.02.direct",
    "category": "reading",
    "text": "Lựa chọn còn nhiều, bạn chưa gạch bớt cái nào.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "23fa9e69f601db3648308c37ca1783d89bf03824aaed3f712755b4984f5d5be8"
   },
   {
    "id": "rewrite.headline.decision-fatigue.02.roast",
@@ -52,7 +64,10 @@
    "id": "rewrite.headline.name-the-need.01.direct",
    "category": "reading",
    "text": "Bạn kể khó khăn, chưa nói muốn được giúp gì.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "5150be1db602309d136baaec7190029fdd0d14dd4ee61069ada7bc0cbdc71b0e"
   },
   {
    "id": "rewrite.headline.name-the-need.01.roast",
@@ -91,7 +106,10 @@
    "id": "daily.action.automatic-caretaking.04",
    "category": "reading",
    "text": "Hỏi người kia việc này có ai khác giúp được không, rồi mới nhận.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "58f7f639e7b2c59236738ae65c775293592dcecec3fecec0925076de012c5629"
   },
   {
    "id": "daily.action.automatic-caretaking.05",
@@ -232,13 +250,19 @@
    "id": "daily.action.avoid-small-conflict.01",
    "category": "reading",
    "text": "Hỏi lại việc cần xong lúc nào trước khi nhận.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "97c1d5bcbbbc62ec0ee6c3149f5f7cd19283941f617d7fddc8029fbb1ab0c173"
   },
   {
    "id": "daily.action.avoid-small-conflict.02",
    "category": "reading",
    "text": "Nhắn: Để mình xem lại rồi báo, thay vì nhận ngay.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "ddcbd27e5d4e981a49787a89bed3c21690ab9790abbac23baba59b9cdd25e212"
   },
   {
    "id": "daily.action.avoid-small-conflict.03",
@@ -253,7 +277,10 @@
    "id": "daily.action.avoid-small-conflict.04",
    "category": "reading",
    "text": "Kiểm tra lịch tuần này trước khi nhận lời đi chơi.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "5ccf335c20974d990e4f1b1484f5bbce31f189f0ee5fb388ee3666549fe5127f"
   },
   {
    "id": "daily.action.avoid-small-conflict.05",
@@ -10432,25 +10459,37 @@
    "id": "lighter.action.01",
    "category": "reading",
    "text": "Uống một cốc nước rồi ngồi yên hai phút.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "5d54c9aae4a17d49fd558b1c5d4897e0292a586c420f94f11578fbb75e6cb9e8"
   },
   {
    "id": "lighter.action.02",
    "category": "reading",
    "text": "Tắt điện thoại năm phút rồi nằm nghỉ.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "4f76f23e00efb850aa8074cebb12de1752072268089dd2bbc9335526b66f509d"
   },
   {
    "id": "lighter.action.03",
    "category": "reading",
    "text": "Tìm chỗ ngồi yên, nhắm mắt và thở chậm năm hơi.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "2b283f8bbf71fccb0f804b2b5a502d20bfe646086cc301ef57848b77feab1d11"
   },
   {
    "id": "lighter.action.04",
    "category": "reading",
    "text": "Đi bộ một vòng quanh nhà rồi quay lại, không cầm điện thoại.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "b262c55bf4c48264ececdfe97207afac248e3eb2e75fb44b0dabbe86dbac9375"
   },
   {
    "id": "lighter.action.05",
@@ -10462,43 +10501,64 @@
    "id": "lighter.action.06",
    "category": "reading",
    "text": "Ghi một dòng: hôm nay việc gì làm bạn mệt nhất.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "85283f7ebe9452b83d989743794f57a8019283e7c282564484ff2f40df786615"
   },
   {
    "id": "lighter.action.07",
    "category": "reading",
    "text": "Nghỉ năm phút để ăn một món nhẹ, chưa xem điện thoại.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "e15ee36172c735031821fb60fa9c52e04fe1ccd2333d8165ca7e9b540ff07b59"
   },
   {
    "id": "lighter.action.08",
    "category": "reading",
    "text": "Nằm xuống năm phút, đặt điện thoại ở xa tầm tay.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "f991cf6a4b9b56982b3e2361a9ab811d9b511a3dc903af5041fa76ce62de9b08"
   },
   {
    "id": "lighter.action.09",
    "category": "reading",
    "text": "Mở cửa sổ, đứng thở chậm một phút.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "697f916fa052559980e86a3d1af7c4b5e41d32be93ce5490b2265f311708b6b4"
   },
   {
    "id": "lighter.action.10",
    "category": "reading",
    "text": "Rửa mặt bằng nước ấm rồi ngồi nghỉ ba phút.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "4503332447e8e93215e5aeef7505e0c6f69dd3e25ecc03d0770a137a13acb64a"
   },
   {
    "id": "lighter.action.11",
    "category": "reading",
    "text": "Uống một cốc nước ấm, chờ năm phút rồi mới cầm điện thoại.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "2ead2960b11ea4a20007488e83dbeb17c28e80fb3fec4850d43eef69884e3fee"
   },
   {
    "id": "lighter.action.12",
    "category": "reading",
    "text": "Ngồi yên ba phút, giữ hai bàn chân chạm sàn và thở đều.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "3d2ad21b07a7c65695e05d372cd32a3610bfa28ca6e3c9821c15d4b3bb80f622"
   },
   {
    "id": "la.issue.missing-context.01.direct",
@@ -11224,13 +11284,19 @@
    "id": "lighter.issue.missing-context.01",
    "category": "reading",
    "text": "Chỗ chưa rõ cứ để đó, đứng dậy uống một cốc nước đã.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "a86ecfd0a82db57683cce4d93d435d4d73c148fc445bfebbf5e5895312163da8"
   },
   {
    "id": "lighter.issue.missing-context.02",
    "category": "reading",
    "text": "Ghi một dòng cho riêng mình: chỗ nào bạn đang chưa rõ.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "1f069f9f8f8350a35c5d2b9f4e84ce6ca5a3e2055110ab487f7f3c5da7612a6a"
   },
   {
    "id": "lighter.issue.too-many-open-loops.01",
@@ -11242,43 +11308,64 @@
    "id": "lighter.issue.too-many-open-loops.02",
    "category": "reading",
    "text": "Ghi một dòng: việc nào đang ở trong đầu bạn nhiều nhất.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "4fb95756d6627c1b95483afad2a378725246b3672b53315d7ad969e0bc646608"
   },
   {
    "id": "lighter.issue.changed-plan.01",
    "category": "reading",
    "text": "Kế hoạch đổi rồi thì nghỉ ba phút đã, chưa cần xếp lại ngay.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "9c2e5c6a1d7bd822c11b2ce1f614b49ac60810f58bee975e83272d2cef7f5fd2"
   },
   {
    "id": "lighter.issue.changed-plan.02",
    "category": "reading",
    "text": "Đi bộ một vòng quanh nhà rồi mới tính tới lịch mới.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "8d74cd03620b603eb7e0f38064cc29e683e117927b0ea6f3eace08e0afb46b3f"
   },
   {
    "id": "lighter.issue.comparison-loop.01",
    "category": "reading",
    "text": "Tắt điện thoại ba phút, nhìn ra cửa sổ thay vì xem bài của người khác.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "7828dc7663c8c3d4765c90d5321a1c8f061475d1497f1b062ca7c33be50f33b0"
   },
   {
    "id": "lighter.issue.comparison-loop.02",
    "category": "reading",
    "text": "Ghi một dòng: hôm nay bạn đã làm được việc gì.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "c4aedeca3101fcb10bdbd3b341a7edb54b717a65189780eaa29990790803db54"
   },
   {
    "id": "lighter.issue.automatic-caretaking.01",
    "category": "reading",
    "text": "Uống một cốc nước cho mình trước, việc của người khác để sau.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "ac774a37b6434a7c90f9aa7d5b5bc5b9e81ef24f5cc4fbc46abeacbac6cb576a"
   },
   {
    "id": "lighter.issue.automatic-caretaking.02",
    "category": "reading",
    "text": "Ngồi yên ba phút, chưa cần lo phần của ai.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "10e5d5d1bf212c8596fae22654e62e873be886c8cfe162237734d07fc05d4f4e"
   },
   {
    "id": "lighter.issue.decision-fatigue.01",
@@ -11290,7 +11377,10 @@
    "id": "lighter.issue.decision-fatigue.02",
    "category": "reading",
    "text": "Nhắm mắt một phút, chưa cần chọn gì lúc này.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "e8c55bedfd54d172a5945d24ed945fdab073bb942d792070ac75ceecf701978b"
   },
   {
    "id": "lighter.issue.perfect-before-start.01",
@@ -11308,13 +11398,19 @@
    "id": "lighter.issue.group-pressure.01",
    "category": "reading",
    "text": "Ra khỏi chỗ đông người, đứng thở chậm một phút.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "75f3bd38b1cb7cc695188dc55aae981a4104b7d3367004312aeaaac1843c8c37"
   },
   {
    "id": "lighter.issue.group-pressure.02",
    "category": "reading",
    "text": "Tắt điện thoại năm phút rồi ngồi yên một mình, chuyện của nhóm để sau.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "ad4977d3639e6d13a78eb411755e48d02b1569d7f675f865cecdbf665bed8173"
   },
   {
    "id": "lighter.issue.avoid-small-conflict.01",
@@ -11326,13 +11422,19 @@
    "id": "lighter.issue.avoid-small-conflict.02",
    "category": "reading",
    "text": "Ghi một dòng cho riêng mình: chuyện gì đang làm bạn khó chịu.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "be4e33ad4a41476f09737eedc7e019cfc40c5701816b590828d27cd3186280ef"
   },
   {
    "id": "lighter.issue.defend-old-choice.01",
    "category": "reading",
    "text": "Chưa cần chứng minh mình đúng, uống một ngụm nước và thở chậm.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "4e3d29ded132edab442c62addec24d9a886d6e033724de3d6035261f60b99203"
   },
   {
    "id": "lighter.issue.defend-old-choice.02",
@@ -11344,19 +11446,28 @@
    "id": "lighter.issue.capacity-before-agreement.01",
    "category": "reading",
    "text": "Tắt điện thoại năm phút, chưa cần gật đầu với ai lúc này.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "a414bee5824c18b8215106b00d334e3b3c4f7a9ac80273896646e354f8a9eaa7"
   },
   {
    "id": "lighter.issue.capacity-before-agreement.02",
    "category": "reading",
    "text": "Nằm xuống ba phút trước khi nghĩ tới lời mời đó.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "4cce812365a3fb6bad913bfbabb0d8422ac15c727486f2dbff0863b4bf61b9d8"
   },
   {
    "id": "lighter.issue.quick-reply.01",
    "category": "reading",
    "text": "Úp điện thoại xuống bàn, thở chậm năm hơi rồi mới cầm lại.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "4a397771d2ac08c18ee799bda24c735e84b1c970d03a282127fc7efaad81a639"
   },
   {
    "id": "lighter.issue.quick-reply.02",
@@ -11368,7 +11479,10 @@
    "id": "lighter.issue.repair-reply.01",
    "category": "reading",
    "text": "Lỡ lời rồi thì ngồi yên hai phút cho bớt nóng đã.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "d392b943f4b76e248fcfc2e94fe75101cde7c249b36e696c1bc450ff890d0e6d"
   },
   {
    "id": "lighter.issue.repair-reply.02",
@@ -11392,31 +11506,46 @@
    "id": "lighter.issue.name-the-need.01",
    "category": "reading",
    "text": "Ghi một dòng cho riêng mình: lúc này bạn đang cần gì.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "a3b05e29d94fbcab116d756962dfc9fb982d4a7a1930ec8aac49d8a30e36c5c0"
   },
   {
    "id": "lighter.issue.name-the-need.02",
    "category": "reading",
    "text": "Ngồi yên ba phút, đặt tay lên bụng và thở đều.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "3409c8835ec2da4f09e9ec9c0b489ea2b7daaf60796696e5a5b5b6572f3b13fa"
   },
   {
    "id": "insight.everyday.sun.aries",
    "category": "reading",
    "text": "Khi muốn làm gì, bạn hay bắt tay ngay rồi mới tính chi tiết sau.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "fb744ee417c35bc48277208a8b25eb9059238942122c530e94e9258257241084"
   },
   {
    "id": "insight.everyday.sun.taurus",
    "category": "reading",
    "text": "Bạn hay chọn một hướng chắc chắn rồi đi đều, không thích bị giục đổi giữa chừng.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "c021a9a10ca62fffe10fd1034e25fe47f6cb04fee1c5e04837ad1b5429aa660f"
   },
   {
    "id": "insight.everyday.sun.gemini",
    "category": "reading",
    "text": "Bạn hay làm nhiều việc nhỏ cùng lúc và thấy vui khi được học thêm điều mới.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "3bc7a7d251401a439706065d7d549d99a0f90c113d0cc6846af05e3ce4806a1b"
   },
   {
    "id": "insight.everyday.sun.cancer",
@@ -11428,25 +11557,37 @@
    "id": "insight.everyday.sun.leo",
    "category": "reading",
    "text": "Bạn hay muốn việc mình làm có dấu ấn riêng và được người khác nhìn thấy.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "03172fc1469d39a3c089b4e97f0b13e74cd108fce10094ad98477b671d884e53"
   },
   {
    "id": "insight.everyday.sun.virgo",
    "category": "reading",
    "text": "Bạn hay thấy ổn hơn khi làm xong một việc cụ thể, dù chỉ là việc nhỏ.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "6ae39d517628d7c10fc61ea8557267c93a5747f77fbb1fc4f6f92fbfafbfa5de"
   },
   {
    "id": "insight.everyday.sun.libra",
    "category": "reading",
    "text": "Bạn hay hỏi ý người khác trước khi chọn hướng đi cho mình.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "64c149752c6e2c66106a90253c15145a8879b973e034e9fb3b1ef40872bcdf07"
   },
   {
    "id": "insight.everyday.sun.scorpio",
    "category": "reading",
    "text": "Bạn hay dồn sức vào ít việc nhưng làm tới cùng, và không thích kể nhiều.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "7278573e60b16f01e130a3e5bf49f6492ffb46ea57f767e7aafa17d3b22bedea"
   },
   {
    "id": "insight.everyday.sun.sagittarius",
@@ -11464,25 +11605,37 @@
    "id": "insight.everyday.sun.aquarius",
    "category": "reading",
    "text": "Bạn hay làm theo cách riêng, kể cả khi số đông đang chọn cách khác.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "39aae723ed7c2c97ce6f03c1562eef777e1ac2ed27a8d95133b89953e3b6fa2a"
   },
   {
    "id": "insight.everyday.sun.pisces",
    "category": "reading",
    "text": "Bạn hay làm tốt nhất khi việc đó có ích cho ai đó, không chỉ vì được giao.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "d2041a5fd7e9df59c8f6054b8a1545c307c45498ce299e99d4b2baee3cb17852"
   },
   {
    "id": "insight.everyday.moon.aries",
    "category": "reading",
    "text": "Khi buồn hay bực, bạn hay nói ra ngay và cũng nguôi khá nhanh.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "4ca90a95e87def7d86f76321d2ce4da7270032434cf685e86b1271d8753e75c0"
   },
   {
    "id": "insight.everyday.moon.taurus",
    "category": "reading",
    "text": "Sau một ngày mệt, bạn hay cần ăn ngon, ngủ đủ và ở chỗ quen.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "9470e1f602f8f0ab0870cdd7a85a5b71a9dfa0f1f874c6daf474736dbedd0d69"
   },
   {
    "id": "insight.everyday.moon.gemini",
@@ -11494,43 +11647,64 @@
    "id": "insight.everyday.moon.cancer",
    "category": "reading",
    "text": "Khi buồn, bạn hay tìm về người thân hoặc một góc quen để thấy yên tâm.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "5edd78b2264190ea20f91e98413c5c2d015a733af914903d1335a3b46281c502"
   },
   {
    "id": "insight.everyday.moon.leo",
    "category": "reading",
    "text": "Khi buồn, bạn hay cần một lời hỏi han hoặc một cái ôm từ người mình quý.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "41868c3bec94e4918bac3438e4d161d4bc6515f216e2bb02f03eed8b6f4c8520"
   },
   {
    "id": "insight.everyday.moon.virgo",
    "category": "reading",
    "text": "Khi lo, bạn hay dọn dẹp hoặc làm một việc tay chân để bình tĩnh lại.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "5618451a79ee53bae69c3cd7e66b3dac076b2a847dc7a1aa7f63d1522aac380d"
   },
   {
    "id": "insight.everyday.moon.libra",
    "category": "reading",
    "text": "Khi không vui, bạn hay cố giữ không khí dễ chịu cho mọi người trước.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "9812fa626580a78a19158a6619b390fdcf56288807c76280c17bbbb2aa2a319e"
   },
   {
    "id": "insight.everyday.moon.scorpio",
    "category": "reading",
    "text": "Khi bị tổn thương, bạn hay giữ kín và chỉ kể với rất ít người.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "40ba6ebb46fefbafcd82696ce3dd0c2efdb403c4841204cd201b82e5b9ba27fb"
   },
   {
    "id": "insight.everyday.moon.sagittarius",
    "category": "reading",
    "text": "Khi buồn, bạn hay ra ngoài, đi đâu đó hoặc đổi chỗ ngồi cho nhẹ đầu.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "e33b20b8d04cd5e2ba8be0af183a09a63c2ef6e0b568df9a2ffe69534e6bd3d9"
   },
   {
    "id": "insight.everyday.moon.capricorn",
    "category": "reading",
    "text": "Khi mệt, bạn hay cố làm cho xong việc rồi mới cho mình nghỉ.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "2bc8736f6900a300ed75be7c5ff493c34753cb57a625f8e701c82fbdfd43b564"
   },
   {
    "id": "insight.everyday.moon.aquarius",
@@ -11542,25 +11716,37 @@
    "id": "insight.everyday.moon.pisces",
    "category": "reading",
    "text": "Bạn hay buồn theo khi người bên cạnh buồn, dù chuyện không phải của mình.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "c59032c843cba6f04d4a6dbe965a31e75e232c59911960af99e640724e1cbd02"
   },
   {
    "id": "insight.everyday.mercury.aries",
    "category": "reading",
    "text": "Khi nói chuyện, bạn hay vào thẳng ý chính và trả lời khá nhanh.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "2fd3538307c816b944d069fdeb38595e86c3ef0a12ef9b133ba09d58b493a9f5"
   },
   {
    "id": "insight.everyday.mercury.taurus",
    "category": "reading",
    "text": "Bạn hay nghĩ kỹ trước khi nói và nhớ lâu điều mình đã hiểu chắc.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "ed133373b4b7624d5e5f638231a2b0e2d1c907134b2fabdc860a2c4d8dca5c99"
   },
   {
    "id": "insight.everyday.mercury.gemini",
    "category": "reading",
    "text": "Bạn hay hỏi nhiều, đọc nhiều và nối các ý khác nhau rất nhanh.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "55dfa25e82fc3882020c0ea48221a30b97d335e5ee98f7632fcc4e79eac36acb"
   },
   {
    "id": "insight.everyday.mercury.cancer",
@@ -11572,109 +11758,163 @@
    "id": "insight.everyday.mercury.leo",
    "category": "reading",
    "text": "Khi kể chuyện, bạn hay kể sinh động và muốn người nghe thật sự chú ý.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "90455be1beba05220e8bd6ff55ad7eb5b9b01eac54e10a4ad7435f56e42324b4"
   },
   {
    "id": "insight.everyday.mercury.virgo",
    "category": "reading",
    "text": "Bạn hay ghi chú, lập danh sách và để ý những chi tiết người khác bỏ qua.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "e8106b7fb29e68d4403f30167ad84a761254b6d9f38ddecceb13ca06b1ffd757"
   },
   {
    "id": "insight.everyday.mercury.libra",
    "category": "reading",
    "text": "Khi trao đổi, bạn hay cân nhắc cả hai phía trước khi nói ý mình.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "82a55885d390b2aab2d4a3f1aedc2c5449551a2f3c0e0393e79dbe44120d53e1"
   },
   {
    "id": "insight.everyday.mercury.scorpio",
    "category": "reading",
    "text": "Bạn hay nghe nhiều hơn nói và hỏi đúng chỗ người khác đang né.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "5580c313dd3a923310f5f6c31bf5e40511b9548742b9883bfd88d90450075f9f"
   },
   {
    "id": "insight.everyday.mercury.sagittarius",
    "category": "reading",
    "text": "Bạn hay nói thẳng điều mình tin và thích bàn chuyện lớn hơn chuyện vặt.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "d27c3c8c9c65c4d14c621c0234da038bab180a9e2e423110539ef9393f44a52d"
   },
   {
    "id": "insight.everyday.mercury.capricorn",
    "category": "reading",
    "text": "Bạn hay nói ngắn, rõ, và chỉ nói khi đã nghĩ xong.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "9f9b6fe04ec48e9a61cc87aaf1ed3fb590d4f4f8b2f49f0bc1c15db9fd3fe427"
   },
   {
    "id": "insight.everyday.mercury.aquarius",
    "category": "reading",
    "text": "Bạn hay nghĩ khác số đông và thích hỏi: sao không làm theo cách khác?",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "ea9c768d2f076613c8e10ac2cfb208c4074b444abc479be32a159d4aeb8e64c5"
   },
   {
    "id": "insight.everyday.mercury.pisces",
    "category": "reading",
    "text": "Bạn hay hiểu ý người khác qua giọng nói, nét mặt hơn là qua từng chữ.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "d7aee171413ae14a9bc89c550707b2d5b4425a7bd7e930eca75648497893a93d"
   },
   {
    "id": "insight.everyday.venus.aries",
    "category": "reading",
    "text": "Khi quý ai, bạn hay chủ động rủ rê và thể hiện ra khá rõ.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "c4f84f9f2149e5469399667127e3b9622abf4a3e654303f5f4035d79d47cf95c"
   },
   {
    "id": "insight.everyday.venus.taurus",
    "category": "reading",
    "text": "Bạn hay thể hiện tình cảm bằng việc cụ thể: một bữa ăn, một món quà, một lần đưa đón.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "fd84c06fcfc15ee7e2753dabeb0b2464b0948a0ea667373c2aff48a1a1e00e56"
   },
   {
    "id": "insight.everyday.venus.gemini",
    "category": "reading",
    "text": "Bạn hay quý người nói chuyện hợp và giữ liên lạc bằng những tin nhắn vui.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "fb09897fc97997d7edad3524fd41a60db1c07ee727261703e4aba7da54c19f7f"
   },
   {
    "id": "insight.everyday.venus.cancer",
    "category": "reading",
    "text": "Bạn hay chăm người mình thương bằng những việc nhỏ hằng ngày.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "54ec908f04373056dab25f9e7058c931363420168b8e68ba68fdb46a809b36bd"
   },
   {
    "id": "insight.everyday.venus.leo",
    "category": "reading",
    "text": "Bạn hay muốn được khen, được để ý, và cũng hào phóng khen người khác.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "d9233142cd620edfd388c4fab2cedb48645f398bffae3964358e3b01200369bd"
   },
   {
    "id": "insight.everyday.venus.virgo",
    "category": "reading",
    "text": "Bạn hay thể hiện tình cảm bằng cách giúp một việc cụ thể đúng lúc người kia cần.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "622a5817fe655ba934bd13d1554e47e166c7cdac47ed26991e9fe302c3e8df61"
   },
   {
    "id": "insight.everyday.venus.libra",
    "category": "reading",
    "text": "Bạn hay quý những mối quan hệ có qua có lại và cư xử tử tế với nhau.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "7418153b916b0a934b1d7fcab7668947c6865ef0e75fa73183b51fb2ff010c40"
   },
   {
    "id": "insight.everyday.venus.scorpio",
    "category": "reading",
    "text": "Bạn hay mở lòng chậm, nhưng khi đã tin thì gắn bó rất sâu.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "87355c868876fd3db36ae5bdbd3860d3c1d94b61c252f8999f552e4f0c79081d"
   },
   {
    "id": "insight.everyday.venus.sagittarius",
    "category": "reading",
    "text": "Bạn hay quý người cho mình tự do và cùng mình thử điều mới.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "ea1891ab6f2fab1a560a56a9364da19e9c5bd2bd4ddc7128c75eb09ee0077b7e"
   },
   {
    "id": "insight.everyday.venus.capricorn",
    "category": "reading",
    "text": "Bạn hay thể hiện tình cảm bằng việc có mặt đều đặn và giữ lời hứa.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "6e7e3049a15394335acadb8cdb9885bbefa815462112b02898ee9d2391ddf0cb"
   },
   {
    "id": "insight.everyday.venus.aquarius",
@@ -11692,25 +11932,37 @@
    "id": "insight.everyday.mars.aries",
    "category": "reading",
    "text": "Khi muốn gì, bạn hay lao vào làm ngay và không ngại cạnh tranh.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "c1f08a9e87691c4da68db0c60cb3e09c004fab2e88ec10522c054f48ce9fb06c"
   },
   {
    "id": "insight.everyday.mars.taurus",
    "category": "reading",
    "text": "Bạn hay khởi động chậm, nhưng đã làm thì làm đều và bền.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "8d788724ac7b78e43261dfc809aa167c12397b9c45f4f1162b81bd2dc0277d07"
   },
   {
    "id": "insight.everyday.mars.gemini",
    "category": "reading",
    "text": "Bạn hay làm hăng theo từng đợt và làm tốt khi được đổi việc liên tục.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "293113fd940511e507213c4facc5737c448bee7b1ea991af9efaef5b4e907ffe"
   },
   {
    "id": "insight.everyday.mars.cancer",
    "category": "reading",
    "text": "Bạn hay mạnh mẽ nhất khi bảo vệ người nhà hoặc người mình thương.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "e28e2c2acc97a5d01672d6c691a0142135d82cea47747f7f2488474715649bd7"
   },
   {
    "id": "insight.everyday.mars.leo",
@@ -11722,25 +11974,37 @@
    "id": "insight.everyday.mars.virgo",
    "category": "reading",
    "text": "Bạn hay làm việc chăm chỉ, cẩn thận và muốn mọi thứ đâu ra đó.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "985ea0b5d25d6b60d5eddc3fbfe641857b003abaad12bbdc490dcea7c608e009"
   },
   {
    "id": "insight.everyday.mars.libra",
    "category": "reading",
    "text": "Bạn hay tránh cãi nhau và muốn giải quyết bằng cách nói chuyện.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "89519f79afcd1272c5928765699135e409cdbb321021489b05ecb6d931e267e6"
   },
   {
    "id": "insight.everyday.mars.scorpio",
    "category": "reading",
    "text": "Khi đã muốn gì, bạn hay kiên trì rất lâu và ít khi bỏ cuộc.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "b336e11a0c6e0a0d9801ce17ead3f6eb96f79017b757ed93893712300a2f0b46"
   },
   {
    "id": "insight.everyday.mars.sagittarius",
    "category": "reading",
    "text": "Bạn hay hăng hái lúc bắt đầu và cần một mục tiêu đủ lớn để làm tiếp.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "5933774985408a541788950949a6eda1eba2869f3b53f8efe5d7c2baa1797172"
   },
   {
    "id": "insight.everyday.mars.capricorn",
@@ -11752,13 +12016,19 @@
    "id": "insight.everyday.mars.aquarius",
    "category": "reading",
    "text": "Bạn hay hăng nhất khi được làm theo cách mình nghĩ ra.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "bf2eba420853d6ce36da05db00da928472336d496bb3bd28dea797b5e0fcac9d"
   },
   {
    "id": "insight.everyday.mars.pisces",
    "category": "reading",
    "text": "Bạn hay làm theo cảm hứng và có sức hơn khi việc đó giúp được ai đó.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "a52f29f6d6e84e091a043f2ddafaa8a9e16c566b63498f43ecba14ef0ebab132"
   },
   {
    "id": "insight.everyday.jupiter.aries",
@@ -11770,13 +12040,19 @@
    "id": "insight.everyday.jupiter.taurus",
    "category": "reading",
    "text": "Bạn hay tin vào những gì tích góp dần, từ tiền bạc tới kỹ năng.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "0a76bd792a3fcd341f89b9e70fe38a4c6f720c53e8a4a6edc6bbb83e8e669c36"
   },
   {
    "id": "insight.everyday.jupiter.gemini",
    "category": "reading",
    "text": "Bạn hay biết thêm nhiều điều nhờ học, đọc và quen thêm người mới.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "f4ac4be8a87bf215549a293347904e9b749e50d6c3192727e6ce8784eba64e48"
   },
   {
    "id": "insight.everyday.jupiter.cancer",
@@ -11794,7 +12070,10 @@
    "id": "insight.everyday.jupiter.virgo",
    "category": "reading",
    "text": "Bạn hay tiến bộ nhờ làm đi làm lại một việc tới khi thành thạo.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "6a30eab03791b2f9bd018da248c303abbb2ad565153805b9a20b9e969bcfae75"
   },
   {
    "id": "insight.everyday.jupiter.libra",
@@ -11818,79 +12097,118 @@
    "id": "insight.everyday.jupiter.capricorn",
    "category": "reading",
    "text": "Bạn hay tin vào kết quả đến từ kỷ luật và làm bền bỉ lâu dài.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "3829f2ca2d5c5f4452a4f0ab010dda6f522513389da584bcd114a15b1e943e89"
   },
   {
    "id": "insight.everyday.jupiter.aquarius",
    "category": "reading",
    "text": "Bạn hay có ý tưởng mới khi ở trong một nhóm cùng chí hướng.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "d748dbac85c3a05686a7f878880473c8eaaa2fd40122a15ef458a20ebf888a8d"
   },
   {
    "id": "insight.everyday.jupiter.pisces",
    "category": "reading",
    "text": "Bạn hay thấy nhẹ lòng khi giúp người khác hoặc làm việc có ý nghĩa.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "e9c3731214e6275a580c0f4df32baff26864c022831365ff95dd556378309733"
   },
   {
    "id": "insight.watch.sun.aries",
    "category": "reading",
    "text": "Khi căng, bạn dễ quyết quá nhanh rồi mới thấy mình chưa hỏi đủ.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "8011a76c229cef10d97effdea53187dcee7c93c6bc46f732fbf1bdfcbe772a45"
   },
   {
    "id": "insight.watch.sun.taurus",
    "category": "reading",
    "text": "Khi căng, bạn dễ giữ cách cũ dù nó đã không còn hợp.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "04c1a986c0fbc7ce50579434cf0b9c7ee89c3b2dc629716f20c8147393049226"
   },
   {
    "id": "insight.watch.sun.gemini",
    "category": "reading",
    "text": "Khi căng, bạn dễ mở thêm việc mới thay vì làm xong việc đang dở.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "5bb4bfd0c6cb3a763867c6aa4e948aed1f47ad83ad0285882fbd6e21a6a954cc"
   },
   {
    "id": "insight.watch.sun.cancer",
    "category": "reading",
    "text": "Khi căng, bạn dễ lo cho mọi người trước mà quên việc của mình.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "bbc19c7520b7e998e2c2ca005ee48b66deedce44b88155f7005f672ccf651351"
   },
   {
    "id": "insight.watch.sun.leo",
    "category": "reading",
    "text": "Khi căng, bạn dễ buồn lâu nếu công sức của mình không ai nhắc tới.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "9132cbddce77c9e87d0188825db6d2aee34b408966b6cd34d036feb5a0317222"
   },
   {
    "id": "insight.watch.sun.virgo",
    "category": "reading",
    "text": "Khi căng, bạn dễ sửa đi sửa lại một việc đã đủ tốt.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "2ea54aa2e84cc825cfb95c407958f7c2cba937033f295d5eaa36324c377404f3"
   },
   {
    "id": "insight.watch.sun.libra",
    "category": "reading",
    "text": "Khi căng, bạn dễ chờ người khác chọn hộ để khỏi phải quyết.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "a61dc08ef6fcf6a18fdf3a8ad74f8cbbdf69ef3a833f878db8045df612760e5a"
   },
   {
    "id": "insight.watch.sun.scorpio",
    "category": "reading",
    "text": "Khi căng, bạn dễ ôm hết một mình và không nói ai biết mình đang mệt.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "bc1ad413488d047bbb4e4672e7436fa075c46a43ec18c69124de3e83a6d1a4a0"
   },
   {
    "id": "insight.watch.sun.sagittarius",
    "category": "reading",
    "text": "Khi căng, bạn dễ bỏ ngang để tìm một hướng mới hấp dẫn hơn.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "bc77dc82b1fb1e96d513ea8f2dff7ed3696a900122ef94c801a5126b3c2a2f02"
   },
   {
    "id": "insight.watch.sun.capricorn",
    "category": "reading",
    "text": "Khi căng, bạn dễ làm thêm giờ thay vì nói rằng mình đã quá tải.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "9a7e3619530909abe240a989a57eff7676bb1f2335375154043ff16e17c82070"
   },
   {
    "id": "insight.watch.sun.aquarius",
@@ -11908,13 +12226,19 @@
    "id": "insight.watch.moon.aries",
    "category": "reading",
    "text": "Khi căng, bạn dễ nói nặng lời rồi sau đó mới thấy tiếc.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "639071727464de11340276e4a4ce13e8493adf52930f3d9ea8a4e955152b863b"
   },
   {
    "id": "insight.watch.moon.taurus",
    "category": "reading",
    "text": "Khi căng, bạn dễ thu mình trong thói quen cũ và ngại đổi gì thêm.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "a6cdedd9dbe58ef2c3bd62a57483eef8b804609a92e9d0bcca23aacc3c1493bb"
   },
   {
    "id": "insight.watch.moon.gemini",
@@ -11926,43 +12250,64 @@
    "id": "insight.watch.moon.cancer",
    "category": "reading",
    "text": "Khi căng, bạn dễ tủi thân và chờ người khác tự nhận ra.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "809c4d5481a7ce5c4172e9f8a40305b48d3b5df8f1863d9ec0536dd30afdc997"
   },
   {
    "id": "insight.watch.moon.leo",
    "category": "reading",
    "text": "Khi căng, bạn dễ nghĩ mình không được quan tâm nếu không ai hỏi han.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "aa737bd895261a155201328706f425f2455db9eb3e0c8846c35d1e51d8cbeb2e"
   },
   {
    "id": "insight.watch.moon.virgo",
    "category": "reading",
    "text": "Khi căng, bạn dễ tự trách mình vì những lỗi rất nhỏ.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "d64ed664839c89b25e4bd0d63a3d06bb4763e57fe7e56fc02acd0b2abf1b2a9a"
   },
   {
    "id": "insight.watch.moon.libra",
    "category": "reading",
    "text": "Khi căng, bạn dễ nói “không sao” dù trong lòng vẫn còn khó chịu.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "e2714d2005cc14d16dc1761d220f9bbb48b66c08353b064927cb091d62944bd0"
   },
   {
    "id": "insight.watch.moon.scorpio",
    "category": "reading",
    "text": "Khi căng, bạn dễ nhớ mãi một câu nói làm mình đau.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "698ea2466285b27ef3e6cd2817110df4665f533dd28793e54df92d4b2363a0a5"
   },
   {
    "id": "insight.watch.moon.sagittarius",
    "category": "reading",
    "text": "Khi căng, bạn dễ né chuyện khó bằng cách bận rộn với việc khác.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "b30effbc42d3ad1439be76684a8b6b92d4d60752ca8655b4a4f313f37e3d3c8c"
   },
   {
    "id": "insight.watch.moon.capricorn",
    "category": "reading",
    "text": "Khi căng, bạn dễ gồng tiếp và chỉ thấy mệt khi đã quá sức.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "c2b88b183486d28eb733a5b047449dfc1041d2a672a581e7729684c20c360fdc"
   },
   {
    "id": "insight.watch.moon.aquarius",
@@ -11980,55 +12325,82 @@
    "id": "insight.watch.mercury.aries",
    "category": "reading",
    "text": "Khi căng, bạn dễ ngắt lời người khác hoặc trả lời trước khi nghe hết.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "86e7b6071c5a9d24a86682bbb25e83a202523924ae9fa3b920d4cba9589013a8"
   },
   {
    "id": "insight.watch.mercury.taurus",
    "category": "reading",
    "text": "Khi căng, bạn dễ giữ ý mình dù người kia đã đưa thêm thông tin.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "57a5d5faef36f945975ecca491861572509e07dea9a79c0f35a849e4f3627be7"
   },
   {
    "id": "insight.watch.mercury.gemini",
    "category": "reading",
    "text": "Khi căng, bạn dễ nói lan man và nhảy qua lại giữa nhiều chuyện.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "5b7218c767730aaeb5a31062bda4143fdfc3dfa2a39e4557566c4cffc2e956bb"
   },
   {
    "id": "insight.watch.mercury.cancer",
    "category": "reading",
    "text": "Khi căng, bạn dễ nghe một câu bình thường thành câu trách mình.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "12ea8c7824fab16b2ae10a5930d7952b9e2b9caed98f500e61121524808ad360"
   },
   {
    "id": "insight.watch.mercury.leo",
    "category": "reading",
    "text": "Khi căng, bạn dễ khó chịu nếu ý mình bị bỏ qua giữa đám đông.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "a44efac5aac1979c95f9ea4ba990ae7b7febb095ddaf41a65d17ac87aef30004"
   },
   {
    "id": "insight.watch.mercury.virgo",
    "category": "reading",
    "text": "Khi căng, bạn dễ soi lỗi trong lời người khác và cả lời của mình.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "bddb797d8f372206f4766f6bb5fe9be35348181ebf2757ca6fe3a3e54ab72454"
   },
   {
    "id": "insight.watch.mercury.libra",
    "category": "reading",
    "text": "Khi căng, bạn dễ nói vòng vo để khỏi làm ai phật lòng.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "ab3b4c7595ce5b71a3de51ea23d100a8ed31f18def2130dc6ad106bdb1d633f4"
   },
   {
    "id": "insight.watch.mercury.scorpio",
    "category": "reading",
    "text": "Khi căng, bạn dễ đoán ý xấu sau một tin nhắn ngắn.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "2922f2757bd6a73424384378b40662abab30f73158b600a4d92953946f066a43"
   },
   {
    "id": "insight.watch.mercury.sagittarius",
    "category": "reading",
    "text": "Khi căng, bạn dễ hứa nhanh hoặc nói quá lên so với điều mình làm được.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "1b0ba278abe5fa92f86862ea5d8a7f4fb30903207abcd07819f667174ae382d7"
   },
   {
    "id": "insight.watch.mercury.capricorn",
@@ -12040,25 +12412,37 @@
    "id": "insight.watch.mercury.aquarius",
    "category": "reading",
    "text": "Khi căng, bạn dễ tranh luận bằng lý lẽ mà bỏ qua cảm xúc người kia.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "8b9911c400206e03245bfeccb3418d30cc0dfdf84c43d0a6b454da33603a523d"
   },
   {
    "id": "insight.watch.mercury.pisces",
    "category": "reading",
    "text": "Khi căng, bạn dễ nói không rõ ý để tránh va chạm.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "83cdf2972d46071b4efd9d6666cd9cc75fb24306c93fca72054e2ee138bd6734"
   },
   {
    "id": "insight.watch.venus.aries",
    "category": "reading",
    "text": "Khi căng, bạn dễ mất hứng nhanh nếu người kia trả lời chậm.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "61a180bd2c561f97de3eeb7b1914c311e95739edc7409a159deca6c6a5d216e8"
   },
   {
    "id": "insight.watch.venus.taurus",
    "category": "reading",
    "text": "Khi căng, bạn dễ giữ chặt một mối quan hệ dù nó đã làm mình mệt.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "108e6953aa1e5bf205f836e4380c7b97ed83ea5b8e34d9c2198215e127e5be08"
   },
   {
    "id": "insight.watch.venus.gemini",
@@ -12070,13 +12454,19 @@
    "id": "insight.watch.venus.cancer",
    "category": "reading",
    "text": "Khi căng, bạn dễ cần người kia hỏi han nhiều hơn mà ngại nói ra.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "ac00c7f7a5f04a2fa349333c09976249c6ba4ad9b6a1278cd6a7876ab1ffb703"
   },
   {
    "id": "insight.watch.venus.leo",
    "category": "reading",
    "text": "Khi căng, bạn dễ giận dỗi khi người kia quên một dịp quan trọng với bạn.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "8f8f78cf16cb1d0a21e2f61065a6978b105e1227f052b5ffb22e3a9ae9a3efd6"
   },
   {
    "id": "insight.watch.venus.virgo",
@@ -12088,13 +12478,19 @@
    "id": "insight.watch.venus.libra",
    "category": "reading",
    "text": "Khi căng, bạn dễ chiều ý người kia rồi quên mình cũng có mong muốn.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "b90bd3bff8aedeae81d010a2abff289a01a4c41ef5f35da8efa1c1e1bbc54fe8"
   },
   {
    "id": "insight.watch.venus.scorpio",
    "category": "reading",
    "text": "Khi căng, bạn dễ thử lòng người kia thay vì hỏi thẳng.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "2dff00b6c9a2e359191f447449ded3e16a42bc49c68fcfc1f24aeec526d61b4c"
   },
   {
    "id": "insight.watch.venus.sagittarius",
@@ -12106,7 +12502,10 @@
    "id": "insight.watch.venus.capricorn",
    "category": "reading",
    "text": "Khi căng, bạn dễ giữ khoảng cách và ngại nói rằng mình cần được quan tâm.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "abde30c734ac7d86676e21139efb06c49ff9328d11384cab54a52d1645451645"
   },
   {
    "id": "insight.watch.venus.aquarius",
@@ -12124,7 +12523,10 @@
    "id": "insight.watch.mars.aries",
    "category": "reading",
    "text": "Khi căng, bạn dễ nóng và nói ra điều chưa kịp nghĩ.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "fce1dd95007cfd699fa5c0684e085a65a45ba1f66c2bf659b5d5c7bd23b243be"
   },
   {
    "id": "insight.watch.mars.taurus",
@@ -12136,7 +12538,10 @@
    "id": "insight.watch.mars.gemini",
    "category": "reading",
    "text": "Khi căng, bạn dễ bỏ dở nhiều việc cùng lúc.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "3f78801060205fb0e869d0d70a98678c0a1e66b7d5d3d5fee16f9bd953e6699d"
   },
   {
    "id": "insight.watch.mars.cancer",
@@ -12148,121 +12553,181 @@
    "id": "insight.watch.mars.leo",
    "category": "reading",
    "text": "Khi căng, bạn dễ tự ái nếu bị chỉnh trước mặt người khác.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "b65b52a1f5b9e29aa97c43c695d9ca5c2d81a5c4a495dcd5568dd9c9378e1d0c"
   },
   {
    "id": "insight.watch.mars.virgo",
    "category": "reading",
    "text": "Khi căng, bạn dễ ôm hết việc vì thấy người khác làm chưa kỹ.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "1f775aa54568076fbb64861dbc48971ef2bedd1a5a0fc0aea4820f72d004eec5"
   },
   {
    "id": "insight.watch.mars.libra",
    "category": "reading",
    "text": "Khi căng, bạn dễ nói đồng ý rồi trong lòng vẫn bực.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "da8f2615f6d2510abb50ad76ff0902ecc3c94a9cae71269f8a7637d1a5a8cb19"
   },
   {
    "id": "insight.watch.mars.scorpio",
    "category": "reading",
    "text": "Khi căng, bạn dễ giữ cơn giận trong lòng rất lâu.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "29a6f79bd72e35be982916c0d7ba0d9848428118c36f321c859b00e6af0c72c1"
   },
   {
    "id": "insight.watch.mars.sagittarius",
    "category": "reading",
    "text": "Khi căng, bạn dễ hấp tấp hoặc nhận quá nhiều việc.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "9c36d8784ad3f6067e191fedf835fb70beb0d4e5f2206bd5135aabc65923efab"
   },
   {
    "id": "insight.watch.mars.capricorn",
    "category": "reading",
    "text": "Khi căng, bạn dễ làm quá sức và khắt khe với chính mình.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "e3413b7c502cbcf8678269b31386a5802022cda1e3f27921f10d6a7edbc17f94"
   },
   {
    "id": "insight.watch.mars.aquarius",
    "category": "reading",
    "text": "Khi căng, bạn dễ làm ngược lại chỉ vì không thích bị bảo phải làm gì.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "00c40e101e09833f170b26239b5f8b713422b9efb77604cfb56ec210a488dd41"
   },
   {
    "id": "insight.watch.mars.pisces",
    "category": "reading",
    "text": "Khi căng, bạn dễ trì hoãn và đợi tới phút chót mới làm.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "33b7e5f00e91442baa8144e79046c8c4025e0a7bcb1f54d00a76fba772b89dcd"
   },
   {
    "id": "insight.watch.jupiter.aries",
    "category": "reading",
    "text": "Khi căng, bạn dễ nhận một cơ hội quá vội mà chưa xem kỹ.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "7030df0255b53f3f49cb226c0c6a7d7757416ec5b7b50961f13b3b5f6d6215eb"
   },
   {
    "id": "insight.watch.jupiter.taurus",
    "category": "reading",
    "text": "Khi căng, bạn dễ nghĩ phải có đủ mọi thứ mới thấy yên tâm.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "31a2429d7a7e2c9c76a22492daf5e889f90e661affca56837e30f9ce03d64f19"
   },
   {
    "id": "insight.watch.jupiter.gemini",
    "category": "reading",
    "text": "Khi căng, bạn dễ học nhiều thứ một lúc mà không đi sâu được cái nào.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "be4a50fb9211678f1b71d71a61715b9c861f3d09f2bd0f629bb3901bed95aea5"
   },
   {
    "id": "insight.watch.jupiter.cancer",
    "category": "reading",
    "text": "Khi căng, bạn dễ ngại rời khỏi chỗ quen dù có cơ hội tốt.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "da142270ea673f5a026f48491ff7cd32370097f2590fd8276314692cc8c9d42e"
   },
   {
    "id": "insight.watch.jupiter.leo",
    "category": "reading",
    "text": "Khi căng, bạn dễ hứa nhiều hơn sức mình để giữ hình ảnh.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "91255732ae45baada7bd1d9862879333992d79b3c77d7a6f3e2179e26cf62f8c"
   },
   {
    "id": "insight.watch.jupiter.virgo",
    "category": "reading",
    "text": "Khi căng, bạn dễ chờ thật hoàn hảo rồi mới dám bắt đầu.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "b1e57d0ddfea98fdf10c6ad0507a828bff42cc93a7dada685d2b5c041e4e3215"
   },
   {
    "id": "insight.watch.jupiter.libra",
    "category": "reading",
    "text": "Khi căng, bạn dễ nhận lời quá nhiều người để không ai buồn.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "dfdd55a222e32e3e88037f9922abb683809ed95d734bbe3d608082a49735f632"
   },
   {
    "id": "insight.watch.jupiter.scorpio",
    "category": "reading",
    "text": "Khi căng, bạn dễ nghi ngờ một cơ hội tốt vì sợ bị lừa.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "75e6829a2c5ed2dfa425c029609ebe3cba6c874cd78928e700df98b20a17f398"
   },
   {
    "id": "insight.watch.jupiter.sagittarius",
    "category": "reading",
    "text": "Khi căng, bạn dễ ôm quá nhiều kế hoạch mà chưa xong cái nào.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "f0450afccded521cfec2a22048bf7d1202d5e68c1e03ab744129202be6bc395b"
   },
   {
    "id": "insight.watch.jupiter.capricorn",
    "category": "reading",
    "text": "Khi căng, bạn dễ nghĩ phải thật vất vả mới xứng đáng có kết quả.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "d949f233481d763f7721411dbe46a48aa7e394bf90fb7fd5e38e5b4bcc56c96e"
   },
   {
    "id": "insight.watch.jupiter.aquarius",
    "category": "reading",
    "text": "Khi căng, bạn dễ bỏ qua lời khuyên vì muốn làm theo cách riêng.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "d0b553f6a06274f8e3f98159bc8d27edd0079370dc946130176deb771859fe44"
   },
   {
    "id": "insight.watch.jupiter.pisces",
    "category": "reading",
    "text": "Khi căng, bạn dễ tin người quá nhanh hoặc giúp quá sức mình.",
-   "status": "pending"
+   "status": "approved",
+   "approver": "codex",
+   "date": "2026-11-22",
+   "digest": "c0beebb5e198e0657a01f2e86246bbea2b5efa57a78675b7d7e190de771ef633"
   }
  ],
  "version": "copy-registry/v1"
