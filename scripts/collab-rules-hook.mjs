@@ -62,9 +62,20 @@ export function changedIds(oldText, newText) {
   return [...new Set([...a.keys(), ...b.keys()])].filter(id => a.get(id) !== b.get(id));
 }
 
-// SessionStart (any source: startup, resume, clear, compact — a compacted context may have lost the
-// sheet) always delivers. UserPromptSubmit and PostToolUse deliver only when the version moved:
-// PostToolUse reaches a long turn that gets no new prompt (Codex r1 on the plan).
+// When the full sheet goes in (L66, 22.11.2026: up to 20 full copies per session, ~3% of all Claude
+// spend; 141 of 239 deliveries over two days were a sub-agent's first tool call, 88 a SessionStart on
+// an unchanged version). The full sheet goes only to a main context that has no copy:
+// - SessionStart startup, clear or compact (a fresh or compacted context may have lost the sheet);
+// - any event in the main context whose last delivered version differs (the hash moved).
+// Everything else gets at most one line, a pointer with the version hash:
+// - a SessionStart resume of a version already delivered (the resumed transcript still holds it);
+// - a sub-agent's first tool call, or a version change seen by a sub-agent (short-lived contexts that
+//   read the file when their work touches the owner, merge or release).
+// UserPromptSubmit and PostToolUse on an unchanged version stay silent. PostToolUse reaches a long
+// turn that gets no new prompt (Codex r1 on the plan).
+export const pointer = (version, changed = []) =>
+  `Luật owner bản ${version}${changed.length ? ` (vừa đổi: ${changed.join(', ')})` : ''}: ${sheetRel} (R1–R17). Đọc file trước khi cần owner (R3), merge hoặc phát hành.`;
+
 export function reload(input, { home = stateDir, now = () => new Date() } = {}) {
   const session = safeId(input.session_id);
   // Codex P1 on #616: sub-agents share the session id; each context (the main one, each agent_id)
@@ -82,6 +93,7 @@ export function reload(input, { home = stateDir, now = () => new Date() } = {}) 
   let seen = null;
   if (seenPath) try { seen = readFileSync(seenPath, 'utf8').trim(); } catch {}
   if (event !== 'SessionStart' && seen === version) return null;
+  const sameVersionResume = event === 'SessionStart' && input.source === 'resume' && seen === version;
   let oldText = null;
   if (seen && seen !== version) try { oldText = readFileSync(join(rulesDir(home), 'versions', `${seen}.md`), 'utf8'); } catch {}
   const changed = changedIds(oldText, text);
@@ -95,9 +107,11 @@ export function reload(input, { home = stateDir, now = () => new Date() } = {}) 
       renameSync(`${seenPath}.tmp`, seenPath);
     }
   } catch {}
-  const body = fitContext(text);
   const why = seen && seen !== version ? 'changed' : event === 'SessionStart' ? 'start' : 'first';
-  log(home, 'deliveries.jsonl', { at: now().toISOString(), session, ...(agent ? { agent } : {}), event, version, previous: seen, why, changed });
+  const kind = agent || sameVersionResume ? 'pointer' : 'full';
+  log(home, 'deliveries.jsonl', { at: now().toISOString(), session, ...(agent ? { agent } : {}), event, version, previous: seen, why, kind, changed });
+  if (kind === 'pointer') return pointer(version, why === 'changed' ? changed : []);
+  const body = fitContext(text);
   const head = why === 'changed'
     ? `Luật owner vừa đổi (bản ${seen} → ${version}${changed.length ? `; dòng đổi: ${changed.join(', ')}` : ''}). Áp dụng bản dưới đây từ bây giờ, kể cả cho việc đang làm.`
     : `Luật owner đang hiệu lực (bản ${version}). Đọc trước khi làm; trước khi cần owner, xem R3.`;

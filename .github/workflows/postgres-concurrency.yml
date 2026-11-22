@@ -1,0 +1,90 @@
+# #873: two keep requests at once on a real PostgreSQL, for every kind of profile.
+# Keeping a Daily action relies on the guest row lock (SELECT ... FOR UPDATE) and the version
+# compare-and-swap; SQLite cannot exercise that (two writers fail with "database is locked"), so
+# this job runs the gated test against a throwaway PostgreSQL container started in the job.
+# - Runs only when database, migration or keep-action code changes, so ordinary PRs stay fast.
+# - Image pinned to the production major version (infra/compose, infra/hetzner: postgres 17).
+# - No secrets: throwaway credentials and a throwaway TLS CA that exist only inside this job.
+# - Security as pr-check: `pull_request` only (read-only token), actions pinned to commit SHAs.
+name: postgres-concurrency
+
+on:
+  pull_request:
+    branches: [collab/integration]
+    paths:
+      - apps/api/app/db/**
+      - apps/api/migrations/**
+      - apps/api/app/domains/experiments/**
+      - apps/api/app/domains/readings/lighter_action.py
+      - apps/api/tests/daily/test_keep_action_*.py
+      - apps/api/tests/experiments/**
+      - .github/workflows/postgres-concurrency.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: postgres-concurrency-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  keep-action:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # The app only talks to PostgreSQL over verified TLS (app/db/session.py: CERT_REQUIRED and
+      # hostname check), so the throwaway server gets a throwaway CA and a certificate for
+      # 127.0.0.1, valid one day, made here and gone with the runner.
+      - name: Throwaway TLS certificate for 127.0.0.1
+        run: |
+          set -euo pipefail
+          dir="$RUNNER_TEMP/pg-tls"
+          mkdir -p "$dir" && cd "$dir"
+          openssl req -x509 -newkey rsa:2048 -nodes -keyout ca.key -out ca.crt -days 1 -subj "/CN=la-lanh-ci-throwaway-ca"
+          openssl req -newkey rsa:2048 -nodes -keyout server.key -out server.csr -subj "/CN=127.0.0.1"
+          printf 'subjectAltName=IP:127.0.0.1\nbasicConstraints=CA:FALSE\nkeyUsage=digitalSignature,keyEncipherment\nextendedKeyUsage=serverAuth\n' > ext.cnf
+          openssl x509 -req -in server.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out server.crt -days 1 -extfile ext.cnf
+          url="postgresql+asyncpg://la_lanh_ci:throwaway-ci-only@127.0.0.1:55432/la_lanh_security_test?sslrootcert=$dir/ca.crt"
+          {
+            echo "PG_TLS_DIR=$dir"
+            # Same isolated database the gated tests insist on (127.0.0.1:55432, la_lanh_security_test).
+            echo "LA_LANH_DATABASE_URL=$url"
+            echo "LA_LANH_TEST_POSTGRES_URL=$url"
+          } >> "$GITHUB_ENV"
+      # Production major version (infra/compose, infra/hetzner: postgres 17). Throwaway credentials
+      # that exist only inside this container; no secrets.
+      - name: Start PostgreSQL 17 with TLS
+        run: |
+          set -euo pipefail
+          docker run -d --name la-lanh-ci-pg -p 127.0.0.1:55432:5432 \
+            -e POSTGRES_USER=la_lanh_ci -e POSTGRES_PASSWORD=throwaway-ci-only -e POSTGRES_DB=la_lanh_security_test \
+            -v "$PG_TLS_DIR:/tls:ro" postgres:17-alpine sh -c \
+            'cp /tls/server.crt /tls/server.key /var/lib/postgresql/ && chown postgres:postgres /var/lib/postgresql/server.crt /var/lib/postgresql/server.key && chmod 600 /var/lib/postgresql/server.key && exec docker-entrypoint.sh postgres -c ssl=on -c ssl_cert_file=/var/lib/postgresql/server.crt -c ssl_key_file=/var/lib/postgresql/server.key'
+          for attempt in $(seq 1 60); do
+            if docker exec la-lanh-ci-pg pg_isready -h 127.0.0.1 -U la_lanh_ci -d la_lanh_security_test >/dev/null 2>&1; then
+              echo "PostgreSQL ready after $attempt checks"; exit 0
+            fi
+            sleep 2
+          done
+          docker logs la-lanh-ci-pg | tail -20
+          exit 1
+      # Stand-ins for Supabase's browser roles: migrations revoke from them and a plain cluster
+      # lacks them (same as infra/hetzner/rehearse-migration.sh and staging/up.sh).
+      - name: Create the roles the migrations expect
+        run: >-
+          docker exec la-lanh-ci-pg psql -v ON_ERROR_STOP=1 -U la_lanh_ci -d la_lanh_security_test
+          -c "CREATE ROLE anon NOLOGIN; CREATE ROLE authenticated NOLOGIN; CREATE ROLE service_role NOLOGIN;"
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          python-version: '3.13'
+      - name: Build the Swiss Ephemeris library
+        run: make -C vendor/swisseph
+      - name: Migrate the throwaway database
+        working-directory: apps/api
+        run: uv run --frozen alembic upgrade head
+      - name: Two keep requests at once, for every kind of profile
+        working-directory: apps/api
+        run: uv run --frozen pytest -q -p no:cacheprovider tests/daily/test_keep_action_postgres.py

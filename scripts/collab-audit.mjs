@@ -9,7 +9,7 @@
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { clean, dayStatePath, integration, makeGh, readJson, repo, reviewState, stateDir, vnNow } from './collab-trust.mjs';
+import { clean, dayStatePath, integration, makeGh, readJson, repo, reviewState, stateDir, verdictAtMerge, vnNow } from './collab-trust.mjs';
 import { isMain } from './is-main.mjs';
 import { applyPolicy, validateOutput } from './collab-review-policy.mjs';
 
@@ -29,9 +29,9 @@ export const dayRange = date => `${date}T00:00:00+07:00..${date}T23:59:59+07:00`
 // A real review receipt: the last trusted verdict before the merge is Codex's automatic APPROVE of
 // the merged head, and its "Output SHA-256" matches a local Codex output file for that PR and head.
 // The marker alone can be typed by anyone posting as the owner (Codex 13.11).
+// A merge before signed receipts (#456) is judged by the rule of its time (verdictAtMerge, L55).
 export function receipt(pr, outputs) {
-  const before = { ...pr, comments: (pr.comments ?? []).filter(c => !pr.mergedAt || String(c.createdAt) <= String(pr.mergedAt)) };
-  const last = reviewState(before).last;
+  const last = verdictAtMerge(pr);
   if (!last) return { ok: false, why: 'không có verdict' };
   if (!last.auto) return { ok: false, why: 'verdict không phải review tự động' };
   if (last.verdict.verdict !== 'APPROVE') return { ok: false, why: `verdict cuối là ${last.verdict.verdict}` };
@@ -131,7 +131,8 @@ export function collectFacts({ date, gh = makeGh(), now = new Date(), outputs = 
     const all = disagreements().filter(d => d.date === date);
     const entries = all.filter(d => d.type !== 'override');
     M.M8 = { value: entries.length, codex: entries.filter(d => d.winner === 'codex').length, claude: entries.filter(d => d.winner === 'claude').length,
-      owner: entries.filter(d => d.winner === 'owner').length, overrides: all.filter(d => d.type === 'override').length };
+      owner: entries.filter(d => d.winner === 'owner').length, overrides: all.filter(d => d.type === 'override').length,
+      ...(entries.some(d => d.source === 'audit') ? { audit: entries.filter(d => d.source === 'audit').length } : {}) };
   } catch (error) { M.M8 = unmeasured(`không đọc được sổ bất đồng: ${reason(error)}`); }
 
   // M9: Codex runs the loop counted (runs outside the counter are not seen).
