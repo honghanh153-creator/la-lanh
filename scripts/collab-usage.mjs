@@ -27,6 +27,10 @@ export const usagePath = (home = stateDir) => join(home, 'state', 'claude-usage.
 export const modePath = (home = stateDir) => join(home, 'state', 'claude-mode.json');
 export const scanPath = (home = stateDir) => join(home, 'state', 'claude-usage-scan.json');
 export const projectsRoot = (user = homedir()) => join(user, '.claude', 'projects');
+// R2(4): reading local transcripts is new personal-data processing, so it is built and left OFF.
+// It runs only when the owner creates this flag file in the state folder (local, never pushed).
+export const scanFlagPath = (home = stateDir) => join(home, 'state', 'claude-usage-scan-on');
+export const scanEnabled = (home = stateDir) => existsSync(scanFlagPath(home));
 
 export const MODES = { normal: 'bình thường', saving: 'tiết kiệm', fallback: 'chuyển sang Codex' };
 export function modeFor(percent) {
@@ -166,7 +170,7 @@ export function todayShares({ home = stateDir, root = projectsRoot(), now = new 
 // One board line, and warnings for the "Cần xem" block.
 export function usageLine(usage, today = null) {
   const week = usage.percent === null ? 'chưa có số' : `${usage.percent}%${usage.fresh ? '' : ' (số cũ hơn 3 giờ)'}`;
-  const shares = today?.measured ? today.shares.map(s => `${s.project} ${Math.round(s.share * 100)}%`).join(', ') : 'chưa đo được';
+  const shares = today === 'off' ? 'tắt (chờ owner bật)' : today?.measured ? today.shares.map(s => `${s.project} ${Math.round(s.share * 100)}%`).join(', ') : 'chưa đo được';
   return `Claude tuần: ${week} · chế độ: ${MODES[usage.mode] ?? usage.mode} · hôm nay theo dự án: ${shares}`;
 }
 export function usageHealth(usage) {
@@ -199,8 +203,8 @@ export function hasUsageFile(home = stateDir) { return existsSync(usagePath(home
 // What one tick needs: the board line, the warnings, and the pace alert sent at most once a day.
 export function usageTick({ alert, home = stateDir, root = projectsRoot(), now = new Date() } = {}) {
   const usage = readUsage({ home, now });
-  let today = null;
-  try { today = todayShares({ home, root, now }); } catch {}
+  let today = 'off';
+  if (scanEnabled(home)) { today = null; try { today = todayShares({ home, root, now }); } catch {} }
   if (alert) paceWatch({ usage, alert, home });
   return { line: usageLine(usage, today), health: usageHealth(usage), mode: usage.mode };
 }
