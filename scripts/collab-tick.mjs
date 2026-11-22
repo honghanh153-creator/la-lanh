@@ -20,6 +20,8 @@ import { runMergeAudit } from './collab-merge-audit.mjs';
 import { isMain } from './is-main.mjs';
 import { loadAuditDeps } from './collab-audit.mjs';
 import { runNightAudit } from './collab-audit-night.mjs';
+import { noteTickGap, tickGapSubject } from './collab-tick-gap.mjs';
+import { areaWatch, areaWatchSubject } from './collab-area-label.mjs';
 
 const auditDeps = await loadAuditDeps();
 // The tick's night audit, with the promise register and the disagreement log (L22) wired in.
@@ -43,8 +45,12 @@ export function tickLog(line, write = text => process.stderr.write(text)) {
 const watchdogSubject = 'tác vụ hẹn giờ bị treo';
 const receiptSubject = 'merge thiếu biên nhận';
 
-export function runTick(gh = makeGh(), preflight = () => missingTools(), { run = tick, log = tickLog, gateWatch = agentGateWatch, rulesWatch = rulesHookWatch, incidentAlert = incidentPreflightAlert } = {}) {
+export function runTick(gh = makeGh(), preflight = () => missingTools(), { run = tick, log = tickLog, gateWatch = agentGateWatch, rulesWatch = rulesHookWatch, gapNote = noteTickGap, areaNote = areaWatch, incidentAlert = incidentPreflightAlert } = {}) {
   const board = info => upsertBoard(gh, planIssue(gh), renderBoard(info));
+  // L57: a gap since the last heartbeat is written with its cause before this tick writes its own.
+  try { gapNote({ log, alert: text => opsAlert(gh, text, tickGapSubject) }); } catch (error) { log(`tick gap note failed: ${clean(error.message, 200)}`); }
+  // L58: an open PR without an area label falls to the last group and is never worked; label or alert.
+  try { areaNote({ gh, log, alert: text => opsAlert(gh, text, areaWatchSubject), resolve: text => resolveOpsAlert(gh, text, areaWatchSubject) }); } catch (error) { log(`area watch failed: ${clean(error.message, 200)}`); }
   return run({ gh, preflight, log, prPreflight: n => {
       const pr = gh.pr(n);
       const result = runPreflight(pr);
