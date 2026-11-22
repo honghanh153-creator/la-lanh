@@ -2,7 +2,8 @@
 // Codex's audit that day found that none of the 12 workflow changes agreed on 12.11 had reached
 // "done": lessons were written down, not turned into running checks. This file makes the promise
 // itself checkable, so follow-through no longer depends on Claude's discipline:
-// - every lesson has an owner, a due date and a status in scripts/collab-lessons.json;
+// - every lesson has an owner, a due date and a status: one file per lesson in scripts/lessons/
+//   (scripts/lessons/L65.json), plus the older lessons still in scripts/collab-lessons.json (below);
 // - "done" needs a regression test that exists in a file CI runs (pnpm collab:test), a caller
 //   that wires the fix into the loop, and the PR that closed it; the tick then confirms on
 //   GitHub that the PR was merged into collab/integration with a Codex APPROVE (Claude cannot
@@ -27,7 +28,28 @@ export const statuses = ['open', 'waiting-owner', 'declined-owner', 'done'];
 const noDue = new Set(['waiting-owner', 'declined-owner']);
 const isDate = s => /^\d{4}-\d{2}-\d{2}$/.test(s ?? '');
 
-export const readRegister = (path = registerPath) => JSON.parse(readFileSync(path, 'utf8'));
+// One file per lesson (22.11.2026, L65). Every lesson PR appended to the end of collab-lessons.json,
+// so each merged lesson put every other open lesson PR in conflict, and each resync cost a new check
+// and review (#838, #843, #864, #872 and the #850 stack on 22.11). New lessons go in
+// scripts/lessons/<id>.json, one object each. The old file stays readable while open PRs that append
+// to it drain; its entries move to the folder in a later small PR. Both sources form one register:
+// the same checks (shape, evidence, due date, Codex-confirmed close) run over all of it, and an id
+// in both, or a file not named after its id, is a problem (`problems`), never silently merged.
+export const lessonsDir = join(here, 'lessons');
+const sourceOf = new WeakMap();
+export const lessonSource = l => sourceOf.get(l) ?? 'collab-lessons.json';
+export function readRegister(path = registerPath, dir = lessonsDir) {
+  const reg = JSON.parse(readFileSync(path, 'utf8'));
+  const files = existsSync(dir) ? readdirSync(dir).filter(f => f.endsWith('.json')).sort() : [];
+  const extra = files.map(f => {
+    let lesson;
+    try { lesson = JSON.parse(readFileSync(join(dir, f), 'utf8')); } catch (error) { throw new Error(`lessons/${f}: ${error.message}`); }
+    if (!lesson || typeof lesson !== 'object' || Array.isArray(lesson)) throw new Error(`lessons/${f}: must hold one lesson object`);
+    sourceOf.set(lesson, `lessons/${f}`);
+    return lesson;
+  });
+  return { ...reg, lessons: [...(reg.lessons ?? []), ...extra] };
+}
 
 // Test files that CI runs: a lesson's test must be one of them, or it never runs.
 export function ciTestFiles(pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')), { base = root, scan = pyScan } = {}) {
@@ -114,12 +136,13 @@ const pyTest = (file, name, scan) => (/^test_\w+$/.test(name) ? scan(['test', fi
 // Offline problems: shape, and for "done" the evidence that exists in this checkout.
 export function problems(register, { base = root, ciFiles = ciTestFiles(), scan = pyScan } = {}) {
   const out = [];
-  const ids = new Set();
+  const ids = new Map();
   for (const l of register.lessons ?? []) {
     const at = `lesson ${l?.id ?? '?'}`;
     if (!/^L\d{2,}$/.test(l?.id ?? '')) { out.push(`${at}: id must look like L01`); continue; }
-    if (ids.has(l.id)) out.push(`${at}: duplicate id`);
-    ids.add(l.id);
+    if (ids.has(l.id)) out.push(`${at}: duplicate id (${ids.get(l.id)} and ${lessonSource(l)})`);
+    else ids.set(l.id, lessonSource(l));
+    if (lessonSource(l).startsWith('lessons/') && lessonSource(l) !== `lessons/${l.id}.json`) out.push(`${at}: ${lessonSource(l)} must be named lessons/${l.id}.json`);
     if (!String(l.title ?? '').trim()) out.push(`${at}: no title`);
     if (!['claude', 'codex', 'owner'].includes(l.who)) out.push(`${at}: who must be claude, codex or owner`);
     if (!statuses.includes(l.status)) out.push(`${at}: status must be one of ${statuses.join(', ')}`);

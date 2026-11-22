@@ -1,0 +1,16 @@
+{
+ "id": "L65",
+ "title": "Mỗi bài học nằm trong một file riêng (scripts/lessons/<id>.json), nên PR thêm bài học không còn đụng nhau ở cuối một file chung; sổ cũ vẫn được đọc, id trùng giữa hai nơi bị báo lỗi (22.11: #838, #843, #864, #872 và chuỗi #850 phải gộp lại nhiều lần chỉ vì file bài học)",
+ "from": "phiên điều phối 22.11 (xung đột lặp lại ở scripts/collab-lessons.json)",
+ "who": "claude",
+ "due": "2026-11-23",
+ "status": "open",
+ "test": {
+  "file": "scripts/collab-lessons.test.mjs",
+  "name": "L65: lessons in scripts/lessons/ and the old file form one register; a duplicate id or a misnamed file is a problem, and due dates and Codex-confirmed closes cover both"
+ },
+ "caller": {
+  "file": "scripts/collab-lessons.mjs",
+  "contains": "const files = existsSync(dir) ? readdirSync(dir).filter(f => f.endsWith('.json')).sort() : [];"
+ }
+}
