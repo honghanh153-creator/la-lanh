@@ -22,6 +22,17 @@ a new key or late history only affects new days. Rollback: unset it and restart;
 date-only rotation and stored notes keep their frozen plans, but a note reopened on the rollback day may show
 an `available_update`.
 
+## Daily topic anti-repeat (plan #841)
+
+`LA_LANH_DAILY_TOPIC_SCHEDULE_FROM` (unset = off) is the first Daily note date that chooses its situation
+against the reader's recomputed 12-day block instead of the top-3 rotation (`docs/plans/2026-11-21-daily-topic-anti-repeat.md`,
+PR #855). It needs `LA_LANH_DAILY_VARIETY_FROM` to be set. Prefer a day **after** the deploy day, then restart
+the API. Nothing is stored: each new note recomputes up to 11 earlier days of its block (measured: +19 ms
+median, at most 263 ms per new note). A note already opened is replayed as served. Before switching it on in
+a release, run the 200-persona check with `PERSONA_SIM_TOPIC_SCHEDULE_FROM` set to the start date and compare
+the topic-repeat columns of the persona report (#845) with a run without it. Rollback: unset it and restart;
+new days return to the top-3 rotation and stored notes keep their frozen plans.
+
 ## Tarot B2 (US-20)
 
 Release of the framed Tarot renderer (B2-1 to B2-4b) is **No-Go** until:

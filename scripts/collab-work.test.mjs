@@ -11,9 +11,10 @@ const sha = n => String(n).repeat(40).slice(0, 40);
 const trust = await import('./collab-trust.mjs');
 const { asPosted } = await import('./collab-test-post.mjs');
 // #456 P1-B: the APPROVE is signed for its PR and bound to its comment URL, as codex-review.mjs posts it.
-const approved = n => asPosted(trust, { authorAssociation: 'OWNER', createdAt: '2026-11-14T01:00:00Z',
+// The verdict comes one minute before its merge: a verdict posted after the merge is not its evidence (L55).
+const approved = (n, mergedAt = '2026-11-14T01:01:00Z') => asPosted(trust, { authorAssociation: 'OWNER', createdAt: new Date(Date.parse(mergedAt) - 60000).toISOString(),
   body: `Review verdict: APPROVE @ ${sha(n)}\nReviewer: Codex\n${trust.verdictSeal({ head: sha(n), p2: 0, base: null, receipt: trust.signReceipt({ kind: 'verdict', pr: n, head: sha(n), base: null, result: 'APPROVE', p2: 0 }) })}` });
-const merged = (number, body, mergedAt, { reviewed = true } = {}) => ({ number, body, mergedAt, state: 'MERGED', baseRefName: 'collab/integration', headRefOid: sha(number), comments: reviewed ? [approved(number)] : [] });
+const merged = (number, body, mergedAt, { reviewed = true } = {}) => ({ number, body, mergedAt, state: 'MERGED', baseRefName: 'collab/integration', headRefOid: sha(number), comments: reviewed ? [approved(number, mergedAt)] : [] });
 const issue = '## Mục tiêu cho người dùng\n\nx\n\n## Tiêu chí đạt\n\n- [ ] Người dùng thấy tóm tắt\n- [x] AC07 mở được căn cứ\n- [ ]\n\n## Phối hợp hiện tại\n\n- Trạng thái: đang làm\n';
 
 test('a PR names its item and the criteria it meets; the issue lists its criteria', () => {
