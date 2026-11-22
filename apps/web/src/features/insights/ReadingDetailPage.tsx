@@ -113,13 +113,16 @@ function FocusedClaimContent({ claim, disclaimer, housesAndAspects, nested = fal
         <Title>{claim.hook || claim.summary}</Title>
         <p>{claim.meaning || claim.summary}</p>
       </header>
-      <section>
-        <Sub>Ngoài đời có thể trông như…</Sub>
-        <p>{claim.manifestation || claim.summary}</p>
-      </section>
+      {/* An empty everyday line means an earlier card already showed the same sentence. */}
+      {claim.manifestation ? (
+        <section>
+          <Sub>Ngoài đời có thể trông như…</Sub>
+          <p>{claim.manifestation}</p>
+        </section>
+      ) : null}
       {claim.watch_for ? (
         <section className="focused-reading-content__watch">
-          <Sub>Chỗ dễ lệch nhịp</Sub>
+          <Sub>Điều cần để ý</Sub>
           <p>{claim.watch_for}</p>
         </section>
       ) : null}
