@@ -1159,6 +1159,25 @@
    "closedBy": {
     "pr": 838
    }
+  },
+  {
+   "id": "L64",
+   "title": "Làn việc chỉ tính là được phục vụ khi PR của nó thật sự tiến (check có kết quả, review đã đăng, merge xong, front được đồng bộ); PR cũ chỉ đọc \"CI chưa xong\" mỗi tick vẫn làm làn bị bỏ đói và lên đầu sau 2 tick (21.11: 8 PR quy trình chờ tới 3 ngày; Codex auto-1 P1 trên #843)",
+   "from": "sự cố làn quy trình bị bỏ đói 21.11; Codex auto-1 trên #843",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-loop.test.mjs",
+    "name": "L64: a lane counts as served only when its PR made progress; a stale PR reading ci-pending every tick still starves its lane, which then goes first"
+   },
+   "caller": {
+    "file": "scripts/collab-turn.mjs",
+    "contains": "laneStarved: nextStarved({ starved: d.laneStarved ?? {}, lanes: lanePlan.lanes, busy: lanePlan.busy, done })"
+   },
+   "closedBy": {
+    "pr": 843
+   }
   }
  ]
 }
