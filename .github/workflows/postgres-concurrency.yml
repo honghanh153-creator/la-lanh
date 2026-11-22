@@ -1,0 +1,64 @@
+# #873: two keep requests at once on a real PostgreSQL, for every kind of profile.
+# Keeping a Daily action relies on the guest row lock (SELECT ... FOR UPDATE) and the version
+# compare-and-swap; SQLite cannot exercise that (two writers fail with "database is locked"), so
+# this job runs the gated test against a PostgreSQL service container.
+# - Runs only when database, migration or keep-action code changes, so ordinary PRs stay fast.
+# - Image pinned to the production major version (infra/compose, infra/hetzner: postgres 17).
+# - No secrets: throwaway credentials that exist only inside this job's container.
+# - Security as pr-check: `pull_request` only (read-only token), actions pinned to commit SHAs.
+name: postgres-concurrency
+
+on:
+  pull_request:
+    branches: [collab/integration]
+    paths:
+      - apps/api/app/db/**
+      - apps/api/migrations/**
+      - apps/api/app/domains/experiments/**
+      - apps/api/app/domains/readings/lighter_action.py
+      - apps/api/tests/daily/test_keep_action_*.py
+      - apps/api/tests/experiments/**
+      - .github/workflows/postgres-concurrency.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: postgres-concurrency-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  keep-action:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: la_lanh_ci
+          POSTGRES_PASSWORD: throwaway-ci-only
+          POSTGRES_DB: la_lanh_security_test
+        ports:
+          - 55432:5432
+        options: >-
+          --health-cmd "pg_isready -U la_lanh_ci -d la_lanh_security_test"
+          --health-interval 2s --health-timeout 2s --health-retries 30
+    env:
+      # Same isolated database the gated tests insist on (127.0.0.1:55432, la_lanh_security_test).
+      LA_LANH_DATABASE_URL: postgresql+asyncpg://la_lanh_ci:throwaway-ci-only@127.0.0.1:55432/la_lanh_security_test
+      LA_LANH_TEST_POSTGRES_URL: postgresql+asyncpg://la_lanh_ci:throwaway-ci-only@127.0.0.1:55432/la_lanh_security_test
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          python-version: '3.13'
+      - name: Build the Swiss Ephemeris library
+        run: make -C vendor/swisseph
+      - name: Migrate the throwaway database
+        working-directory: apps/api
+        run: uv run --frozen alembic upgrade head
+      - name: Two keep requests at once, for every kind of profile
+        working-directory: apps/api
+        run: uv run --frozen pytest -q -p no:cacheprovider tests/daily/test_keep_action_postgres.py
