@@ -3,9 +3,11 @@
 import { execFileSync } from 'node:child_process';
 import { runReview } from './codex-review.mjs';
 import { dailyReceiptAudit, runMerge } from './collab-merge.mjs';
-import { ciCheck, heavyJobFree, runCheckInClone } from './collab-check.mjs';
+import { ciCheck, heavyJobFree, prepareAuthorClone, runCheckInClone, withCheckLock } from './collab-check.mjs';
+import { healConflicts } from './collab-conflict-heal.mjs';
+import { mayTouch, withPrLock } from './collab-pr-claim.mjs';
 import { incidentPreflightAlert, incidentPreflightSubject, runPreflight } from './collab-preflight.mjs';
-import { clean, makeGh, vnNow } from './collab-trust.mjs';
+import { clean, lastStartAt, makeGh, vnNow } from './collab-trust.mjs';
 import { opsAlert, planTurns, resolveOpsAlert, tick } from './collab-turn.mjs';
 import { postOwnerNotes, renderBoard, upsertBoard } from './collab-status.mjs';
 import { collectMetrics, renderMetrics } from './collab-metrics.mjs';
@@ -50,7 +52,14 @@ export function tickLog(line, write = text => process.stderr.write(text)) {
 const watchdogSubject = 'tác vụ hẹn giờ bị treo';
 const receiptSubject = 'merge thiếu biên nhận';
 
-export function runTick(gh = makeGh(), preflight = () => missingTools(), { run = tick, log = tickLog, gateWatch = agentGateWatch, rulesWatch = rulesHookWatch, gapNote = noteTickGap, areaNote = areaWatch, incidentAlert = incidentPreflightAlert, usageNote = usageTick, probe = probeHolds } = {}) {
+// R9: no new loop work from 23:35. Tests inject their own runTick deps; a fake gh without openPrs is skipped.
+const healTick = ({ gh, log, now = vnNow() }) => (now.hour * 60 + now.minute >= lastStartAt || typeof gh.openPrs !== 'function' ? [] : healConflicts({
+  gh, log, prs: gh.openPrs(),
+  prepare: (n, head) => prepareAuthorClone(n, head, execFileSync, { source: 'ci', deadlineMs: Date.now() + 10 * 60000 }),
+  mayTouch: n => mayTouch(n), lock: fn => withCheckLock(fn), prLock: (n, fn) => withPrLock(n, fn, { waitMs: 0 }),
+}));
+
+export function runTick(gh = makeGh(), preflight = () => missingTools(), { run = tick, log = tickLog, gateWatch = agentGateWatch, rulesWatch = rulesHookWatch, gapNote = noteTickGap, areaNote = areaWatch, incidentAlert = incidentPreflightAlert, usageNote = usageTick, probe = probeHolds, conflictHeal = healTick } = {}) {
   // L67: Claude usage is read once per tick, only when the board or the health block asks for it;
   // the pace alert goes out from the same read. A failed read leaves the board without the line.
   let usage;
@@ -65,6 +74,9 @@ export function runTick(gh = makeGh(), preflight = () => missingTools(), { run =
   try { gapNote({ log, alert: text => opsAlert(gh, text, tickGapSubject) }); } catch (error) { log(`tick gap note failed: ${clean(error.message, 200)}`); }
   // L58: an open PR without an area label falls to the last group and is never worked; label or alert.
   try { areaNote({ gh, log, alert: text => opsAlert(gh, text, areaWatchSubject), resolve: text => resolveOpsAlert(gh, text, areaWatchSubject) }); } catch (error) { log(`area watch failed: ${clean(error.message, 200)}`); }
+  // L74: a conflict only in a rule file (the lessons list) is merged by the machine before the queue
+  // sends the PR to a Claude fix; Autofix in the app stays on as the fallback.
+  try { conflictHeal({ gh, log }); } catch (error) { log(`conflict heal failed: ${clean(error.message, 200)}`); }
   const result = run({ gh, preflight, log, prPreflight: n => {
       const pr = gh.pr(n);
       const result = runPreflight(pr);
