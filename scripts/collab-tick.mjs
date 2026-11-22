@@ -22,6 +22,7 @@ import { loadAuditDeps } from './collab-audit.mjs';
 import { runNightAudit } from './collab-audit-night.mjs';
 import { noteTickGap, tickGapSubject } from './collab-tick-gap.mjs';
 import { areaWatch, areaWatchSubject } from './collab-area-label.mjs';
+import { throughputTick } from './collab-throughput.mjs';
 import { paceSubject, usageTick } from './collab-usage.mjs';
 import { currentMode, fallbackStep } from './codex-fallback.mjs';
 import { runAntigravity } from './collab-antigravity.mjs';
@@ -81,7 +82,8 @@ export function runTick(gh = makeGh(), preflight = () => missingTools(), { run =
       return watch({ alert: text => opsAlert(gh, text, watchdogSubject), resolve: text => resolveOpsAlert(gh, text, watchdogSubject) });
     }, health: () => [...healthLines(readBeats()), ...hookHealth(), ...wrapperHealth(), ...skillRuleHealth(), ...rulesSheetHealth(), ...rulesHookHealth(), ...(usageNow()?.health ?? [])], copyPending: () => pendingCount(), copyBatch: () => runCopyBatch(), copySaved: () => Boolean(readSaved(savedPath, vnNow().date)),
     notify: (notes, comments) => postOwnerNotes(gh, planIssue(gh), notes, comments),
-    metrics: ({ prs, turns }) => renderMetrics(collectMetrics({ gh, prs, turns })),
+    // L72: throughput lines (Claude budget, merges, Gỡ Vướng, first-pass rates, triggers) join the outcome metrics.
+    metrics: ({ prs, turns }) => [...renderMetrics(collectMetrics({ gh, prs, turns })), ...throughputTick({ gh, prs, usageNote: usageNow(), log })],
     audit: () => nightAudit(gh),
     incidents: () => realSources(gh, vnNow().date).alerts(),
     mergeAudit: options => runMergeAudit(options),

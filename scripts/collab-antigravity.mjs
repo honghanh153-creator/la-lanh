@@ -12,7 +12,7 @@
 //   is dropped too; the PR stays held and the next tick starts again.
 //   node scripts/collab-antigravity.mjs --step       one step (what the tick runs)
 import { execFileSync, spawnSync } from 'node:child_process';
-import { readdirSync } from 'node:fs';
+import { appendFileSync, readdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { clean, isOwnPr, makeGh, readJson, repo, stateDir, writeJson } from './collab-trust.mjs';
@@ -66,13 +66,15 @@ export function antigravityStep({ gh, prs = [], turns = [], start, steps, home =
   const [n, job] = Object.entries(all)[0] ?? [];
   if (job) {
     const answer = readAnswer(steps(job.id));
-    const drop = reason => { delete all[n]; save(); return { status: 'dropped', pr: Number(n), reason }; };
+    // L72: each finished run is logged for the first-pass rate on the board (collab-throughput.mjs).
+    const note = row => { try { appendFileSync(join(home, 'antigravity-runs.jsonl'), `${JSON.stringify({ pr: Number(n), head: job.head, ...row, at: new Date(nowMs).toISOString() })}\n`); } catch {} };
+    const drop = reason => { delete all[n]; save(); note({ status: 'dropped', reason }); return { status: 'dropped', pr: Number(n), reason }; };
     if (answer.tools.length) return drop(`Antigravity dùng công cụ (${answer.tools.join(', ')}): không tính`);
     if (!answer.done) return nowMs - job.at > answerLimitMs ? drop('quá 20 phút chưa trả lời') : (save(), { status: 'waiting', pr: Number(n) });
     const verdict = parseCritic(answer.text);
     if (!verdict) return drop('câu trả lời không theo mẫu "Kết luận: ..."');
     const posted = postSecond({ gh, number: Number(n), reviewer, verdict, head: job.head, notes: answer.text });
-    delete all[n]; save();
+    delete all[n]; save(); note({ status: 'posted', verdict });
     return { status: 'posted', pr: Number(n), verdict, url: posted.url };
   }
   const pr = waiting[0];

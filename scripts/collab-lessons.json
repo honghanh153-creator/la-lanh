@@ -1292,6 +1292,25 @@
    "closedBy": {
     "pr": 899
    }
+  },
+  {
+   "id": "L72",
+   "title": "Throughput board: Claude today vs the daily budget, merges per day and Claude per merge, Gỡ Vướng streams, first-pass rates, and spend by trigger",
+   "from": "owner 22.11.2026: okie 1-2-3 (plan item 3 from the coordinator: a throughput board for both projects)",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-throughput.test.mjs",
+    "name": "L72: the tick adds the throughput lines to the board numbers, and a failure never hides the other numbers"
+   },
+   "caller": {
+    "file": "scripts/collab-tick.mjs",
+    "contains": "...throughputTick({ gh, prs, usageNote: usageNow(), log })"
+   },
+   "closedBy": {
+    "pr": 0
+   }
   }
  ]
 }

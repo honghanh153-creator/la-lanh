@@ -205,6 +205,7 @@ Session mà owner đang trực tiếp trò chuyện không bị lịch này ch�
 
 Owner: "chuyển qua codex khi claude gần hết. giữ 5% claude để duy trì nếu cần" và "tôi cần có phản biện nên ko muốn codex làm 1 mình".
 
+- Bảng vòng có khối năng suất (owner 22.11 "okie 1-2-3"; L72; `scripts/collab-throughput.mjs`), chỉ điểm phần trăm và số đếm (R14): Claude hôm nay so với ngân sách ngày ((100 − 5 − đã dùng) ÷ số ngày tới lúc đặt lại; cần `resetsAt` trong `state/claude-usage.json`); PR Lá Lành merge hôm nay và điểm Claude mỗi PR; Gỡ Vướng theo luồng từ `state/go-vuong-status.json` (`{"at","streams":[{"name","passedToday","backlog","missedSchedules"}]}`, do điều phối Gỡ Vướng ghi); tỉ lệ đạt ngay lần đầu 7 ngày của Codex sửa và Antigravity phản biện; phần chi Claude hôm nay do việc nền xong và do tin phiên khác.
 - Chuyển việc sớm theo giới hạn tuần Claude (owner 22.11 "okie 1-2-3"; L71; `scripts/collab-usage.mjs`, R1/R8):
   - Từ 75% (chuyển bớt): lượt Claude sửa chuyển sang Codex, phản biện do Antigravity, bỏ lượt Claude kiểm mẫu. PR có nhãn `incident` vẫn do Claude.
   - Từ 85% (tiết kiệm): Claude chỉ làm sự cố; mọi lượt sửa khác sang Codex.

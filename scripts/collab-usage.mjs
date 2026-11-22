@@ -80,9 +80,24 @@ export const projectOf = dir => (/-la-lanh(?:$|-|--)/.test(dir) ? 'la-lanh' : 'd
 // parsed again every tick. One assistant message can span several lines with the same id and usage:
 // the last ids seen are kept with the offset.
 export const chunkBytes = 8 * 1024 * 1024;
+// What started the turn a spend belongs to (owner plan 22.11 item 3, L72): a background-task
+// completion, a message from another session, or anything else (the owner, a schedule).
+export function triggerOf(entry) {
+  const kind = entry?.origin?.kind;
+  if (kind === 'task-notification') return 'task';
+  if (kind === 'peer') return 'session';
+  if (kind) return 'other';
+  const c = entry?.message?.content;
+  const text = typeof c === 'string' ? c : Array.isArray(c) && c[0]?.type === 'text' ? String(c[0].text ?? '') : null;
+  // A reminder the app adds inside a turn does not start a new one.
+  if (text === null || entry?.isMeta || text.startsWith('<system-reminder')) return null;
+  if (text.startsWith('<task-notification')) return 'task';
+  if (text.startsWith('<cross-session-message')) return 'session';
+  return 'other';
+}
 export function scanFile(path, prev = null, { stat = statSync(path), chunk = chunkBytes } = {}) {
   const fresh = !prev || stat.size < prev.offset || stat.ino !== prev.ino;
-  const rec = fresh ? { ino: stat.ino, offset: 0, days: {}, ids: [] } : { ...prev, days: { ...prev.days }, ids: [...prev.ids] };
+  const rec = fresh ? { ino: stat.ino, offset: 0, days: {}, ids: [], trigger: 'other', byTrigger: {} } : { trigger: 'other', ...prev, days: { ...prev.days }, ids: [...prev.ids], byTrigger: { ...(prev.byTrigger ?? {}) } };
   if (stat.size <= rec.offset) return rec;
   const seen = new Set(rec.ids);
   const fd = openSync(path, 'r');
@@ -98,16 +113,21 @@ export function scanFile(path, prev = null, { stat = statSync(path), chunk = chu
       const end = data.lastIndexOf(10);
       if (end < 0) { carry = data; continue; }
       for (const line of data.subarray(0, end).toString('utf8').split('\n')) {
-        if (!line.includes('"usage"')) continue;
+        const user = line.startsWith('{"') && line.includes('"type":"user"');
+        if (!user && !line.includes('"usage"')) continue;
         let e;
         try { e = JSON.parse(line); } catch { continue; }
+        // A tool result is part of the running turn; only a new prompt changes the trigger.
+        if (e?.type === 'user') { const t = triggerOf(e); if (t) rec.trigger = t; continue; }
         const m = e?.message;
         if (e?.type !== 'assistant' || !m?.usage) continue;
         if (m.id) { if (seen.has(m.id)) continue; seen.add(m.id); rec.ids.push(m.id); }
         const t = Date.parse(e.timestamp ?? '');
         if (!Number.isFinite(t)) continue;
         const day = vnNow(new Date(t)).date;
-        rec.days[day] = (rec.days[day] ?? 0) + costOf(m.model, m.usage);
+        const cost = costOf(m.model, m.usage);
+        rec.days[day] = (rec.days[day] ?? 0) + cost;
+        if (rec.trigger !== 'other') rec.byTrigger[day] = { ...rec.byTrigger[day], [rec.trigger]: (rec.byTrigger[day]?.[rec.trigger] ?? 0) + cost };
       }
       rec.offset += end + 1;
       carry = data.subarray(end + 1);
@@ -116,6 +136,7 @@ export function scanFile(path, prev = null, { stat = statSync(path), chunk = chu
   rec.ids = rec.ids.slice(-50);
   // Only the last week of days is kept per file.
   rec.days = Object.fromEntries(Object.entries(rec.days).sort().slice(-8));
+  rec.byTrigger = Object.fromEntries(Object.entries(rec.byTrigger).sort().slice(-8));
   return rec;
 }
 
@@ -144,6 +165,7 @@ export function todayShares({ home = stateDir, root = projectsRoot(), now = new 
   const cache = readJson(scanPath(home), {});
   const next = {};
   const cost = {};
+  const triggers = { task: 0, session: 0 };
   for (const { project, path } of transcripts(root)) {
     let stat;
     try { stat = statSync(path); } catch { continue; }
@@ -152,11 +174,13 @@ export function todayShares({ home = stateDir, root = projectsRoot(), now = new 
     try { rec = scanFile(path, cache[path], { stat }); } catch { continue; }
     next[path] = rec;
     if (rec.days[today]) cost[project] = (cost[project] ?? 0) + rec.days[today];
+    for (const k of Object.keys(triggers)) triggers[k] += rec.byTrigger?.[today]?.[k] ?? 0;
   }
   try { writeJson(scanPath(home), next); } catch {}
   const total = Object.values(cost).reduce((a, b) => a + b, 0);
   const shares = Object.entries(cost).sort((a, b) => (b[0] === 'la-lanh') - (a[0] === 'la-lanh')).map(([project, c]) => ({ project, share: total ? c / total : 0 }));
-  return { day: today, shares, measured: total > 0 };
+  const triggerShares = Object.fromEntries(Object.entries(triggers).map(([k, c]) => [k, total ? c / total : 0]));
+  return { day: today, shares, measured: total > 0, triggerShares };
 }
 
 // One board line, and warnings for the "Cần xem" block.
@@ -199,5 +223,5 @@ export function usageTick({ alert, home = stateDir, root = projectsRoot(), now =
   let today = null;
   try { today = todayShares({ home, root, now }); } catch {}
   if (alert) paceWatch({ usage, alert, home });
-  return { line: usageLine(usage, today), health: usageHealth(usage), mode: usage.mode };
+  return { line: usageLine(usage, today), health: usageHealth(usage), mode: usage.mode, usage, today };
 }
