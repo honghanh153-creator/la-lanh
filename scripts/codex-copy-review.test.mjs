@@ -158,6 +158,22 @@ test('copy a finished feature waits on (lighter actions) goes first, the rest ke
   assert.equal(batch.at(-1), `daily.bundle.q.${batchSize - 4}.headline`);
 });
 
+test('month.* and insight.everyday|watch.* copy that hidden features wait on goes first; owner-only month copy never enters', () => {
+  const big = { version: 'copy-registry/v1', entries: [
+    ...Array.from({ length: batchSize + 5 }, (_, i) => ({ id: `daily.bundle.q.${i}.headline`, category: 'reading', text: `Câu thử ${i}.`, status: 'pending' })),
+    { id: 'month.theme.work.sun', category: 'reading', text: 'Câu tháng thử.', status: 'pending' },
+    { id: 'month.ui.entry', category: 'reading', text: 'Nhãn thử.', status: 'pending' },
+    { id: 'insight.watch.jupiter.pisces', category: 'reading', text: 'Câu Khám phá thử.', status: 'pending' },
+    { id: 'insight.other.q.01', category: 'reading', text: 'Câu Khám phá khác.', status: 'pending' },
+    { id: 'consent.month.typed_question', category: 'consent', text: 'Câu đồng ý thử.', status: 'pending' },
+    { id: 'crisis.self_harm.notice.month', category: 'crisis', text: 'Câu an toàn thử.', status: 'pending' },
+  ] };
+  const batch = batchFor(big).map(e => e.id);
+  assert.deepEqual(batch.slice(0, 4), ['month.theme.work.sun', 'month.ui.entry', 'insight.watch.jupiter.pisces', 'daily.bundle.q.0.headline']);
+  assert.ok(!batch.includes('consent.month.typed_question') && !batch.includes('crisis.self_harm.notice.month'));
+  assert.ok(batch.indexOf('insight.other.q.01') === -1 || batch.indexOf('insight.other.q.01') > 3, 'other insight.* keeps registry order');
+});
+
 test('one daily batch holds at most batchSize entries, so the PR body stays readable', () => {
   const big = { entries: Array.from({ length: batchSize + 30 }, (_, i) => ({ id: `r.${i}`, category: 'reading', text: `Câu thử ${i}.`, status: 'pending' })) };
   assert.equal(batchFor(big).length, batchSize);
