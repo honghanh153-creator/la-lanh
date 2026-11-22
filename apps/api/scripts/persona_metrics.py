@@ -357,6 +357,27 @@ def repeats_within(values: Sequence[str | None], window: int) -> int:
     return count
 
 
+def same_line_on_return(
+    topics: Sequence[str | None], lines: Sequence[str | None]
+) -> tuple[int, int]:
+    """(returns, same): how often a topic came back, and how often with its last line again.
+
+    Research item 6 (owner 21.11.2026): "Daily không lặp" means a situation that comes back says
+    something new about it, not only that two consecutive days differ.
+    """
+
+    last: dict[str, str | None] = {}
+    returns = same = 0
+    for topic, line in zip(topics, lines, strict=False):
+        if not topic:
+            continue
+        if topic in last:
+            returns += 1
+            same += bool(line) and last[topic] == line
+        last[topic] = line
+    return returns, same
+
+
 def repeats_ever(values: Sequence[str | None]) -> int:
     seen: set[str] = set()
     count = 0
