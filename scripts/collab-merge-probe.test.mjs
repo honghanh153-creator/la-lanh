@@ -5,7 +5,7 @@ import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { probeHolds, probeReport, renderReport, sameFileHolds, trialMerge } from './collab-merge-probe.mjs';
+import { cleanRelease, probeHolds, probeReport, probeView, renderReport, sameFileHolds, trialMerge } from './collab-merge-probe.mjs';
 import { runTick } from './collab-tick.mjs';
 
 // A throwaway repository with one base and three branches; synthetic content only.
@@ -69,4 +69,20 @@ test('research item 2: the tick entry runs the probe after the tick, and a faili
   assert.equal(typeof given.review, 'function');
   const after = runTick({ raw: () => '', json: () => [] }, () => [], { run: g => g, gapNote: () => null, areaNote: () => null, probe: () => { throw new Error('git missing'); } });
   assert.equal(typeof after.review, 'function');
+});
+
+test('L63: the hold release reads the last trial result for the exact pair of heads; a missing log releases nothing', () => {
+  const path = join(mkdtempSync(join(tmpdir(), 'probe-view-')), 'merge-probe.jsonl');
+  const a = 'a'.repeat(40);
+  const b = 'b'.repeat(40);
+  writeFileSync(path, [
+    JSON.stringify({ pr: 2, head: a, blocker: 1, blockerHead: b, result: 'conflict' }),
+    'not json',
+    JSON.stringify({ pr: 2, head: a, blocker: 1, blockerHead: b, result: 'clean' }),
+  ].join('\n'));
+  const view = probeView(path);
+  const reg = [{ path: 'apps/api/app/domains/content/copy_registry.json' }];
+  assert.equal(cleanRelease({ number: 2, headRefOid: a, files: reg }, { number: 1, headRefOid: b, files: reg }, view), true, 'the newest result for the pair wins');
+  assert.equal(probeView(join(tmpdir(), 'no-such-dir', 'x.jsonl')).size, 0);
+  assert.equal(cleanRelease({ number: 2, headRefOid: a, files: reg }, { number: 1, headRefOid: b, files: reg }), false, 'no results: the hold stays');
 });
