@@ -71,6 +71,18 @@ export function lintProblems(pyFiles, { cwd = process.cwd(), spawn = groupSpawn,
   return problems;
 }
 
+// L61 (21.11.2026): hotfix #863 sat in claude-fix because its body grouped several gates on one line;
+// nothing said so while collab/integration stayed red. A preflight FAIL on a PR labelled `incident`
+// now raises an ops alert at once (one per body: the tick runs the preflight again only after the
+// body changes).
+export const incidentPreflightSubject = 'PR sự cố bị chặn ở kiểm đầu vào';
+export function incidentPreflightAlert(pr, result, alert) {
+  const incident = (pr?.labels ?? []).some(l => (l?.name ?? l) === 'incident');
+  if (!incident || result?.status !== 'FAIL') return false;
+  alert(`PR sự cố #${pr.number} bị chặn ở kiểm đầu vào: ${(result.reasons ?? []).join('; ')}. Sửa thân PR theo mẫu (mỗi cổng G1–G10 một dòng, G7 trả lời checklist) để vòng làm tiếp.`);
+  return true;
+}
+
 export function runPreflight(pr, { cwd = null, spawn = groupSpawn, exists, left } = {}) {
   const problems = bodyProblems(pr.body);
   const size = sizeProblem(pr);

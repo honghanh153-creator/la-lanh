@@ -37,6 +37,16 @@ are not marks:
   day counts the judge wrote down. Scores are never corrected;
 - ``judge_breakdown``: each judge file against the other pass on the same personas, so a shift
   of the mean can be read as one heavy-handed judge or as spread over all of them.
+
+Rubric v4: judges give no scores. For each question they mark each of the four days "bad",
+"good" or "none", and ``day_score`` turns the marks into the score (one point per day). A
+record without marks is refused. ``count_mismatches`` is gone with the table; two reading aids
+(not marks) take its place:
+
+- ``score_spread``: how many personas got each score in each pass, so "stable" because
+  everybody got the same score is visible;
+- ``day_disagreements``: per question, on how many persona-days two passes wrote a different
+  mark, and of which kind.
 """
 
 from __future__ import annotations
@@ -56,11 +66,10 @@ from scripts.persona_report import JUDGE_PROFILE_KEYS, PRECISION_VI, load_jsonl
 ROOT = Path(__file__).resolve().parents[3]
 QA = ROOT / "qa" / "personas"
 CONTROLS = QA / "stability" / "controls-v2.json"
-RUBRIC_VERSION = "app-judge-v3-2026-11-21"
+RUBRIC_VERSION = "app-judge-v4-2026-11-21"
 SCORES = ("understood", "less_alone", "peaceful", "want_return")
-# Rubric v3: "nothing written for me" reads as 2 for these two scores and as 3 for the others.
-NOTHING_IS_LOW = ("understood", "want_return")
 JUDGED_DAY_COUNT = 4
+DAY_MARKS = ("bad", "good", "none")
 SCORE_VI = {
     "understood": "Hiểu mình",
     "less_alone": "Bớt thấy một mình",
@@ -269,49 +278,63 @@ def control_summary(
     }
 
 
-def table_score(key: str, bad: int, good: int) -> int:
-    """Rubric v3: the score the table gives for a count of bad days and of good days."""
+def day_score(marks: Sequence[str]) -> int:
+    """Rubric v4: 3, plus one per good day, minus one per bad day, kept inside 1-5."""
 
-    if key in NOTHING_IS_LOW:
-        if bad >= 2 or (bad == 1 and good == 0):
-            return 1
-        if bad == 1 or good == 0:
-            return 2
-        return 3 if good == 1 else 4 if good <= 3 else 5
-    if bad >= 2:
-        return 1
-    if bad == 1:
-        return 2 if good <= 1 else 3
-    return 3 if good == 0 else 4 if good <= 2 else 5
+    return max(1, min(5, 3 + marks.count("good") - marks.count("bad")))
 
 
-def _day_counts(value: object) -> tuple[int, int] | None:
-    """``[bad days, good days]`` as the judge wrote it, or None when it is not usable."""
+def score_spread(
+    scores: Mapping[str, Mapping[str, Any]], expected: Sequence[str]
+) -> dict[str, list[int]]:
+    """Per question, how many of the expected personas got 1, 2, 3, 4 and 5 in this pass.
 
-    if not isinstance(value, list) or len(value) != 2:
-        return None
-    if any(isinstance(n, bool) or not isinstance(n, int) or n < 0 for n in value):
-        return None
-    bad, good = value
-    return (bad, good) if bad + good <= JUDGED_DAY_COUNT else None
-
-
-def count_mismatches(scores: Mapping[str, Mapping[str, Any]]) -> dict[str, list[str]]:
-    """Per score, the personas whose score is not what the table gives for their day counts.
-
-    A record without usable counts for a score is a mismatch too: nothing shows where its
-    score came from. Read-only: the scores stay as the judge gave them.
+    A reading aid: two passes agree trivially when nearly everyone sits on one score.
     """
 
     return {
         key: [
-            pid
-            for pid, record in scores.items()
-            if (counts := _day_counts(record.get("counts", {}).get(key))) is None
-            or table_score(key, *counts) != record[key]
+            sum(1 for pid in expected if pid in scores and scores[pid][key] == n)
+            for n in range(1, 6)
         ]
         for key in SCORES
     }
+
+
+def day_disagreements(
+    a: Mapping[str, Mapping[str, Any]],
+    b: Mapping[str, Mapping[str, Any]],
+    expected: Sequence[str],
+) -> dict[str, dict[str, int]]:
+    """Per question, the persona-days on which two passes wrote a different mark, by kind.
+
+    ``bad_good`` (one pass says bad, the other good) costs two points; the other two kinds cost
+    one. ``personas`` is how many people have at least one such day.
+    """
+
+    both = [pid for pid in expected if pid in a and pid in b]
+    out: dict[str, dict[str, int]] = {}
+    for key in SCORES:
+        kinds = {"days": 0, "bad_none": 0, "good_none": 0, "bad_good": 0, "personas": 0}
+        for pid in both:
+            pairs = [
+                {x, y}
+                for x, y in zip(a[pid]["marks"][key], b[pid]["marks"][key], strict=True)
+                if x != y
+            ]
+            kinds["days"] += JUDGED_DAY_COUNT
+            kinds["personas"] += 1 if pairs else 0
+            for pair in pairs:
+                name = (
+                    "bad_good"
+                    if "none" not in pair
+                    else "bad_none"
+                    if "bad" in pair
+                    else "good_none"
+                )
+                kinds[name] += 1
+        out[key] = kinds
+    return out
 
 
 def judge_breakdown(
@@ -346,7 +369,11 @@ def judge_breakdown(
 
 
 def parse_scores(items: object) -> dict[str, dict[str, Any]]:
-    """Validate one judge output: 4 whole scores 1-5 and 5 true/false flags per persona."""
+    """Validate one judge output: four day marks per question and 5 true/false flags.
+
+    The four scores are worked out here from the marks (``day_score``); a score the judge
+    wrote anyway is ignored.
+    """
 
     if not isinstance(items, list):
         raise ValueError("judge output must be a JSON list")
@@ -357,12 +384,20 @@ def parse_scores(items: object) -> dict[str, dict[str, Any]]:
         pid = item["persona"]
         if pid in out:
             raise ValueError(f"{pid}: scored twice in one pass")
-        record: dict[str, Any] = {}
+        record: dict[str, Any] = {"marks": {}}
+        marks = item.get("marks")
         for key in SCORES:
-            value = item.get(key)
-            if isinstance(value, bool) or not isinstance(value, int) or not 1 <= value <= 5:
-                raise ValueError(f"{pid}: {key} must be a whole number 1-5")
-            record[key] = value
+            days = marks.get(key) if isinstance(marks, dict) else None
+            if (
+                not isinstance(days, list)
+                or len(days) != JUDGED_DAY_COUNT
+                or any(day not in DAY_MARKS for day in days)
+            ):
+                raise ValueError(
+                    f"{pid}: marks.{key} must be {JUDGED_DAY_COUNT} of {'/'.join(DAY_MARKS)}"
+                )
+            record["marks"][key] = list(days)
+            record[key] = day_score(days)
         for key in FLAGS:
             if not isinstance(item.get(key), bool):
                 raise ValueError(f"{pid}: {key} must be true or false")
@@ -373,8 +408,6 @@ def parse_scores(items: object) -> dict[str, dict[str, Any]]:
             if isinstance(quotes, dict)
             else {}
         )
-        counts = item.get("counts")
-        record["counts"] = dict(counts) if isinstance(counts, dict) else {}
         out[pid] = record
     return out
 
@@ -614,22 +647,60 @@ def render_controls(
 
 
 def render_reading_aids(
-    mismatches: Mapping[str, Mapping[str, Sequence[str]]],
+    spread: Mapping[str, Mapping[str, Sequence[int]]],
+    differ: Mapping[str, Mapping[str, Mapping[str, int]]],
     breakdown: Sequence[Mapping[str, Any]],
 ) -> list[str]:
-    """Rubric v3 reading aids (not marks): scores off the table, and judge-by-judge shifts."""
+    """Rubric v4 reading aids (not marks): score spread, day marks that differ, each judge."""
 
-    names = list(mismatches)
     lines = [
-        "## Điểm có khớp số đếm không",
+        "## Điểm phân bố thế nào",
         "",
-        "Số bài có điểm khác với điểm bảng tra cho ra từ số ngày xấu và ngày tốt giám khảo tự "
-        "ghi (bài thiếu số đếm cũng tính). Máy chỉ đếm, không sửa điểm. Có tính cả ca cài sẵn.",
+        "Số người nhận từng điểm ở mỗi lượt. Khi gần như ai cũng cùng một điểm thì hai lượt "
+        "trùng nhau không nói được là bộ đo ổn định.",
         "",
-        table("Điểm", *[PASS_VI[n].capitalize() for n in names]),
-        table(*["---"] * (1 + len(names))),
-        *[table(SCORE_VI[key], *[len(mismatches[n][key]) for n in names]) for key in SCORES],
+        table("Điểm", "Lượt", *[f"{n} điểm" for n in range(1, 6)]),
+        table(*["---"] * 7),
+        *[
+            table(SCORE_VI[key], PASS_VI[name], *spread[name][key])
+            for key in SCORES
+            for name in spread
+        ],
         "",
+        "## Hai lượt ghi ngày khác nhau ở đâu",
+        "",
+        "Giám khảo ghi từng ngày là xấu, tốt hay không tính; máy tính điểm. Bảng đếm số ngày "
+        "hai lượt ghi khác nhau. Một ngày xấu ở lượt này mà tốt ở lượt kia làm điểm lệch 2; "
+        "hai kiểu còn lại lệch 1.",
+        "",
+    ]
+    for title, kinds in differ.items():
+        lines += [
+            f"{title}:",
+            "",
+            table(
+                "Điểm",
+                "Số ngày so được",
+                "Xấu và không tính",
+                "Tốt và không tính",
+                "Xấu và tốt",
+                "Số người có ngày khác nhau",
+            ),
+            table(*["---"] * 6),
+            *[
+                table(
+                    SCORE_VI[key],
+                    kinds[key]["days"],
+                    kinds[key]["bad_none"],
+                    kinds[key]["good_none"],
+                    kinds[key]["bad_good"],
+                    kinds[key]["personas"],
+                )
+                for key in SCORES
+            ],
+            "",
+        ]
+    lines += [
         "## Từng giám khảo so với lượt kia",
         "",
         "Mỗi dòng là một tệp điểm (một giám khảo). Số là trung bình điểm của giám khảo đó trừ "
@@ -763,7 +834,12 @@ def cmd_report(
     cmp_again = compare(passes["first"], passes["again"], expected)
     cmp_second = compare(passes["first"], passes["second"], expected) if second else None
     planted_summary = control_summary(control_list, passes) if control_list else None
-    mismatches = {name: count_mismatches(scores) for name, scores in passes.items()}
+    spread = {name: score_spread(scores, expected) for name, scores in passes.items()}
+    differ = {"Lượt 1 và lượt 2": day_disagreements(passes["first"], passes["again"], expected)}
+    if second:
+        differ["Giám khảo 1 và giám khảo 2"] = day_disagreements(
+            passes["first"], passes["second"], expected
+        )
     # "first" is the other pass for everyone but itself; its own other pass is "again".
     breakdown = [
         row
@@ -782,7 +858,7 @@ def cmd_report(
             notes.read_text(encoding="utf-8") if notes else None,
             planted_summary,
             dropped,
-            render_reading_aids(mismatches, breakdown),
+            render_reading_aids(spread, differ, breakdown),
         ),
         encoding="utf-8",
     )
@@ -795,7 +871,8 @@ def cmd_report(
                 "second": cmp_second,
                 "flags_dropped_without_quote": dropped,
                 "planted": planted_summary,
-                "score_off_table": mismatches,
+                "score_spread": spread,
+                "day_marks_differ": differ,
                 "judge_breakdown": breakdown,
             },
             ensure_ascii=False,
