@@ -12,10 +12,17 @@ export const statusLabels = {
   // 18.11 (Codex hourly check on #723): a PR held only behind another PR is not waiting for the
   // owner. "st: chờ owner" there made the owner look like a gate (R2 lists four owner kinds only).
   wait: ['st: chờ PR khác', 'c5def5', 'Chờ PR khác merge trước (xếp chồng hoặc cùng file), không cần owner'],
+  // 18.11 (hourly check 16:45): a draft is paused by the agent that owns it (e.g. #726 stepped aside
+  // for a plan item); it is not the owner's to act on.
+  paused: ['st: tạm dừng', 'bfd4f2', 'Draft: agent tạm dừng PR này, không cần owner'],
 };
 // Hold reasons that only wait on another PR (collab-turn prTurn).
 const waitsOnPr = /^(?:xếp chồng trên |chờ PR #\d+ cùng file)/;
-export const labelKey = turn => (turn?.turn === 'hold' && waitsOnPr.test(String(turn.reason ?? '')) ? 'wait' : turn?.turn);
+export const labelKey = turn => {
+  if (turn?.turn !== 'hold') return turn?.turn;
+  const reason = String(turn.reason ?? '');
+  return waitsOnPr.test(reason) ? 'wait' : reason === 'draft' ? 'paused' : 'hold';
+};
 const all = Object.values(statusLabels).map(([name]) => name);
 
 export function labelChange(pr, turn) {
