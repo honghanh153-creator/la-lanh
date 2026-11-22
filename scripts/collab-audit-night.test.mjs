@@ -14,7 +14,7 @@ import * as trust from './collab-trust.mjs';
 import { asPosted } from './collab-test-post.mjs';
 import { renderCheck } from './collab-check.mjs';
 import { tick } from './collab-turn.mjs';
-import { append, entry } from './collab-disagree.mjs';
+import { append, entry, read as readLog, recordFound } from './collab-disagree.mjs';
 import { nightAudit } from './collab-tick.mjs';
 
 const head = 'e'.repeat(40);
@@ -546,4 +546,61 @@ test('owner grant: 20 extra runs (recorded on the fixed base) let the tick revie
   // Without a grant nothing changes.
   assert.equal(trust.dayCap({}), codexDailyCap);
   assert.equal(trust.dayCap({ ownerExtraCodex: { granted: -5 } }), codexDailyCap);
+});
+
+// #828 item 2: at 40 000 characters the pack dropped most PR comments (17.11: 132 of 199), so M1 and
+// the unrecorded disagreements were "chưa đo được" on five of seven experiment days.
+test('#828: a busy day of PR comments fits the pack; what is still left out makes the count a lower bound', () => {
+  const date = '2026-11-14';
+  const t = i => new Date(Date.parse('2026-11-14T02:00:00Z') + i * 20000).toISOString();
+  const owner = (i, body) => ({ authorAssociation: 'OWNER', createdAt: t(i), body });
+  const busy = [];
+  for (let i = 0; i < 60; i += 1) busy.push(owner(busy.length, `Review verdict: REQUEST_CHANGES @ ${head}\nReviewer: Codex (auto)\n\n${'phát hiện '.repeat(140)}`));
+  for (let i = 0; i < 70; i += 1) busy.push(owner(busy.length, `Author check: PASS @ ${head}\n\nNguồn: CI ${'x'.repeat(400)}`));
+  for (let i = 0; i < 70; i += 1) busy.push(owner(busy.length, `Tự đồng bộ: nhánh đi sau collab/integration và merge sạch. ${'y'.repeat(400)}`));
+  const gh = fakeGh({ prs: [merged(7, { comments: [approve, ...busy] })] });
+  const facts = collectFacts({ date, gh, now: at('2026-11-14T16:05:00Z'), outputs: () => outputs, day: () => null });
+  const ev = gatherEvidence({ date, gh, facts, issue: 133, outputs, disagreements: () => [], day: null });
+  assert.equal(ev.prComments.length, 201);
+  assert.equal(ev.prComments.filter(c => c.omitted).length, 0, 'every comment of a 200-comment day is in the pack');
+  const cut = ' [...truncated]'.length;
+  assert.ok(ev.prComments.filter(c => c.kind === 'sync').every(c => c.body.length <= 160 + cut), 'a sync notice is cut to its line');
+  assert.ok(ev.prComments.filter(c => c.kind === 'check').every(c => c.body.length <= 200 + cut));
+  assert.equal(validateJudgement(good, ev).unrecorded.missing, undefined, 'full coverage: no note');
+  assert.match(buildPrompt(ev), /omitted/, 'the prompt says how to treat comments that did not fit');
+
+  const huge = Array.from({ length: 160 }, (_, i) => owner(i, `Review verdict: REQUEST_CHANGES @ ${head}\nReviewer: Codex (auto)\n\n${'z'.repeat(1600)}`));
+  const gh2 = fakeGh({ prs: [merged(7, { comments: [approve, ...huge] })] });
+  const ev2 = gatherEvidence({ date, gh: gh2, facts: collectFacts({ date, gh: gh2, now: at('2026-11-14T16:05:00Z'), outputs: () => outputs, day: () => null }), issue: 133, outputs, disagreements: () => [], day: null });
+  const hidden = ev2.prComments.filter(c => c.omitted).length;
+  assert.ok(hidden > 0);
+  const out = validateJudgement(good, ev2);
+  assert.equal(out.unrecorded.value, 0);
+  assert.match(out.unrecorded.missing, new RegExp(`^${hidden}/161 comment không đưa vào gói; số là cận dưới$`), 'a count over a partial pack says it is a lower bound');
+  assert.match(out.M1.missing, /cận dưới/);
+});
+
+// #828 item 2: on 19.11 the audit found a disagreement on #738 that nobody logged, and M8 stayed 0.
+test('#828: a final judgement writes the disagreement it found into the log once; a re-run adds nothing', () => {
+  const date = '2026-11-14';
+  writeJson(dayStatePath(date), { codexRuns: 4 });
+  writeJson(dayStatePath('2026-11-15'), { codexRuns: 0 });
+  const path = join(fresh(), 'disagreements.jsonl');
+  const found = { ...good, unrecorded: { measured: true, missing: '', items: [{ pr: 'pr#7', evidence: 'c2', claude: 'không sửa P2', codex: 'nên sửa P2' }] } };
+  const codex = fakeCodex(found);
+  const dir = fresh();
+  const gh = fakeGh();
+  const opts = { gh, dir, codex, recordFound: args => recordFound({ ...args, path }), ...deps({ clock: () => at('2026-11-14T17:10:00Z') }) };
+  runNightAudit({ ...opts, now: at('2026-11-14T16:05:00Z') });
+  assert.equal(readLog(path).length, 0, 'a provisional judgement writes nothing');
+  assert.equal(runNightAudit({ ...opts, now: at('2026-11-14T17:10:00Z') }).status, 'updated', 'the final record reuses the 23:00 judgement');
+  assert.equal(codex.calls.length, 1);
+  const log = readLog(path);
+  assert.equal(log.length, 1);
+  assert.deepEqual([log[0].pr, log[0].date, log[0].source, log[0].winner], [7, date, 'audit', 'unknown']);
+  assert.equal(runNightAudit({ ...opts, now: at('2026-11-14T17:20:00Z') }).status, 'done');
+  assert.deepEqual(recordFound({ date, items: found.unrecorded.items, path }), [], 'the same finding again adds nothing');
+  assert.equal(readLog(path).length, 1);
+  const facts = collectFacts({ date, gh, now: at('2026-11-15T03:00:00Z'), outputs: () => outputs, day: () => null, disagreements: () => readLog(path) });
+  assert.deepEqual([facts.metrics.M8.value, facts.metrics.M8.audit], [1, 1], 'M8 counts it, marked as written by the audit');
 });
