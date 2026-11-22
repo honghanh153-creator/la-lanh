@@ -9,7 +9,7 @@
 // - tracker issues (no "## Tiêu chí đạt") are not items; drafts, needs-owner and other holds are
 //   not candidates;
 // - a label read that fails leaves the quota unknown (said so), never "no 7-week items";
-// - serious incidents (issue labelled `incident` + `severity:P0|P1`, or a PR doing such an issue)
+// - serious incidents (issue labelled `incident` without `severity:P2` or lower, or a PR doing such an issue)
 //   go first and are listed apart, outside the 3–5 count, so they never take a kept seat; overload
 //   is reported, not silently resolved.
 import { agentMarker, isTrusted, repo } from './collab-trust.mjs';
@@ -21,7 +21,10 @@ export const min7w = 2;
 export const planCap = 5;
 export const planFloor = 3;
 const names = labels => (labels ?? []).map(l => l?.name ?? l);
-const serious = labels => { const n = names(labels); return n.includes('incident') && (n.includes('severity:P0') || n.includes('severity:P1')); };
+// L60 (21.11.2026): hotfix #863 had `incident` without a severity, so the loop did not take it first
+// while collab/integration was red. An incident is serious unless it is explicitly marked lower
+// (`severity:P2` or below): a missing severity fails safe, first in line.
+export const serious = labels => { const n = names(labels); return n.includes('incident') && !n.some(x => /^severity:P[2-9]$/.test(x)); };
 
 // Open issues that matter to the quota: 7-week items and serious incidents. Throws on a failed read.
 export function quotaIssues(gh) {

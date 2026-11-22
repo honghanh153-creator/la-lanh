@@ -1,6 +1,9 @@
 import './collab-test-home.mjs';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { spawnSync, execFileSync } from 'node:child_process';
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import test from 'node:test';
 import { codeLines, repeatFixReason, sizeProblem, withRepeatNote } from './collab-size.mjs';
 import { runPreflight } from './collab-preflight.mjs';
@@ -122,4 +125,40 @@ test('the CI deletion guard reads file status from git (Codex #354 P2)', async (
     assert.equal(held.status, 1);
     assert.match(held.stdout, /xoá 11 file/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+// A throwaway repository with synthetic files: main moves on after two branches leave it.
+function staleRepo() {
+  const dir = mkdtempSync(join(tmpdir(), 'deletion-guard-'));
+  const git = (...args) => execFileSync('/usr/bin/git', ['-C', dir, '-c', 'user.name=t', '-c', 'user.email=t@example.invalid', ...args], { encoding: 'utf8' }).trim();
+  const lines = (n, tag) => Array.from({ length: n }, (_, i) => `${tag} ${i}`).join('\n') + '\n';
+  git('init', '-q', '-b', 'main');
+  writeFileSync(join(dir, 'big.txt'), lines(800, 'old'));
+  writeFileSync(join(dir, 'small.txt'), 'a\n');
+  git('add', '.'); git('commit', '-q', '-m', 'start');
+  git('checkout', '-q', '-b', 'stale');
+  writeFileSync(join(dir, 'small.txt'), 'b\n');
+  git('commit', '-q', '-am', 'small real change');
+  git('checkout', '-q', '-b', 'wipe', 'main');
+  writeFileSync(join(dir, 'big.txt'), lines(200, 'old'));
+  git('commit', '-q', '-am', 'real mass deletion');
+  git('checkout', '-q', 'main');
+  writeFileSync(join(dir, 'new.txt'), lines(900, 'new'));
+  git('add', '.'); git('commit', '-q', '-m', 'main moves on');
+  return { dir, sha: ref => git('rev-parse', ref) };
+}
+const guard = (dir, base, head, labels = []) => spawnSync(process.execPath, [join(import.meta.dirname, 'collab-size.mjs'), '--deletion', base, head, JSON.stringify(labels)], { cwd: dir, encoding: 'utf8' });
+
+test('L62: the CI deletion guard reads only what the PR changes; a branch that is just behind passes, a real mass deletion still fails', () => {
+  const { dir, sha } = staleRepo();
+  const stale = guard(dir, sha('main'), sha('stale'));
+  assert.equal(stale.status, 0, `a +1/−1 PR behind 900 new lines on main is not a deletion: ${stale.stdout}${stale.stderr}`);
+  assert.match(stale.stdout, /deletion guard: ok/);
+  const wipe = guard(dir, sha('main'), sha('wipe'));
+  assert.equal(wipe.status, 1, 'a PR that removes 600 lines is still held, stale or not');
+  assert.match(wipe.stdout, /xoá 600 dòng \(thêm 0\)/);
+  assert.equal(guard(dir, sha('main'), sha('wipe'), ['owner-ok-deletion']).status, 0, 'the owner label still lets it through');
+  const workflow = readFileSync(join(import.meta.dirname, '..', '.github', 'workflows', 'pr-check.yml'), 'utf8');
+  const scopeJob = workflow.slice(workflow.indexOf('\n  scope:'), workflow.indexOf('Mass-deletion guard'));
+  assert.match(scopeJob, /fetch-depth: 0/, 'the merge base needs the full history in the scope job');
 });
