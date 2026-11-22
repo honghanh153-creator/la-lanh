@@ -54,16 +54,24 @@ export function deletionProblem(pr) {
   return null;
 }
 
+// What the PR itself changes, as git sees it: from the merge base of base and head to head
+// (`base...head`), the same files GitHub lists for a PR. A two-dot diff (`base head`) also counts
+// everything that landed on the base after the branch point, so a PR that is only behind looked like
+// a mass deletion (L62, 22.11.2026: #852 showed 921 deleted lines for a +143/−3 change).
+// The CI checkout has fetch-depth 0, so the merge base is always present.
+export function gitDeletionFiles(base, head, { run, cwd } = {}) {
+  const diff = args => String(run('git', ['-c', 'core.quotePath=false', 'diff', '-z', '--no-renames', ...args, `${base}...${head}`], { encoding: 'utf8', cwd })).split('\0');
+  const deleted = new Set(diff(['--name-only', '--diff-filter=D']).filter(Boolean));
+  // -z numstat: "added\tdeleted\tpath" then NUL; binary files report "-\t-".
+  return diff(['--numstat']).filter(Boolean).map(l => l.split('\t')).map(([a, d, path]) =>
+    ({ path, additions: Number(a) || 0, deletions: Number(d) || 0, changeType: deleted.has(path) ? 'DELETED' : 'MODIFIED' }));
+}
+
 // CI: node scripts/collab-size.mjs --deletion <base> <head> '<labels json>'  (exit 1 on a mass deletion)
 if (process.argv[2] === '--deletion') {
   const { execFileSync } = await import('node:child_process');
   const [base, head, labelsJson = '[]'] = process.argv.slice(3);
-  const diff = args => execFileSync('git', ['-c', 'core.quotePath=false', 'diff', '-z', '--no-renames', ...args, base, head], { encoding: 'utf8' }).split('\0');
-  const deleted = new Set(diff(['--name-only', '--diff-filter=D']).filter(Boolean));
-  // -z numstat: "added\tdeleted\tpath" then NUL; binary files report "-\t-".
-  const files = diff(['--numstat']).filter(Boolean).map(l => l.split('\t')).map(([a, d, path]) =>
-    ({ path, additions: Number(a) || 0, deletions: Number(d) || 0, changeType: deleted.has(path) ? 'DELETED' : 'MODIFIED' }));
-  const why = deletionProblem({ files, labels: JSON.parse(labelsJson) });
+  const why = deletionProblem({ files: gitDeletionFiles(base, head, { run: execFileSync }), labels: JSON.parse(labelsJson) });
   console.log(why ?? 'deletion guard: ok');
   if (why) process.exit(1);
 }
