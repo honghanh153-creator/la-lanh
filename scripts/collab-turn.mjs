@@ -78,6 +78,8 @@ export function prTurn(pr, { dropped = [], open = [], preflight = {}, baseFiles,
   if (pr.baseRefName === 'main') return out('hold', 'base là main: chỉ owner');
   if (pr.isDraft) return out('hold', 'draft');
   if (labels.includes('needs-owner')) return out('hold', 'needs-owner');
+  // L68: held during Codex fallback; the tick removes the label when Claude is back.
+  if (labels.includes('cho-claude')) return out('hold', 'chờ Claude quay lại (chế độ chuyển sang Codex)');
   const deletion = deletionProblem(pr);
   if (deletion) return out('hold', deletion);
   // L25: an open dispute holds the PR; after a decision only a newer check and review count.
@@ -339,7 +341,7 @@ const defaultReservations = {
   release: (pr, why) => releaseReservation(pr, why),
 };
 
-export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], prPreflight: preflight = () => ({ status: 'PASS' }), heavyFree = () => true, nowMs = Date.now, check = () => ({ status: 'skipped' }), review, merge, alert, board = () => {}, log = () => {}, watchdog = () => {}, health = () => [], copyPending = () => 0, copyBatch = null, copySaved = () => false, notify = () => {}, metrics = () => null, audit = null, incidents = null, ciStatus = null, settle = defaultSettle, mergeAudit = null, reservations = defaultReservations } = {}) {
+export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], prPreflight: preflight = () => ({ status: 'PASS' }), heavyFree = () => true, nowMs = Date.now, check = () => ({ status: 'skipped' }), review, merge, alert, board = () => {}, log = () => {}, watchdog = () => {}, health = () => [], copyPending = () => 0, copyBatch = null, copySaved = () => false, notify = () => {}, metrics = () => null, audit = null, incidents = null, ciStatus = null, settle = defaultSettle, mergeAudit = null, reservations = defaultReservations, fallback = null } = {}) {
   // The clock is read again before each action, so a long review cannot push the next one past lastStartAt.
   const time = clock ?? (now ? () => now : () => vnNow());
   now = time();
@@ -645,6 +647,11 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
         topUpLanes: late() ? [] : buffer.topUpLanes ?? [], lanes: buffer.lanes ?? null,
         idleRuns,
       });
+      // L68: in Codex fallback one claude-fix turn goes to Codex; outside it the hold labels come off.
+      if (fallback && !late()) {
+        try { const r = fallback({ turns: leftTurns, prs: left }); if (r) log(`fallback: ${JSON.stringify(r)}`); }
+        catch (error) { log(`fallback failed: ${clean(error.message, 200)}`); }
+      }
       if (idleRuns >= idleAlertRuns && !idleAlerted && alert) {
         try {
           alert(`collab tick chạy không ${idleRuns} lượt liền (${now.date} ${now.hour}:${String(now.minute).padStart(2, '0')}): plan không còn PR nào để làm, cần bổ sung việc từ backlog`);

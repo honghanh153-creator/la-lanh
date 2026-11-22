@@ -23,6 +23,7 @@ import { runNightAudit } from './collab-audit-night.mjs';
 import { noteTickGap, tickGapSubject } from './collab-tick-gap.mjs';
 import { areaWatch, areaWatchSubject } from './collab-area-label.mjs';
 import { paceSubject, usageTick } from './collab-usage.mjs';
+import { currentMode, fallbackStep } from './codex-fallback.mjs';
 
 const auditDeps = await loadAuditDeps();
 // The tick's night audit, with the promise register and the disagreement log (L22) wired in.
@@ -66,7 +67,7 @@ export function runTick(gh = makeGh(), preflight = () => missingTools(), { run =
       const result = runPreflight(pr);
       try { incidentAlert(pr, result, text => opsAlert(gh, text, incidentPreflightSubject)); } catch {}
       return result;
-    }, heavyFree: () => heavyJobFree(), board, check: (n, o) => runCheckInClone(n, { ...o, gh }), ciStatus: head => ciCheck(gh, head), review: (n, o) => runReview(n, { ...o, gh }), merge: n => runMerge(n, { gh }), alert: text => opsAlert(gh, text),
+    }, heavyFree: () => heavyJobFree(), board, check: (n, o) => runCheckInClone(n, { ...o, gh }), ciStatus: head => ciCheck(gh, head), review: (n, o) => runReview(n, { ...o, gh }), merge: n => runMerge(n, { gh, mode: usageNow()?.mode ?? currentMode() }), alert: text => opsAlert(gh, text),
     watchdog: () => {
       try { alertMissed({ beats: readBeats(), issues: ghIssues(gh.raw) }); } catch {}
       // P1-B: once a day, any merge of the last 24 hours without signed evidence opens an ops alert.
@@ -81,7 +82,8 @@ export function runTick(gh = makeGh(), preflight = () => missingTools(), { run =
     metrics: ({ prs, turns }) => renderMetrics(collectMetrics({ gh, prs, turns })),
     audit: () => nightAudit(gh),
     incidents: () => realSources(gh, vnNow().date).alerts(),
-    mergeAudit: options => runMergeAudit(options) });
+    mergeAudit: options => runMergeAudit(options),
+    fallback: ({ turns, prs }) => fallbackStep({ gh, mode: usageNow()?.mode ?? currentMode(), turns, prs, log }) });
 }
 
 if (isMain(import.meta.url)) {

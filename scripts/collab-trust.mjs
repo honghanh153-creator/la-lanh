@@ -14,6 +14,8 @@ export const stateDir = process.env.LA_LANH_COLLAB_HOME || join(homedir(), '.cac
 // Automatic Codex runs per day, one constant for the tick, the review script and the board.
 // Owner 03.11.2026: 32; owner 14.11.2026: 60; owner 15–16.11.2026 (5-fix package item 3): a fixed 80.
 export const codexDailyCap = 80;
+// Owner 22.11.2026 (Codex fallback, L68): runs where Codex fixes a PR in Claude's place, inside the day cap.
+export const codexFallbackCap = 20;
 // The day's cap: a grant raises it from the base it was given against (day state `ownerExtraCodex`:
 // `granted` and `base`). A grant without `base` was written against the old 60 cap (owner 15.11
 // "thêm 20 lượt nữa cho codex nhé", 16.11 "nâng trần codex lên 80"): it counts from 60, so 60 + 20 is
