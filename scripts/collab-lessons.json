@@ -1064,6 +1064,25 @@
    "closedBy": {
     "pr": 864
    }
+  },
+  {
+   "id": "L62",
+   "title": "Cổng chặn xoá hàng loạt trên CI chỉ đếm phần PR thật sự đổi (từ điểm tách nhánh); PR chỉ nằm sau bản chung không bị chặn nhầm, PR xoá thật vẫn bị chặn (#852 22.11: báo xoá 921 dòng cho thay đổi +143/−3)",
+   "from": "CI #852 22.11 (phiên điều phối coi là sự cố hàng chung)",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-size.test.mjs",
+    "name": "L62: the CI deletion guard reads only what the PR changes; a branch that is just behind passes, a real mass deletion still fails"
+   },
+   "caller": {
+    "file": "scripts/collab-size.mjs",
+    "contains": "const why = deletionProblem({ files: gitDeletionFiles(base, head, { run: execFileSync }), labels: JSON.parse(labelsJson) });"
+   },
+   "closedBy": {
+    "pr": 872
+   }
   }
  ]
 }
