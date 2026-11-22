@@ -5,7 +5,7 @@
 import { execFileSync } from 'node:child_process';
 import { digest, ownerOnly, readLocalRegistry, root } from './codex-copy-review.mjs';
 import { wipCount, wipLimit } from './collab-buffer.mjs';
-import { clean, integration, makeGh, repo } from './collab-trust.mjs';
+import { clean, integration, makeGh, repo, trustedComments } from './collab-trust.mjs';
 import { isMain } from './is-main.mjs';
 import { lessonsLine, prFields } from './collab-lessons.mjs';
 
@@ -43,6 +43,37 @@ export function leadTimeMetric(prs, nowMs = Date.now()) {
   return { hours: hours.length % 2 ? hours[mid] : (hours[mid - 1] + hours[mid]) / 2, count: hours.length };
 }
 
+// Loop speed (research item 5, owner approved 21.11.2026; DORA-style flow numbers: lead time split by
+// the stage that waited, review rounds and first-pass rate), this week against the week before, so
+// the board shows whether the loop got faster or slower. From each merged PR's own trusted comments:
+// opened → first Author check PASS → last APPROVE → merged. A stage without its comment is left out.
+const median = xs => { if (!xs.length) return null; const s = [...xs].sort((a, b) => a - b); const m = Math.floor(s.length / 2); return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+export function flowStages(pr) {
+  const before = trustedComments((pr.comments ?? []).filter(c => String(c.createdAt) <= String(pr.mergedAt)));
+  const at = c => (c ? Date.parse(c.createdAt) : NaN);
+  const hours = (a, b) => (Number.isFinite(a) && Number.isFinite(b) && b >= a ? (b - a) / 3600000 : null);
+  const opened = Date.parse(pr.createdAt);
+  const merged = Date.parse(pr.mergedAt);
+  const pass = at(before.find(c => c.check?.status === 'PASS'));
+  const approve = at(before.filter(c => c.verdict?.verdict === 'APPROVE').at(-1));
+  return {
+    lead: hours(opened, merged), toCheck: hours(opened, pass), toApprove: hours(pass, approve), toMerge: hours(approve, merged),
+    rounds: before.filter(c => c.verdict && c.auto).length, firstTime: !before.some(c => c.verdict?.verdict === 'REQUEST_CHANGES'),
+  };
+}
+export function flowMetric(prs, nowMs = Date.now()) {
+  const inWindow = (from, to) => (prs ?? []).filter(p => (p.baseRefName === undefined || p.baseRefName === integration))
+    .filter(p => { const m = Date.parse(p.mergedAt); return Number.isFinite(m) && m > from && m <= to; }).map(flowStages);
+  const sum = rows => {
+    const pick = k => median(rows.map(r => r[k]).filter(v => v !== null));
+    return { count: rows.length, lead: pick('lead'), toCheck: pick('toCheck'), toApprove: pick('toApprove'), toMerge: pick('toMerge'),
+      rounds: median(rows.map(r => r.rounds)), firstTimePct: rows.length ? Math.round((rows.filter(r => r.firstTime).length / rows.length) * 100) : null };
+  };
+  const week = sum(inWindow(nowMs - 7 * dayMs, nowMs));
+  if (!week.count) return { error: 'không có PR nào merge vào integration trong 7 ngày qua' };
+  return { week, before: sum(inWindow(nowMs - 14 * dayMs, nowMs - 7 * dayMs)) };
+}
+
 const reason = error => clean(String(error?.message ?? error).split('\n')[0], 120);
 const measure = fn => { try { return fn(); } catch (error) { return { error: reason(error) }; } };
 
@@ -55,7 +86,11 @@ export function collectMetrics({ registry = readLocalRegistry, run = execFileSyn
   // The tick's clone fetches only collab/integration; main is fetched here so the gap is current.
   const fetched = measure(() => { git(['fetch', '--quiet', 'origin', 'main', integration]); return {}; });
   const refs = fn => (fetched.error ? { error: `không lấy được nhánh từ GitHub: ${fetched.error}` } : measure(fn));
-  const since = new Date(nowMs - 7 * dayMs).toISOString().slice(0, 10);
+  // Two weeks of merged PRs with their comments: lead time reads the last 7 days, the flow line both.
+  const since = new Date(nowMs - 14 * dayMs).toISOString().slice(0, 10);
+  const merged = measure(() => ({ value: gh.json(['pr', 'list', '--repo', repo, '--base', integration, '--state', 'merged',
+    '--search', `merged:>=${since}`, '--limit', '300', '--json', 'number,createdAt,mergedAt,baseRefName,comments']) }));
+  const fromMerged = fn => (merged.error ? { error: merged.error } : measure(() => fn(merged.value)));
   return {
     bundles: fromRegistry(bundleMetric),
     copy: fromRegistry(copyMetric),
@@ -69,8 +104,8 @@ export function collectMetrics({ registry = readLocalRegistry, run = execFileSyn
       if (!Number.isFinite(at) || at <= 0) throw new Error('git không trả về ngày commit');
       return { days: Math.max(0, Math.floor((nowMs - at) / dayMs)) };
     }),
-    leadTime: measure(() => leadTimeMetric(gh.json(['pr', 'list', '--repo', repo, '--base', integration, '--state', 'merged',
-      '--search', `merged:>=${since}`, '--limit', '200', '--json', 'number,createdAt,mergedAt,baseRefName']), nowMs)),
+    leadTime: fromMerged(list => leadTimeMetric(list, nowMs)),
+    flow: fromMerged(list => flowMetric(list, nowMs)),
     wip: measure(() => wipCount(prs, turns)),
     // Owner 13.11.2026: workflow promises (scripts/collab-lessons.mjs), with overdue items named.
     lessons: lessons(),
@@ -90,15 +125,28 @@ function wipText(w) {
   return `${w.inProgress}/${wipLimit.inProgress * names.length}, đang chờ review: ${w.inReview}/${wipLimit.inReview * names.length} (${per})`;
 }
 
+const hoursText = n => (n === null || n === undefined ? 'chưa đo' : `${oneDecimal(n)} giờ`);
+const was = (now, before, fmt) => `${fmt(now)} (${before === null || before === undefined ? 'chưa có' : fmt(before)})`;
+function flowText({ week: w, before: b }) {
+  return [
+    `mở tới merge trung vị ${was(w.lead, b.count ? b.lead : null, hoursText)}`,
+    `chờ check ${hoursText(w.toCheck)}, chờ duyệt ${hoursText(w.toApprove)}, chờ merge ${hoursText(w.toMerge)}`,
+    `${was(w.rounds, b.count ? b.rounds : null, n => `${oneDecimal(n)} vòng duyệt/PR`)}`,
+    `${was(w.firstTimePct, b.count ? b.firstTimePct : null, n => `${n}% được duyệt ngay lần đầu`)}`,
+    `${w.count} PR`,
+  ].join('; ');
+}
+
 // One short plain line per metric.
 export function renderMetrics(m) {
   if (!m) return [];
-  const { bundles: b, copy: c, ahead: a, mainAge: g, leadTime: l, wip: w } = m;
+  const { bundles: b, copy: c, ahead: a, mainAge: g, leadTime: l, wip: w, flow: f } = m;
   return [
     `Bộ Daily phục vụ được: ${b?.error ? unmeasured(b) : `${b.ready}/${b.total} bộ`}.`,
     `Câu đã duyệt: ${c?.error ? unmeasured(c) : `${c.codex + c.owner}/${c.total} câu (Codex duyệt ${c.codex}, owner duyệt ${c.owner}, còn chờ ${c.pending})`}.`,
     `Khoảng cách tới người dùng: ${a?.error ? unmeasured(a) : `${a.commits} commit ở integration chưa lên main`}; ${g?.error ? `ngày cập nhật main ${unmeasured(g)}` : `main cập nhật lần cuối ${g.days} ngày trước`}.`,
     `Thời gian từ mở PR tới merge vào integration (7 ngày qua): ${l?.error ? unmeasured(l) : `trung vị ${oneDecimal(l.hours)} giờ (${l.count} PR)`}.`,
+    ...(f ? [`Tốc độ vòng (7 ngày qua; trong ngoặc là 7 ngày trước): ${f.error ? unmeasured(f) : flowText(f)}.`] : []),
     `Việc đang làm: ${w?.error ? unmeasured(w) : wipText(w)}.`,
     ...(typeof m.lessons === 'string' ? [m.lessons] : []),
   ];

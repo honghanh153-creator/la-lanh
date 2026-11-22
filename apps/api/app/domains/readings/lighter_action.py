@@ -123,6 +123,179 @@ ISSUE_LIGHT_CATALOG: dict[str, tuple[tuple[str, str, str], ...]] = {
     ),
 }
 
+
+# Mood-shaped actions (#701). On a day saved as "Căng" the reader's device shows a "slow" action
+# (pause before reacting, alone, at most ten minutes); on "Lạc trôi" a "clear" one (one concrete
+# step that can start now, at most ten minutes). The server still never reads the mood: it offers
+# these next to the card's action and the device chooses, as for "Đuối" (#627). Same freeze as
+# ``ISSUE_LIGHT_CATALOG``: one fixed slot per issue, sentences served only once approved and only
+# with the text digest named here; never re-tag or reorder a slot once released.
+SLOW_PREFIX = "lighter.slow."
+CLEAR_PREFIX = "lighter.clear."
+MOOD_ACTION_PREFIXES: dict[str, str] = {"slow": SLOW_PREFIX, "clear": CLEAR_PREFIX}
+
+# Frozen per kind and issue: (number, text digest, picture group). See the comment above.
+MOOD_ACTION_CATALOG: dict[str, dict[str, tuple[tuple[str, str, str], ...]]] = {
+    "slow": {
+        "missing-context": (
+            (
+                "01",
+                "f4c60b6ac8ef3a113133a6288416c45eccfd02a4774041797812b914aeb0ac89",
+                "study_work",
+            ),
+        ),
+        "too-many-open-loops": (
+            ("01", "151a984066dd9ee4817e3fe9a0d698e5255ba523628119f6b7358f8e1e3264ee", "rest"),
+        ),
+        "changed-plan": (
+            ("01", "10dacccc9cc3840d5548add6556c1d5f9a6f0247f7232a9a9d8e4e7607b5f617", "boundary"),
+        ),
+        "comparison-loop": (
+            ("01", "ccb186ef70426b19f57de0ad85db469d7dc5a04446c0670eae15abd024b99b71", "body"),
+        ),
+        "automatic-caretaking": (
+            ("01", "93e2b89b4fd18b23fc74da28d205b6b595cd4e8da9803e52468b80cbcf45af4b", "boundary"),
+        ),
+        "decision-fatigue": (
+            ("01", "04190eb3e03808a175ed29b0556871dc33a1cca57696732937546c3c93aa2fe3", "rest"),
+        ),
+        "perfect-before-start": (
+            (
+                "01",
+                "21916c3dfbb9dd9de92ca260a9566ea744ff21483f8be30f1a7b8d09fc113472",
+                "study_work",
+            ),
+        ),
+        "group-pressure": (
+            ("01", "8f1dc68cabbf568d54def3cb8d791214938dd900524dfafd996d2e429f466fc9", "boundary"),
+        ),
+        "avoid-small-conflict": (
+            ("01", "31afa05bb20d2dd9b32589bdc372bbef5e590f1ddcf76fe0f60f883f9340d73b", "body"),
+        ),
+        "defend-old-choice": (
+            (
+                "01",
+                "ff842a95f930e40b538568f8d092da7afbedc62fd47bcdde67c3bd28bcde6ef3",
+                "connection",
+            ),
+        ),
+        "capacity-before-agreement": (
+            ("01", "1c2cb68745d8410c3f616ad786ab46384ac3b730ad36f58fdbaf0fb7e54ce7c0", "boundary"),
+        ),
+        "quick-reply": (
+            ("01", "4ee400394a61b1fb3e8c84fca26d56998912baed3621f4f24a1b5c08ce22214b", "boundary"),
+        ),
+        "repair-reply": (
+            ("01", "854cc0155b1eb46e1ebc220ebeabd64527f2529e70eef7450465f90c8e4c45d6", "rest"),
+        ),
+        "specific-feedback": (
+            (
+                "01",
+                "24c609d9a3773739701c19aa4a10346ab9afc60ec4961481a6e1187b53b3593c",
+                "study_work",
+            ),
+        ),
+        "name-the-need": (
+            ("01", "276ee68fd1be664e254a9b10608c92b0bac64df74a62b9ff27ed31dfbd66ece2", "rest"),
+        ),
+    },
+    "clear": {
+        "missing-context": (
+            (
+                "01",
+                "dded471ba9588d6faa6b518010ed7cd8e5f6e8f608af1e0de5c56b33daca37c1",
+                "connection",
+            ),
+        ),
+        "too-many-open-loops": (
+            (
+                "01",
+                "423f7e8627222e3ea3f77e63d4ca10973891ee0b95d421d83bc1f696b6f64437",
+                "study_work",
+            ),
+        ),
+        "changed-plan": (
+            (
+                "01",
+                "736d9daa5268c15f21b1a1a9521e0b16eae2374249f93c5fce87ea03cfe05364",
+                "study_work",
+            ),
+        ),
+        "comparison-loop": (
+            (
+                "01",
+                "db41d6e6c521d333e95f060532f87a53ad700088925e2e7012f05a5fac286dd5",
+                "study_work",
+            ),
+        ),
+        "automatic-caretaking": (
+            ("01", "e4f7869b76d5e77dd4ac4f6bff5618f9da6902b7a9e86ca817ba66d862685113", "boundary"),
+        ),
+        "decision-fatigue": (
+            (
+                "01",
+                "1e400dd1e4020d32aaf26436f829e05a2bb97e4d50df65a87af1efac814534ee",
+                "study_work",
+            ),
+        ),
+        "perfect-before-start": (
+            (
+                "01",
+                "794b7af16d416e8d781c063e04bb155baecef3d9876151c507cba7233f9ea897",
+                "connection",
+            ),
+        ),
+        "group-pressure": (
+            ("01", "397a74a45a4e6e1228a272581f395aa52c5fe8e06d895f4d6a6e1ac172107eb9", "boundary"),
+        ),
+        "avoid-small-conflict": (
+            (
+                "01",
+                "7bd258042836dbc6467131467491b41d1c0c44aaad58d587501e6f0fe6101d90",
+                "connection",
+            ),
+        ),
+        "defend-old-choice": (
+            (
+                "01",
+                "093acd193cbece456c33feea954d266773beca87d1848854b2d357b29c4b189d",
+                "study_work",
+            ),
+        ),
+        "capacity-before-agreement": (
+            ("01", "1b98e49d0835def93cf6b02ed7471b3ad784685e3d921009fe733c2137baea2f", "boundary"),
+        ),
+        "quick-reply": (
+            (
+                "01",
+                "84adffea0efe76fab44574c97b3863f7323d240acff1d5ab9b89d40ba9879d9e",
+                "study_work",
+            ),
+        ),
+        "repair-reply": (
+            (
+                "01",
+                "c5582450a82c39160f7a9ee09da5ff85751f8abad4f246869cfc3dc00bb1ee9a",
+                "connection",
+            ),
+        ),
+        "specific-feedback": (
+            (
+                "01",
+                "78b30946a505eb284e7526cbe381639ef64a8c885745704d91deb39954759791",
+                "connection",
+            ),
+        ),
+        "name-the-need": (
+            (
+                "01",
+                "84724945073e12bf02efd9cbb59e7d3b67543215cfd08b2c822687a1011db0cf",
+                "connection",
+            ),
+        ),
+    },
+}
+
 # "Light" means doable alone within five minutes (qa/personas/judge-rubric.md).
 _UP_TO_FIVE = frozenset({"một", "hai", "ba", "bốn", "năm"})
 _TENS = frozenset({"mười", "mươi"})
@@ -134,18 +307,63 @@ _AMOUNTS = (
 _WORD = re.compile(r"\w+")
 
 
-def within_five_minutes(text: str) -> bool:
-    """False when the sentence names a duration longer than five minutes, or an unclear one."""
+# A spoken minute count right before "phút": "năm", "mười", "mười lăm", "hai mươi", digits.
+_UNITS = {
+    "một": 1, "mốt": 1, "hai": 2, "ba": 3, "bốn": 4, "tư": 4,
+    "năm": 5, "lăm": 5, "sáu": 6, "bảy": 7, "tám": 8, "chín": 9,
+}  # fmt: skip
+_NUMBER_WORDS = frozenset(_UNITS) | _TENS
 
+
+def _spoken_number(tokens: list[str]) -> int | None:
+    """The value of a run of Vietnamese number words, or None when it is not one number."""
+
+    if not tokens:
+        return None
+    if tokens[0] == "mười":
+        tens, rest = 10, tokens[1:]
+    elif len(tokens) >= 2 and tokens[1] == "mươi" and tokens[0] in _UNITS:
+        tens, rest = _UNITS[tokens[0]] * 10, tokens[2:]
+    else:
+        tens, rest = 0, tokens
+    if len(rest) > 1 or (rest and rest[0] not in _UNITS) or (not tens and not rest):
+        return None
+    return tens + (_UNITS[rest[0]] if rest else 0)
+
+
+def _minutes_at(words: list[str], index: int) -> float | None:
+    """Minutes named by the "phút" at ``index``, with a trailing "rưỡi"; None when unclear."""
+
+    start = index
+    while start > 0 and words[start - 1] in _NUMBER_WORDS:
+        start -= 1
+    before = words[index - 1] if index else ""
+    if start == index and before.isdigit():
+        value: float | None = int(before)
+    else:
+        value = _spoken_number(words[start:index])
+    if value is not None and index + 1 < len(words) and words[index + 1] == "rưỡi":
+        value += 0.5
+    return value
+
+
+def _within_minutes(text: str, limit: int) -> bool:
     words = _WORD.findall(unicodedata.normalize("NFC", text).casefold())
     for index, word in enumerate(words):
         amount = words[index - 1] if index else ""
         if word == "phút":
-            if amount not in _UP_TO_FIVE or (index >= 2 and words[index - 2] in _TENS):
+            minutes = _minutes_at(words, index)
+            if minutes is None or minutes > limit:
                 return False
         elif word in {"giờ", "tiếng"} and (amount in _AMOUNTS or amount.isdigit()):
             return False
     return True
+
+
+def within_five_minutes(text: str) -> bool:
+    """False when the sentence names a duration longer than five minutes, or an unclear one."""
+
+    return _within_minutes(text, 5)
 
 
 def issue_key_of(mechanism_key: str | None) -> str | None:
@@ -182,6 +400,41 @@ def light_store_gaps(issue_keys: Iterable[str]) -> list[str]:
             if shape not in ACTION_SHAPES
         )
     return found
+
+
+def mood_slots(kind: str, issue_key: str) -> tuple[tuple[str, str, str], ...]:
+    """(entry id, text digest, picture group) of every ``kind`` action written for an issue."""
+
+    prefix = MOOD_ACTION_PREFIXES[kind]
+    return tuple(
+        (f"{prefix}{issue_key}.{number}", digest, shape)
+        for number, digest, shape in MOOD_ACTION_CATALOG[kind].get(issue_key, ())
+    )
+
+
+def mood_store_gaps(issue_keys: Iterable[str]) -> list[str]:
+    """What the slow and clear stores lack for ``issue_keys``: empty when both are complete."""
+
+    wanted = tuple(issue_keys)
+    found: list[str] = []
+    for kind, catalog in MOOD_ACTION_CATALOG.items():
+        found.extend(f"{kind} {key}: not a Daily issue" for key in catalog if key not in wanted)
+        for issue_key in wanted:
+            slots = mood_slots(kind, issue_key)
+            if not slots:
+                found.append(f"{kind} {issue_key}: no action")
+            found.extend(
+                f"{entry_id}: picture group must be one of the six"
+                for entry_id, _digest, shape in slots
+                if shape not in ACTION_SHAPES
+            )
+    return found
+
+
+def within_ten_minutes(text: str) -> bool:
+    """False when the sentence names a duration longer than ten minutes, or an unclear one."""
+
+    return _within_minutes(text, 10)
 
 
 def _slot(revision_id: UUID, issue_key: str | None) -> tuple[str, str] | None:
