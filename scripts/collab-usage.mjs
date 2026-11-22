@@ -80,24 +80,43 @@ export const projectOf = dir => (/-la-lanh(?:$|-|--)/.test(dir) ? 'la-lanh' : 'd
 // parsed again every tick. One assistant message can span several lines with the same id and usage:
 // the last ids seen are kept with the offset.
 export const chunkBytes = 8 * 1024 * 1024;
-// What started the turn a spend belongs to (owner plan 22.11 item 3, L72): a background-task
-// completion, a message from another session, or anything else (the owner, a schedule).
+// What started the turn a spend belongs to (owner plan 22.11 item 3, L72; split widened 22.11 "okie
+// bạn làm đi", L73): a background-task completion, a message from another session (or the app's note
+// that a linked session finished), the owner, a schedule (scheduled task, cron or loop prompt), an
+// Autofix CI event, a subagent's own transcript, or unknown. null = the running turn goes on.
+export const TRIGGERS = ['task', 'session', 'owner', 'schedule', 'autofix', 'subagent', 'other'];
+const notNewTurn = /^(<system-reminder|This session is being continued|\[Image|\[Request interrupted|Base directory for this skill|<persisted-output|<tool|<command-)/;
 export function triggerOf(entry) {
   const kind = entry?.origin?.kind;
-  if (kind === 'task-notification') return 'task';
-  if (kind === 'peer') return 'session';
-  if (kind) return 'other';
   const c = entry?.message?.content;
-  const text = typeof c === 'string' ? c : Array.isArray(c) && c[0]?.type === 'text' ? String(c[0].text ?? '') : null;
-  // A reminder the app adds inside a turn does not start a new one.
-  if (text === null || entry?.isMeta || text.startsWith('<system-reminder')) return null;
+  if (Array.isArray(c) && c[0]?.type !== 'text') return null;
+  const parts = typeof c === 'string' ? [c] : Array.isArray(c) ? c.filter(p => p?.type === 'text').map(p => String(p.text ?? '')) : [];
+  const text = parts[0] ?? null;
+  if (kind === 'task-notification') return text?.startsWith('<scheduled-task') ? 'schedule' : 'task';
+  if (kind === 'peer' || kind === 'coordinator') return 'session';
+  if (kind === 'human') return parts.some(t => !t.startsWith('<system-reminder')) ? 'owner' : 'session';
+  if (kind) return 'other';
+  if (text === null || entry?.isMeta) return null;
   if (text.startsWith('<task-notification')) return 'task';
-  if (text.startsWith('<cross-session-message')) return 'session';
-  return 'other';
+  if (text.startsWith('<scheduled-task')) return 'schedule';
+  if (text.startsWith('<cross-session-message') || text.startsWith('<side-sessions-event')) return 'session';
+  if (text.startsWith('<ci-monitor-event')) return 'autofix';
+  if (notNewTurn.test(text)) return null;
+  if (entry?.isSidechain) return 'subagent';
+  // Plain text with no origin in a main transcript: a cron, wakeup or loop prompt.
+  return 'schedule';
 }
+// Context carried by one call: everything the model read for it.
+export const CTX = ['<100k', '100-200k', '200-500k', '>500k'];
+export function ctxOf(u = {}) {
+  const n = k => Number(u[k]) || 0;
+  const t = n('input_tokens') + n('cache_creation_input_tokens') + n('cache_read_input_tokens');
+  return t < 1e5 ? CTX[0] : t < 2e5 ? CTX[1] : t <= 5e5 ? CTX[2] : CTX[3];
+}
+const scanVersion = 2;
 export function scanFile(path, prev = null, { stat = statSync(path), chunk = chunkBytes } = {}) {
-  const fresh = !prev || stat.size < prev.offset || stat.ino !== prev.ino;
-  const rec = fresh ? { ino: stat.ino, offset: 0, days: {}, ids: [], trigger: 'other', byTrigger: {} } : { trigger: 'other', ...prev, days: { ...prev.days }, ids: [...prev.ids], byTrigger: { ...(prev.byTrigger ?? {}) } };
+  const fresh = !prev || prev.v !== scanVersion || stat.size < prev.offset || stat.ino !== prev.ino;
+  const rec = fresh ? { v: scanVersion, ino: stat.ino, offset: 0, days: {}, ids: [], trigger: 'other', byCell: {} } : { ...prev, days: { ...prev.days }, ids: [...prev.ids], byCell: { ...prev.byCell } };
   if (stat.size <= rec.offset) return rec;
   const seen = new Set(rec.ids);
   const fd = openSync(path, 'r');
@@ -127,7 +146,9 @@ export function scanFile(path, prev = null, { stat = statSync(path), chunk = chu
         const day = vnNow(new Date(t)).date;
         const cost = costOf(m.model, m.usage);
         rec.days[day] = (rec.days[day] ?? 0) + cost;
-        if (rec.trigger !== 'other') rec.byTrigger[day] = { ...rec.byTrigger[day], [rec.trigger]: (rec.byTrigger[day]?.[rec.trigger] ?? 0) + cost };
+        const key = `${rec.trigger}|${ctxOf(m.usage)}`;
+        const cell = rec.byCell[day]?.[key] ?? [0, 0];
+        rec.byCell[day] = { ...rec.byCell[day], [key]: [cell[0] + cost, cell[1] + 1] };
       }
       rec.offset += end + 1;
       carry = data.subarray(end + 1);
@@ -136,8 +157,24 @@ export function scanFile(path, prev = null, { stat = statSync(path), chunk = chu
   rec.ids = rec.ids.slice(-50);
   // Only the last week of days is kept per file.
   rec.days = Object.fromEntries(Object.entries(rec.days).sort().slice(-8));
-  rec.byTrigger = Object.fromEntries(Object.entries(rec.byTrigger).sort().slice(-8));
+  rec.byCell = Object.fromEntries(Object.entries(rec.byCell).sort().slice(-8));
   return rec;
+}
+
+// Shares of today's spend by trigger, by context size and by the pair; calls per context size.
+export function splitShares(cells, total = Object.values(cells).reduce((a, [c]) => a + c, 0)) {
+  const triggerShares = Object.fromEntries(TRIGGERS.map(t => [t, 0]));
+  const ctxShares = Object.fromEntries(CTX.map(b => [b, 0]));
+  const ctxCalls = Object.fromEntries(CTX.map(b => [b, 0]));
+  const cellShares = {};
+  for (const [k, [c, n]] of Object.entries(cells)) {
+    const [t, b] = k.split('|');
+    const share = total ? c / total : 0;
+    if (t in triggerShares) triggerShares[t] += share;
+    if (b in ctxShares) { ctxShares[b] += share; ctxCalls[b] += n; }
+    cellShares[k] = share;
+  }
+  return { triggerShares, ctxShares, ctxCalls, cellShares };
 }
 
 function* transcripts(root) {
@@ -165,7 +202,7 @@ export function todayShares({ home = stateDir, root = projectsRoot(), now = new 
   const cache = readJson(scanPath(home), {});
   const next = {};
   const cost = {};
-  const triggers = { task: 0, session: 0 };
+  const cells = {};
   for (const { project, path } of transcripts(root)) {
     let stat;
     try { stat = statSync(path); } catch { continue; }
@@ -174,13 +211,12 @@ export function todayShares({ home = stateDir, root = projectsRoot(), now = new 
     try { rec = scanFile(path, cache[path], { stat }); } catch { continue; }
     next[path] = rec;
     if (rec.days[today]) cost[project] = (cost[project] ?? 0) + rec.days[today];
-    for (const k of Object.keys(triggers)) triggers[k] += rec.byTrigger?.[today]?.[k] ?? 0;
+    for (const [k, [c, n]] of Object.entries(rec.byCell?.[today] ?? {})) { const p = cells[k] ?? [0, 0]; cells[k] = [p[0] + c, p[1] + n]; }
   }
   try { writeJson(scanPath(home), next); } catch {}
   const total = Object.values(cost).reduce((a, b) => a + b, 0);
   const shares = Object.entries(cost).sort((a, b) => (b[0] === 'la-lanh') - (a[0] === 'la-lanh')).map(([project, c]) => ({ project, share: total ? c / total : 0 }));
-  const triggerShares = Object.fromEntries(Object.entries(triggers).map(([k, c]) => [k, total ? c / total : 0]));
-  return { day: today, shares, measured: total > 0, triggerShares };
+  return { day: today, shares, measured: total > 0, ...splitShares(cells, total) };
 }
 
 // One board line, and warnings for the "Cần xem" block.
