@@ -1309,7 +1309,7 @@
     "contains": "...throughputTick({ gh, prs, usageNote: usageNow(), log })"
    },
    "closedBy": {
-    "pr": 0
+    "pr": 900
    }
   }
  ]
