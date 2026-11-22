@@ -1180,6 +1180,25 @@
    }
   },
   {
+   "id": "L66",
+   "title": "Hook luật gửi cả bảng cho ngữ cảnh chính chỉ khi bắt đầu (startup/clear/compact) hoặc khi mã bản đổi; sub-agent và resume cùng bản chỉ nhận một dòng trỏ (22.11: một phiên nhận tới 20 bản đầy đủ, ~3% chi phí Claude)",
+   "from": "kiểm tra lượt dùng Claude 22.11, owner chọn kế hoạch mục 2",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-rules-hook.test.mjs",
+    "name": "L66: a session with many sub-agents gets the full sheet once; the rest are one-line pointers"
+   },
+   "caller": {
+    "file": "scripts/collab-rules-hook.mjs",
+    "contains": "const kind = agent || sameVersionResume ? 'pointer' : 'full';"
+   },
+   "closedBy": {
+    "pr": 892
+   }
+  },
+  {
    "id": "L63",
    "title": "PR bị giữ vì cùng file sổ câu chữ được bỏ giữ khi thử merge đúng hai head ra sạch; xung đột, không kiểm được, head mới hay chung file khác thì vẫn giữ (22.11: #877 giữ khoảng 18 PR nội dung; 15/24 lần giữ thử merge sạch)",
    "from": "phiên điều phối 22.11 (mục nghiên cứu 2, bước 2; số liệu từ #850 và phiên Content)",

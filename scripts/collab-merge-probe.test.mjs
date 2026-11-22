@@ -33,6 +33,23 @@ test('research item 2: a trial merge of two heads says clean, conflict or unknow
   assert.equal(trialMerge(pr(1, top), pr(2, bottom), { dir, run: () => { throw Object.assign(new Error('x'), { stderr: 'fatal: could not read' }); } }).result, 'unknown', 'a failed fetch');
 });
 
+test('Codex r1 on #850: the probe fetch leaves FETCH_HEAD of the shared clone on the reviewed integration commit', () => {
+  const { dir: origin, top, bottom } = repoWithBranches();
+  const at = (cwd, ...args) => execFileSync('/usr/bin/git', ['-C', cwd, ...args], { encoding: 'utf8' }).trim();
+  at(origin, 'update-ref', 'refs/pull/1/head', top);
+  at(origin, 'update-ref', 'refs/pull/2/head', bottom);
+  const clone = join(mkdtempSync(join(tmpdir(), 'probe-clone-')), 'ops');
+  execFileSync('/usr/bin/git', ['clone', '-q', '--no-local', origin, clone]);
+  // What ops-run.sh does: fetch the reviewed branch, then read FETCH_HEAD.
+  at(clone, 'fetch', '-q', 'origin', 'main');
+  const reviewed = at(clone, 'rev-parse', '--verify', 'FETCH_HEAD^{commit}');
+  assert.equal(reviewed, at(origin, 'rev-parse', 'main'));
+  // The real fetch runs here, no stub.
+  assert.deepEqual(trialMerge({ number: 1, headRefOid: top }, { number: 2, headRefOid: bottom }, { dir: clone }), { result: 'clean' });
+  assert.equal(at(clone, 'rev-parse', '--verify', 'refs/probe/1'), top, 'the PR head was fetched');
+  assert.equal(at(clone, 'rev-parse', '--verify', 'FETCH_HEAD^{commit}'), reviewed, 'FETCH_HEAD still names the reviewed commit, not a PR head');
+});
+
 test('research item 2: holds are probed once an hour and once per pair of heads; the report counts what could be checked', () => {
   const owner = { login: 'honghanh153-creator' };
   const prs = [
