@@ -64,6 +64,7 @@ jobs:
           done <<< "$files"
           echo "level=$level" >> "$GITHUB_OUTPUT"
           echo "scope: $level"
+      # L62: the guard diffs from the merge base (base...head), so it needs the full history above.
       - name: Mass-deletion guard (owner label owner-ok-deletion lets it through)
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
