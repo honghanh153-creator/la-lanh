@@ -43,6 +43,17 @@ POOL = {
     if key.startswith(tuple(MOOD_ACTION_PREFIXES.values()))
 }
 SAFETY = tuple(rule for rule in HARD_ZERO_RULES if rule.startswith("S"))
+# A wait tied to a later moment has no bound: after a meal can be hours away (#877 review).
+OPEN_ENDED_WAITS = (
+    "sau bữa",
+    "tối nay",
+    "ngày mai",
+    "sáng mai",
+    "cuối tuần",
+    "lúc khác",
+    "khi rảnh",
+    "khi nào",
+)
 
 
 def test_every_daily_issue_has_a_slow_and_a_clear_action_with_a_picture_group() -> None:
@@ -115,6 +126,7 @@ def test_mood_action_is_plain_short_concrete_and_within_ten_minutes(key: str) ->
     assert not any(part in folded for part in (*BANNED_CORE_FRAGMENTS, *OPAQUE_CORE_FRAGMENTS))
     assert has_observable_action(text)
     assert within_ten_minutes(text)
+    assert not any(wait in folded for wait in OPEN_ENDED_WAITS)
     # No health or diagnosis words: a mood is a vibe, never a medical signal (US-04 AC10).
     assert not any(word in folded for word in ("bệnh", "trầm cảm", "lo âu", "chẩn đoán", "thuốc"))
 
@@ -123,10 +135,18 @@ def test_mood_action_is_plain_short_concrete_and_within_ten_minutes(key: str) ->
     ("text", "ok"),
     [
         ("Đợi năm phút rồi mới gửi.", True),
+        ("Đợi sáu phút rồi mới gửi.", True),
+        ("Đợi chín phút rồi mới gửi.", True),
+        ("Đợi chín phút rưỡi rồi mới gửi.", True),
         ("Đợi mười phút rồi mới gửi.", True),
+        ("Đợi 10 phút rồi mới gửi.", True),
+        ("Đợi mười phút rưỡi rồi mới gửi.", False),
+        ("Đợi 11 phút rồi mới gửi.", False),
+        ("Đợi mười một phút rồi mới gửi.", False),
         ("Đợi mười lăm phút rồi mới gửi.", False),
         ("Đợi hai mươi phút rồi mới gửi.", False),
         ("Đợi vài phút rồi mới gửi.", False),
+        ("Đợi một hai phút rồi mới gửi.", False),
         ("Nghỉ một giờ rồi quay lại.", False),
         ("Viết ra một việc duy nhất.", True),
     ],
