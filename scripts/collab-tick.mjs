@@ -4,7 +4,7 @@ import { execFileSync } from 'node:child_process';
 import { runReview } from './codex-review.mjs';
 import { dailyReceiptAudit, runMerge } from './collab-merge.mjs';
 import { ciCheck, heavyJobFree, runCheckInClone } from './collab-check.mjs';
-import { runPreflight } from './collab-preflight.mjs';
+import { incidentPreflightAlert, incidentPreflightSubject, runPreflight } from './collab-preflight.mjs';
 import { clean, makeGh, vnNow } from './collab-trust.mjs';
 import { opsAlert, planTurns, resolveOpsAlert, tick } from './collab-turn.mjs';
 import { postOwnerNotes, renderBoard, upsertBoard } from './collab-status.mjs';
@@ -46,13 +46,18 @@ export function tickLog(line, write = text => process.stderr.write(text)) {
 const watchdogSubject = 'tác vụ hẹn giờ bị treo';
 const receiptSubject = 'merge thiếu biên nhận';
 
-export function runTick(gh = makeGh(), preflight = () => missingTools(), { run = tick, log = tickLog, gateWatch = agentGateWatch, rulesWatch = rulesHookWatch, gapNote = noteTickGap, areaNote = areaWatch, probe = probeHolds } = {}) {
+export function runTick(gh = makeGh(), preflight = () => missingTools(), { run = tick, log = tickLog, gateWatch = agentGateWatch, rulesWatch = rulesHookWatch, gapNote = noteTickGap, areaNote = areaWatch, incidentAlert = incidentPreflightAlert, probe = probeHolds } = {}) {
   const board = info => upsertBoard(gh, planIssue(gh), renderBoard(info));
   // L57: a gap since the last heartbeat is written with its cause before this tick writes its own.
   try { gapNote({ log, alert: text => opsAlert(gh, text, tickGapSubject) }); } catch (error) { log(`tick gap note failed: ${clean(error.message, 200)}`); }
   // L58: an open PR without an area label falls to the last group and is never worked; label or alert.
   try { areaNote({ gh, log, alert: text => opsAlert(gh, text, areaWatchSubject), resolve: text => resolveOpsAlert(gh, text, areaWatchSubject) }); } catch (error) { log(`area watch failed: ${clean(error.message, 200)}`); }
-  const result = run({ gh, preflight, log, prPreflight: n => runPreflight(gh.pr(n)), heavyFree: () => heavyJobFree(), board, check: (n, o) => runCheckInClone(n, { ...o, gh }), ciStatus: head => ciCheck(gh, head), review: (n, o) => runReview(n, { ...o, gh }), merge: n => runMerge(n, { gh }), alert: text => opsAlert(gh, text),
+  const result = run({ gh, preflight, log, prPreflight: n => {
+      const pr = gh.pr(n);
+      const result = runPreflight(pr);
+      try { incidentAlert(pr, result, text => opsAlert(gh, text, incidentPreflightSubject)); } catch {}
+      return result;
+    }, heavyFree: () => heavyJobFree(), board, check: (n, o) => runCheckInClone(n, { ...o, gh }), ciStatus: head => ciCheck(gh, head), review: (n, o) => runReview(n, { ...o, gh }), merge: n => runMerge(n, { gh }), alert: text => opsAlert(gh, text),
     watchdog: () => {
       try { alertMissed({ beats: readBeats(), issues: ghIssues(gh.raw) }); } catch {}
       // P1-B: once a day, any merge of the last 24 hours without signed evidence opens an ops alert.

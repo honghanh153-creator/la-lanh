@@ -951,6 +951,26 @@
    "note": "Phục hồi sau hết hạn: test '#737: an expired holder may reserve again at the same head once integration has moved' (scripts/collab-merge-gate.test.mjs)."
   },
   {
+   "id": "L52",
+   "title": "PR draft mang nhãn \"st: tạm dừng\" (agent tạm dừng), không phải \"st: chờ owner\" (kiểm tra mỗi giờ 16:45 18.11: #726 draft hiện như việc của owner)",
+   "from": "kiểm tra mỗi giờ 16:45 18.11",
+   "who": "claude",
+   "due": "2026-11-19",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-labels.test.mjs",
+    "name": "a draft is labelled paused by its agent, never \"chờ owner\""
+   },
+   "caller": {
+    "file": "scripts/collab-labels.mjs",
+    "contains": "reason === 'draft' ? 'paused' : 'hold'"
+   },
+   "closedBy": {
+    "pr": 743
+   },
+   "note": "Nối L49 (PR chờ PR khác)."
+  },
+  {
    "id": "L53",
    "title": "PR đã sẵn sàng merge (Author check PASS trên đỉnh integration + APPROVE ở head) không bị PR khác cùng file giữ lại; PR kia đồng bộ sau (#729 chờ #753 suốt tối 19.11)",
    "from": "phiên điều phối 19.11 (PR đã duyệt bị bỏ đói)",
@@ -986,6 +1006,82 @@
    },
    "closedBy": {
     "pr": 780
+   }
+  },
+  {
+   "id": "L59",
+   "title": "Tài liệu mà script đọc (file luật, prompt review, chuẩn câu chữ) không phải văn bản thuần: đổi nó thì CI chạy test của vòng, không coi là PR chỉ có tài liệu (21.11: #747 chỉ đổi file luật, CI bỏ qua test, file vượt giới hạn của hook và integration đỏ)",
+   "from": "sự cố 21.11, integration đỏ sau #747; hotfix #863",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-pr-check-workflow.test.mjs",
+    "name": "L59: a doc that a script reads runs the loop tests; other docs stay docs-only"
+   },
+   "caller": {
+    "file": ".github/workflows/pr-check.yml",
+    "contains": "grep -rqsF -- \"${f##*/}\" scripts/"
+   },
+   "closedBy": {
+    "pr": 864
+   }
+  },
+  {
+   "id": "L60",
+   "title": "PR sự cố chỉ có nhãn incident (thiếu severity) vẫn được làm trước; chỉ khi ghi rõ severity:P2 trở xuống mới không ưu tiên (21.11: hotfix #863 đứng sau việc thường trong lúc integration đỏ)",
+   "from": "sự cố 21.11 (#747, #863)",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-quota.test.mjs",
+    "name": "L60: an incident PR without a severity goes first; only an explicit P2 or lower does not"
+   },
+   "caller": {
+    "file": "scripts/collab-quota.mjs",
+    "contains": "u.incident ||= serious(labels.map(name => ({ name })));"
+   },
+   "closedBy": {
+    "pr": 864
+   }
+  },
+  {
+   "id": "L61",
+   "title": "PR sự cố trượt kiểm đầu vào (thân PR sai mẫu) thì báo động ngay, không âm thầm nằm ở claude-fix (21.11: hotfix #863 đứng chờ vì gộp nhiều cổng trên một dòng trong lúc integration đỏ)",
+   "from": "sự cố 21.11 (#747, #863)",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-merge-gate.test.mjs",
+    "name": "L61: a preflight failure on an incident PR raises an ops alert at once; other PRs stay quiet"
+   },
+   "caller": {
+    "file": "scripts/collab-tick.mjs",
+    "contains": "try { incidentAlert(pr, result, text => opsAlert(gh, text, incidentPreflightSubject)); } catch {}"
+   },
+   "closedBy": {
+    "pr": 864
+   }
+  },
+  {
+   "id": "L62",
+   "title": "Cổng chặn xoá hàng loạt trên CI chỉ đếm phần PR thật sự đổi (từ điểm tách nhánh); PR chỉ nằm sau bản chung không bị chặn nhầm, PR xoá thật vẫn bị chặn (#852 22.11: báo xoá 921 dòng cho thay đổi +143/−3)",
+   "from": "CI #852 22.11 (phiên điều phối coi là sự cố hàng chung)",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-size.test.mjs",
+    "name": "L62: the CI deletion guard reads only what the PR changes; a branch that is just behind passes, a real mass deletion still fails"
+   },
+   "caller": {
+    "file": "scripts/collab-size.mjs",
+    "contains": "const why = deletionProblem({ files: gitDeletionFiles(base, head, { run: execFileSync }), labels: JSON.parse(labelsJson) });"
+   },
+   "closedBy": {
+    "pr": 872
    }
   },
   {
@@ -1062,6 +1158,25 @@
    },
    "closedBy": {
     "pr": 838
+   }
+  },
+  {
+   "id": "L64",
+   "title": "Làn việc chỉ tính là được phục vụ khi PR của nó thật sự tiến (check có kết quả, review đã đăng, merge xong, front được đồng bộ); PR cũ chỉ đọc \"CI chưa xong\" mỗi tick vẫn làm làn bị bỏ đói và lên đầu sau 2 tick (21.11: 8 PR quy trình chờ tới 3 ngày; Codex auto-1 P1 trên #843)",
+   "from": "sự cố làn quy trình bị bỏ đói 21.11; Codex auto-1 trên #843",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-loop.test.mjs",
+    "name": "L64: a lane counts as served only when its PR made progress; a stale PR reading ci-pending every tick still starves its lane, which then goes first"
+   },
+   "caller": {
+    "file": "scripts/collab-turn.mjs",
+    "contains": "laneStarved: nextStarved({ starved: d.laneStarved ?? {}, lanes: lanePlan.lanes, busy: lanePlan.busy, done })"
+   },
+   "closedBy": {
+    "pr": 843
    }
   },
   {
