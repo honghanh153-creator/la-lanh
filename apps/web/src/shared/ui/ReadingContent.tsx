@@ -23,6 +23,8 @@ type ReadingContentProps = {
   onReflect?: (outcome: ExperimentOutcome) => void;
   /** Present only when the reader can switch between the card's action and the lighter one (#627). */
   lighter?: LighterSwitch | null;
+  /** Present only where the reader can fold the small-action box away for the day (#700). */
+  readOnly?: ReadOnlySwitch | null;
   toolbar?: ReactNode;
 };
 
@@ -35,10 +37,28 @@ export type LighterSwitch = {
   /** The switch label while the card's action is shown; defaults to the lighter one. */
   label?: string;
 };
+export type ReadOnlySwitch = { readOnly: boolean; onToggle: () => void };
 
 const ACTION_HEADING = "Thử một việc nhỏ";
 export const SHOW_ORIGINAL_ACTION = "Xem việc ban đầu";
 export const SHOW_LIGHTER_ACTION = "Xem việc nhẹ hơn";
+// Same text as `web.action.read-only.*` in the copy store (copy_registry.json); a test holds them equal.
+export const READ_ONLY_TODAY = "Hôm nay chỉ muốn đọc";
+export const SHOW_ACTION_AGAIN = "Hiện lại việc nhỏ";
+export const FOLDED_ACTION_LABEL = "Việc nhỏ hôm nay đang ẩn";
+
+/**
+ * The one button that folds the small-action box to a single line and opens it again. It only
+ * changes what this page shows: no request, nothing stored, a kept action stays kept. Render it
+ * with the same key in both states so the element, and the keyboard focus on it, survive the press.
+ */
+export function ReadOnlyToggle({ className, control }: { className: string; control: ReadOnlySwitch }) {
+  return (
+    <button className={`text-button ${className}`} onClick={control.onToggle} type="button">
+      {control.readOnly ? SHOW_ACTION_AGAIN : READ_ONLY_TODAY}
+    </button>
+  );
+}
 
 const outcomeLabels: Record<ExperimentOutcome, string> = {
   not_tried: "Chưa thử",
@@ -57,6 +77,7 @@ export function ReadingContent({
   onUndo,
   onReflect,
   lighter = null,
+  readOnly = null,
   toolbar,
 }: ReadingContentProps) {
   const isVibeFallback = content.mode === "vibe_fallback";
@@ -70,6 +91,7 @@ export function ReadingContent({
       onChoose={onChoose}
       onReflect={onReflect}
       onUndo={onUndo}
+      readOnly={readOnly}
       status={experimentStatus}
     />
   );
@@ -122,6 +144,7 @@ function ExperimentSection({
   onChoose,
   onReflect,
   onUndo,
+  readOnly,
   status,
 }: {
   compact: boolean;
@@ -132,6 +155,7 @@ function ExperimentSection({
   onChoose?: () => void;
   onReflect?: (outcome: ExperimentOutcome) => void;
   onUndo?: () => void;
+  readOnly: ReadOnlySwitch | null;
   status: DailyExperimentStatus;
 }) {
   // The lighter action replaces what is shown, never the note itself (US-04 AC14).
@@ -144,16 +168,28 @@ function ExperimentSection({
       {lighter.shown ? SHOW_ORIGINAL_ACTION : (lighter.label ?? SHOW_LIGHTER_ACTION)}
     </button>
   ) : null;
+  const readOnlyToggle = readOnly ? (
+    <ReadOnlyToggle className="reading-content__read-only" control={readOnly} key="read-only-toggle" />
+  ) : null;
+  const isDaily = content.purpose === "daily_note" || content.purpose === "personalized_sky";
+  // Home already shows this action; the detail page must not drop it just
+  // because a non-exact reading has no holdable experiment.
+  if (!experiment && (compact || !isDaily || !plainAction)) return null;
+  if (readOnly?.readOnly) {
+    // Folded to one line (#700). Every branch returns a <section>, so the toggle keeps its focus.
+    return (
+      <section aria-label={FOLDED_ACTION_LABEL} className="reading-content__action reading-content__action--read-only">
+        {readOnlyToggle}
+      </section>
+    );
+  }
   if (!experiment) {
-    const isDaily = content.purpose === "daily_note" || content.purpose === "personalized_sky";
-    // Home already shows this action; the detail page must not drop it just
-    // because a non-exact reading has no holdable experiment.
-    if (compact || !isDaily || !plainAction) return null;
     return (
       <section className="reading-content__action" aria-labelledby="reading-action-title">
         <h2 id="reading-action-title">{ACTION_HEADING}</h2>
         <p className="reading-content__experiment-action">{plainAction}</p>
         {switchButton}
+        {readOnlyToggle}
       </section>
     );
   }
@@ -177,6 +213,7 @@ function ExperimentSection({
         onUndo={onUndo}
         status={status}
       />
+      {readOnlyToggle}
     </section>
   );
 }

@@ -17,7 +17,9 @@ import {
   type DailyNote,
   type ReadingProjection,
 } from "../../shared/api/client";
+import { dailyReadOnlyKey } from "../../shared/hooks/useDailyActionView";
 import { clearCachedDailyNote } from "../../shared/storage/noteCache";
+import { FOLDED_ACTION_LABEL, READ_ONLY_TODAY, SHOW_ACTION_AGAIN } from "../../shared/ui/ReadingContent";
 import { NoteDetailPage } from "./NoteDetailPage";
 
 vi.mock("../../shared/api/client", async (original) => {
@@ -171,6 +173,25 @@ describe("NoteDetailPage rich reading", () => {
     render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><MemoryRouter><NoteDetailPage /></MemoryRouter></QueryClientProvider>);
     expect(await screen.findByText(note.reading_projection.active.sections.micro_action)).toBeInTheDocument();
     expect(getCurrentMood).not.toHaveBeenCalled();
+  });
+
+  it("shows the action box folded when it was folded on Home, and opens it again here (#700)", async () => {
+    vi.mocked(getDailyNote).mockResolvedValue(note);
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    // What Home leaves in memory after "Hôm nay chỉ muốn đọc".
+    client.setQueryData(dailyReadOnlyKey(note.id), true);
+    render(<QueryClientProvider client={client}><MemoryRouter><NoteDetailPage /></MemoryRouter></QueryClientProvider>);
+
+    await screen.findByRole("heading", { name: "Hook từ active revision" });
+    const folded = screen.getByRole("region", { name: FOLDED_ACTION_LABEL });
+    expect(folded.children).toHaveLength(1);
+    expect(screen.queryByRole("heading", { name: "Thử một việc nhỏ" })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: SHOW_ACTION_AGAIN }));
+    expect(await screen.findByRole("heading", { name: "Thử một việc nhỏ" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: READ_ONLY_TODAY })).toBeInTheDocument();
+    expect(client.getQueryData(dailyReadOnlyKey(note.id))).toBe(false);
+    expect(chooseDailyExperiment).not.toHaveBeenCalled();
   });
 
   it("does not display the cached auto note when the selected context cannot be fetched", async () => {
