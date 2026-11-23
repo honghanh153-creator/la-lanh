@@ -653,7 +653,7 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       });
       // L68: in Codex fallback one claude-fix turn goes to Codex; outside it the hold labels come off.
       if (fallback && !late()) {
-        try { const r = fallback({ turns: leftTurns, prs: left }); if (r) log(`fallback: ${JSON.stringify(r)}`); }
+        try { const r = fallback({ turns: leftTurns, prs: left, late }); if (r) log(`fallback: ${JSON.stringify(r)}`); }
         catch (error) { log(`fallback failed: ${clean(error.message, 200)}`); }
       }
       if (idleRuns >= idleAlertRuns && !idleAlerted && alert) {

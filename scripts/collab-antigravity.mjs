@@ -13,9 +13,9 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { readdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import { clean, makeGh, readJson, repo, stateDir, writeJson } from './collab-trust.mjs';
+import { boundedTimeout, clean, makeGh, readJson, repo, stateDir, writeJson } from './collab-trust.mjs';
 import { secondReviewProblem } from './codex-fallback.mjs';
-import { postSecond, secondBrief } from './collab-second-review.mjs';
+import { briefComplete, briefLimit, postSecond, secondBrief } from './collab-second-review.mjs';
 import { isMain } from './is-main.mjs';
 
 export const reviewer = 'Antigravity';
@@ -51,7 +51,7 @@ export function antigravityStep({ gh, prs = [], start, steps, home = stateDir, n
   const save = () => writeJson(statePath(home), all);
   const live = new Map(waiting.map(pr => [String(pr.number), pr]));
   for (const n of Object.keys(all)) if (live.get(n)?.headRefOid !== all[n].head) { delete all[n]; log(`antigravity #${n}: head moved or PR no longer waiting, dropped`); }
-  const [n, job] = Object.entries(all)[0] ?? [];
+  const [n, job] = Object.entries(all).find(([, j]) => !j.tooLong) ?? [];
   if (job) {
     const answer = readAnswer(steps(job.id));
     const drop = reason => { delete all[n]; save(); return { status: 'dropped', pr: Number(n), reason }; };
@@ -63,9 +63,16 @@ export function antigravityStep({ gh, prs = [], start, steps, home = stateDir, n
     delete all[n]; save();
     return { status: 'posted', pr: Number(n), verdict, url: posted.url };
   }
-  const pr = waiting[0];
+  // A diff longer than the brief is not sent: Antigravity would read a cut copy (Codex r1 on #894).
+  // The PR is remembered for its head and waits for Claude; the next waiting PR goes instead.
+  const pr = waiting.find(p => !all[String(p.number)]);
   if (!pr) { save(); return null; }
   const diff = String(gh.raw(['pr', 'diff', String(pr.number), '--repo', repo]));
+  if (!briefComplete(diff)) {
+    all[String(pr.number)] = { head: pr.headRefOid, tooLong: true, at: nowMs };
+    save();
+    return { status: 'skipped', pr: pr.number, reason: `diff dài hơn ${briefLimit} ký tự: chờ Claude phản biện` };
+  }
   const id = start(antigravityBrief(pr, diff), `Phản biện PR #${pr.number}`);
   all[String(pr.number)] = { head: pr.headRefOid, id, at: nowMs };
   save();
@@ -82,8 +89,8 @@ export function appEnv(user = homedir()) {
   return { ANTIGRAVITY_LS_ADDRESS: `127.0.0.1:${hub.httpPort}`, ANTIGRAVITY_CSRF_TOKEN: hub.csrfToken };
 }
 
-export function startConversation(brief, title, { env = appEnv(), bin = join(appHome(), 'bin', 'agentapi') } = {}) {
-  const out = execFileSync(bin, ['new-conversation', '--model=pro', `--title=${title}`, brief], { env: { ...process.env, ...env }, encoding: 'utf8', timeout: 60000, maxBuffer: 4 * 1024 * 1024 });
+export function startConversation(brief, title, { env = appEnv(), bin = join(appHome(), 'bin', 'agentapi'), left = () => Infinity, run = execFileSync } = {}) {
+  const out = run(bin, ['new-conversation', '--model=pro', `--title=${title}`, brief], { env: { ...process.env, ...env }, encoding: 'utf8', timeout: boundedTimeout(60000, left), maxBuffer: 4 * 1024 * 1024 });
   const id = JSON.parse(out)?.response?.newConversation?.conversationId;
   if (!/^[0-9a-f-]{36}$/.test(String(id))) throw new Error('Antigravity không trả mã cuộc trò chuyện');
   return id;
@@ -91,13 +98,14 @@ export function startConversation(brief, title, { env = appEnv(), bin = join(app
 
 // A child node does the HTTP call so the tick stays synchronous; the token travels in its env.
 const fetchScript = `const [id]=process.argv.slice(1);fetch('http://'+process.env.ANTIGRAVITY_LS_ADDRESS+'/exa.language_server_pb.LanguageServerService/GetCascadeTrajectorySteps',{method:'POST',headers:{'Content-Type':'application/json','Connect-Protocol-Version':'1','x-codeium-csrf-token':process.env.ANTIGRAVITY_CSRF_TOKEN},body:JSON.stringify({cascadeId:id}),signal:AbortSignal.timeout(20000)}).then(async r=>{if(!r.ok)throw new Error('HTTP '+r.status);process.stdout.write(await r.text())}).catch(e=>{console.error(e.message);process.exit(1)})`;
-export function conversationSteps(id, { env = appEnv() } = {}) {
-  const r = spawnSync(process.execPath, ['-e', fetchScript, id], { env: { ...process.env, ...env }, encoding: 'utf8', timeout: 30000, maxBuffer: 16 * 1024 * 1024 });
+export function conversationSteps(id, { env = appEnv(), left = () => Infinity } = {}) {
+  const r = spawnSync(process.execPath, ['-e', fetchScript, id], { env: { ...process.env, ...env }, encoding: 'utf8', timeout: boundedTimeout(30000, left), maxBuffer: 16 * 1024 * 1024 });
   if (r.status !== 0) throw new Error(`không đọc được câu trả lời Antigravity: ${clean(r.stderr, 200)}`);
   return JSON.parse(r.stdout)?.steps ?? [];
 }
 
-export const runAntigravity = ({ gh, prs, log }) => antigravityStep({ gh, prs, log, start: (b, t) => startConversation(b, t), steps: id => conversationSteps(id) });
+// `left`: time to the tick's absolute deadline (Codex r1 on #894); every call is bounded by it.
+export const runAntigravity = ({ gh, prs, log, left = () => Infinity }) => antigravityStep({ gh, prs, log, start: (b, t) => startConversation(b, t, { left }), steps: id => conversationSteps(id, { left }) });
 
 if (isMain(import.meta.url)) {
   if (process.argv.includes('--step')) {

@@ -1230,7 +1230,7 @@
    },
    "caller": {
     "file": "scripts/collab-tick.mjs",
-    "contains": "fallbackStep({ gh, mode: usageNow()?.mode ?? currentMode(), turns, prs, log })"
+    "contains": "fallbackFix({ gh, mode: usageNow()?.mode ?? currentMode(), turns, prs, log, left })"
    },
    "closedBy": {
     "pr": 894
@@ -1264,11 +1264,11 @@
    "status": "done",
    "test": {
     "file": "scripts/collab-antigravity.test.mjs",
-    "name": "L70: one step per tick: start, wait, then post a signed second review that the gate counts"
+    "name": "L70 (Codex r1 on #894): the production tick runs Antigravity, then the Codex fix, both bounded by one deadline; from 23:35 no fix starts"
    },
    "caller": {
     "file": "scripts/collab-tick.mjs",
-    "contains": "second = runAntigravity({ gh, prs, log });"
+    "contains": "second = antigravity({ gh, prs, log, left });"
    },
    "closedBy": {
     "pr": 894
@@ -1291,6 +1291,25 @@
    },
    "closedBy": {
     "pr": 893
+   }
+  },
+  {
+   "id": "L79",
+   "title": "Codex fallback fixes stay inside hard bounds: NUL-safe file list, sandboxed tests via the trusted guard, private-data scan and a local provenance record before the push, budget reserved under review.lock, one absolute deadline, no APPROVE on a cut brief, an allowlist for fallback merges",
+   "from": "Codex auto review on #894 (23.11.2026): REQUEST_CHANGES, 8 P1 + 1 P2 security/privacy in the fallback path",
+   "who": "claude",
+   "due": "2026-11-23",
+   "status": "done",
+   "test": {
+    "file": "scripts/codex-fallback.test.mjs",
+    "name": "Codex r1 on #894 (P1): branch tests run sandboxed (no network, writes in the clone only, bare env) through the trusted guard"
+   },
+   "caller": {
+    "file": "scripts/codex-fallback.mjs",
+    "contains": "const tested = test ?? (d => sandboxedTest(d, { run, left, base: home }));"
+   },
+   "closedBy": {
+    "pr": 894
    }
   }
  ]
