@@ -99,12 +99,12 @@
       "title": "So sánh bạn đồng hành (chỉ để QA)",
       "us": [],
       "ac": [],
-      "gap": "QA-only page, no user story. Reads and writes no personal data.",
+      "gap": "QA-only page, no user story. Reads and writes no personal data. Also hosts the Lá pixel (Mầm xanh) week-2 trial behind PIXEL_LA_ON_USER_SCREENS (#714, #715); its user story comes with week 5.",
       "routes": ["/companion-lab"],
-      "source_files": ["apps/web/src/features/companion-lab/CompanionLabPage.tsx", "apps/web/src/features/companion-lab/companion-lab.css"],
+      "source_files": ["apps/web/src/features/companion-lab/CompanionLabPage.tsx", "apps/web/src/features/companion-lab/companion-lab.css", "apps/web/src/shared/ui/companion/pixel/PixelLa.tsx", "apps/web/src/shared/ui/companion/pixel/pixelSprite.ts"],
       "user_path": ["Không có lối vào cho người dùng; mở trực tiếp /companion-lab"],
       "owner_only": false,
-      "key_selectors": [{ "role": "region", "name": "Bảng điều khiển" }],
+      "key_selectors": [{ "role": "region", "name": "Bảng điều khiển" }, { "role": "region", "name": "Lá pixel, bản thử" }],
       "states": {
         "default": {
           "fixture": "guest",

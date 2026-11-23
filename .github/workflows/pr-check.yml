@@ -56,7 +56,12 @@ jobs:
           while IFS= read -r f; do
             [ -z "$f" ] && continue
             case "$f" in
-              docs/*.md|docs/*/*.md|docs/*/*/*.md|*.md) ;;
+              # A doc that a script or test reads (the rules sheet, the review prompt, the content
+              # standard) is loop input, not prose: its change runs the loop tests (L59, #747 made
+              # collab/integration red with a docs-only check). Matched by file name, because some
+              # scripts build the path from parts; a false match only runs more tests.
+              docs/*.md|docs/*/*.md|docs/*/*/*.md|*.md)
+                if [ "$level" = docs ] && grep -rqsF -- "${f##*/}" scripts/; then level=loop; fi ;;
               scripts/collab-*|scripts/codex-review*|scripts/collaboration-*|scripts/launchd/*|.claude/skills/*)
                 [ "$level" = docs ] && level=loop ;;
               *) level=full ;;
@@ -64,6 +69,7 @@ jobs:
           done <<< "$files"
           echo "level=$level" >> "$GITHUB_OUTPUT"
           echo "scope: $level"
+      # L62: the guard diffs from the merge base (base...head), so it needs the full history above.
       - name: Mass-deletion guard (owner label owner-ok-deletion lets it through)
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
