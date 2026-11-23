@@ -1413,7 +1413,7 @@
    "from": "owner 23.11.2026 (bought more Codex; \"cứ chuyển qua fable\")",
    "who": "claude",
    "due": "2026-11-23",
-   "status": "open",
+   "status": "done",
    "test": {
     "file": "scripts/collab-usage.test.mjs",
     "name": "L78: from 95% Claude work routes to the Fable model; if Fable is blocked too, to Codex and the machine for 24 hours"
@@ -1421,6 +1421,9 @@
    "caller": {
     "file": "scripts/collab-usage.mjs",
     "contains": "health: usageHealth(usage, { home })"
+   },
+   "closedBy": {
+    "pr": 906
    }
   }
  ]
