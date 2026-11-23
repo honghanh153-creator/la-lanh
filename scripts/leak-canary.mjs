@@ -238,7 +238,7 @@ async function journey(page) {
   });
   await mark("ảnh note: tải và chia sẻ", async () => {
     await go("/card");
-    await collectCard(page, { kind: "note-card", downloadName: "Tải ảnh PNG", shareName: "Chia sẻ card" });
+    await collectCard(page, { kind: "note-card", downloadName: "Tải ảnh PNG", shareName: "Chia sẻ thẻ" });
   });
   await mark("Lá Khai Sinh: tải và chia sẻ", async () => {
     await go("/birth-card");
