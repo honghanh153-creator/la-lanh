@@ -17,6 +17,7 @@ import { createHash } from 'node:crypto';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { readJson, stateDir, vnNow, writeJson } from './collab-trust.mjs';
+import { isMain } from './is-main.mjs';
 
 export const shiftAt = 75;
 export const savingAt = 85;
@@ -34,7 +35,7 @@ export const projectsRoot = (user = homedir()) => join(user, '.claude', 'project
 export const scanFlagPath = (home = stateDir) => join(home, 'state', 'claude-usage-scan-on');
 export const scanEnabled = (home = stateDir) => existsSync(scanFlagPath(home));
 
-export const MODES = { normal: 'bình thường', shift: 'chuyển bớt', saving: 'tiết kiệm', fallback: 'chuyển sang Codex' };
+export const MODES = { normal: 'bình thường', shift: 'chuyển bớt', saving: 'tiết kiệm', fallback: 'Fable + Codex' };
 // Modes in which Codex takes Claude's fix turns (L71). Below fallback, incidents stay with Claude.
 export const codexFixModes = ['shift', 'saving', 'fallback'];
 export function modeFor(percent) {
@@ -237,13 +238,35 @@ export function usageLine(usage, today = null) {
   const shares = today === 'off' ? 'tắt (chờ owner bật)' : today?.measured ? today.shares.map(s => `${s.project} ${Math.round(s.share * 100)}%`).join(', ') : 'chưa đo được';
   return `Claude tuần: ${week} · chế độ: ${MODES[usage.mode] ?? usage.mode} · hôm nay theo dự án: ${shares}`;
 }
-export function usageHealth(usage) {
+export function usageHealth(usage, { home = stateDir } = {}) {
   const out = [];
   if (!usage.fresh) out.push(`⚠️ Số lượt Claude ${usage.at ? 'cũ hơn 3 giờ' : 'chưa có'}: giữ chế độ ${MODES[usage.mode]}. Tác vụ autopilot ghi số mỗi lượt chạy.`);
   if (usage.mode === 'shift') out.push(`⚠️ Claude đã dùng ${usage.percent}% tuần: lượt sửa sang Codex, phản biện sang Antigravity, bỏ lượt Claude kiểm mẫu.`);
   if (usage.mode === 'saving') out.push(`⚠️ Claude đã dùng ${usage.percent}% tuần: Claude chỉ làm sự cố; lượt sửa khác sang Codex.`);
-  if (usage.mode === 'fallback') out.push(`⚠️ Claude đã dùng ${usage.percent}% tuần: không dùng Claude; Codex, Antigravity và máy chạy tiếp, giữ 5% cho việc gấp.`);
+  if (usage.mode === 'fallback') out.push(fableBlocked({ home }) ? `⚠️ Claude đã dùng ${usage.percent}% tuần và Fable cũng bị chặn: không dùng Claude; Codex, Antigravity và máy chạy tiếp.` : `⚠️ Claude đã dùng ${usage.percent}% tuần: việc của Claude chạy bằng model ${fableModel} (\`node scripts/collab-usage.mjs --route\`); Codex, Antigravity và máy vẫn làm phần nặng.`);
   return out;
+}
+
+// Owner 23.11.2026: "tôi đã mua thêm cho codex. trong trường hợp cần, vì dung lượng tuần đã hết thì
+// cứ chuyển qua fable" (L78). From 95% Claude work runs on the Fable model instead of stopping; Codex,
+// Antigravity and the machine keep the heavy work (fix turns, reviews, merges: codex-fallback.mjs).
+// Fable may count inside the same all-models limit: a session refused on Fable runs
+// `--fable-blocked`, and for 24 hours (or until a reading below 95%) the route is Codex and the machine.
+export const fableModel = 'fable';
+export const fableBlockMs = 24 * 3600 * 1000;
+export const fableBlockedPath = (home = stateDir) => join(home, 'state', 'claude-fable-blocked.json');
+export function fableBlocked({ home = stateDir, now = new Date() } = {}) {
+  const at = Date.parse(readJson(fableBlockedPath(home), null)?.at ?? '');
+  return Number.isFinite(at) && now.getTime() - at < fableBlockMs;
+}
+export function markFableBlocked({ home = stateDir, now = new Date() } = {}) {
+  writeJson(fableBlockedPath(home), { at: now.toISOString() });
+}
+// Which model a new Claude session or scheduled run should use. model null = the usual default.
+export function claudeRoute({ mode, home = stateDir, now = new Date() } = {}) {
+  if (mode !== 'fallback') return { mode: mode ?? null, model: null, to: 'claude' };
+  if (fableBlocked({ home, now })) return { mode, model: null, to: 'codex', why: 'Fable cũng bị chặn: Codex, Antigravity và máy' };
+  return { mode, model: fableModel, to: 'fable' };
 }
 
 // The weekly % gained today, when it passes 70% of an even pace. Null when below or unknown.
@@ -271,5 +294,12 @@ export function usageTick({ alert, home = stateDir, root = projectsRoot(), now =
   let today = 'off';
   if (scanEnabled(home)) { today = null; try { today = todayShares({ home, root, now }); } catch {} }
   if (alert) paceWatch({ usage, alert, home });
-  return { line: usageLine(usage, today), health: usageHealth(usage), mode: usage.mode, usage, today };
+  return { line: usageLine(usage, today), health: usageHealth(usage, { home }), mode: usage.mode, usage, today };
+}
+
+if (isMain(import.meta.url)) {
+  const args = process.argv.slice(2);
+  if (args.includes('--fable-blocked')) { markFableBlocked(); process.stdout.write('Đã ghi: Fable bị chặn 24 giờ; việc chuyển sang Codex, Antigravity và máy.\n'); }
+  if (args.includes('--route') || args.includes('--fable-blocked')) process.stdout.write(`${JSON.stringify(claudeRoute({ mode: readUsage().mode }))}\n`);
+  else { process.stderr.write('Usage: node scripts/collab-usage.mjs --route | --fable-blocked\n'); process.exitCode = 2; }
 }

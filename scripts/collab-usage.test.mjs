@@ -4,7 +4,7 @@ import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, utime
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
-  costOf, modeFor, modePath, scanEnabled, scanFlagPath, paceLimit, paceSubject, paceWatch, projectOf, readUsage, scanFile, todayShares, usageHealth, usageLine, usagePath, usageTick,
+  claudeRoute, costOf, fableBlocked, markFableBlocked, modeFor, modePath, scanEnabled, scanFlagPath, paceLimit, paceSubject, paceWatch, projectOf, readUsage, scanFile, todayShares, usageHealth, usageLine, usagePath, usageTick,
 } from './collab-usage.mjs';
 import { renderBoard } from './collab-status.mjs';
 import { runTick } from './collab-tick.mjs';
@@ -103,9 +103,9 @@ test('the board line and warnings show shares and percents only: no amounts, no 
   assert.doesNotMatch(text, /\$|USD|Users|scratch/);
   assert.match(usageHealth(usage).join('\n'), /⚠️ Claude đã dùng 88% tuần: Claude chỉ làm sự cố/);
   reading(h, 97, ago(5));
-  assert.match(usageHealth(readUsage({ home: h, now: NOW })).join('\n'), /không dùng Claude; Codex, Antigravity và máy chạy tiếp, giữ 5%/);
+  assert.match(usageHealth(readUsage({ home: h, now: NOW })).join('\n'), /việc của Claude chạy bằng model fable/);
   reading(h, 97, ago(5 * 60));
-  assert.match(usageHealth(readUsage({ home: h, now: NOW })).join('\n'), /⚠️ Số lượt Claude cũ hơn 3 giờ: giữ chế độ chuyển sang Codex/);
+  assert.match(usageHealth(readUsage({ home: h, now: NOW })).join('\n'), /⚠️ Số lượt Claude cũ hơn 3 giờ: giữ chế độ Fable \+ Codex/);
 });
 
 test('pace alert: once a day when today gained more than 70% of an even weekly pace', () => {
@@ -180,4 +180,18 @@ test('R2(4): the transcript scan is off by default; it reads nothing until the o
   const on = usageTick({ home: h, root: join(h, 'projects'), now: NOW });
   assert.match(on.line, /hôm nay theo dự án: la-lanh 100%/);
   assert.equal(existsSync(join(h, 'state', 'claude-usage-scan.json')), true);
+});
+
+test('L78: from 95% Claude work routes to the Fable model; if Fable is blocked too, to Codex and the machine for 24 hours', () => {
+  const h = home();
+  assert.deepEqual(claudeRoute({ mode: 'saving', home: h, now: NOW }), { mode: 'saving', model: null, to: 'claude' });
+  assert.deepEqual(claudeRoute({ mode: 'fallback', home: h, now: NOW }), { mode: 'fallback', model: 'fable', to: 'fable' }, 'not a stop: Fable');
+  reading(h, 96, ago(5));
+  assert.match(usageHealth(readUsage({ home: h, now: NOW }), { home: h }).join('\n'), /96% tuần: việc của Claude chạy bằng model fable/);
+  markFableBlocked({ home: h, now: NOW });
+  assert.equal(fableBlocked({ home: h, now: NOW }), true);
+  assert.equal(claudeRoute({ mode: 'fallback', home: h, now: NOW }).to, 'codex');
+  assert.match(usageHealth(readUsage({ home: h, now: NOW }), { home: h }).join('\n'), /Fable cũng bị chặn: không dùng Claude; Codex, Antigravity và máy/);
+  const later = new Date(NOW.getTime() + 25 * 3600 * 1000);
+  assert.equal(claudeRoute({ mode: 'fallback', home: h, now: later }).to, 'fable', 'the block expires: Fable is tried again');
 });
