@@ -1197,6 +1197,44 @@
    "closedBy": {
     "pr": 892
    }
+  },
+  {
+   "id": "L67",
+   "title": "Claude usage was invisible to the loop: the weekly limit reached 80% in two days before anyone saw the pace",
+   "from": "owner plan 22.11.2026 (usage audit), item 3",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-usage.test.mjs",
+    "name": "L67: the board shows the usage line, the tick feeds it and the warnings, and the pace alert has its own subject"
+   },
+   "caller": {
+    "file": "scripts/collab-tick.mjs",
+    "contains": "renderBoard({ ...info, usage: usageNow()?.line ?? null })"
+   },
+   "closedBy": {
+    "pr": 893
+   }
+  },
+  {
+   "id": "L77",
+   "title": "A new read of local transcripts shipped on by default; R2(4) says new personal-data collection is built and left off",
+   "from": "Codex review #893 (data_collection hold), 22.11.2026",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-usage.test.mjs",
+    "name": "R2(4): the transcript scan is off by default; it reads nothing until the owner creates the flag file"
+   },
+   "caller": {
+    "file": "scripts/collab-usage.mjs",
+    "contains": "if (scanEnabled(home))"
+   },
+   "closedBy": {
+    "pr": 893
+   }
   }
  ]
 }

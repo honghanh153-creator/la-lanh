@@ -183,7 +183,7 @@ try {
   await step(page, "share-link", async () => {
     await page.getByRole("link", { name: "Chia sẻ" }).first().click();
     await page.waitForURL(/\/card/);
-    await button(page, /Tạo safe link/).click();
+    await button(page, /Tạo link riêng/).click();
     await button(page, /Thu hồi link/).waitFor({ timeout: 20_000 });
   }, { minText: 10 });
   await step(page, "share-revoke", async () => {
