@@ -189,3 +189,48 @@ describe("useReadOnlyToday (#700)", () => {
     fetchSpy.mockRestore();
   });
 });
+
+describe("memory-only choices outlive a visit to another screen (#833 review)", () => {
+  // React Query drops an unused query after five minutes by default. These two choices have
+  // nothing to refetch, so they must stay for the app session: fold or switch, leave Home and the
+  // note page for a while, come back the same day, and the choice is still there.
+  const SIX_MINUTES = 6 * 60 * 1000;
+
+  it("keeps the folded box after unmount, six minutes away and a remount", () => {
+    vi.useFakeTimers();
+    try {
+      const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      const wrapper = ({ children }: { children: ReactNode }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+      const first = renderHook(() => useReadOnlyToday(NOTE_ID), { wrapper });
+      act(() => first.result.current.toggle());
+      act(() => vi.advanceTimersByTime(1)); // React Query hands updates over on a timer.
+      expect(first.result.current.readOnly).toBe(true);
+      first.unmount();
+      act(() => vi.advanceTimersByTime(SIX_MINUTES));
+      expect(client.getQueryData(dailyReadOnlyKey(NOTE_ID))).toBe(true);
+      const again = renderHook(() => useReadOnlyToday(NOTE_ID), { wrapper });
+      expect(again.result.current.readOnly).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps the switch press after unmount, six minutes away and a remount", () => {
+    vi.useFakeTimers();
+    try {
+      const { client, result, unmount } = setup("Đuối");
+      expect(result.current.lighterShown).toBe(true);
+      act(() => result.current.switchAction());
+      act(() => vi.advanceTimersByTime(1));
+      expect(result.current.lighterShown).toBe(false);
+      unmount();
+      act(() => vi.advanceTimersByTime(SIX_MINUTES));
+      expect(client.getQueryData(dailyActionViewKey(NOTE_ID))).toEqual({ choice: "original" });
+      const wrapper = ({ children }: { children: ReactNode }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+      const again = renderHook(() => useDailyActionView(NOTE_ID, reading, "Đuối"), { wrapper });
+      expect(again.result.current.lighterShown).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});

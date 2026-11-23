@@ -70,6 +70,14 @@ export function applySavedMood(client: QueryClient, row: MoodCheckIn): boolean {
  * never sent anywhere, and not a statement about a kept action: nothing is kept or stopped by it.
  * It is keyed by note, so the next day's note starts open again (US-04 AC12).
  */
+/**
+ * The two choices below live only in the query cache and have nothing to refetch, so they keep
+ * their entry for the whole app session. React Query would otherwise drop an unused entry five
+ * minutes after the last screen using it closes, and the choice would come back undone the same
+ * day (#833 review). A data wipe still removes them (their key family is cleared with the rest).
+ */
+const SESSION_LIFETIME = Infinity;
+
 export const dailyReadOnlyKey = (noteId: string | undefined) => [DAILY_ACTION_VIEW_KEY, "read-only", noteId] as const;
 
 export type ReadOnlyToday = { readOnly: boolean; toggle: () => void };
@@ -84,6 +92,7 @@ export function useReadOnlyToday(noteId: string | undefined): ReadOnlyToday {
     queryFn: () => client.getQueryData<boolean>(key) ?? false,
     initialData: false,
     staleTime: Infinity,
+    gcTime: SESSION_LIFETIME,
     enabled: Boolean(noteId),
   });
   const readOnly = Boolean(noteId) && data === true;
@@ -131,6 +140,7 @@ export function useDailyActionView(
     queryFn: () => EMPTY,
     initialData: EMPTY,
     staleTime: Infinity,
+    gcTime: SESSION_LIFETIME,
     enabled: Boolean(noteId),
   });
   const view = data ?? EMPTY;
