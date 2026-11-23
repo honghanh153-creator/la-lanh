@@ -8,7 +8,7 @@ process.env.LA_LANH_COLLAB_HOME = mkdtempSync(join(tmpdir(), 'fallback-'));
 const trust = await import('./collab-trust.mjs');
 const {
   changeProblems, changedFiles, codexFixed, commitMessage, currentMode, fallbackBrief, fallbackBudget, fallbackRuns, fallbackRunsPath, fallbackStep, fallbackSubCap,
-  finishReserveMs, holdLabel, lowRiskProblem, runFallbackFix, sandboxedTest, testCommand,
+  finishReserveMs, fallbackProblem, holdLabel, runFallbackFix, sandboxedTest, testCommand,
 } = await import('./codex-fallback.mjs');
 const { acquireLock } = await import('./collab-lock.mjs');
 const { mergeGate } = await import('./collab-merge.mjs');
@@ -19,31 +19,35 @@ const SHA = 'a'.repeat(40);
 const pr = (over = {}) => ({ number: 901, title: 'ops(loop): x', headRefOid: SHA, headRefName: 'agent/claude/x', baseRefName: 'collab/integration', baseTipOid: 'b'.repeat(40),
   labels: [{ name: 'area:ops' }], files: [{ path: 'scripts/collab-status.mjs', additions: 10, deletions: 2 }, { path: 'scripts/collab-status.test.mjs', additions: 30, deletions: 0 }], comments: [], body: '', ...over });
 
-test('owner 22.11: a fallback merge only for a small ops-or-tests PR outside app, content, privacy and gate paths', () => {
-  assert.equal(lowRiskProblem(pr()), null);
-  assert.equal(lowRiskProblem(pr({ labels: [{ name: 'area:content' }], title: 'content: x', files: [{ path: 'apps/web/src/a.test.ts', additions: 5 }] })), null, 'tests only is low risk');
-  assert.match(lowRiskProblem(pr({ labels: [{ name: 'area:privacy' }], title: 'privacy: x' })), /nhóm privacy/);
-  assert.match(lowRiskProblem(pr({ files: [{ path: 'apps/web/src/App.tsx', additions: 3 }] })), /ngoài phần ops/);
-  assert.match(lowRiskProblem(pr({ files: [{ path: 'scripts/collab-merge.mjs', additions: 3 }] })), /file cổng/);
-  assert.match(lowRiskProblem(pr({ files: [{ path: 'docs/operations/luat-dang-hieu-luc.md', additions: 1 }] })), /file cổng/);
-  assert.match(lowRiskProblem(pr({ files: [{ path: 'scripts/collab-status.mjs', additions: 401 }] })), /quá 400 dòng/);
-  assert.match(lowRiskProblem(pr({ files: [] })), /không đọc được/);
-  // Codex r1 on #894 (P2): an allowlist, not a deny list; every enforcement script waits for Claude.
-  for (const path of ['scripts/collab-second-review.mjs', 'scripts/collab-antigravity.mjs', 'scripts/collab-check.mjs', 'scripts/collab-hooks.mjs', 'scripts/collab-test-guard.mjs', 'scripts/collab-tick.mjs', 'scripts/collab-preflight.mjs', 'scripts/collab-lock.mjs', 'scripts/collab-rules-hook.mjs', 'scripts/collab-owner-answer.mjs', 'scripts/collab-lessons.json', 'scripts/new-thing.mjs']) {
-    assert.match(lowRiskProblem(pr({ files: [{ path, additions: 1 }] })), /file cổng/, path);
+test('L82 (owner 23.11): in fallback every lane merges; only owner-only copy and the loop gates wait', () => {
+  // Every lane, any size: the 7-week plan, Daily, content and process work all go through the usual gates.
+  assert.equal(fallbackProblem(pr()), null);
+  assert.equal(fallbackProblem(pr({ labels: [{ name: 'area:content' }, { name: 'ke-hoach-7-tuan' }], title: 'content: x', files: [{ path: 'apps/web/src/features/home/HomePage.tsx', additions: 900 }, { path: 'content/daily/a.json', additions: 400 }] })), null);
+  assert.equal(fallbackProblem(pr({ labels: [{ name: 'area:privacy' }], title: 'privacy: x', files: [{ path: 'apps/api/app/privacy.py', additions: 30 }] })), null, 'privacy code is reviewed like any code; new collection is needs-owner');
+  for (const path of ['docs/operations/collab-auto-loop-plan.md', 'docs/reviews/x.md', 'scripts/collab-lessons.json', 'scripts/lessons/L99.json', 'scripts/collab-status.mjs', 'scripts/collab-chain.mjs', 'scripts/new-thing.mjs']) {
+    assert.equal(fallbackProblem(pr({ files: [{ path, additions: 1 }] })), null, path);
   }
-  assert.match(lowRiskProblem(pr({ files: [{ path: '.github/workflows/pr-check.test.yml', additions: 1 }] })), /file cổng/, 'a "test" under .github is still a gate');
-  assert.equal(lowRiskProblem(pr({ files: [{ path: 'docs/operations/collab-auto-loop-plan.md', additions: 3 }, { path: 'docs/reviews/x.md', additions: 3 }] })), null);
+  // Owner-only: sensitive copy not approved word for word waits for her (needs-owner is held by mergeGate itself).
+  assert.match(fallbackProblem(pr({ labels: [{ name: 'owner-release-check' }] })), /chờ owner/);
+  // The loop's own gates, their tests, the rule sheet, hooks, CI and dependencies wait for Claude.
+  for (const path of ['scripts/collab-merge.mjs', 'scripts/collab-merge.test.mjs', 'scripts/collab-second-review.mjs', 'scripts/collab-antigravity.mjs', 'scripts/collab-check.mjs', 'scripts/collab-hooks.mjs', 'scripts/collab-test-guard.mjs', 'scripts/collab-tick.mjs', 'scripts/collab-turn.mjs', 'scripts/collab-preflight.mjs', 'scripts/collab-lock.mjs', 'scripts/collab-rules-hook.mjs', 'scripts/collab-owner-answer.mjs', 'scripts/collab-trust.mjs', 'scripts/collab-usage.mjs', 'scripts/codex-review.mjs', 'scripts/codex-fallback.mjs', 'scripts/guard-dangerous-commands.mjs', 'scripts/verify-privacy.mjs', 'docs/operations/luat-dang-hieu-luc.md', '.claude/settings.json', '.github/workflows/pr-check.test.yml', 'package.json', 'apps/web/package.json', 'pnpm-lock.yaml']) {
+    assert.match(fallbackProblem(pr({ files: [{ path, additions: 1 }] })), /file cổng của vòng/, path);
+  }
+  assert.match(fallbackProblem(pr({ files: [] })), /không đọc được/);
 });
 
-test('L68: in fallback the merge gate holds a risky PR for Claude; normal mode does not', () => {
-  const risky = pr({ labels: [{ name: 'area:feature' }], title: 'feat: x', files: [{ path: 'apps/web/src/App.tsx', additions: 3 }] });
-  const inFallback = mergeGate(risky, { mode: 'fallback', disputes: {} });
-  assert.ok(inFallback.reasons.some(r => /chế độ chuyển sang Codex: chỉ merge PR nhỏ ít rủi ro/.test(r)));
+test('L82: in fallback the merge gate holds only owner-only and gate PRs; normal mode holds nothing', () => {
+  const plan = pr({ labels: [{ name: 'area:feature' }, { name: 'ke-hoach-7-tuan' }], title: 'feat: x', files: [{ path: 'apps/web/src/App.tsx', additions: 600 }] });
+  assert.ok(!mergeGate(plan, { mode: 'fallback', disputes: {} }).reasons.some(r => /chuyển sang Codex/.test(r)), 'a plan PR is not held');
+  const gate = pr({ files: [{ path: 'scripts/collab-merge.mjs', additions: 3 }] });
+  const inFallback = mergeGate(gate, { mode: 'fallback', disputes: {} });
+  assert.ok(inFallback.reasons.some(r => /chế độ chuyển sang Codex: PR này chưa merge được \(đụng file cổng/.test(r)));
   assert.ok(inFallback.fallbackHold);
-  assert.ok(!mergeGate(risky, { mode: 'normal', disputes: {} }).reasons.some(r => /chuyển sang Codex/.test(r)));
-  assert.ok(!mergeGate(pr(), { mode: 'fallback', disputes: {} }).reasons.some(r => /chuyển sang Codex/.test(r)), 'a low-risk PR is not held');
-  assert.ok(!mergeGate(risky, { disputes: {} }).reasons.some(r => /chuyển sang Codex/.test(r)), 'the default is normal: no state read in the gate');
+  const copy = pr({ labels: [{ name: 'owner-release-check' }] });
+  assert.ok(mergeGate(copy, { mode: 'fallback', disputes: {} }).reasons.some(r => /chờ owner/.test(r)));
+  assert.ok(!mergeGate(copy, { mode: 'normal', disputes: {} }).reasons.some(r => /chuyển sang Codex/.test(r)), 'normal mode: R2 lets it merge and wait for release');
+  assert.ok(!mergeGate(gate, { disputes: {} }).reasons.some(r => /chuyển sang Codex/.test(r)), 'the default is normal: no state read in the gate');
+  assert.ok(mergeGate(pr({ labels: [{ name: 'needs-owner' }] }), { mode: 'fallback', disputes: {} }).reasons.includes('needs-owner'));
   assert.equal(prTurn(pr({ labels: [{ name: 'area:ops' }, { name: holdLabel }], author: { login: 'honghanh153-creator' } }), { disputes: {} }).turn, 'hold');
 });
 
