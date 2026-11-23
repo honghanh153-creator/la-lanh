@@ -1765,6 +1765,29 @@ test('#581: each repair-waiting state releases a newer PR on a shared file, with
   assert.equal(fileBlocker(newer, [older(607), newer], {}), 607, 'an older PR waiting for its check still holds');
 });
 
+test('L63: a clean trial merge on the copy registry releases a same-file hold; a conflict, an unknown, a new head or another shared file keeps it', () => {
+  const reg = 'apps/api/app/domains/content/copy_registry.json';
+  const head = n => String(n).padStart(40, '0');
+  const older = pr({ number: 877, createdAt: '2026-11-21T00:00:00Z', headRefOid: head(877), files: [{ path: reg }], comments: [] });
+  const newer = (extra = {}) => pr({ number: 880, createdAt: '2026-11-22T00:00:00Z', headRefOid: head(880), files: [{ path: reg }], comments: [], ...extra });
+  const probes = (result, pr = newer()) => new Map([[`${pr.number}@${pr.headRefOid}|877@${head(877)}`, result]]);
+  assert.equal(fileBlocker(newer(), [older, newer()]), 877, 'without a trial result the hold stays');
+  assert.equal(fileBlocker(newer(), [older, newer()], { probes: probes('clean') }), null, 'a clean trial merge on the registry releases it');
+  assert.equal(fileBlocker(newer(), [older, newer()], { probes: probes('conflict') }), 877, 'a conflict keeps the hold');
+  assert.equal(fileBlocker(newer(), [older, newer()], { probes: probes('unknown') }), 877, 'an unknown result keeps the hold');
+  const pushed = newer({ headRefOid: 'f'.repeat(40) });
+  assert.equal(fileBlocker(pushed, [older, pushed], { probes: probes('clean') }), 877, 'a clean result for an older head does not count');
+  const both = newer({ files: [{ path: reg }, { path: 'scripts/collab-turn.mjs' }] });
+  const olderBoth = pr({ ...older, files: [{ path: reg }, { path: 'scripts/collab-turn.mjs' }] });
+  assert.equal(fileBlocker(both, [olderBoth, both], { probes: probes('clean', both) }), 877, 'another shared file keeps the hold');
+  const code = newer({ files: [{ path: 'scripts/collab-turn.mjs' }] });
+  const olderCode = pr({ ...older, files: [{ path: 'scripts/collab-turn.mjs' }] });
+  assert.equal(fileBlocker(code, [olderCode, code], { probes: probes('clean', code) }), 877, 'only files on the release list are released');
+  const turns = Object.fromEntries(turnsFor([older, newer()], { probes: probes('clean') }).map(t => [t.number, t]));
+  assert.equal(turns[880].turn, 'claude-check', 'the released PR goes on to its own check');
+  assert.equal(turns[877].turn, 'claude-check');
+});
+
 test('review 228: a deleted Python file is not linted by default', () => {
   const calls = [];
   assert.deepEqual(preflightMod.lintProblems(['app/deleted_for_test_only.py'], { cwd: '/nonexistent-la-lanh', spawn: () => { calls.push(1); return { status: 1 }; } }), []);

@@ -18,6 +18,7 @@ import { afterDecision, disputeView, settleDisputes } from './collab-disagree.mj
 import { isMain } from './is-main.mjs';
 import { secondReviewProblem } from './codex-fallback.mjs';
 import { activeReservation, followHead, releaseReservation, reserve } from './collab-reservation.mjs';
+import { cleanRelease, probeView } from './collab-merge-probe.mjs';
 
 export { codexDailyCap };
 // L25: the launchd tick passes no settle, so this default is the production caller.
@@ -54,10 +55,15 @@ const has = (p, name) => (p.labels ?? []).some(l => (l.name ?? l) === name);
 export const fileRank = p => (has(p, 'incident') ? 3 : has(p, label7w) || has(p, personaFixLabel) ? 2 : has(p, dailyLaneLabel) ? 1 : 0);
 const fileOrder = prs => sortByPriority(prs).sort((a, b) => fileRank(b) - fileRank(a) || areaOrder.indexOf(classifyArea(a)) - areaOrder.indexOf(classifyArea(b)));
 
-export function fileBlocker(pr, prs = [], { dropped = [], ...opts } = {}) {
+export function fileBlocker(pr, prs = [], { dropped = [], probes, ...opts } = {}) {
   const mine = new Set(prFiles(pr));
   if (!mine.size) return null;
-  const shared = prs.filter(o => o.number !== pr.number && canMove(o, dropped) && prFiles(o).some(f => mine.has(f)));
+  const sharing = prs.filter(o => o.number !== pr.number && canMove(o, dropped) && prFiles(o).some(f => mine.has(f)));
+  if (!sharing.length) return null;
+  // L63: an earlier PR whose trial merge with this exact head was clean, on the copy registry only,
+  // does not hold it (collab-merge-probe.mjs cleanRelease). The trial log is read only when needed.
+  const view = probes ?? probeView();
+  const shared = sharing.filter(o => !cleanRelease(pr, o, view));
   if (!shared.length) return null;
   // L53 (19.11.2026): a PR that is ready to merge (Author check PASS on the live tip and APPROVE at
   // its head) is never held by another PR on a shared file: it merges first and the other syncs.
@@ -70,7 +76,7 @@ export function fileBlocker(pr, prs = [], { dropped = [], ...opts } = {}) {
 
 // L25: the dispute state is read by default, so the review command (codex-review.mjs) routes the
 // same way as the tick and the merge gate (Codex 15.11: a caller without it refused after a decision).
-export function prTurn(pr, { dropped = [], open = [], preflight = {}, baseFiles, disputes = disputeView() } = {}) {
+export function prTurn(pr, { dropped = [], open = [], preflight = {}, baseFiles, disputes = disputeView(), probes } = {}) {
   const head = pr.headRefOid;
   const out = (turn, reason, extra = {}) => ({ number: pr.number, title: pr.title, area: classifyArea(pr), head, base: pr.baseRefName, tip: isSha(pr.baseTipOid) ? pr.baseTipOid : null, turn, reason, files: prFiles(pr), bodyHash: bodyHash(pr.body),
     source: gateValue(pr.body, 'G1') || null, userSees: userSees(pr.body), item: workRef(pr.body), ...extra });
@@ -87,7 +93,7 @@ export function prTurn(pr, { dropped = [], open = [], preflight = {}, baseFiles,
   if (disputes[pr.number]?.hold) return out('hold', disputes[pr.number].hold);
   if (dropped.includes(pr.number)) return out('hold', 'owner bỏ khỏi plan hôm nay');
   if (pr.baseRefName !== integration) return out('hold', `xếp chồng trên ${pr.baseRefName}`);
-  const blocker = fileBlocker(pr, open, { dropped, preflight, baseFiles, disputes });
+  const blocker = fileBlocker(pr, open, { dropped, preflight, baseFiles, disputes, probes });
   if (blocker) return out('hold', `chờ PR #${blocker} cùng file`);
   // A conflict needs Claude at any stage: on 02.11 an approved PR in conflict kept every tick on a
   // refused merge for three hours, and checking or reviewing a head that cannot merge wastes the run (K24).
@@ -213,7 +219,8 @@ export function replan({ gh, plan, dayPath, day, date, issues = () => quotaIssue
 export function turnsFor(prs, options = {}) {
   const preflight = options.preflight ?? readPreflight();
   const disputes = options.disputes ?? disputeView();
-  return sortByPriority(prs).map(pr => withRepeatNote(prTurn(pr, { ...options, open: prs, preflight, disputes }), pr));
+  const probes = options.probes ?? probeView();
+  return sortByPriority(prs).map(pr => withRepeatNote(prTurn(pr, { ...options, open: prs, preflight, disputes, probes }), pr));
 }
 
 // Owner order: finish every content PR before privacy, and privacy before features.
