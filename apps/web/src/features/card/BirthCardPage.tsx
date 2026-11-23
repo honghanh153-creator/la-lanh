@@ -58,8 +58,8 @@ export function BirthCardPage() {
     <main className="flow-page card-page">
       <header className="flow-header"><button aria-label="Quay lại" className="icon-button" onClick={() => void navigate(-1)} type="button"><ArrowLeft /></button><BrandMark /><span /></header>
       <section className="format-toggle" aria-label="Định dạng Lá Khai Sinh">
-        <button aria-pressed={format === "story_9_16"} className={format === "story_9_16" ? "is-active" : ""} onClick={() => setFormat("story_9_16")} type="button">Story 9:16</button>
-        <button aria-pressed={format === "square_1_1"} className={format === "square_1_1" ? "is-active" : ""} onClick={() => setFormat("square_1_1")} type="button">Square 1:1</button>
+        <button aria-pressed={format === "story_9_16"} className={format === "story_9_16" ? "is-active" : ""} onClick={() => setFormat("story_9_16")} type="button">Khung dọc</button>
+        <button aria-pressed={format === "square_1_1"} className={format === "square_1_1" ? "is-active" : ""} onClick={() => setFormat("square_1_1")} type="button">Khung vuông</button>
       </section>
       {spec && detail ? <>
         <ShareArtPreview alt={shareArtAlt(spec, format)} format={format} heading={`Lá Khai Sinh · Mặt Trời ${detail.label}`} svg={art.svg} />
