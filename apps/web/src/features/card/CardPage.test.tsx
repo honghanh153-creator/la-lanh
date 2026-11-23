@@ -46,9 +46,9 @@ describe("CardPage", () => {
   it("offers a retry instead of spinning forever when the current note fails", async () => {
     vi.mocked(getDailyNote).mockRejectedValueOnce(new Error("Note unavailable"));
     renderPage();
-    expect(await screen.findByRole("alert")).toHaveTextContent("Chưa tải được note để tạo card.");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Chưa tải được note để tạo thẻ.");
     expect(screen.getByRole("button", { name: "Thử lại" })).toBeEnabled();
-    expect(screen.getByRole("button", { name: "Tạo safe link" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Tạo link riêng" })).toBeDisabled();
   });
 
   it("shows a selectable link when clipboard access fails", async () => {
@@ -58,8 +58,8 @@ describe("CardPage", () => {
     vi.mocked(createShareArtifact).mockResolvedValue(artifact);
     renderPage();
     await screen.findByRole("heading", { name: note.title });
-    await user.click(screen.getByRole("button", { name: "Tạo safe link" }));
-    await user.click(await screen.findByRole("button", { name: "Copy link" }));
+    await user.click(screen.getByRole("button", { name: "Tạo link riêng" }));
+    await user.click(await screen.findByRole("button", { name: "Chép link" }));
     expect(await screen.findByRole("textbox", { name: "Link chia sẻ" })).toHaveValue(
       new URL(artifact.public_path!, window.location.origin).toString(),
     );
@@ -70,7 +70,7 @@ describe("CardPage", () => {
     vi.mocked(getDailyNote).mockReturnValueOnce(new Promise((resolve) => { resolveNote = resolve; }));
     renderPage();
     expect(screen.getByRole("status")).toHaveTextContent("Lá đang vẽ thẻ của bạn…");
-    expect(screen.getByRole("button", { name: /Chia sẻ card/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Chia sẻ thẻ/ })).toBeDisabled();
     resolveNote(note);
     const image = await screen.findByRole("img", { name: /Một note để chia sẻ/ });
     expect(image.getAttribute("alt")).toContain("Mộng");
@@ -79,7 +79,7 @@ describe("CardPage", () => {
     fireEvent.load(image);
     expect(screen.queryByText("Lá đang vẽ thẻ của bạn…")).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: note.title })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Chia sẻ card/ })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /Chia sẻ thẻ/ })).toBeEnabled();
     expect(screen.getByRole("button", { name: /Tải ảnh PNG/ })).toBeEnabled();
   });
 });
