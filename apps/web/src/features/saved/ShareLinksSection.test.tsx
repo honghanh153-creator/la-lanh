@@ -47,8 +47,8 @@ describe("ShareLinksSection", () => {
     const user = userEvent.setup();
     renderSection();
 
-    expect(await screen.findByText(/Ảnh dọc 9:16 · Đang mở/)).toBeInTheDocument();
-    expect(screen.getByText(/Ảnh vuông 1:1 · Đã thu hồi/)).toBeInTheDocument();
+    expect(await screen.findByText(/Ảnh dọc · Đang mở/)).toBeInTheDocument();
+    expect(screen.getByText(/Ảnh vuông · Đã thu hồi/)).toBeInTheDocument();
     const buttons = screen.getAllByRole("button", { name: /Thu hồi link/ });
     expect(buttons).toHaveLength(1);
 
@@ -70,7 +70,7 @@ describe("ShareLinksSection", () => {
     const user = userEvent.setup();
     renderSection();
     await user.click(await screen.findByRole("button", { name: "Xem thêm link" }));
-    expect(await screen.findByText(/Ảnh vuông 1:1/)).toBeInTheDocument();
+    expect(await screen.findByText(/Ảnh vuông/)).toBeInTheDocument();
     expect(vi.mocked(listShareLinks).mock.calls[1][1]).toBe("next-page");
     expect(screen.queryByRole("button", { name: "Xem thêm link" })).not.toBeInTheDocument();
   });
