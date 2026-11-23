@@ -123,7 +123,7 @@
       "user_path": ["Welcome", "Bấm Đồng ý & bắt đầu", "Màn nhập ngày sinh"],
       "owner_only": false,
       "key_selectors": [
-        { "role": "heading", "name": "Bạn xuất hiện ngày nào?" },
+        { "role": "heading", "name": "Bạn sinh ngày nào?" },
         { "role": "textbox", "name": "Ngày" },
         { "role": "button", "name": "Khớp tín hiệu" }
       ],
@@ -136,7 +136,7 @@
         "from-welcome": {
           "fixture": "guest",
           "walk": [{ "goto": "/welcome" }, { "click": { "role": "button", "name": "Đồng ý & bắt đầu" } }],
-          "ready": { "role": "heading", "name": "Bạn xuất hiện ngày nào?" }
+          "ready": { "role": "heading", "name": "Bạn sinh ngày nào?" }
         },
         "error": { "manual": "Nhập ngày dưới 18 tuổi: có thông báo lỗi (tests/e2e/product-flow.spec.ts đã kiểm)." }
       }
@@ -331,20 +331,20 @@
       "owner_only": false,
       "share_sensitive": true,
       "key_selectors": [
-        { "role": "region", "name": "Định dạng card" },
-        { "role": "button", "name": "Chia sẻ card" },
-        { "role": "button", "name": "Tạo safe link" },
+        { "role": "region", "name": "Khung thẻ" },
+        { "role": "button", "name": "Chia sẻ thẻ" },
+        { "role": "button", "name": "Tạo link riêng" },
         { "role": "button", "name": "Tải ảnh PNG" }
       ],
       "states": {
         "default": {
           "fixture": "signed-in",
           "walk": [{ "goto": "/note/today" }, { "click": { "role": "link", "name": "Chia sẻ" } }],
-          "ready": { "role": "button", "name": "Tạo safe link" }
+          "ready": { "role": "button", "name": "Tạo link riêng" }
         },
         "safe-link": {
           "fixture": "signed-in",
-          "walk": [{ "goto": "/card" }, { "click": { "role": "button", "name": "Tạo safe link" } }],
+          "walk": [{ "goto": "/card" }, { "click": { "role": "button", "name": "Tạo link riêng" } }],
           "ready": { "role": "status" }
         }
       }
