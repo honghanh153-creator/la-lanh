@@ -190,11 +190,11 @@ test('L78: from 95% Claude work routes to the Fable model; if Fable is blocked t
   assert.deepEqual(claudeRoute({ mode: 'saving', home: h, now: NOW }), { mode: 'saving', model: null, to: 'claude' });
   assert.deepEqual(claudeRoute({ mode: 'fallback', home: h, now: NOW }), { mode: 'fallback', model: 'fable', to: 'fable' }, 'not a stop: Fable');
   reading(h, 96, ago(5));
-  assert.match(usageHealth(readUsage({ home: h, now: NOW }), { home: h }).join('\n'), /96% tuần: việc của Claude chạy bằng model fable/);
+  assert.match(usageHealth(readUsage({ home: h, now: NOW }), { home: h, now: NOW }).join('\n'), /96% tuần: việc của Claude chạy bằng model fable/);
   markFableBlocked({ home: h, now: NOW });
   assert.equal(fableBlocked({ home: h, now: NOW }), true);
   assert.equal(claudeRoute({ mode: 'fallback', home: h, now: NOW }).to, 'codex');
-  assert.match(usageHealth(readUsage({ home: h, now: NOW }), { home: h }).join('\n'), /Fable cũng bị chặn: không dùng Claude; Codex, Antigravity và máy/);
+  assert.match(usageHealth(readUsage({ home: h, now: NOW }), { home: h, now: NOW }).join('\n'), /Fable cũng bị chặn: không dùng Claude; Codex, Antigravity và máy/);
   const later = new Date(NOW.getTime() + 25 * 3600 * 1000);
   assert.equal(claudeRoute({ mode: 'fallback', home: h, now: later }).to, 'fable', 'the block expires: Fable is tried again');
 });

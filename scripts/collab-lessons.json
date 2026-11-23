@@ -1420,7 +1420,7 @@
    },
    "caller": {
     "file": "scripts/collab-usage.mjs",
-    "contains": "health: usageHealth(usage, { home })"
+    "contains": "health: usageHealth(usage, { home, now })"
    },
    "closedBy": {
     "pr": 906

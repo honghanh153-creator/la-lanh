@@ -238,14 +238,15 @@ export function usageLine(usage, today = null) {
   const shares = today === 'off' ? 'tắt (chờ owner bật)' : today?.measured ? today.shares.map(s => `${s.project} ${Math.round(s.share * 100)}%`).join(', ') : 'chưa đo được';
   return `Claude tuần: ${week} · chế độ: ${MODES[usage.mode] ?? usage.mode} · hôm nay theo dự án: ${shares}`;
 }
-export function usageHealth(usage, { home = stateDir } = {}) {
+// The Fable block is read at `now` (the tick's clock), not the wall clock, so a test or a late tick sees the same answer.
+export function usageHealth(usage, { home = stateDir, now = new Date() } = {}) {
   const out = [];
   if (!usage.fresh) out.push(`⚠️ Số lượt Claude ${usage.at ? 'cũ hơn 3 giờ' : 'chưa có'}: giữ chế độ ${MODES[usage.mode]}. Tác vụ autopilot ghi số mỗi lượt chạy.`);
   // Codex #893 round 2: a kept mode has no current percent; never show "null%".
   const used = usage.fresh && Number.isFinite(usage.percent) ? `Claude đã dùng ${usage.percent}% tuần` : 'Theo số cuối đã biết';
   if (usage.mode === 'shift') out.push(`⚠️ ${used}: lượt sửa sang Codex, phản biện sang Antigravity, bỏ lượt Claude kiểm mẫu.`);
   if (usage.mode === 'saving') out.push(`⚠️ ${used}: Claude chỉ làm sự cố; lượt sửa khác sang Codex.`);
-  if (usage.mode === 'fallback') out.push(fableBlocked({ home }) ? `⚠️ ${used} và Fable cũng bị chặn: không dùng Claude; Codex, Antigravity và máy chạy tiếp.` : `⚠️ ${used}: việc của Claude chạy bằng model ${fableModel} (\`node scripts/collab-usage.mjs --route\`); Codex, Antigravity và máy vẫn làm phần nặng.`);
+  if (usage.mode === 'fallback') out.push(fableBlocked({ home, now }) ? `⚠️ ${used} và Fable cũng bị chặn: không dùng Claude; Codex, Antigravity và máy chạy tiếp.` : `⚠️ ${used}: việc của Claude chạy bằng model ${fableModel} (\`node scripts/collab-usage.mjs --route\`); Codex, Antigravity và máy vẫn làm phần nặng.`);
   return out;
 }
 
@@ -296,7 +297,7 @@ export function usageTick({ alert, home = stateDir, root = projectsRoot(), now =
   let today = 'off';
   if (scanEnabled(home)) { today = null; try { today = todayShares({ home, root, now }); } catch {} }
   if (alert) paceWatch({ usage, alert, home });
-  return { line: usageLine(usage, today), health: usageHealth(usage, { home }), mode: usage.mode, usage, today };
+  return { line: usageLine(usage, today), health: usageHealth(usage, { home, now }), mode: usage.mode, usage, today };
 }
 
 if (isMain(import.meta.url)) {
