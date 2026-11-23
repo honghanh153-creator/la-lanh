@@ -385,6 +385,7 @@ for (const profile of PROFILES) {
       await expect.poll(() => settledScreenState(page)).toBe("chosen");
       server.down = false;
       await page.context().setOffline(false);
+      await expect.poll(() => page.evaluate(() => navigator.onLine)).toBe(true);
       await page.waitForTimeout(600);
       await expect.poll(() => server.answering).toBe(0);
       expect(server.writes.length, "no write is sent after the network returns").toBe(writesBefore);
@@ -418,11 +419,19 @@ for (const profile of PROFILES) {
       // With no network a press on Home changes nothing either, and says so.
       server.down = true;
       await page.context().setOffline(true);
+      const homeWritesBefore = server.writes.length;
       await page.getByRole("button", { name: STOP, exact: true }).click();
       await expect(homeAdvice(page).locator(".reading-content__experiment-error")).toHaveText(OFFLINE_NOTE);
       await expect.poll(() => settledScreenState(page)).toBe("chosen");
       server.down = false;
       await page.context().setOffline(false);
+      // #763: WebKit turns the network back on a moment after setOffline(false) returns. Loading
+      // the note page before that leaves it on the error screen with no "Xem việc ban đầu", so wait
+      // as the note-page round does, and check here too that nothing is sent once it is back.
+      await expect.poll(() => page.evaluate(() => navigator.onLine)).toBe(true);
+      await page.waitForTimeout(600);
+      await expect.poll(() => server.answering).toBe(0);
+      expect(server.writes.length, "no write is sent after the network returns on Home").toBe(homeWritesBefore);
       expect(serverState(server)).toBe("chosen");
       await page.goto("/note/today");
       await showOwnAction(page);
