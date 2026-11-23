@@ -107,7 +107,7 @@ Hôm nay **không mở PR quy trình mới**: làn quy trình 33/1, mức dùng 
 | S29 | Chỉ giữ PR "cùng file" khi gộp thử báo xung đột thật, dùng số đo của #850 | git-merge-tree | cả 5 "không" | AUTO | Bước đo đã gộp. Bước đổi luật giữ: hạn 24.11 |
 | S59 | Lệnh mở PR và tick tự suy nhãn `area:` từ đường dẫn file khi PR thiếu nhãn. Trước mắt gắn nhãn cho 8 PR trong #890 | actions/labeler | cả 5 "không" | AUTO | Mới, hạn 24.11. Gắn nhãn 8 PR: lượt autopilot kế |
 | S30 + S49 | Lệnh mở PR từ chối khi làn chạm trần | Dependabot | cả 5 "không" | AUTO | **Trễ lần bảy**, hạn mới 24.11 |
-| L20 | Kiểm chính Codex tuần này | lời hứa L20 | cả 5 "không"; dùng 1 lượt Codex trong trần | AUTO | Quá hạn 21.11, hạn mới 24.11 |
+| L20 | Kiểm chính Codex tuần này | lời hứa L20 | cả 5 "không"; dùng 1 lượt Codex trong trần | AUTO | Quá hạn từ 21.11; hạn vẫn là 21.11 (chỉ owner được đổi hạn bài học). Dự kiến làm bù: 24.11 |
 | S58 | Tick đếm số PR dùng `Size-exception` mỗi tuần và hiện trên bảng; quá 3 thì báo | mục 8 | cả 5 "không" | AUTO | Mới, hạn 26.11, sau khi làn quy trình về dưới 5 |
 | S54 (phần máy), S38, S41, S50, S53, S55, S56, S57 | Như retro 21.11 | retro 17.11–21.11 | cả 5 "không" | AUTO | Hạn 23–24.11 giữ nguyên |
 | S36, S37, S43, S27+, S51, S45, S33, S34, S42 | Như retro 20.11 | retro 14.11–19.11 | cả 5 "không" | AUTO | Trễ hạn 22.11, hạn mới 25.11. Nợ sửa sau hôm nay: 182 |
