@@ -7,13 +7,14 @@ import { afterDecision, disputeView } from './collab-disagree.mjs';
 import { isMain } from './is-main.mjs';
 import { mergeAllowed, releaseReservation, withMergeLock } from './collab-reservation.mjs';
 import { currentMode, fallbackHoldReason, holdForClaude, secondReviewProblem } from './codex-fallback.mjs';
+import { criticPending } from './collab-antigravity.mjs';
 
 // Merge-queue rules (P1-A/P1-B, 12.11.2026): the latest signed PASS must be for the live tip of
 // collab/integration, and the latest signed APPROVE must be for the head and still valid for that tip
 // (see approvalDrift). `baseFiles(from, to)` lists files changed on the base; without it any base
 // move needs a new review. L25: an open dispute holds the merge; after a decision only a newer
 // check and review count.
-export function mergeGate(pr, { baseFiles, disputes = disputeView(), mode = 'normal' } = {}) {
+export function mergeGate(pr, { baseFiles, disputes = disputeView(), mode = 'normal', critic = criticPending } = {}) {
   const reasons = [];
   const head = pr.headRefOid;
   const labels = (pr.labels ?? []).map(l => l.name ?? l);
@@ -29,6 +30,8 @@ export function mergeGate(pr, { baseFiles, disputes = disputeView(), mode = 'nor
   // L69: Codex never fixes and approves alone.
   const second = secondReviewProblem(pr);
   if (second) reasons.push(second.reason);
+  const critique = critic(pr);
+  if (critique) reasons.push(critique);
   const deletion = deletionProblem(pr);
   if (deletion) reasons.push(deletion);
   if (pr.mergeable !== 'MERGEABLE') reasons.push(`GitHub báo mergeable=${pr.mergeable}`);

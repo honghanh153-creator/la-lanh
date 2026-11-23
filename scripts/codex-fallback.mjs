@@ -14,13 +14,16 @@
 // label until the mode leaves fallback; the tick then removes it.
 // Fallback runs count against the day's Codex cap (R8), with a sub-cap, and keep the night audit's run.
 import { execFileSync } from 'node:child_process';
-import { appendFileSync, existsSync, mkdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { auditReserve } from './collab-audit.mjs';
+import { privateHits, readGuardTerms } from './collab-check.mjs';
 import { groupExec } from './collab-heal.mjs';
+import { acquireLock } from './collab-lock.mjs';
 import { claimPr, mayTouch, releasePr } from './collab-pr-claim.mjs';
 import { codeLines, sizeCap } from './collab-size.mjs';
-import { agentMarker, classifyArea, clean, codexFallbackCap, dayCap, dayStatePath, integration, readJson, repo, reviewState, stateDir, trustedComments, verifyReceipt, vnNow, writeJson } from './collab-trust.mjs';
+import { agentMarker, boundedTimeout, classifyArea, clean, codexFallbackCap, cutoffMs, dayCap, dayStatePath, DeadlineError, hhmmOf, integration, lastStartAt, readJson, repo, reviewState, stateDir, trustedComments, verifyReceipt, vnNow, writeJson } from './collab-trust.mjs';
 import { codexFixModes, modePath } from './collab-usage.mjs';
 
 export const fallbackSubCap = codexFallbackCap;
@@ -33,10 +36,12 @@ export const fallbackModel = 'gpt-6.1-sol';
 export const currentMode = (home = stateDir) => readJson(modePath(home), null)?.mode ?? 'normal';
 
 const isTest = p => /(^|\/)(tests?|__tests__)\/|\.(test|spec)\.[^/]+$|(^|\/)test_[^/]+\.py$/.test(p);
+// Codex r1 on #894 (P2): a deny list of gate files kept missing enforcement scripts (second review,
+// Antigravity, check, hooks, preflight, lock, tick…). Now an allowlist: only the files below, and tests,
+// may merge in fallback. Every other script, the rule sheet, .claude/ and .github/ wait for Claude.
+export const lowRiskPaths = /^(docs\/reviews\/[^/]+\.md|docs\/operations\/(?!luat-dang-hieu-luc\.md$)[^/]+\.md|scripts\/(collab-(status|metrics|pr-metrics|progress|board)|research-sources|qa-journey-lib|personas-nightly)\.mjs)$/;
 // Loop gates and rules: a change here waits for Claude even when it is small.
-export const gatePaths = /^(scripts\/(collab-(merge|trust|turn|review-policy|pr-claim|reservation|usage)|codex-(review|fallback)|guard-dangerous-commands|private-guard)[^/]*\.mjs|docs\/operations\/luat-dang-hieu-luc\.md|\.claude\/|\.github\/)/;
-// Ops paths a low-risk PR may touch; anything else (apps, packages, content, prototype, infra) waits.
-export const opsPaths = /^(scripts\/|docs\/operations\/|docs\/reviews\/)/;
+export const gatePaths = /^(scripts\/|docs\/operations\/luat-dang-hieu-luc\.md$|\.claude\/|\.github\/)/;
 
 // Null when a fallback merge may go ahead; otherwise why the PR waits for Claude.
 export function lowRiskProblem(pr) {
@@ -44,9 +49,9 @@ export function lowRiskProblem(pr) {
   if (!files.length) return 'không đọc được danh sách file';
   const testsOnly = files.every(isTest);
   if (classifyArea(pr) !== 'ops' && !testsOnly) return `nhóm ${classifyArea(pr)}, không phải ops hay chỉ test`;
-  const gate = files.find(p => gatePaths.test(p));
+  const gate = files.find(p => gatePaths.test(p) && !lowRiskPaths.test(p) && !(isTest(p) && !/^\.(claude|github)\//.test(p)));
   if (gate) return `đụng file cổng của vòng (${gate})`;
-  const outside = files.find(p => !isTest(p) && !opsPaths.test(p));
+  const outside = files.find(p => !isTest(p) && !lowRiskPaths.test(p));
   if (outside) return `đụng file ngoài phần ops (${outside})`;
   if (codeLines(pr.files) > sizeCap) return `quá ${sizeCap} dòng mã`;
   return null;
@@ -102,7 +107,18 @@ export function headFindings(pr) {
 // counts only with its local receipt; an unsigned REQUEST_CHANGES counts (it can only be stricter).
 export const secondReviewers = ['Antigravity', 'Claude', 'Gemini'];
 const fixedMark = `${agentMarker} fallback pr=`;
-export const codexFixed = pr => trustedComments(pr.comments).some(c => String(c.body ?? '').includes(fixedMark));
+// Codex r1 on #894 (P1): the comment alone was the provenance, posted after the push; a failed comment
+// left a Codex-fixed head that needed no second critic. The local record is written before the push
+// (no record, no push) and counts on its own. An unreadable record throws: the gate fails closed.
+export const fallbackRunsPath = (home = stateDir) => join(home, 'fallback-runs.jsonl');
+export function fallbackRuns(home = stateDir) {
+  let text;
+  try { text = readFileSync(fallbackRunsPath(home), 'utf8'); }
+  catch (error) { if (error?.code === 'ENOENT') return []; throw new Error('fallback-runs.jsonl không đọc được: coi như PR nào cũng có thể do Codex sửa'); }
+  return text.split('\n').filter(Boolean).map(line => { try { return JSON.parse(line); } catch { return null; } }).filter(Boolean);
+}
+export const codexFixed = (pr, runs = fallbackRuns()) => trustedComments(pr.comments).some(c => String(c.body ?? '').includes(fixedMark))
+  || runs.some(r => Number(r.pr) === Number(pr.number));
 export function parseSecondReview(body) {
   const text = String(body ?? '');
   const v = /^Phản biện: (APPROVE|REQUEST_CHANGES) @ ([0-9a-f]{40})\s*$/m.exec(text);
@@ -127,7 +143,59 @@ export function secondReviewProblem(pr) {
   return { turn: 'hold', reason: 'Codex đã sửa PR này: chờ phản biện thứ hai (Antigravity, Claude hoặc Gemini) @ head' };
 }
 
-const git = (args, cwd, run) => String(run('/usr/bin/git', args, { cwd, encoding: 'utf8', timeout: 300000, maxBuffer: 64 * 1024 * 1024 })).trim();
+const git = (args, cwd, run, left = () => Infinity) => String(run('/usr/bin/git', args, { cwd, encoding: 'utf8', timeout: boundedTimeout(300000, left), maxBuffer: 64 * 1024 * 1024 })).trim();
+
+// Codex r1 on #894 (P1): the trimmed porcelain output lost the first character of the first path
+// (" M .github/x" → "github/x"), so a protected path passed. NUL-separated and untrimmed, every
+// untracked file listed one by one (a new directory is not one entry).
+export function changedFiles(dir, run, left = () => Infinity) {
+  const out = String(run('/usr/bin/git', ['status', '--porcelain=v1', '-z', '--no-renames', '--untracked-files=all'], { cwd: dir, encoding: 'utf8', timeout: boundedTimeout(300000, left), maxBuffer: 64 * 1024 * 1024 }));
+  return out.split('\0').filter(Boolean).map(entry => entry.slice(3));
+}
+
+// Codex r1 on #894 (P1): the branch's tests ran on the host with the full env and network, through the
+// branch's own copy of the test guard. Now the guard is this script's own copy (the ops clone of
+// integration), and the tests run under sandbox-exec: no network, writes only inside the clone and a
+// fresh temp dir, an env with nothing but PATH and a temp HOME (no tokens, no SSH agent).
+const trustedDir = dirname(fileURLToPath(import.meta.url));
+export const sandboxProfile = (dir, tmp) => `(version 1)(allow default)(deny network*)(allow network* (local unix))(deny file-write*)(allow file-write* (subpath "${dir}") (subpath "${tmp}") (literal "/dev/null") (literal "/dev/tty") (regex #"^/dev/fd/"))`;
+export function testCommand(dir) {
+  const script = readJson(join(dir, 'package.json'), {})?.scripts?.['collab:test'] ?? '';
+  const files = /^node --test((?: [A-Za-z0-9_./-]+\.test\.mjs)+)$/.exec(script)?.[1].trim().split(' ') ?? [];
+  if (!files.length || files.some(f => f.includes('..') || f.startsWith('/'))) throw new Error('collab:test của nhánh không phải "node --test <file test>": không chạy');
+  return files;
+}
+export function sandboxedTest(dir, { run = execFileSync, left = () => Infinity, base = stateDir } = {}) {
+  const files = testCommand(dir);
+  mkdirSync(base, { recursive: true });
+  const tmp = realpathSync(mkdtempSync(join(base, 'fallback-test-')));
+  try {
+    const env = [`PATH=${process.env.PATH ?? '/usr/bin:/bin'}`, `HOME=${tmp}`, `TMPDIR=${tmp}`, `LA_LANH_COLLAB_HOME=${join(tmp, 'collab')}`, 'CI=1', 'LANG=en_US.UTF-8'];
+    return run(process.execPath, [join(trustedDir, 'collab-test-guard.mjs'), '--wait-min', '20', '--', '/usr/bin/env', '-i', ...env,
+      '/usr/bin/sandbox-exec', '-p', sandboxProfile(realpathSync(dir), tmp), process.execPath, '--test', ...files],
+    { cwd: dir, encoding: 'utf8', timeout: boundedTimeout(45 * 60000, left), maxBuffer: 64 * 1024 * 1024 });
+  } finally { rmSync(tmp, { recursive: true, force: true }); }
+}
+
+// Codex r1 on #894 (P1): the budget was read before the clone and written after it, outside the
+// review lock, so a review could take the same last run. Now the check and the count happen together
+// under review.lock (codex-review.mjs holds it from its own check to its own count).
+export function reserveFallbackRun(date, home = stateDir) {
+  const release = acquireLock(join(home, 'review.lock'), { staleMs: 45 * 60000 });
+  if (!release) return { ok: false, reason: 'một review Codex khác đang chạy' };
+  try {
+    const day = readJson(dayStatePath(date), { codexRuns: 0, failures: 0 });
+    const budget = fallbackBudget(day);
+    if (!budget.ok) return budget;
+    writeJson(dayStatePath(date), { ...day, codexRuns: (day.codexRuns ?? 0) + 1, fallbackRuns: (day.fallbackRuns ?? 0) + 1 });
+    return { ok: true };
+  } finally { release(); }
+}
+
+// Codex r1 on #894 (P1): no absolute deadline. Every step is bounded by the cutoff (23:59 minus 15 s);
+// Codex keeps room for the test and the push, and nothing starts from 23:35.
+export const finishReserveMs = 15 * 60000;
+export const fallbackLeft = (now, nowMs = Date.now) => { const end = cutoffMs(now.date) - 15000; return () => end - nowMs(); };
 
 // What Codex may not leave behind.
 export function changeProblems(files, markers) {
@@ -144,8 +212,9 @@ export function commitMessage(pr, turn, oldHead) {
 }
 
 // One fallback fix. Returns {status, ...}; never throws for an expected stop.
-export function runFallbackFix(turn, { gh, run = execFileSync, exec = null, test = null, now = vnNow(), home = stateDir, log = () => {} } = {}) {
+export function runFallbackFix(turn, { gh, run = execFileSync, exec = null, test = null, terms = readGuardTerms, now = vnNow(), nowMs = Date.now, left = fallbackLeft(now, nowMs), home = stateDir, log = () => {} } = {}) {
   const number = turn.number;
+  if (now.hour * 60 + now.minute >= lastStartAt) return { status: 'refused', pr: number, reason: `từ ${hhmmOf(lastStartAt)} không bắt đầu lượt sửa mới` };
   const day = readJson(dayStatePath(now.date), { codexRuns: 0, failures: 0 });
   const budget = fallbackBudget(day);
   if (!budget.ok) return { status: 'refused', pr: number, reason: budget.reason };
@@ -154,45 +223,61 @@ export function runFallbackFix(turn, { gh, run = execFileSync, exec = null, test
   if (pr.headRefOid !== turn.head) return { status: 'refused', pr: number, reason: 'head đã đổi từ lúc xếp lượt' };
   const claim = claimPr(number, { session: fallbackSession, branch: pr.headRefName });
   if (!claim.ok) return { status: 'refused', pr: number, reason: `không giữ được PR (${claim.reason})` };
+  const g = (args, cwd) => git(args, cwd, run, left);
   try {
     const dir = join(home, 'fallback');
-    if (!existsSync(join(dir, '.git'))) { mkdirSync(home, { recursive: true }); git(['clone', '--quiet', '--no-checkout', `https://github.com/${repo}.git`, dir], home, run); }
-    git(['fetch', '--quiet', '--force', 'origin', `+refs/heads/${integration}:refs/remotes/origin/${integration}`, `+refs/heads/${pr.headRefName}:refs/remotes/origin/${pr.headRefName}`], dir, run);
-    git(['checkout', '--quiet', '--force', '-B', 'fallback-work', `origin/${pr.headRefName}`], dir, run);
-    git(['clean', '-fdxq'], dir, run);
-    if (git(['rev-parse', 'HEAD'], dir, run) !== pr.headRefOid) return { status: 'refused', pr: number, reason: 'nhánh trên GitHub khác head của PR' };
+    if (!existsSync(join(dir, '.git'))) { mkdirSync(home, { recursive: true }); g(['clone', '--quiet', '--no-checkout', `https://github.com/${repo}.git`, dir], home); }
+    g(['fetch', '--quiet', '--force', 'origin', `+refs/heads/${integration}:refs/remotes/origin/${integration}`, `+refs/heads/${pr.headRefName}:refs/remotes/origin/${pr.headRefName}`], dir);
+    g(['checkout', '--quiet', '--force', '-B', 'fallback-work', `origin/${pr.headRefName}`], dir);
+    g(['clean', '-fdxq'], dir);
+    if (g(['rev-parse', 'HEAD'], dir) !== pr.headRefOid) return { status: 'refused', pr: number, reason: 'nhánh trên GitHub khác head của PR' };
     let conflicts = [];
     if (pr.mergeable === 'CONFLICTING') {
-      try { git(['-c', 'user.name=la-lanh-agent', '-c', 'user.email=la-lanh-agent@users.noreply.github.com', 'merge', '--no-edit', '--no-ff', `origin/${integration}`], dir, run); }
-      catch { conflicts = git(['diff', '--name-only', '--diff-filter=U'], dir, run).split('\n').filter(Boolean); }
+      try { g(['-c', 'user.name=la-lanh-agent', '-c', 'user.email=la-lanh-agent@users.noreply.github.com', 'merge', '--no-edit', '--no-ff', `origin/${integration}`], dir); }
+      catch { conflicts = g(['diff', '--name-only', '--diff-filter=U'], dir).split('\n').filter(Boolean); }
     }
     const brief = fallbackBrief({ pr, turn, findings: headFindings(pr), conflicts });
-    const fresh = readJson(dayStatePath(now.date), day);
-    writeJson(dayStatePath(now.date), { ...fresh, codexRuns: (fresh.codexRuns ?? 0) + 1, fallbackRuns: (fresh.fallbackRuns ?? 0) + 1 });
+    const codexTimeout = boundedTimeout(40 * 60000, () => left() - finishReserveMs);
+    const reserved = reserveFallbackRun(now.date, home);
+    if (!reserved.ok) return { status: 'refused', pr: number, reason: reserved.reason };
     const runCodex = exec ?? (run === execFileSync ? groupExec : run);
     try {
       runCodex(codexBin, ['exec', '-s', 'workspace-write', '--ephemeral', '-m', fallbackModel, '-c', 'model_reasoning_effort="high"',
         '-c', 'sandbox_workspace_write.network_access=false', '-C', dir, '--color', 'never', '-'],
-      { input: brief, encoding: 'utf8', timeout: 40 * 60000, maxBuffer: 64 * 1024 * 1024 });
+      { input: brief, encoding: 'utf8', timeout: codexTimeout, maxBuffer: 64 * 1024 * 1024 });
     } catch (error) { return { status: 'error', pr: number, reason: `Codex lỗi: ${clean(error.message, 200)}` }; }
-    const files = git(['status', '--porcelain', '--no-renames'], dir, run).split('\n').filter(Boolean).map(l => l.slice(3));
+    const files = changedFiles(dir, run, left);
     const changed = [...new Set([...files, ...conflicts])];
     let markers = [];
     const present = changed.filter(p => existsSync(join(dir, p)));
-    if (present.length) try { markers = git(['grep', '--no-index', '-l', '-E', '^(<<<<<<<|>>>>>>>)( |$)', '--', ...present], dir, run).split('\n').filter(Boolean); } catch {}
+    if (present.length) try { markers = g(['grep', '--no-index', '-l', '-E', '^(<<<<<<<|>>>>>>>)( |$)', '--', ...present], dir).split('\n').filter(Boolean); } catch {}
     const problems = changeProblems(files, markers);
     if (problems.length) return { status: 'refused', pr: number, reason: problems.join('; ') };
-    const tested = (test ?? (() => run('node', ['scripts/collab-test-guard.mjs', '--wait-min', '20', '--', 'pnpm', 'collab:test'], { cwd: dir, encoding: 'utf8', timeout: 45 * 60000, maxBuffer: 64 * 1024 * 1024 })));
-    try { tested(dir); } catch (error) { return { status: 'refused', pr: number, reason: `collab:test hỏng sau khi Codex sửa: ${clean(error.message, 200)}` }; }
-    git(['add', '-A'], dir, run);
-    git(['-c', 'user.name=la-lanh-agent', '-c', 'user.email=la-lanh-agent@users.noreply.github.com', 'commit', '-q', '-m', commitMessage(pr, turn, pr.headRefOid)], dir, run);
-    const head = git(['rev-parse', 'HEAD'], dir, run);
+    const tested = test ?? (d => sandboxedTest(d, { run, left, base: home }));
+    try { tested(dir); } catch (error) {
+      if (error instanceof DeadlineError) throw error;
+      return { status: 'refused', pr: number, reason: `collab:test hỏng sau khi Codex sửa: ${clean(error.message, 200)}` };
+    }
+    g(['add', '-A'], dir);
+    g(['-c', 'user.name=la-lanh-agent', '-c', 'user.email=la-lanh-agent@users.noreply.github.com', 'commit', '-q', '-m', commitMessage(pr, turn, pr.headRefOid)], dir);
+    const head = g(['rev-parse', 'HEAD'], dir);
+    // Codex r1 on #894 (P1, privacy): the private-data scan of what this push adds, as the pre-push
+    // hook does for a session (R14). Fails closed: an unreadable list or history blocks.
+    const hits = privateHits({}, args => g(args, dir), terms, [[`origin/${pr.headRefName}..HEAD`]]);
+    if (hits.length) return { status: 'refused', pr: number, reason: `private-guard chặn: ${clean(hits.join(', '), 300)}` };
+    // Provenance before the push: no record, no push (the second-critic gate reads it).
+    try { appendFileSync(fallbackRunsPath(home), `${JSON.stringify({ pr: number, from: pr.headRefOid, head, reason: clean(turn.reason, 200), at: new Date(nowMs()).toISOString() })}\n`); }
+    catch (error) { return { status: 'refused', pr: number, reason: `không ghi được dấu Codex sửa trên máy: ${clean(error.message, 200)}` }; }
     // No force: a branch that moved meanwhile rejects the push and the fix waits for the next tick.
-    git(['push', '--quiet', 'origin', `HEAD:refs/heads/${pr.headRefName}`], dir, run);
-    gh.comment('pr', number, `Codex sửa thay Claude (Claude tuần đã cao, owner 22.11.2026) cho: ${clean(turn.reason, 200)}. Commit mới ${head.slice(0, 12)}; file: ${files.slice(0, 20).join(', ')}. Head mới đi qua Author check và một lượt Codex review read-only như thường.\n\n${agentMarker} fallback pr=${number} head=${head} -->`);
-    try { appendFileSync(join(home, 'fallback-runs.jsonl'), `${JSON.stringify({ pr: number, from: pr.headRefOid, head, reason: turn.reason, at: new Date().toISOString() })}\n`); } catch {}
+    g(['push', '--quiet', 'origin', `HEAD:refs/heads/${pr.headRefName}`], dir);
+    try {
+      gh.comment('pr', number, `Codex sửa thay Claude (Claude tuần đã cao, owner 22.11.2026) cho: ${clean(turn.reason, 200)}. Commit mới ${head.slice(0, 12)}; file: ${files.slice(0, 20).join(', ')}. Head mới đi qua Author check, một lượt Codex review read-only và một phản biện thứ hai.\n\n${agentMarker} fallback pr=${number} head=${head} -->`);
+    } catch (error) { log(`fallback #${number}: comment failed (${clean(error.message, 200)}); the local record still holds the PR for a second critic`); }
     log(`fallback fixed #${number} @ ${head.slice(0, 12)}`);
     return { status: 'pushed', pr: number, head };
+  } catch (error) {
+    if (error instanceof DeadlineError) return { status: 'refused', pr: number, reason: `hết giờ (${hhmmOf(lastStartAt)}–23:59) trong lúc sửa` };
+    throw error;
   } finally { releasePr(number, { session: fallbackSession }); }
 }
 
@@ -201,7 +286,7 @@ export function runFallbackFix(turn, { gh, run = execFileSync, exec = null, test
 // goes to Codex; below 95% a PR labelled `incident` stays with Claude.
 export const incidentLabel = 'incident';
 const isIncident = pr => (pr?.labels ?? []).some(l => (l.name ?? l) === incidentLabel);
-export function fallbackStep({ gh, mode, turns = [], prs = [], fix = runFallbackFix, log = () => {} }) {
+export function fallbackStep({ gh, mode, turns = [], prs = [], fix = runFallbackFix, left, log = () => {} }) {
   if (mode !== 'fallback') {
     const held = prs.filter(p => (p.labels ?? []).some(l => (l.name ?? l) === holdLabel));
     for (const p of held) {
@@ -212,7 +297,7 @@ export function fallbackStep({ gh, mode, turns = [], prs = [], fix = runFallback
   if (!codexFixModes.includes(mode)) return null;
   const byNumber = new Map(prs.map(p => [p.number, p]));
   const next = turns.find(t => t.turn === 'claude-fix' && (mode === 'fallback' || !isIncident(byNumber.get(t.number))) && mayTouch(t.number, fallbackSession).ok);
-  return next ? fix(next, { gh, log }) : null;
+  return next ? fix(next, { gh, log, ...(left ? { left } : {}) }) : null;
 }
 
 // Called by runMerge when the gate refuses in fallback: the label holds the PR in prTurn.

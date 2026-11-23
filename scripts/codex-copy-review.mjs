@@ -13,6 +13,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { acquireLock } from './collab-lock.mjs';
 import { dispatch } from './collab-dispatch.mjs';
+import { privateHits, readGuardTerms } from './collab-check.mjs';
 import { agentMarker, assertAgentBody, clean, integration, repo, stateDir, vnNow } from './collab-trust.mjs';
 import { isMain } from './is-main.mjs';
 import { calibrationExamples, judgeLogPath, recordJudgements, renderExamples } from './codex-copy-calibration.mjs';
@@ -215,18 +216,22 @@ export const commitArgs = date => ['-c', 'user.name=la-lanh-agent', '-c', 'user.
 // L06: the batch worktree is checked before the first write (its own branch, on the reviewed
 // commit, clean, not a shared clone, tools present, nobody else in it); a failed check writes
 // nothing and the tick reports the error. `gate` is for tests.
-export function publishBatch(registry, body, date, branch, work, dir, run, { base = null, gate = {} } = {}) {
-  const pass = dispatch({ dir: work, branch, profile: 'batch', expectHead: base, ...gate, worker: () => writeBatch(registry, body, date, branch, work, dir, run) });
+export function publishBatch(registry, body, date, branch, work, dir, run, { base = null, gate = {}, terms = readGuardTerms } = {}) {
+  const pass = dispatch({ dir: work, branch, profile: 'batch', expectHead: base, ...gate, worker: () => writeBatch(registry, body, date, branch, work, dir, run, terms) });
   if (pass.status !== 'PASS') throw new Error(`kiểm trước khi ghi trượt: ${pass.reasons.join(', ')}`);
   return pass.result;
 }
 
-function writeBatch(registry, body, date, branch, work, dir, run) {
+function writeBatch(registry, body, date, branch, work, dir, run, terms = readGuardTerms) {
   writeFileSync(join(work, registryRel), `${JSON.stringify(registry, null, 1)}\n`);
   run('uv', ['run', 'python', '-m', 'scripts.fallback_approval'], { cwd: join(work, 'apps/api'), encoding: 'utf8' });
   const at = args => run('git', args, { cwd: work, encoding: 'utf8' });
   at(['add', registryRel, 'docs/operations/fallback-approval.json']);
   at(commitArgs(date));
+  // Codex r1 on #899 (P1): the batch worktree has no trusted pre-push hook, so the private-data scan
+  // runs here on the batch commit and the PR text before anything is published (R14).
+  const hits = privateHits({ title: `content(copy): Codex copy batch ${date}`, body }, at, terms, [['HEAD^..HEAD']]);
+  if (hits.length) throw new Error(`private-guard: chặn đăng (${hits.length} chỗ trùng danh sách riêng tư)`);
   at(['push', '-q', 'origin', `HEAD:${branch}`]);
   const bodyPath = join(dir, 'body.md');
   writeFileSync(bodyPath, body);

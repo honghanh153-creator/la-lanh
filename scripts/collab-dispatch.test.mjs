@@ -169,3 +169,24 @@ test('copy batch: a clean worktree on the reviewed commit publishes once', () =>
   assert.deepEqual(calls.map(c => c[0] === 'git' ? `git ${c[1] === '-c' ? 'commit' : c[1]}` : c[0]), ['uv', 'git add', 'git commit', 'git push', 'gh']);
   assert.match(readFileSync(join(s.work, registryRel), 'utf8'), /"approved"/);
 });
+
+test('Codex r1 on #899 (P1): the copy batch runs the private-data scan before its push; a hit publishes nothing', () => {
+  const branch = 'agent/claude/copy-batch-20261114-1000-ghi';
+  const s = setup(branch);
+  const calls = [];
+  const run = (cmd, args, opts) => {
+    calls.push([cmd, ...args]);
+    if (cmd === 'uv') { mkdirSync(join(s.work, 'docs/operations'), { recursive: true }); writeFileSync(join(s.work, 'docs/operations/fallback-approval.json'), '{}\n'); return ''; }
+    if (cmd === 'git' && args.includes('push')) return '';
+    if (cmd === 'git') return execFileSync('/usr/bin/git', args, { ...opts, stdio: ['ignore', 'pipe', 'ignore'] });
+    return 'https://example.test/pr/10\n';
+  };
+  const terms = () => ['zzprivatetermzz'];
+  assert.throws(() => publishBatch({ entries: [{ id: 'a', status: 'approved', text: 'có zzPrivateTermzz ở đây' }] }, 'body', '2026-11-14', branch, s.work, s.root, run, { base: s.head, gate: tools, terms }), /private-guard: chặn đăng/);
+  assert.equal(calls.some(c => c[0] === 'git' && c.includes('push')), false, 'nothing pushed');
+  assert.equal(calls.some(c => c[0] === 'gh'), false, 'no PR opened');
+  // An unreadable guard list blocks too (fail closed).
+  const s2 = setup(branch.replace('ghi', 'jkl'));
+  const run2 = (cmd, args, opts) => { if (cmd === 'uv') { mkdirSync(join(s2.work, 'docs/operations'), { recursive: true }); writeFileSync(join(s2.work, 'docs/operations/fallback-approval.json'), '{}\n'); return ''; } if (args.includes('push')) throw new Error('pushed'); return cmd === 'git' ? execFileSync('/usr/bin/git', args, { ...opts, stdio: ['ignore', 'pipe', 'ignore'] }) : ''; };
+  assert.throws(() => publishBatch({ entries: [] }, 'body', '2026-11-14', branch.replace('ghi', 'jkl'), s2.work, s2.root, run2, { base: s2.head, gate: tools, terms: () => { throw new Error('unreadable'); } }), /private-guard: chặn đăng/);
+});

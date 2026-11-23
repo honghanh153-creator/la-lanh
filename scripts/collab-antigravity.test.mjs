@@ -5,10 +5,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 process.env.LA_LANH_COLLAB_HOME = mkdtempSync(join(tmpdir(), 'antigravity-'));
-const { agentMarker, ownerLogin } = await import('./collab-trust.mjs');
+const { agentMarker, cutoffMs, ownerLogin, vnNow } = await import('./collab-trust.mjs');
+const { briefLimit, postSecond, secondBrief } = await import('./collab-second-review.mjs');
 const { secondReviewProblem } = await import('./codex-fallback.mjs');
 const { mergeGate } = await import('./collab-merge.mjs');
-const { postSecond } = await import('./collab-second-review.mjs');
 const { antigravityStep, appEnv, parseCritic, readAnswer, secondTargets, startConversation, statePath } = await import('./collab-antigravity.mjs');
 
 const SHA = 'a'.repeat(40);
@@ -126,4 +126,55 @@ test('the app token goes to the child env only, never into the command line', ()
   const args = readFileSync(argsFile, 'utf8');
   assert.match(args, /^new-conversation\n--model=pro\n--title=Phản biện PR #901\nbrief\n$/);
   assert.doesNotMatch(args, /tok-secret/);
+});
+
+test('L70 (Codex r1 on #894): the production tick runs Antigravity, then the Codex fix, both bounded by one deadline; from 23:35 no fix starts', async () => {
+  const { runTick } = await import('./collab-tick.mjs');
+  const seen = [];
+  const clockMs = () => cutoffMs(vnNow().date) - 60 * 60000;
+  const opts = runTick({ raw: () => '', json: () => [] }, () => [], { run: given => given, gapNote: () => null, areaNote: () => null, clockMs,
+    antigravity: a => { seen.push(['second', a.left(), a.turns]); return { status: 'started', pr: 901 }; },
+    fallbackFix: a => { seen.push(['fix', a.left()]); return null; } });
+  // Codex r1 on #899 (P1): Antigravity is the tick's `critic` hook (run before merges), the fix its `fallback` hook.
+  assert.deepEqual(opts.critic({ turns: ['t'], prs: [{ number: 901 }] }), { status: 'started', pr: 901 });
+  assert.equal(opts.fallback({ turns: [], prs: [{ number: 901 }] }), null);
+  assert.deepEqual(seen.map(s => s[0]), ['second', 'fix'], 'the tick wires the Antigravity hook and the fix');
+  assert.deepEqual(seen[0][2], ['t'], 'Antigravity gets the turns');
+  assert.ok(seen.every(([, left]) => left === 60 * 60000 - 15000), 'one deadline: 23:59 minus 15 s');
+  seen.length = 0;
+  opts.fallback({ turns: [], prs: [], late: () => true });
+  assert.deepEqual(seen, [], 'past 23:35: no Codex fix');
+});
+
+test('Codex r1 on #899 (P1): the merge gate holds a PR while Antigravity critiques its head, for at most 20 minutes', async () => {
+  const { criticPending, statePath, answerLimitMs } = await import('./collab-antigravity.mjs');
+  const home = mkdtempSync(join(tmpdir(), 'critic-'));
+  const at = 1_000_000;
+  const write = v => { mkdirSync(join(home, 'state'), { recursive: true }); writeFileSync(statePath(home), JSON.stringify(v)); };
+  const p = { number: 901, headRefOid: SHA };
+  write({ 901: { head: SHA, id: 'c1', at } });
+  assert.match(criticPending(p, { home, nowMs: at + 60000 }), /Antigravity đang phản biện/);
+  assert.equal(criticPending(p, { home, nowMs: at + answerLimitMs + 1 }), null, 'a stopped app holds nothing after 20 minutes');
+  assert.equal(criticPending({ ...p, headRefOid: 'b'.repeat(40) }, { home, nowMs: at }), null, 'another head is not held');
+  write({ 901: { head: SHA, tooLong: true, at } });
+  assert.equal(criticPending(p, { home, nowMs: at }), null, 'a diff too long to send holds nothing');
+  const held = mergeGate({ number: 901, headRefOid: SHA, labels: [], comments: [] }, { disputes: {}, critic: () => 'Antigravity đang phản biện head này' });
+  assert.ok(held.reasons.includes('Antigravity đang phản biện head này'));
+});
+
+test('Codex r1 on #894 (P1): a diff longer than the brief is not sent to Antigravity, and no brief-only critic may APPROVE it', () => {
+  const s = setup();
+  s.gh.raw = () => `diff --git a/x b/x\n+${'y'.repeat(briefLimit)}`;
+  const out = s.run();
+  assert.equal(out.status, 'skipped');
+  assert.match(out.reason, /chờ Claude/);
+  assert.equal(s.state.started.length, 0);
+  assert.equal(s.run(), null, 'remembered for this head');
+  for (const reviewer of ['Antigravity', 'Gemini']) {
+    assert.throws(() => postSecond({ gh: s.gh, number: 901, reviewer, verdict: 'APPROVE', head: SHA, notes: 'Kết luận: APPROVE' }), /không được APPROVE/);
+  }
+  assert.match(secondBrief(pr(s.state), 'x'.repeat(briefLimit + 1)), /bạn chưa đọc đủ, không được APPROVE/);
+  assert.doesNotMatch(secondBrief(pr(s.state), 'x'.repeat(briefLimit + 1), { full: true }), /bị cắt/);
+  postSecond({ gh: s.gh, number: 901, reviewer: 'Claude', verdict: 'APPROVE', head: SHA, notes: 'Kết luận: APPROVE\nĐã đọc đủ diff' });
+  assert.equal(secondReviewProblem(pr(s.state)), null, 'Claude reads the full diff and may approve');
 });

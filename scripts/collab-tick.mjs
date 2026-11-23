@@ -5,7 +5,7 @@ import { runReview } from './codex-review.mjs';
 import { dailyReceiptAudit, runMerge } from './collab-merge.mjs';
 import { ciCheck, heavyJobFree, runCheckInClone } from './collab-check.mjs';
 import { incidentPreflightAlert, incidentPreflightSubject, runPreflight } from './collab-preflight.mjs';
-import { clean, makeGh, vnNow } from './collab-trust.mjs';
+import { clean, cutoffMs, makeGh, vnNow } from './collab-trust.mjs';
 import { opsAlert, planTurns, resolveOpsAlert, tick } from './collab-turn.mjs';
 import { postOwnerNotes, renderBoard, upsertBoard } from './collab-status.mjs';
 import { collectMetrics, renderMetrics } from './collab-metrics.mjs';
@@ -49,7 +49,9 @@ export function tickLog(line, write = text => process.stderr.write(text)) {
 const watchdogSubject = 'tác vụ hẹn giờ bị treo';
 const receiptSubject = 'merge thiếu biên nhận';
 
-export function runTick(gh = makeGh(), preflight = () => missingTools(), { run = tick, log = tickLog, gateWatch = agentGateWatch, rulesWatch = rulesHookWatch, gapNote = noteTickGap, areaNote = areaWatch, incidentAlert = incidentPreflightAlert, usageNote = usageTick, probe = probeHolds } = {}) {
+// Time to the tick's absolute deadline (23:59 minus 15 s), read again at each call.
+export const tickLeft = (clockMs = Date.now) => { const end = cutoffMs(vnNow().date) - 15000; return () => end - clockMs(); };
+export function runTick(gh = makeGh(), preflight = () => missingTools(), { run = tick, log = tickLog, gateWatch = agentGateWatch, rulesWatch = rulesHookWatch, gapNote = noteTickGap, areaNote = areaWatch, incidentAlert = incidentPreflightAlert, usageNote = usageTick, probe = probeHolds, antigravity = runAntigravity, fallbackFix = fallbackStep, clockMs = Date.now } = {}) {
   // L67: Claude usage is read once per tick, only when the board or the health block asks for it;
   // the pace alert goes out from the same read. A failed read leaves the board without the line.
   let usage;
@@ -85,12 +87,14 @@ export function runTick(gh = makeGh(), preflight = () => missingTools(), { run =
     audit: () => nightAudit(gh),
     incidents: () => realSources(gh, vnNow().date).alerts(),
     mergeAudit: options => runMergeAudit(options),
-    // L70: Antigravity reviews PRs Codex fixed (any mode: it costs no Claude); then the Codex fix step.
-    fallback: ({ turns, prs }) => {
-      let second = null;
-      try { second = runAntigravity({ gh, prs, turns, log }); } catch (error) { log(`antigravity failed: ${clean(error.message, 200)}`); }
-      const fix = fallbackStep({ gh, mode: usageNow()?.mode ?? currentMode(), turns, prs, log });
-      return second || fix ? { second, fix } : null;
+    // L70/L71: Antigravity critiques ready PRs (any mode: it costs no Claude). Codex r1 on #899 (P1): it
+    // runs before the tick's merges (`critic`), so its answer is posted while the PR is still open.
+    // Codex r1 on #894 (P1): one absolute deadline (23:59 minus 15 s) bounds both steps, and the 23:35
+    // start line is read again before a Codex fix starts.
+    critic: ({ turns, prs }) => antigravity({ gh, prs, turns, log, left: tickLeft(clockMs) }),
+    fallback: ({ turns, prs, late = () => false }) => {
+      const fix = late() ? null : fallbackFix({ gh, mode: usageNow()?.mode ?? currentMode(), turns, prs, log, left: tickLeft(clockMs) });
+      return fix ? { fix } : null;
     } });
   // Research item 2 (owner 21.11): once an hour, a trial merge of every pair held only for a shared
   // file, recorded next to the hold. Observe only; it never changes a turn.

@@ -345,7 +345,7 @@ const defaultReservations = {
   release: (pr, why) => releaseReservation(pr, why),
 };
 
-export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], prPreflight: preflight = () => ({ status: 'PASS' }), heavyFree = () => true, nowMs = Date.now, check = () => ({ status: 'skipped' }), review, merge, alert, board = () => {}, log = () => {}, watchdog = () => {}, health = () => [], copyPending = () => 0, copyBatch = null, copySaved = () => false, notify = () => {}, metrics = () => null, audit = null, incidents = null, ciStatus = null, settle = defaultSettle, mergeAudit = null, reservations = defaultReservations, fallback = null } = {}) {
+export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], prPreflight: preflight = () => ({ status: 'PASS' }), heavyFree = () => true, nowMs = Date.now, check = () => ({ status: 'skipped' }), review, merge, alert, board = () => {}, log = () => {}, watchdog = () => {}, health = () => [], copyPending = () => 0, copyBatch = null, copySaved = () => false, notify = () => {}, metrics = () => null, audit = null, incidents = null, ciStatus = null, settle = defaultSettle, mergeAudit = null, reservations = defaultReservations, fallback = null, critic = null } = {}) {
   // The clock is read again before each action, so a long review cannot push the next one past lastStartAt.
   const time = clock ?? (now ? () => now : () => vnNow());
   now = time();
@@ -474,6 +474,13 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       area = work.find(t => machineTurns.has(t.turn))?.area ?? area;
       const done = [];
       const late = () => { const t = time(); return t.hour * 60 + t.minute >= lastStartAt; };
+      // Codex r1 on #899 (P1): the second critic's step runs before merges are chosen. Its answer for a
+      // PR is read and posted while that PR is still open, and a PR whose critique is under way is held
+      // by the merge gate (criticPending), so a ready PR is never merged past its critic.
+      if (critic && !late()) {
+        try { const r = critic({ turns: live, prs }); if (r) log(`critic: ${JSON.stringify(r)}`); }
+        catch (error) { log(`critic failed: ${clean(error.message, 200)}`); }
+      }
       // 17.11.2026 (#633): a PR ready to merge is merged whatever its area. Merging costs no Codex run
       // or heavy job, while waiting lets another area's merge move integration and void its check and
       // review (#633 waited 45 minutes behind content work, then needed a new check and review).
@@ -653,7 +660,7 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       });
       // L68: in Codex fallback one claude-fix turn goes to Codex; outside it the hold labels come off.
       if (fallback && !late()) {
-        try { const r = fallback({ turns: leftTurns, prs: left }); if (r) log(`fallback: ${JSON.stringify(r)}`); }
+        try { const r = fallback({ turns: leftTurns, prs: left, late }); if (r) log(`fallback: ${JSON.stringify(r)}`); }
         catch (error) { log(`fallback failed: ${clean(error.message, 200)}`); }
       }
       if (idleRuns >= idleAlertRuns && !idleAlerted && alert) {

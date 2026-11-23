@@ -1230,7 +1230,7 @@
    },
    "caller": {
     "file": "scripts/collab-tick.mjs",
-    "contains": "fallbackStep({ gh, mode: usageNow()?.mode ?? currentMode(), turns, prs, log })"
+    "contains": "fallbackFix({ gh, mode: usageNow()?.mode ?? currentMode(), turns, prs, log, left: tickLeft(clockMs) })"
    },
    "closedBy": {
     "pr": 894
@@ -1264,11 +1264,49 @@
    "status": "done",
    "test": {
     "file": "scripts/collab-antigravity.test.mjs",
-    "name": "L70: one step per tick: start, wait, then post a signed second review that the gate counts"
+    "name": "L70 (Codex r1 on #894): the production tick runs Antigravity, then the Codex fix, both bounded by one deadline; from 23:35 no fix starts"
    },
    "caller": {
     "file": "scripts/collab-tick.mjs",
-    "contains": "second = runAntigravity({ gh, prs, turns, log });"
+    "contains": "critic: ({ turns, prs }) => antigravity({ gh, prs, turns, log, left: tickLeft(clockMs) }),"
+   },
+   "closedBy": {
+    "pr": 894
+   }
+  },
+  {
+   "id": "L77",
+   "title": "A new read of local transcripts shipped on by default; R2(4) says new personal-data collection is built and left off",
+   "from": "Codex review #893 (data_collection hold), 22.11.2026",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-usage.test.mjs",
+    "name": "R2(4): the transcript scan is off by default; it reads nothing until the owner creates the flag file"
+   },
+   "caller": {
+    "file": "scripts/collab-usage.mjs",
+    "contains": "if (scanEnabled(home))"
+   },
+   "closedBy": {
+    "pr": 893
+   }
+  },
+  {
+   "id": "L79",
+   "title": "Codex fallback fixes stay inside hard bounds: NUL-safe file list, sandboxed tests via the trusted guard, private-data scan and a local provenance record before the push, budget reserved under review.lock, one absolute deadline, no APPROVE on a cut brief, an allowlist for fallback merges",
+   "from": "Codex auto review on #894 (23.11.2026): REQUEST_CHANGES, 8 P1 + 1 P2 security/privacy in the fallback path",
+   "who": "claude",
+   "due": "2026-11-23",
+   "status": "done",
+   "test": {
+    "file": "scripts/codex-fallback.test.mjs",
+    "name": "Codex r1 on #894 (P1): branch tests run sandboxed (no network, writes in the clone only, bare env) through the trusted guard"
+   },
+   "caller": {
+    "file": "scripts/codex-fallback.mjs",
+    "contains": "const tested = test ?? (d => sandboxedTest(d, { run, left, base: home }));"
    },
    "closedBy": {
     "pr": 894
@@ -1290,26 +1328,26 @@
     "contains": "const waiting = secondTargets(prs, turns);"
    },
    "closedBy": {
-    "pr": 899
+    "pr": 0
    }
   },
   {
-   "id": "L77",
-   "title": "A new read of local transcripts shipped on by default; R2(4) says new personal-data collection is built and left off",
-   "from": "Codex review #893 (data_collection hold), 22.11.2026",
+   "id": "L80",
+   "title": "The second critic runs before the merges and a critique under way holds the merge (at most 20 minutes); the copy batch scans for private data before its push",
+   "from": "Codex auto review on #899 (23.11.2026): REQUEST_CHANGES, P1 critic order after merges, P1 unguarded copy-batch push",
    "who": "claude",
-   "due": "2026-11-22",
+   "due": "2026-11-23",
    "status": "done",
    "test": {
-    "file": "scripts/collab-usage.test.mjs",
-    "name": "R2(4): the transcript scan is off by default; it reads nothing until the owner creates the flag file"
+    "file": "scripts/collab-loop.test.mjs",
+    "name": "Codex r1 on #899 (P1): the second critic runs before the merges, with the PR still in the open list; never from 23:35"
    },
    "caller": {
-    "file": "scripts/collab-usage.mjs",
-    "contains": "if (scanEnabled(home))"
+    "file": "scripts/collab-turn.mjs",
+    "contains": "const r = critic({ turns: live, prs });"
    },
    "closedBy": {
-    "pr": 893
+    "pr": 899
    }
   }
  ]

@@ -726,6 +726,20 @@ test('r1: privacy and features wait for checks while content has machine work; a
   assert.equal(next.area, 'privacy', 'a content PR waiting for Claude does not stall the machine');
 });
 
+test('Codex r1 on #899 (P1): the second critic runs before the merges, with the PR still in the open list; never from 23:35', () => {
+  const date = '2026-11-05';
+  const open = [pr({ number: 2, title: 'feat(privacy): export', comments: [check(A), approve(A)] })];
+  const order = [];
+  const run = (hour, minute) => tick({ gh: plannedGh(open, date), now: { date, hour, minute }, review: () => ({ status: 'posted' }),
+    merge: n => { order.push(`merge ${n}`); return { status: 'merged' }; },
+    critic: ({ turns, prs }) => { order.push(`critic ${prs.map(p => p.number).join(',')} ${turns.find(t => t.number === 2)?.turn}`); return { status: 'posted', pr: 2 }; } });
+  run(11, 5);
+  assert.deepEqual(order, ['critic 2 merge', 'merge 2'], 'the critique is read while #2 is open and before it merges');
+  order.length = 0;
+  run(23, 40);
+  assert.equal(order.some(o => o.startsWith('critic')), false, 'no critic step from 23:35');
+});
+
 // R7 lanes (21.11.2026). The tick worked one area at a time, so while content had any machine
 // work a process PR of another area never got a check or a review (#743 … #820 waited up to 3 days).
 test('R7: a process PR waiting for review gets a tick while content still has work', () => {
