@@ -24,7 +24,7 @@ export function mergeGate(pr, { baseFiles, disputes = disputeView(), mode = 'nor
   if (pr.baseRefName !== integration) reasons.push(`base là ${pr.baseRefName}, chỉ merge vào ${integration}`);
   if (pr.isDraft) reasons.push('draft');
   if (labels.includes('needs-owner')) reasons.push('needs-owner');
-  // L68: in Codex fallback only a small low-risk PR merges; the rest waits for Claude.
+  // L68, L82: in Codex fallback every lane merges; owner-only work and loop gate files wait.
   const fallbackHold = mode === 'fallback' ? fallbackHoldReason(pr) : null;
   if (fallbackHold) reasons.push(fallbackHold);
   // L69: Codex never fixes and approves alone.

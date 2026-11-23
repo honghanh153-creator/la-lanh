@@ -9,9 +9,9 @@
 //   `pnpm collab:test` under the heavy-job guard, commits as the agent with trailers and pushes
 //   without force;
 // - the new head then goes through the usual Author check and a fresh read-only Codex review.
-// Merges in fallback: only small low-risk PRs (ops or tests only, under the size cap, no app,
-// content, privacy or rule-sheet path, no loop gate file). Every other PR gets the `cho-claude` hold
-// label until the mode leaves fallback; the tick then removes it.
+// Merges in fallback (owner 23.11.2026, L82): every lane, through the usual gates (Codex review of the
+// head, Author check, private scan, a second critic for a Codex-fixed head). Held with the `cho-claude`
+// label until the mode leaves fallback: owner-only work (R2) and changes to the loop's own gates.
 // Fallback runs count against the day's Codex cap (R8), with a sub-cap, and keep the night audit's run.
 import { execFileSync } from 'node:child_process';
 import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync } from 'node:fs';
@@ -22,8 +22,7 @@ import { privateHits, readGuardTerms } from './collab-check.mjs';
 import { groupExec } from './collab-heal.mjs';
 import { acquireLock } from './collab-lock.mjs';
 import { claimPr, mayTouch, releasePr } from './collab-pr-claim.mjs';
-import { codeLines, sizeCap } from './collab-size.mjs';
-import { agentMarker, boundedTimeout, classifyArea, clean, codexFallbackCap, cutoffMs, dayCap, dayStatePath, DeadlineError, hhmmOf, integration, lastStartAt, readJson, repo, reviewState, stateDir, trustedComments, verifyReceipt, vnNow, writeJson } from './collab-trust.mjs';
+import { agentMarker, boundedTimeout, clean, codexFallbackCap, cutoffMs, dayCap, dayStatePath, DeadlineError, hhmmOf, integration, lastStartAt, readJson, repo, reviewState, stateDir, trustedComments, verifyReceipt, vnNow, writeJson } from './collab-trust.mjs';
 import { codexFixModes, modePath } from './collab-usage.mjs';
 
 export const fallbackSubCap = codexFallbackCap;
@@ -35,30 +34,31 @@ export const fallbackModel = 'gpt-6.1-sol';
 // The mode the tick last read (collab-usage.mjs writes it on each fresh reading). No file: normal.
 export const currentMode = (home = stateDir) => readJson(modePath(home), null)?.mode ?? 'normal';
 
-const isTest = p => /(^|\/)(tests?|__tests__)\/|\.(test|spec)\.[^/]+$|(^|\/)test_[^/]+\.py$/.test(p);
-// Codex r1 on #894 (P2): a deny list of gate files kept missing enforcement scripts (second review,
-// Antigravity, check, hooks, preflight, lock, tick…). Now an allowlist: only the files below, and tests,
-// may merge in fallback. Every other script, the rule sheet, .claude/ and .github/ wait for Claude.
-export const lowRiskPaths = /^(docs\/reviews\/[^/]+\.md|docs\/operations\/(?!luat-dang-hieu-luc\.md$)[^/]+\.md|scripts\/(collab-(status|metrics|pr-metrics|progress|board)|research-sources|qa-journey-lib|personas-nightly)\.mjs)$/;
-// Loop gates and rules: a change here waits for Claude even when it is small.
-export const gatePaths = /^(scripts\/|docs\/operations\/luat-dang-hieu-luc\.md$|\.claude\/|\.github\/)/;
+// Owner 23.11.2026 (L82): "bạn chuyển hết qua codex đi, và đưa anti vào duyệt" and "sao lại việc sửa nhỏ,
+// cứ theo kế hoạch chứ?". The old allowlist (L68: ops or tests only, under the size cap) is gone; in
+// fallback every lane merges through the usual gates. Two kinds still wait:
+// - owner-only (R2): `needs-owner` (cost, release, new personal-data collection; mergeGate holds it
+//   in every mode) and `owner-release-check` (privacy, consent, crisis or safety copy not yet approved
+//   word for word), which normally merges and waits for release but in fallback waits for the owner;
+// - the loop's own gates: the rule sheet, .claude/, .github/, dependencies, and the scripts (and their
+//   tests) that decide reviews, receipts, checks, the private scan, turns, claims and merges. A Codex
+//   writer must not change the rules that let its own work merge without Claude reading them.
+export const releaseCheckLabel = 'owner-release-check';
+export const gateFiles = /^(docs\/operations\/luat-dang-hieu-luc\.md$|\.claude\/|\.github\/|\.husky\/|(.*\/)?(package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml)$|scripts\/(codex-(review|fallback|copy-review)|collab-(agent-gate|antigravity|check|heavy-slots|hooks|lock|merge|owner-answer|ops-wrapper|pr-claim|preflight|reservation|review-policy|rules|rules-hook|second-review|size|test-guard|tick|trust|turn|usage)|guard-dangerous-commands|verify-privacy|leak-canary(-lib)?)(\.test)?\.mjs$)/;
 
-// Null when a fallback merge may go ahead; otherwise why the PR waits for Claude.
-export function lowRiskProblem(pr) {
+// Null when a fallback merge may go ahead; otherwise why the PR waits.
+export function fallbackProblem(pr) {
+  const labels = (pr.labels ?? []).map(l => l.name ?? l);
+  if (labels.includes(releaseCheckLabel)) return 'chữ privacy/consent/crisis/safety chưa được owner duyệt nguyên văn: chờ owner';
   const files = (pr.files ?? []).map(f => f.path).filter(Boolean);
   if (!files.length) return 'không đọc được danh sách file';
-  const testsOnly = files.every(isTest);
-  if (classifyArea(pr) !== 'ops' && !testsOnly) return `nhóm ${classifyArea(pr)}, không phải ops hay chỉ test`;
-  const gate = files.find(p => gatePaths.test(p) && !lowRiskPaths.test(p) && !(isTest(p) && !/^\.(claude|github)\//.test(p)));
-  if (gate) return `đụng file cổng của vòng (${gate})`;
-  const outside = files.find(p => !isTest(p) && !lowRiskPaths.test(p));
-  if (outside) return `đụng file ngoài phần ops (${outside})`;
-  if (codeLines(pr.files) > sizeCap) return `quá ${sizeCap} dòng mã`;
+  const gate = files.find(p => gateFiles.test(p));
+  if (gate) return `đụng file cổng của vòng (${gate}): chờ Claude`;
   return null;
 }
 export const fallbackHoldReason = pr => {
-  const why = lowRiskProblem(pr);
-  return why ? `chế độ chuyển sang Codex: chỉ merge PR nhỏ ít rủi ro, PR này chờ Claude (${why})` : null;
+  const why = fallbackProblem(pr);
+  return why ? `chế độ chuyển sang Codex: PR này chưa merge được (${why})` : null;
 };
 
 // Room for one fallback run today: the sub-cap and the day cap, keeping the night audit's run.
@@ -302,6 +302,6 @@ export function fallbackStep({ gh, mode, turns = [], prs = [], fix = runFallback
 
 // Called by runMerge when the gate refuses in fallback: the label holds the PR in prTurn.
 export function holdForClaude(gh, number) {
-  gh.raw(['label', 'create', holdLabel, '--repo', repo, '--color', 'C5DEF5', '--description', 'Chế độ chuyển sang Codex: chờ Claude quay lại', '--force']);
+  gh.raw(['label', 'create', holdLabel, '--repo', repo, '--color', 'C5DEF5', '--description', 'Chế độ chuyển sang Codex: chờ Claude hoặc owner', '--force']);
   gh.raw(['pr', 'edit', String(number), '--repo', repo, '--add-label', holdLabel]);
 }

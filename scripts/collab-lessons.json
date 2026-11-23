@@ -1226,7 +1226,7 @@
    "status": "done",
    "test": {
     "file": "scripts/codex-fallback.test.mjs",
-    "name": "L68: in fallback the merge gate holds a risky PR for Claude; normal mode does not"
+    "name": "L82: in fallback the merge gate holds only owner-only and gate PRs; normal mode holds nothing"
    },
    "caller": {
     "file": "scripts/collab-tick.mjs",

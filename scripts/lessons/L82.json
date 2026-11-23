@@ -1,0 +1,19 @@
+{
+ "id": "L82",
+ "title": "Chế độ chuyển sang Codex làm theo kế hoạch ở mọi làn, không chỉ PR nhỏ ops/test: merge qua đủ cổng (Codex review đúng head, Author check, quét riêng tư, phản biện thứ hai Antigravity trước); chỉ giữ việc của owner (R2) và file cổng của vòng (owner 23.11: \"sao lại việc sửa nhỏ, cứ theo kế hoạch chứ?\", \"cho phép sửa R1 như đã ghi\")",
+ "from": "owner 23.11 qua phiên điều phối, rồi trực tiếp trong phiên này (sửa R1)",
+ "who": "claude",
+ "due": "2026-11-24",
+ "status": "done",
+ "test": {
+  "file": "scripts/codex-fallback.test.mjs",
+  "name": "L82 (owner 23.11): in fallback every lane merges; only owner-only copy and the loop gates wait"
+ },
+ "caller": {
+  "file": "scripts/collab-merge.mjs",
+  "contains": "const fallbackHold = mode === 'fallback' ? fallbackHoldReason(pr) : null;"
+ },
+ "closedBy": {
+  "pr": 894
+ }
+}
