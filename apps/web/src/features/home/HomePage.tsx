@@ -10,7 +10,7 @@ import {
   X,
 } from "@phosphor-icons/react";
 import { onlineManager, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 
 import {
@@ -27,7 +27,7 @@ import {
   type ResonanceChoice,
   type SignalContext,
 } from "../../shared/api/client";
-import { applySavedMood, dailyMoodKey, readDailyMood, resetDailyActionChoice, useDailyActionView, type DailyActionChoice } from "../../shared/hooks/useDailyActionView";
+import { applySavedMood, dailyMoodKey, readDailyMood, resetDailyActionChoice, useDailyActionView, useReadOnlyToday, type DailyActionChoice, type ReadOnlyToday } from "../../shared/hooks/useDailyActionView";
 import { useDailyExperiment } from "../../shared/hooks/useDailyExperiment";
 import { currentSessionEpoch, sessionGeneration } from "../../shared/session/sessionIdentity";
 import { useReadingUpdateActivation } from "../../shared/hooks/useReadingUpdateActivation";
@@ -54,7 +54,7 @@ import { useOnboardingMotion } from "../../shared/ui/onboardingMotion";
 import { AppNav } from "../../shared/ui/AppNav";
 import { AppSheet } from "../../shared/ui/AppSheet";
 import { BrandMark } from "../../shared/ui/BrandMark";
-import { ExperimentControls, SHOW_LIGHTER_ACTION, SHOW_ORIGINAL_ACTION } from "../../shared/ui/ReadingContent";
+import { ExperimentControls, FOLDED_ACTION_LABEL, ReadOnlyToggle, SHOW_LIGHTER_ACTION, SHOW_ORIGINAL_ACTION } from "../../shared/ui/ReadingContent";
 import { ReadingUpdateGift } from "../../shared/ui/ReadingUpdateGift";
 import { WHY_TODAY_ID } from "../../shared/ui/readingLabels";
 import { ResonanceFeedback } from "../../shared/ui/ResonanceFeedback";
@@ -160,6 +160,8 @@ export function HomePage() {
   // The lighter action follows the saved mood only (#627): never while a pick for this note is
   // unsaved, whatever the saved mood is at that moment.
   const actionView = useDailyActionView(note?.id, activeReading, unsavedMood ? null : savedMood);
+  // "Hôm nay chỉ muốn đọc" (#700): shared with the note page, in memory only.
+  const readOnlyToday = useReadOnlyToday(note?.id);
   const moonLabel = useMemo(() => moonPhase().label, []);
   const ritual = useDailyRitual(note?.note_date);
   const [moodSheetOpen, setMoodSheetOpen] = useState(false);
@@ -463,6 +465,7 @@ export function HomePage() {
           ) : null}
           detailPath={dailyContextPath("/note/today", context)}
           decoration={noteDecoration}
+          readOnlyToday={readOnlyToday}
           toolbar={quickActions}
         />
       ) : (
@@ -647,6 +650,7 @@ function HomeDailySignal({
   kept,
   detailPath,
   decoration,
+  readOnlyToday,
   toolbar,
 }: {
   activeReading: NonNullable<DailyNote["reading_projection"]>["active"];
@@ -655,6 +659,8 @@ function HomeDailySignal({
   kept: ReactNode;
   detailPath: string;
   decoration: ReactNode;
+  /** "Hôm nay chỉ muốn đọc": folds the action box to one line for this note (#700). */
+  readOnlyToday: ReadOnlyToday;
   toolbar: ReactNode;
 }) {
   if (!activeReading) return null;
@@ -676,16 +682,29 @@ function HomeDailySignal({
         </div>
         <div className="home-daily-signal__glass uv-glass">
           {action ? (
-            <aside aria-label="Việc có thể thử hôm nay" className="home-daily-signal__advice">
-              <Sparkle aria-hidden="true" className="home-advice-star" weight="fill" />
-              <span>Thử một việc nhỏ</span>
-              <p>{action}</p>
-              {actionView.canSwitch ? (
-                <button className="text-button home-daily-signal__lighter-switch" onClick={actionView.switchAction} type="button">
-                  {actionView.lighterShown ? SHOW_ORIGINAL_ACTION : SHOW_LIGHTER_ACTION}
-                </button>
-              ) : null}
-              {kept ? <div className="home-daily-signal__kept">{kept}</div> : null}
+            <aside
+              aria-label={readOnlyToday.readOnly ? FOLDED_ACTION_LABEL : "Việc có thể thử hôm nay"}
+              className={`home-daily-signal__advice${readOnlyToday.readOnly ? " home-daily-signal__advice--read-only" : ""}`}
+            >
+              <Sparkle aria-hidden="true" className="home-advice-star" key="star" weight="fill" />
+              {readOnlyToday.readOnly ? null : (
+                <Fragment key="action">
+                  <span>Thử một việc nhỏ</span>
+                  <p>{action}</p>
+                  {actionView.canSwitch ? (
+                    <button className="text-button home-daily-signal__lighter-switch" onClick={actionView.switchAction} type="button">
+                      {actionView.lighterShown ? SHOW_ORIGINAL_ACTION : SHOW_LIGHTER_ACTION}
+                    </button>
+                  ) : null}
+                  {kept ? <div className="home-daily-signal__kept">{kept}</div> : null}
+                </Fragment>
+              )}
+              {/* Same key in both states: the button, and the focus on it, survive the press. */}
+              <ReadOnlyToggle
+                className="home-daily-signal__read-only"
+                control={{ readOnly: readOnlyToday.readOnly, onToggle: readOnlyToday.toggle }}
+                key="read-only-toggle"
+              />
             </aside>
           ) : null}
           <footer className="home-note-footer"><Link to={detailPath}>Đọc đầy đủ<ArrowRight aria-hidden="true" weight="bold" /></Link>{toolbar}</footer>
