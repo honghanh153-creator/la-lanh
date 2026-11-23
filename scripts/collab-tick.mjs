@@ -6,7 +6,7 @@ import { dailyReceiptAudit, runMerge } from './collab-merge.mjs';
 import { ciCheck, heavyJobFree, runCheckInClone } from './collab-check.mjs';
 import { incidentPreflightAlert, incidentPreflightSubject, runPreflight } from './collab-preflight.mjs';
 import { clean, makeGh, vnNow } from './collab-trust.mjs';
-import { opsAlert, resolveOpsAlert, tick } from './collab-turn.mjs';
+import { opsAlert, planTurns, resolveOpsAlert, tick } from './collab-turn.mjs';
 import { postOwnerNotes, renderBoard, upsertBoard } from './collab-status.mjs';
 import { collectMetrics, renderMetrics } from './collab-metrics.mjs';
 import { realSources } from './collab-snapshot.mjs';
@@ -20,6 +20,10 @@ import { runMergeAudit } from './collab-merge-audit.mjs';
 import { isMain } from './is-main.mjs';
 import { loadAuditDeps } from './collab-audit.mjs';
 import { runNightAudit } from './collab-audit-night.mjs';
+import { noteTickGap, tickGapSubject } from './collab-tick-gap.mjs';
+import { areaWatch, areaWatchSubject } from './collab-area-label.mjs';
+import { paceSubject, usageTick } from './collab-usage.mjs';
+import { probeHolds } from './collab-merge-probe.mjs';
 
 const auditDeps = await loadAuditDeps();
 // The tick's night audit, with the promise register and the disagreement log (L22) wired in.
@@ -43,9 +47,22 @@ export function tickLog(line, write = text => process.stderr.write(text)) {
 const watchdogSubject = 'tác vụ hẹn giờ bị treo';
 const receiptSubject = 'merge thiếu biên nhận';
 
-export function runTick(gh = makeGh(), preflight = () => missingTools(), { run = tick, log = tickLog, gateWatch = agentGateWatch, rulesWatch = rulesHookWatch, incidentAlert = incidentPreflightAlert } = {}) {
-  const board = info => upsertBoard(gh, planIssue(gh), renderBoard(info));
-  return run({ gh, preflight, log, prPreflight: n => {
+export function runTick(gh = makeGh(), preflight = () => missingTools(), { run = tick, log = tickLog, gateWatch = agentGateWatch, rulesWatch = rulesHookWatch, gapNote = noteTickGap, areaNote = areaWatch, incidentAlert = incidentPreflightAlert, usageNote = usageTick, probe = probeHolds } = {}) {
+  // L67: Claude usage is read once per tick, only when the board or the health block asks for it;
+  // the pace alert goes out from the same read. A failed read leaves the board without the line.
+  let usage;
+  const usageNow = () => {
+    if (usage === undefined) {
+      try { usage = usageNote({ alert: text => opsAlert(gh, text, paceSubject) }); } catch (error) { usage = null; log(`usage read failed: ${clean(error.message, 200)}`); }
+    }
+    return usage;
+  };
+  const board = info => upsertBoard(gh, planIssue(gh), renderBoard({ ...info, usage: usageNow()?.line ?? null }));
+  // L57: a gap since the last heartbeat is written with its cause before this tick writes its own.
+  try { gapNote({ log, alert: text => opsAlert(gh, text, tickGapSubject) }); } catch (error) { log(`tick gap note failed: ${clean(error.message, 200)}`); }
+  // L58: an open PR without an area label falls to the last group and is never worked; label or alert.
+  try { areaNote({ gh, log, alert: text => opsAlert(gh, text, areaWatchSubject), resolve: text => resolveOpsAlert(gh, text, areaWatchSubject) }); } catch (error) { log(`area watch failed: ${clean(error.message, 200)}`); }
+  const result = run({ gh, preflight, log, prPreflight: n => {
       const pr = gh.pr(n);
       const result = runPreflight(pr);
       try { incidentAlert(pr, result, text => opsAlert(gh, text, incidentPreflightSubject)); } catch {}
@@ -60,12 +77,16 @@ export function runTick(gh = makeGh(), preflight = () => missingTools(), { run =
       // L37: the owner-rules hook (re-load of the rules sheet, R3 deny) is installed and passes its selftest.
       try { rulesWatch({ alert: text => opsAlert(gh, text, rulesHookAlertSubject), resolve: text => resolveOpsAlert(gh, text, rulesHookAlertSubject), today: vnNow().date }); } catch {}
       return watch({ alert: text => opsAlert(gh, text, watchdogSubject), resolve: text => resolveOpsAlert(gh, text, watchdogSubject) });
-    }, health: () => [...healthLines(readBeats()), ...hookHealth(), ...wrapperHealth(), ...skillRuleHealth(), ...rulesSheetHealth(), ...rulesHookHealth()], copyPending: () => pendingCount(), copyBatch: () => runCopyBatch(), copySaved: () => Boolean(readSaved(savedPath, vnNow().date)),
+    }, health: () => [...healthLines(readBeats()), ...hookHealth(), ...wrapperHealth(), ...skillRuleHealth(), ...rulesSheetHealth(), ...rulesHookHealth(), ...(usageNow()?.health ?? [])], copyPending: () => pendingCount(), copyBatch: () => runCopyBatch(), copySaved: () => Boolean(readSaved(savedPath, vnNow().date)),
     notify: (notes, comments) => postOwnerNotes(gh, planIssue(gh), notes, comments),
     metrics: ({ prs, turns }) => renderMetrics(collectMetrics({ gh, prs, turns })),
     audit: () => nightAudit(gh),
     incidents: () => realSources(gh, vnNow().date).alerts(),
     mergeAudit: options => runMergeAudit(options) });
+  // Research item 2 (owner 21.11): once an hour, a trial merge of every pair held only for a shared
+  // file, recorded next to the hold. Observe only; it never changes a turn.
+  try { probe({ list: () => planTurns(gh, vnNow()), log }); } catch (error) { log(`merge probe failed: ${clean(error.message, 200)}`); }
+  return result;
 }
 
 if (isMain(import.meta.url)) {

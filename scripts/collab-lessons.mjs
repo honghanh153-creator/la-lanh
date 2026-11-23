@@ -16,7 +16,7 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { clean, integration, makeGh, readJson, repo, reviewState, stateDir, vnNow, writeJson } from './collab-trust.mjs';
+import { clean, integration, makeGh, readJson, repo, stateDir, verdictAtMerge, vnNow, writeJson } from './collab-trust.mjs';
 import { isMain } from './is-main.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -181,7 +181,8 @@ export const verifiedPath = join(stateDir, 'lessons-verified.json');
 // automatic APPROVE of the head that was merged.
 export function confirmClosed(pr) {
   const merged = pr?.state === 'MERGED' && pr?.baseRefName === integration;
-  const last = reviewState({ ...pr, comments: pr?.comments ?? [] }).last;
+  // The verdict at the merge, by the rule of its time: #496 and #456 merged before signed receipts (L55).
+  const last = verdictAtMerge({ ...pr, comments: pr?.comments ?? [] });
   return merged && Boolean(last?.auto) && last.verdict?.verdict === 'APPROVE' && last.verdict.sha === pr?.headRefOid;
 }
 
@@ -189,7 +190,7 @@ export function confirmClosed(pr) {
 const evidenceKey = l => `${l.id}:${createHash('sha256').update(JSON.stringify([l.test ?? null, l.caller ?? null, l.closedBy ?? null])).digest('hex').slice(0, 16)}`;
 
 // `number` lets reviewState match the verdict's receipt to this PR (#456).
-export const prFields = 'number,state,baseRefName,headRefOid,comments';
+export const prFields = 'number,state,baseRefName,headRefOid,mergedAt,comments';
 export function verify(register, { view = n => makeGh().json(['pr', 'view', String(n), '--repo', repo, '--json', prFields]), cachePath = verifiedPath } = {}) {
   const cache = readJson(cachePath, {});
   let changed = false;

@@ -1,0 +1,35 @@
+import type { PixelMove } from "../pixelMove";
+
+/** Ngồi cùng (Buồn và ngồi cùng): slow breaths, soft eyes, a small heart floats up and fades. 24 frames at 6 fps = 4 s. */
+export const ngoiCung: PixelMove = {
+  id: "ngoi-cung",
+  name: "Ngồi cùng",
+  group: "ngoi-cung",
+  fps: 6,
+  frames: [
+    { eyes: "soft" },
+    { eyes: "soft", sq: 1 },
+    { eyes: "closed", sq: 1, lean: -1 },
+    { eyes: "closed", lean: -1 },
+    { eyes: "soft", lean: -1 },
+    { eyes: "soft" },
+    { eyes: "soft", sq: 1, heart: 0 },
+    { eyes: "closed", sq: 1, heart: 1 },
+    { eyes: "closed", heart: 2 },
+    { eyes: "closed", heart: 3 },
+    { eyes: "soft", heart: 4 },
+    { eyes: "soft", sq: 1, heart: 5 },
+    { eyes: "soft", sq: 1, heart: 6 },
+    { eyes: "closed", sq: 1 },
+    { eyes: "closed", lean: 1 },
+    { eyes: "soft", lean: 1 },
+    { eyes: "soft", lean: 1, sq: 1 },
+    { eyes: "soft", sq: 1 },
+    { eyes: "closed" },
+    { eyes: "closed" },
+    { eyes: "soft", sq: 1 },
+    { eyes: "open" },
+    { eyes: "open" },
+    {},
+  ],
+};
