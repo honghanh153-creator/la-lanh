@@ -12443,6 +12443,24 @@
    "category": "reading",
    "text": "Viết ra một việc cụ thể bạn muốn được giúp.",
    "status": "pending"
+  },
+  {
+   "id": "web.action.read-only.hide",
+   "category": "reading",
+   "text": "Hôm nay chỉ muốn đọc",
+   "status": "pending"
+  },
+  {
+   "id": "web.action.read-only.show",
+   "category": "reading",
+   "text": "Hiện lại việc nhỏ",
+   "status": "pending"
+  },
+  {
+   "id": "web.action.read-only.folded",
+   "category": "reading",
+   "text": "Việc nhỏ hôm nay đang ẩn",
+   "status": "pending"
   }
  ],
  "version": "copy-registry/v1"

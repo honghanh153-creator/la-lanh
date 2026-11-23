@@ -50,7 +50,7 @@ describe("AuraCutoverPage", () => {
     const heading = await screen.findByRole("heading", { name: "Aura không tự thay Note của bạn." });
     expect(heading).toBeInTheDocument();
     await waitFor(() => expect(heading).toHaveFocus());
-    expect(screen.getByText("Các House và lĩnh vực đời sống")).toBeInTheDocument();
+    expect(screen.getByText("Các nhà và lĩnh vực đời sống")).toBeInTheDocument();
     expect(screen.getByText("Lớp vừa mở")).toBeInTheDocument();
     expect(screen.getByText("Xem trước Note Aura")).toBeInTheDocument();
     expect(document.body.textContent).not.toMatch(/Receipt|Preview/);

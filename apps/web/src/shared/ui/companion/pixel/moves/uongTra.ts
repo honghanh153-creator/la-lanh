@@ -1,0 +1,35 @@
+import type { PixelMove } from "../pixelMove";
+
+/** Uống trà (Việc nhỏ): holds a warm cup, steam rises, one slow sip, a content breath out. 24 frames at 8 fps = 3 s. */
+export const uongTra: PixelMove = {
+  id: "uong-tra",
+  name: "Uống trà",
+  group: "viec-nho",
+  fps: 8,
+  frames: [
+    { arm: "hold", cup: 0 },
+    { arm: "hold", cup: 0, steam: 0 },
+    { arm: "hold", cup: 0, steam: 1 },
+    { arm: "hold", cup: 0, steam: 2, eyes: "soft" },
+    { arm: "hold", cup: 1, steam: 0, eyes: "soft" },
+    { arm: "hold", cup: 2, steam: 1, eyes: "closed" },
+    { arm: "hold", cup: 3, eyes: "closed", mouth: "o" },
+    { arm: "hold", cup: 3, eyes: "closed", mouth: "o" },
+    { arm: "hold", cup: 3, eyes: "closed", mouth: "o", sq: 1 },
+    { arm: "hold", cup: 3, eyes: "closed", mouth: "o", sq: 1 },
+    { arm: "hold", cup: 2, eyes: "closed" },
+    { arm: "hold", cup: 1, steam: 2, eyes: "closed" },
+    { arm: "hold", cup: 0, steam: 0, eyes: "happy", sq: 1 },
+    { arm: "hold", cup: 0, steam: 1, eyes: "happy", sq: 2 },
+    { arm: "hold", cup: 0, steam: 2, eyes: "happy", sq: 1 },
+    { arm: "hold", cup: 0, steam: 0, eyes: "happy" },
+    { arm: "hold", cup: 0, steam: 1, eyes: "soft" },
+    { arm: "hold", cup: 0, steam: 2, eyes: "soft", lean: 1 },
+    { arm: "hold", cup: 0, steam: 0, eyes: "soft", lean: 1 },
+    { arm: "hold", cup: 0, steam: 1, eyes: "soft" },
+    { arm: "hold", cup: 0, steam: 2 },
+    { arm: "hold", cup: 0 },
+    { eyes: "happy" },
+    {},
+  ],
+};
