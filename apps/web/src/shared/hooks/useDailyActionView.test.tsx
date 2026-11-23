@@ -203,10 +203,10 @@ describe("memory-only choices outlive a visit to another screen (#833 review)", 
       const wrapper = ({ children }: { children: ReactNode }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>;
       const first = renderHook(() => useReadOnlyToday(NOTE_ID), { wrapper });
       act(() => first.result.current.toggle());
-      act(() => vi.advanceTimersByTime(1)); // React Query hands updates over on a timer.
+      act(() => { vi.advanceTimersByTime(1); }); // React Query hands updates over on a timer.
       expect(first.result.current.readOnly).toBe(true);
       first.unmount();
-      act(() => vi.advanceTimersByTime(SIX_MINUTES));
+      act(() => { vi.advanceTimersByTime(SIX_MINUTES); });
       expect(client.getQueryData(dailyReadOnlyKey(NOTE_ID))).toBe(true);
       const again = renderHook(() => useReadOnlyToday(NOTE_ID), { wrapper });
       expect(again.result.current.readOnly).toBe(true);
@@ -221,10 +221,10 @@ describe("memory-only choices outlive a visit to another screen (#833 review)", 
       const { client, result, unmount } = setup("Đuối");
       expect(result.current.lighterShown).toBe(true);
       act(() => result.current.switchAction());
-      act(() => vi.advanceTimersByTime(1));
+      act(() => { vi.advanceTimersByTime(1); });
       expect(result.current.lighterShown).toBe(false);
       unmount();
-      act(() => vi.advanceTimersByTime(SIX_MINUTES));
+      act(() => { vi.advanceTimersByTime(SIX_MINUTES); });
       expect(client.getQueryData(dailyActionViewKey(NOTE_ID))).toEqual({ choice: "original" });
       const wrapper = ({ children }: { children: ReactNode }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>;
       const again = renderHook(() => useDailyActionView(NOTE_ID, reading, "Đuối"), { wrapper });
