@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 
 import { CompanionLabPage } from "./CompanionLabPage";
 
@@ -49,7 +49,22 @@ describe("CompanionLabPage", () => {
   it("shows a still matrix of hours and growth levels", () => {
     render(<CompanionLabPage />);
     fireEvent.click(screen.getByLabelText("Bảng xem nhanh"));
-    expect(screen.getAllByRole("table")).toHaveLength(2);
+    expect(within(screen.getByRole("region", { name: "Bảng xem nhanh theo giờ và số ngày" })).getAllByRole("table")).toHaveLength(2);
     expect(document.querySelectorAll('.clab__matrix .lc-companion[data-cmotion="still"]')).toHaveLength(40);
+  });
+
+  it("shows the Lá pixel trial with its moves, timings and the still preview (#714)", () => {
+    render(<CompanionLabPage />);
+    const pixel = screen.getByRole("region", { name: "Lá pixel, bản thử" });
+    expect(within(pixel).getByText("bản thử, chưa bật cho người dùng")).toBeInTheDocument();
+    for (const name of ["Chào", "Ngồi cùng"]) {
+      expect(within(pixel).getByRole("rowheader", { name })).toBeInTheDocument();
+    }
+    fireEvent.click(within(pixel).getByRole("button", { name: "Ngồi cùng" }));
+    const la = within(pixel).getByRole("button", { name: "Lá pixel, bấm để chạy động tác Ngồi cùng" });
+    expect(la).toHaveAttribute("data-move", "ngoi-cung");
+    fireEvent.click(screen.getByLabelText("Xem tĩnh (giảm chuyển động)"));
+    expect(la).toHaveAttribute("data-motion", "still");
+    expect(localStorage.length).toBe(0);
   });
 });
