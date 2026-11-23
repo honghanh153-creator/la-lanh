@@ -241,9 +241,11 @@ export function usageLine(usage, today = null) {
 export function usageHealth(usage, { home = stateDir } = {}) {
   const out = [];
   if (!usage.fresh) out.push(`⚠️ Số lượt Claude ${usage.at ? 'cũ hơn 3 giờ' : 'chưa có'}: giữ chế độ ${MODES[usage.mode]}. Tác vụ autopilot ghi số mỗi lượt chạy.`);
-  if (usage.mode === 'shift') out.push(`⚠️ Claude đã dùng ${usage.percent}% tuần: lượt sửa sang Codex, phản biện sang Antigravity, bỏ lượt Claude kiểm mẫu.`);
-  if (usage.mode === 'saving') out.push(`⚠️ Claude đã dùng ${usage.percent}% tuần: Claude chỉ làm sự cố; lượt sửa khác sang Codex.`);
-  if (usage.mode === 'fallback') out.push(fableBlocked({ home }) ? `⚠️ Claude đã dùng ${usage.percent}% tuần và Fable cũng bị chặn: không dùng Claude; Codex, Antigravity và máy chạy tiếp.` : `⚠️ Claude đã dùng ${usage.percent}% tuần: việc của Claude chạy bằng model ${fableModel} (\`node scripts/collab-usage.mjs --route\`); Codex, Antigravity và máy vẫn làm phần nặng.`);
+  // Codex #893 round 2: a kept mode has no current percent; never show "null%".
+  const used = usage.fresh && Number.isFinite(usage.percent) ? `Claude đã dùng ${usage.percent}% tuần` : 'Theo số cuối đã biết';
+  if (usage.mode === 'shift') out.push(`⚠️ ${used}: lượt sửa sang Codex, phản biện sang Antigravity, bỏ lượt Claude kiểm mẫu.`);
+  if (usage.mode === 'saving') out.push(`⚠️ ${used}: Claude chỉ làm sự cố; lượt sửa khác sang Codex.`);
+  if (usage.mode === 'fallback') out.push(fableBlocked({ home }) ? `⚠️ ${used} và Fable cũng bị chặn: không dùng Claude; Codex, Antigravity và máy chạy tiếp.` : `⚠️ ${used}: việc của Claude chạy bằng model ${fableModel} (\`node scripts/collab-usage.mjs --route\`); Codex, Antigravity và máy vẫn làm phần nặng.`);
   return out;
 }
 

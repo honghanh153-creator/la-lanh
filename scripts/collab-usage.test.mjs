@@ -151,6 +151,9 @@ test('Codex #893: a null, empty or false percent is no reading; a drop across mi
     reading(h, bad, ago(5));
     const u = readUsage({ home: h, now: NOW });
     assert.deepEqual([u.fresh, u.mode], [false, 'fallback'], `${JSON.stringify(bad)} keeps the saved mode`);
+    const warn = usageHealth(u).join('\n');
+    assert.doesNotMatch(warn, /null|undefined|NaN/, `${JSON.stringify(bad)}: no unknown percent in the warnings`);
+    assert.match(warn, /Theo số cuối đã biết: /);
   }
   const r = home();
   mkdirSync(join(r, 'state'), { recursive: true });
