@@ -19,6 +19,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { acquireLock } from './collab-lock.mjs';
+import { recordFound as recordFoundDefault } from './collab-disagree.mjs';
 import { groupExec } from './collab-heal.mjs';
 import { auditReserve, collectFacts, keepDayM4, dayRange, experimentDir, logsStart, readOutputs, receipt, unmeasured, withJudgement } from './collab-audit.mjs';
 import { agentMarker, assertAgentBody, clean, codexDailyCap, dayCap, dayStatePath, integration, makeGh, readJson, repo, reviewState, stateDir, vnNow, writeJson } from './collab-trust.mjs';
@@ -29,13 +30,18 @@ export const root = join(here, '..');
 export const schemaPath = join(here, 'collab-audit-schema.json');
 export const codexBin = process.env.CODEX_BIN || '/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex';
 export const codexModel = 'gpt-6.1-sol';
-export const promptVersion = 'l21b-2';
+export const promptVersion = 'l21b-3';
 export const auditMarker = date => `${agentMarker} experiment-audit date=${date} -->`;
 export const baselineMarker = (from, to) => `${agentMarker} experiment-baseline range=${from}..${to} -->`;
 const boardMarker = `${agentMarker} status-board -->`;
 const reportLimit = 6000;
 const reportBudget = 40000;
-const commentBudget = 40000;
+// #828: at 40 000 characters most days lost two thirds of their PR comments (17.11: 132 of 199), so
+// M1 and the unrecorded disagreements were "chưa đo được" on five of seven days. Sync notices and
+// author checks carry one line of information and are cut to it; the budget fits a busy day.
+const commentBudget = 150000;
+const commentLimit = { verdict: 1500, other: 800, check: 200, sync: 160 };
+const isSync = body => /^Tự đồng bộ:/.test(body);
 const sha = text => createHash('sha256').update(text).digest('hex');
 const reason = error => clean(String(error?.message ?? error).split('\n')[0], 200);
 const hhmm = at => { const t = vnNow(new Date(at)); return `${t.date.slice(8)}.${t.date.slice(5, 7)} ${String(t.hour).padStart(2, '0')}:${String(t.minute).padStart(2, '0')}`; };
@@ -112,8 +118,8 @@ export function gatherEvidence({ date, gh, facts, issue, outputs = [], disagreem
       .sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)))
       .map(c => {
         const body = String(c.body ?? '');
-        const kind = /^Review verdict:/m.test(body.split('\n').slice(0, 3).join('\n')) ? 'verdict' : /^Author check:/.test(body) ? 'check' : 'other';
-        return { pr: `pr#${p.number}`, at: hhmm(c.createdAt), kind, body: clean(body, kind === 'verdict' ? 1500 : kind === 'check' ? 300 : 800) };
+        const kind = /^Review verdict:/m.test(body.split('\n').slice(0, 3).join('\n')) ? 'verdict' : /^Author check:/.test(body) ? 'check' : isSync(body) ? 'sync' : 'other';
+        return { pr: `pr#${p.number}`, at: hhmm(c.createdAt), kind, body: clean(body, commentLimit[kind]) };
       }));
     return budgeted(rows.map((r, i) => ({ key: `c${i + 1}`, ...r })), commentBudget, 1500);
   })();
@@ -199,6 +205,7 @@ export function buildPrompt(evidence) {
     '  (không nối chỉ vì cùng file hay cùng chủ đề). Issue fix-forward là lỗi Codex thấy nhưng để sửa sau merge: nối với PR mà nó nêu. Mỗi mục: candidate, pr (khóa pr#N trong approved), why.',
     'Bất đồng chưa ghi sổ: trong prComments, một verdict REQUEST_CHANGES hoặc phát hiện mà Claude cãi lại, từ chối sửa hay làm khác, nhưng sổ `disagreements` của ngày',
     '  không có dòng nào cho PR đó. Sửa theo đúng phát hiện thì không phải bất đồng. Mỗi mục: pr (khóa pr#N), evidence (khóa c), claude, codex (mỗi ý ≤200 ký tự).',
+    'Comment `omitted` (body null) bạn không thấy: không chấm, và đừng vì chúng mà báo measured=false cho cả phần. Chấm phần thấy; máy tự ghi độ phủ.',
     'Nguồn nào null hoặc có trong `errors` thì phần đó measured=false và missing ghi lý do; không đoán. complete=false nếu bạn không đọc hết gói.',
     'Trả đúng schema. Viết tiếng Việt ngắn.',
     '',
@@ -259,6 +266,12 @@ export function validateJudgement(out, evidence) {
   const unrecorded = evidence.disagreements === null ? unmeasured(`không đọc được sổ bất đồng: ${evidence.errors?.disagreements ?? ''}`)
     : section('unrecorded', 'prComments', i => (commentPr.get(i.evidence) !== i.pr ? `bằng chứng ${clean(i.evidence, 20)} của ${clean(i.pr, 20)}` : null), i => `${i.pr}|${i.evidence}`);
   if (unrecorded.items) unrecorded.value = unrecorded.items.length;
+  // Coverage (#828): comments left out of the pack were not judged, so a count is a lower bound.
+  const hidden = (evidence.prComments ?? []).filter(c => c.omitted).length;
+  if (hidden) {
+    const note = `${hidden}/${evidence.prComments.length} comment không đưa vào gói; số là cận dưới`;
+    for (const m of [M1, unrecorded]) if (m.items) m.missing = m.missing ? `${m.missing}; ${note}` : note;
+  }
   return { M1, M3, unrecorded };
 }
 
@@ -307,7 +320,7 @@ export function renderAudit(record) {
     line('M5 việc đạt tiêu chí', M.M5, m => `${m.value}`),
     line('M6 trung vị mở → merge', M.M6, m => `${m.value} giờ (${m.count} PR)`),
     line('M7 số vòng review (trung vị)', M.M7, m => `${m.value}`),
-    line('M8 bất đồng đã ghi sổ', M.M8, m => `${m.value} (Codex thắng ${m.codex}, Claude ${m.claude}, owner ${m.owner}; owner lật lại ${m.overrides})`),
+    line('M8 bất đồng đã ghi sổ', M.M8, m => `${m.value} (Codex thắng ${m.codex}, Claude ${m.claude}, owner ${m.owner}; owner lật lại ${m.overrides}${m.audit ? `; soát đêm tự ghi ${m.audit}, chưa rõ ai thắng` : ''})`),
     un ? line('M8 bất đồng chưa ghi sổ', un, m => `${m.value}`) : '- M8 bất đồng chưa ghi sổ: chưa đo được',
     ...items(un?.items, i => `${i.pr} (${i.evidence}): Claude "${clean(i.claude, 120)}" / Codex "${clean(i.codex, 120)}"`),
     line('M9 lượt Codex', M.M9, m => `${m.value}${m.baseline ? ` (trong đó ${m.baseline} lượt đo nền)` : ''}`),
@@ -343,7 +356,7 @@ const defaultLock = () => { mkdirSync(stateDir, { recursive: true }); return acq
 // The tick's entry. Returns { status } and never throws for an expected stop.
 export function runNightAudit({ gh = makeGh(), now = new Date(), window = auditWindow(now), dir = experimentDir, lock = defaultLock,
   codex = prompt => runAuditCodex(prompt), outputs = () => readOutputs(), lessons = null, disagreements = null, issue = null, post = true,
-  clock = () => new Date(), cap = codexDailyCap, purpose = 'audit' } = {}) {
+  clock = () => new Date(), cap = codexDailyCap, purpose = 'audit', recordFound = recordFoundDefault } = {}) {
   if (!window) return { status: 'idle' };
   const { date, final } = window;
   const existing = readRecord(date, dir);
@@ -398,6 +411,10 @@ export function runNightAudit({ gh = makeGh(), now = new Date(), window = auditW
         }
       }
       record = saveRecord({ ...withJudgement(facts, judgement), posted: existing?.posted ?? null }, dir);
+      // #828: no one wrote disagreements down, so M8 stayed 0 although the audit found one on 19.11.
+      // The final record writes what it found into the log, also when it reuses the 23:00 judgement;
+      // recordFound is keyed, so a re-run adds nothing.
+      if (final && record.final && judgement?.result?.unrecorded?.items?.length) recordFound({ date, items: judgement.result.unrecorded.items });
     }
     if (post) {
       const body = renderAudit(record);

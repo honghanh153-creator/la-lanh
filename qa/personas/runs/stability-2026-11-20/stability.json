@@ -1,5 +1,5 @@
 {
- "rubric": "app-judge-v3-2026-11-21",
+ "rubric": "app-judge-v4-2026-11-21",
  "git_head": "d8cc2fe2e5ed5a30da41707579c874fb4c6627a6",
  "again": {
   "expected": 100,
@@ -8,63 +8,60 @@
   "missing_b": [],
   "scores": {
    "understood": {
-    "mean_a": 1.9,
-    "mean_b": 1.89,
-    "mean_shift": 0.010000000000000009,
-    "mean_abs_gap": 0.11,
-    "same_pct": 89.0,
-    "within_1_pct": 100.0,
-    "far": 0,
-    "kappa": 0.8353293413173652
+    "mean_a": 2.79,
+    "mean_b": 2.77,
+    "mean_shift": 0.020000000000000018,
+    "mean_abs_gap": 0.12,
+    "same_pct": 91.0,
+    "within_1_pct": 97.0,
+    "far": 3,
+    "kappa": 0.7441000852999715
    },
    "less_alone": {
-    "mean_a": 2.96,
-    "mean_b": 2.98,
-    "mean_shift": 0.020000000000000018,
-    "mean_abs_gap": 0.04,
-    "same_pct": 96.0,
+    "mean_a": 2.95,
+    "mean_b": 2.95,
+    "mean_shift": 0.0,
+    "mean_abs_gap": 0.0,
+    "same_pct": 100.0,
     "within_1_pct": 100.0,
     "far": 0,
-    "kappa": 0.6621621621621622
+    "kappa": 1.0
    },
    "peaceful": {
-    "mean_a": 2.96,
-    "mean_b": 3.0,
-    "mean_shift": 0.040000000000000036,
-    "mean_abs_gap": 0.32,
-    "same_pct": 74.0,
-    "within_1_pct": 94.0,
-    "far": 6,
-    "kappa": 0.5
+    "mean_a": 2.73,
+    "mean_b": 2.91,
+    "mean_shift": 0.18000000000000016,
+    "mean_abs_gap": 0.2,
+    "same_pct": 84.0,
+    "within_1_pct": 96.0,
+    "far": 4,
+    "kappa": 0.9184006527947777
    },
    "want_return": {
-    "mean_a": 1.68,
-    "mean_b": 1.98,
-    "mean_shift": 0.30000000000000004,
-    "mean_abs_gap": 0.42,
-    "same_pct": 72.0,
-    "within_1_pct": 92.0,
-    "far": 8,
-    "kappa": 0.7188002142474559
+    "mean_a": 1.79,
+    "mean_b": 1.75,
+    "mean_shift": 0.040000000000000036,
+    "mean_abs_gap": 0.12,
+    "same_pct": 93.0,
+    "within_1_pct": 95.0,
+    "far": 5,
+    "kappa": 0.9103869653767821
    }
   },
   "far_personas": [
-   "P016",
-   "P018",
-   "P019",
-   "P026",
-   "P031",
+   "P003",
+   "P006",
+   "P008",
+   "P021",
+   "P025",
+   "P036",
    "P037",
-   "P039",
-   "P044",
-   "P047",
-   "P051",
-   "P064",
-   "P079",
-   "P092",
-   "P099"
+   "P040",
+   "P056",
+   "P076",
+   "P095"
   ],
-  "far_personas_pct": 14.0,
+  "far_personas_pct": 11.0,
   "flags": {
    "blame": {
     "a": 0,
@@ -72,11 +69,11 @@
     "differ": []
    },
    "pressure": {
-    "a": 4,
-    "b": 4,
+    "a": 7,
+    "b": 7,
     "differ": [
-     "P019",
-     "P078"
+     "P066",
+     "P081"
     ]
    },
    "privacy": {
@@ -96,8 +93,8 @@
    }
   },
   "flag_personas_differ": [
-   "P019",
-   "P078"
+   "P066",
+   "P081"
   ]
  },
  "second": {
@@ -107,65 +104,72 @@
   "missing_b": [],
   "scores": {
    "understood": {
-    "mean_a": 1.9,
-    "mean_b": 1.95,
-    "mean_shift": 0.050000000000000044,
-    "mean_abs_gap": 0.19,
-    "same_pct": 83.0,
-    "within_1_pct": 98.0,
-    "far": 2,
-    "kappa": 0.5892857142857143
+    "mean_a": 2.79,
+    "mean_b": 2.87,
+    "mean_shift": 0.08000000000000007,
+    "mean_abs_gap": 0.12,
+    "same_pct": 89.0,
+    "within_1_pct": 99.0,
+    "far": 1,
+    "kappa": 0.8070030328094844
    },
    "less_alone": {
-    "mean_a": 2.96,
-    "mean_b": 2.96,
-    "mean_shift": 0.0,
+    "mean_a": 2.95,
+    "mean_b": 2.99,
+    "mean_shift": 0.040000000000000036,
     "mean_abs_gap": 0.04,
     "same_pct": 96.0,
     "within_1_pct": 100.0,
     "far": 0,
-    "kappa": 0.6575342465753424
+    "kappa": 0.595959595959596
    },
    "peaceful": {
-    "mean_a": 2.96,
-    "mean_b": 2.89,
-    "mean_shift": 0.06999999999999984,
-    "mean_abs_gap": 0.21,
-    "same_pct": 81.0,
-    "within_1_pct": 98.0,
-    "far": 2,
-    "kappa": 0.5975531229877655
+    "mean_a": 2.73,
+    "mean_b": 3.09,
+    "mean_shift": 0.3599999999999999,
+    "mean_abs_gap": 0.56,
+    "same_pct": 65.0,
+    "within_1_pct": 84.0,
+    "far": 16,
+    "kappa": 0.737136737574843
    },
    "want_return": {
-    "mean_a": 1.68,
-    "mean_b": 1.95,
-    "mean_shift": 0.27,
-    "mean_abs_gap": 0.65,
-    "same_pct": 59.0,
-    "within_1_pct": 86.0,
-    "far": 14,
-    "kappa": 0.44713478611783686
+    "mean_a": 1.79,
+    "mean_b": 1.76,
+    "mean_shift": 0.030000000000000027,
+    "mean_abs_gap": 0.23,
+    "same_pct": 89.0,
+    "within_1_pct": 90.0,
+    "far": 10,
+    "kappa": 0.7818211756957023
    }
   },
   "far_personas": [
    "P002",
-   "P018",
+   "P006",
+   "P008",
+   "P011",
+   "P012",
+   "P017",
    "P025",
-   "P028",
-   "P034",
+   "P030",
+   "P032",
+   "P036",
+   "P037",
+   "P038",
+   "P039",
    "P040",
-   "P046",
+   "P041",
+   "P043",
    "P047",
-   "P051",
-   "P057",
-   "P070",
+   "P055",
    "P071",
-   "P086",
-   "P091",
-   "P092",
-   "P099"
+   "P078",
+   "P087",
+   "P090",
+   "P096"
   ],
-  "far_personas_pct": 16.0,
+  "far_personas_pct": 23.0,
   "flags": {
    "blame": {
     "a": 0,
@@ -173,12 +177,13 @@
     "differ": []
    },
    "pressure": {
-    "a": 4,
-    "b": 5,
+    "a": 7,
+    "b": 9,
     "differ": [
+     "P003",
      "P033",
-     "P080",
-     "P091"
+     "P066",
+     "P080"
     ]
    },
    "privacy": {
@@ -198,9 +203,10 @@
    }
   },
   "flag_personas_differ": [
+   "P003",
    "P033",
-   "P080",
-   "P091"
+   "P066",
+   "P080"
   ]
  },
  "flags_dropped_without_quote": {
@@ -308,145 +314,279 @@
    "second": 10
   }
  },
- "score_off_table": {
+ "score_spread": {
   "first": {
-   "understood": [],
-   "less_alone": [],
-   "peaceful": [],
-   "want_return": []
+   "understood": [
+    4,
+    17,
+    77,
+    0,
+    2
+   ],
+   "less_alone": [
+    0,
+    5,
+    95,
+    0,
+    0
+   ],
+   "peaceful": [
+    24,
+    17,
+    33,
+    14,
+    12
+   ],
+   "want_return": [
+    62,
+    5,
+    29,
+    0,
+    4
+   ]
   },
   "again": {
-   "understood": [],
-   "less_alone": [],
-   "peaceful": [],
-   "want_return": []
+   "understood": [
+    5,
+    15,
+    79,
+    0,
+    1
+   ],
+   "less_alone": [
+    0,
+    5,
+    95,
+    0,
+    0
+   ],
+   "peaceful": [
+    20,
+    15,
+    35,
+    14,
+    16
+   ],
+   "want_return": [
+    64,
+    6,
+    25,
+    1,
+    4
+   ]
   },
   "second": {
-   "understood": [],
-   "less_alone": [],
-   "peaceful": [],
-   "want_return": []
+   "understood": [
+    3,
+    14,
+    78,
+    3,
+    2
+   ],
+   "less_alone": [
+    0,
+    3,
+    95,
+    2,
+    0
+   ],
+   "peaceful": [
+    23,
+    13,
+    25,
+    10,
+    29
+   ],
+   "want_return": [
+    63,
+    6,
+    27,
+    0,
+    4
+   ]
+  }
+ },
+ "day_marks_differ": {
+  "Lượt 1 và lượt 2": {
+   "understood": {
+    "days": 400,
+    "bad_none": 13,
+    "good_none": 2,
+    "bad_good": 0,
+    "personas": 9
+   },
+   "less_alone": {
+    "days": 400,
+    "bad_none": 0,
+    "good_none": 0,
+    "bad_good": 0,
+    "personas": 0
+   },
+   "peaceful": {
+    "days": 400,
+    "bad_none": 1,
+    "good_none": 14,
+    "bad_good": 3,
+    "personas": 17
+   },
+   "want_return": {
+    "days": 400,
+    "bad_none": 15,
+    "good_none": 6,
+    "bad_good": 3,
+    "personas": 11
+   }
+  },
+  "Giám khảo 1 và giám khảo 2": {
+   "understood": {
+    "days": 400,
+    "bad_none": 9,
+    "good_none": 3,
+    "bad_good": 0,
+    "personas": 11
+   },
+   "less_alone": {
+    "days": 400,
+    "bad_none": 2,
+    "good_none": 2,
+    "bad_good": 0,
+    "personas": 4
+   },
+   "peaceful": {
+    "days": 400,
+    "bad_none": 6,
+    "good_none": 53,
+    "bad_good": 4,
+    "personas": 38
+   },
+   "want_return": {
+    "days": 400,
+    "bad_none": 19,
+    "good_none": 23,
+    "bad_good": 4,
+    "personas": 16
+   }
   }
  },
  "judge_breakdown": [
   {
    "judge": "lượt 1, gói 1",
-   "personas": 27,
+   "personas": 24,
    "diff": {
-    "understood": 0.07407407407407407,
+    "understood": 0.0,
     "less_alone": 0.0,
-    "peaceful": 0.18518518518518517,
-    "want_return": -0.3333333333333333
+    "peaceful": -0.125,
+    "want_return": 0.08333333333333333
    }
   },
   {
    "judge": "lượt 1, gói 2",
    "personas": 25,
    "diff": {
-    "understood": 0.08,
+    "understood": 0.0,
     "less_alone": 0.0,
-    "peaceful": -0.12,
-    "want_return": -0.2
+    "peaceful": -0.04,
+    "want_return": 0.0
    }
   },
   {
    "judge": "lượt 1, gói 3",
-   "personas": 23,
+   "personas": 26,
    "diff": {
-    "understood": -0.08695652173913043,
-    "less_alone": -0.043478260869565216,
-    "peaceful": 0.0,
-    "want_return": -0.13043478260869565
+    "understood": -0.038461538461538464,
+    "less_alone": 0.0,
+    "peaceful": -0.38461538461538464,
+    "want_return": 0.0
    }
   },
   {
    "judge": "lượt 1, gói 4",
    "personas": 25,
    "diff": {
-    "understood": -0.04,
-    "less_alone": -0.04,
-    "peaceful": -0.24,
-    "want_return": -0.52
+    "understood": 0.12,
+    "less_alone": 0.0,
+    "peaceful": -0.16,
+    "want_return": 0.08
    }
   },
   {
    "judge": "lượt 2, gói 1",
    "personas": 26,
    "diff": {
-    "understood": -0.038461538461538464,
+    "understood": -0.15384615384615385,
     "less_alone": 0.0,
-    "peaceful": -0.2692307692307692,
-    "want_return": 0.15384615384615385
+    "peaceful": 0.11538461538461539,
+    "want_return": 0.038461538461538464
    }
   },
   {
    "judge": "lượt 2, gói 2",
    "personas": 24,
    "diff": {
-    "understood": -0.041666666666666664,
-    "less_alone": -0.041666666666666664,
-    "peaceful": 0.5,
-    "want_return": 0.8333333333333334
+    "understood": 0.0,
+    "less_alone": 0.0,
+    "peaceful": 0.2916666666666667,
+    "want_return": -0.16666666666666666
    }
   },
   {
    "judge": "lượt 2, gói 3",
-   "personas": 23,
+   "personas": 25,
    "diff": {
-    "understood": 0.043478260869565216,
-    "less_alone": 0.043478260869565216,
-    "peaceful": -0.043478260869565216,
-    "want_return": -0.043478260869565216
+    "understood": 0.0,
+    "less_alone": 0.0,
+    "peaceful": 0.12,
+    "want_return": 0.0
    }
   },
   {
    "judge": "lượt 2, gói 4",
-   "personas": 27,
+   "personas": 25,
    "diff": {
-    "understood": 0.0,
-    "less_alone": 0.07407407407407407,
-    "peaceful": 0.0,
-    "want_return": 0.25925925925925924
+    "understood": 0.08,
+    "less_alone": 0.0,
+    "peaceful": 0.2,
+    "want_return": -0.04
    }
   },
   {
    "judge": "giám khảo 2, gói 1",
-   "personas": 24,
+   "personas": 26,
    "diff": {
-    "understood": -0.041666666666666664,
-    "less_alone": -0.041666666666666664,
-    "peaceful": -0.08333333333333333,
-    "want_return": 0.125
+    "understood": -0.07692307692307693,
+    "less_alone": 0.0,
+    "peaceful": -0.07692307692307693,
+    "want_return": 0.07692307692307693
    }
   },
   {
    "judge": "giám khảo 2, gói 2",
-   "personas": 26,
+   "personas": 23,
    "diff": {
-    "understood": 0.038461538461538464,
-    "less_alone": -0.038461538461538464,
-    "peaceful": -0.11538461538461539,
-    "want_return": 0.3076923076923077
+    "understood": 0.0,
+    "less_alone": 0.0,
+    "peaceful": -0.043478260869565216,
+    "want_return": -0.2608695652173913
    }
   },
   {
    "judge": "giám khảo 2, gói 3",
-   "personas": 24,
+   "personas": 25,
    "diff": {
-    "understood": 0.16666666666666666,
-    "less_alone": 0.08333333333333333,
-    "peaceful": 0.041666666666666664,
-    "want_return": 0.5
+    "understood": 0.2,
+    "less_alone": 0.12,
+    "peaceful": 0.36,
+    "want_return": -0.04
    }
   },
   {
    "judge": "giám khảo 2, gói 4",
    "personas": 26,
    "diff": {
-    "understood": 0.038461538461538464,
-    "less_alone": 0.0,
-    "peaceful": -0.11538461538461539,
-    "want_return": 0.15384615384615385
+    "understood": 0.19230769230769232,
+    "less_alone": 0.038461538461538464,
+    "peaceful": 1.1538461538461537,
+    "want_return": 0.07692307692307693
    }
   }
  ]
