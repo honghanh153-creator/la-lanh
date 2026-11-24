@@ -316,6 +316,12 @@
 /* #627: switch between the card's action and the lighter one. */
 :root .ultraviolet-app .home-daily-signal__lighter-switch { grid-column: 2; justify-self: start; padding: 0; border: 0; background: transparent; text-align: left; text-decoration: underline; text-underline-offset: 0.2em; }
 :root .ultraviolet-app .reading-content__lighter-switch { margin-top: 0.75rem; }
+/* #700: "Hôm nay chỉ muốn đọc" folds the small-action box to one line. */
+:root .ultraviolet-app .home-daily-signal__read-only { grid-column: 2; justify-self: start; padding: 0; border: 0; background: transparent; text-align: left; text-decoration: underline; text-underline-offset: 0.2em; }
+:root .ultraviolet-app .home-daily-signal__advice--read-only { align-items: center; }
+:root .ultraviolet-app .home-daily-signal__advice--read-only .home-advice-star { grid-row: 1; }
+:root .ultraviolet-app .reading-content__read-only { display: block; margin-top: 0.75rem; }
+:root .ultraviolet-app .reading-content__action--read-only .reading-content__read-only { margin-top: 0; }
 /* #741: keep / stop keeping / look back on the night card, same controls as the note page. */
 :root .ultraviolet-app .home-daily-signal__kept { grid-column: 2; min-width: 0; }
 :root .ultraviolet-app .home-daily-signal__kept .reading-content__experiment-button { width: auto; min-height: 2.75rem; margin-top: 0.875rem; padding: 0 1rem; border: 1px solid rgb(205 231 127 / 55%); color: #ffffff; background: rgb(255 255 255 / 10%); box-shadow: none; font-size: 0.875rem; font-weight: 600; }

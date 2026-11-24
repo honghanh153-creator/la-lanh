@@ -185,7 +185,7 @@ describe("/birth for a person who already has a birth subject", () => {
     vi.mocked(getBirthProfile).mockRejectedValue(new ApiProblem(404, "BIRTH_PROFILE_NOT_FOUND", "missing"));
     const { unmount } = renderAt("/birth");
     await waitFor(() => expect(getBirthProfile).toHaveBeenCalled());
-    expect(screen.getByRole("heading", { name: "Bạn xuất hiện ngày nào?" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Bạn sinh ngày nào?" })).toBeInTheDocument();
     unmount();
 
     vi.clearAllMocks();
