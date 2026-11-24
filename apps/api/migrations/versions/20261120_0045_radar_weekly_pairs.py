@@ -1,7 +1,7 @@
 """Hợp gu "Hai bạn tuần này" (owner AL1, 20.11.2026; direction C, second half).
 
-Revision ID: 20261120_0044
-Revises: 20261120_0043
+Revision ID: 20261120_0045
+Revises: 20261120_0044
 
 A pair the owner chose to keep: the other person's birth date only (no time, no place) and the
 nickname, both encrypted, plus the relationship. It expires on its own (90 days by default) and
@@ -14,8 +14,8 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "20261120_0044"
-down_revision: str | Sequence[str] | None = "20261120_0043"
+revision: str = "20261120_0045"
+down_revision: str | Sequence[str] | None = "20261120_0044"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
