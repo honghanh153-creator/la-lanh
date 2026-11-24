@@ -265,6 +265,18 @@ export function reviewState(pr, { baseFiles = () => null } = {}) {
   return { trusted, sealed, check, last: signedLast, stale };
 }
 
+// #456 (merged 2026-11-15T03:09:42Z) made a verdict count only with a signed local receipt. A merge
+// before that passed the gate of its time with an unsigned automatic verdict; judging it by the later
+// rule reported 23 reviewed merges of 15.11 as unreviewed and kept L11/L13 unconfirmed (#828, L55).
+// Audits judge each merge by the rule in force when it merged. The merge gate itself is unchanged.
+export const signedReceiptsFrom = '2026-11-15T03:09:42Z';
+export function verdictAtMerge(pr) {
+  const comments = (pr?.comments ?? []).filter(c => !pr.mergedAt || String(c.createdAt) <= String(pr.mergedAt));
+  const legacy = Boolean(pr?.mergedAt) && Date.parse(pr.mergedAt) <= Date.parse(signedReceiptsFrom);
+  if (!legacy) return reviewState({ ...pr, comments }).last;
+  return trustedComments(comments).filter(c => c.verdict).at(-1) ?? null;
+}
+
 const prPaths = pr => (pr.files ?? []).map(f => f?.path ?? f).filter(p => typeof p === 'string' && p);
 const short = sha => String(sha ?? '').slice(0, 7);
 // P1-A: an APPROVE stays bound to the head. When the base moved since the review, it still counts

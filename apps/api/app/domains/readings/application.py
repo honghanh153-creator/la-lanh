@@ -31,7 +31,7 @@ from app.domains.readings.daily_rotation import (
 )
 from app.domains.readings.daily_topics import TOPIC_WINDOW_DAYS, block_start
 from app.domains.readings.gates import evaluate_candidate
-from app.domains.readings.lighter_action import lighter_action_projection
+from app.domains.readings.lighter_action import lighter_action_projection, mood_action_projection
 from app.domains.readings.models import (
     AuraTransitionProjection,
     AuraUnlockLayer,
@@ -1118,6 +1118,23 @@ def _content_projection(
             )
             if projection.purpose is ReadingPurpose.DAILY_NOTE
             else None
+        ),
+        **(
+            {
+                f"{kind}_action": mood_action_projection(
+                    kind,
+                    revision.id,
+                    keepable=experiment is not None,
+                    mechanism_key=(
+                        candidate.semantic_blueprint.mechanism_key
+                        if candidate.semantic_blueprint
+                        else None
+                    ),
+                )
+                for kind in ("slow", "clear")
+            }
+            if projection.purpose is ReadingPurpose.DAILY_NOTE
+            else {}
         ),
     )
 
