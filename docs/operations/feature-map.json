@@ -843,6 +843,39 @@
           "ready": { "role": "link", "name": "Về trang chào" }
         }
       }
+    },
+    {
+      "id": "month-ask",
+      "title": "Hỏi về tháng này",
+      "us": ["US-25"],
+      "ac": ["US-25 AC13"],
+      "routes": ["/hoi-thang"],
+      "source_files": [
+        "apps/web/src/features/month/MonthAskPage.tsx",
+        "apps/web/src/features/month/MonthOverviewCard.tsx",
+        "apps/web/src/features/month/monthCopy.ts",
+        "apps/web/src/features/month/monthReminder.ts",
+        "apps/web/src/features/month/monthQueries.ts",
+        "apps/web/src/features/month/month.css"
+      ],
+      "user_path": ["Home", "Bấm Hỏi về tháng này", "Chọn một mảng hoặc một câu hỏi có sẵn"],
+      "owner_only": false,
+      "key_selectors": [
+        {"role": "heading", "name": "Bạn muốn hỏi chuyện gì?"},
+        {"role": "heading", "name": "Hoặc chọn một câu hỏi có sẵn"}
+      ],
+      "states": {
+        "topics": {
+          "fixture": "signed-in",
+          "walk": [{"goto": "/home"}, {"click": {"role": "link", "name": "Hỏi về tháng này"}}],
+          "ready": {"role": "heading", "name": "Bạn muốn hỏi chuyện gì?"}
+        },
+        "answer": {
+          "fixture": "signed-in",
+          "walk": [{"goto": "/hoi-thang"}, {"click": {"role": "button", "name": "Công việc"}}],
+          "ready": {"role": "heading", "name": "Tháng này của bạn ở chuyện này"}
+        }
+      }
     }
   ]
 }

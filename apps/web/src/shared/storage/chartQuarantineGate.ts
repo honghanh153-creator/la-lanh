@@ -50,7 +50,7 @@ const DERIVED_READS = ["/daily-note", "/insights/", "/birth-profile/supplement",
 // Codex r60: the receipt is the recipient's chart-derived pair result. Codex r61: the profile itself
 // carries the birth date and its calculation; only the reconciliation read passes, through the
 // explicit `bypassChartQuarantine` request option (never by path).
-const EXACT_DERIVED_READS = new Set(["/public/radar/receipt", "/birth-profile"]);
+const EXACT_DERIVED_READS = new Set(["/public/radar/receipt", "/birth-profile", "/month/window", "/month/overview"]);
 
 export function isChartDerivedRead(path: string, method = "GET"): boolean {
   if (method !== "GET") return false;

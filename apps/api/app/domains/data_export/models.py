@@ -9,7 +9,7 @@ No model carries a database id, hash, key, token, receipt or another person's bi
 from datetime import date, datetime
 from typing import Final, Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.domains.astro.models import DateOnlySunResult, NatalChart
 
@@ -116,6 +116,23 @@ class ExportSavedNote(_Strict):
     context_label: str | None
     persona_label: str | None
     reading: ExportSavedReading | None
+
+
+class ExportSavedMonthAnswer(_Strict):
+    """A month answer the person saved with "Lưu" (US-25)."""
+
+    saved_at: datetime
+    month: str
+    topic: str
+    topic_label: str | None
+    question: str | None
+    tip: str | None
+    theme: str | None
+    act: str | None
+    say: str | None
+    basis: str | None
+    basis_detail: str | None
+    disclaimer: str | None
 
 
 class ExportShareLink(_Strict):
@@ -274,6 +291,7 @@ class DataExport(_Strict):
     birth_profile: ExportBirthProfile | None
     daily_notes: list[ExportDailyNote]
     saved_notes: list[ExportSavedNote]
+    saved_month_answers: list[ExportSavedMonthAnswer] = Field(default_factory=list)
     share_links: list[ExportShareLink]
     tarot_sessions: list[ExportTarotSession]
     human_tarot_requests: list[ExportHumanTarotRequest]
