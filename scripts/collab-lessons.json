@@ -1306,7 +1306,7 @@
    },
    "caller": {
     "file": "scripts/codex-fallback.mjs",
-    "contains": "const tested = test ?? (d => sandboxedTest(d, { run, left, base: home }));"
+    "contains": "const tested = test ?? (d => sandboxedTest(d, { run: run === execFileSync ? groupExec : run, left, base: home }));"
    },
    "closedBy": {
     "pr": 894

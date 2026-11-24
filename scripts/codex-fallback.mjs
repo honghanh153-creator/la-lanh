@@ -14,7 +14,8 @@
 // label until the mode leaves fallback: owner-only work (R2) and changes to the loop's own gates.
 // Fallback runs count against the day's Codex cap (R8), with a sub-cap, and keep the night audit's run.
 import { execFileSync } from 'node:child_process';
-import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { auditReserve } from './collab-audit.mjs';
@@ -25,6 +26,7 @@ import { claimPr, mayTouch, releasePr } from './collab-pr-claim.mjs';
 import { agentMarker, boundedTimeout, clean, codexFallbackCap, cutoffMs, dayCap, dayStatePath, DeadlineError, hhmmOf, integration, lastStartAt, readJson, repo, reviewState, stateDir, trustedComments, verifyReceipt, vnNow, writeJson } from './collab-trust.mjs';
 import { codexFixModes, modePath } from './collab-usage.mjs';
 
+const trustedScripts = dirname(fileURLToPath(import.meta.url));
 export const fallbackSubCap = codexFallbackCap;
 export const fallbackSession = 'codex-fallback';
 export const holdLabel = 'cho-claude';
@@ -44,7 +46,55 @@ export const currentMode = (home = stateDir) => readJson(modePath(home), null)?.
 //   tests) that decide reviews, receipts, checks, the private scan, turns, claims and merges. A Codex
 //   writer must not change the rules that let its own work merge without Claude reading them.
 export const releaseCheckLabel = 'owner-release-check';
-export const gateFiles = /^(docs\/operations\/luat-dang-hieu-luc\.md$|\.claude\/|\.github\/|\.husky\/|(.*\/)?(package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml)$|scripts\/(codex-(review|fallback|copy-review)|collab-(agent-gate|antigravity|check|heavy-slots|hooks|lock|merge|owner-answer|ops-wrapper|pr-claim|preflight|reservation|review-policy|rules|rules-hook|second-review|size|test-guard|tick|trust|turn|usage)|guard-dangerous-commands|verify-privacy|leak-canary(-lib)?)(\.test)?\.mjs$)/;
+// Codex auto-3 on #894/#899 (P2): a hand-kept list missed loop modules (collab-heal, collab-disagree,
+// collab-dispatch, is-main…), shell wrappers and dependency files of the API and the native apps. Now:
+// - fixed paths: the rule sheet, .claude/, .github/, .husky/, every shell script in scripts/, and the
+//   dependency manifests and lockfiles of every app (JS, Python, Gradle, Swift, CocoaPods, Ruby, Go, Rust);
+// - every module the loop's entry points import, directly or not (read from this script's own trusted
+//   copy, so a PR cannot shrink the set), and every test of such a module or that imports one.
+const gatePaths = /^(docs\/operations\/luat-dang-hieu-luc\.md$|\.claude\/|\.github\/|\.husky\/|scripts\/[\w.-]+\.sh$|(.*\/)?(package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|\.npmrc|\.nvmrc|\.node-version|\.python-version|pyproject\.toml|uv\.lock|poetry\.lock|Pipfile(\.lock)?|requirements[\w.-]*\.txt|[\w.-]*\.gradle(\.kts)?|gradle\.properties|gradle-wrapper\.properties|Package\.swift|Package\.resolved|Podfile(\.lock)?|Gemfile(\.lock)?|go\.(mod|sum)|Cargo\.(toml|lock))$)/;
+export const gateRoots = ['codex-review', 'codex-fallback', 'codex-copy-review', 'collab-tick', 'collab-turn', 'collab-merge', 'collab-check', 'collab-preflight',
+  'collab-second-review', 'collab-antigravity', 'collab-hooks', 'collab-rules', 'collab-rules-hook', 'collab-test-guard', 'collab-agent-gate', 'collab-owner-answer',
+  'collab-ops-wrapper', 'collab-pr-claim', 'collab-heavy-slots', 'collab-reservation', 'collab-usage', 'guard-dangerous-commands', 'verify-privacy', 'leak-canary', 'leak-canary-lib', 'collab-test-home'];
+const importsOf = text => [...String(text).matchAll(/(?:\bfrom|\bimport\s*\(|^import)\s*['"]\.\/([\w.-]+)\.mjs['"]/gm)].map(m => m[1]);
+const closures = new Map();
+// Module names (no extension) the loop runs, from the trusted scripts directory.
+export function gateModules(dir = trustedScripts) {
+  if (!closures.has(dir)) {
+    const seen = new Set();
+    const queue = [...gateRoots];
+    while (queue.length) {
+      const name = queue.pop();
+      if (seen.has(name)) continue;
+      let text;
+      try { text = readFileSync(join(dir, `${name}.mjs`), 'utf8'); } catch { continue; }
+      seen.add(name);
+      queue.push(...importsOf(text));
+    }
+    if (!seen.has('codex-fallback')) throw new Error('không đọc được các script của vòng: coi mọi file là file cổng');
+    const tests = new Set();
+    let names = [];
+    try { names = readdirSync(dir); } catch {}
+    for (const file of names.filter(n => n.endsWith('.test.mjs'))) {
+      const name = file.slice(0, -'.test.mjs'.length);
+      let text = '';
+      try { text = readFileSync(join(dir, file), 'utf8'); } catch {}
+      // A test of a loop module, one that imports one, or one that checks the CI workflow.
+      if (seen.has(name) || importsOf(text).some(m => seen.has(m)) || /\.github\//.test(text)) tests.add(name);
+    }
+    closures.set(dir, { modules: seen, tests });
+  }
+  return closures.get(dir);
+}
+export function isGateFile(path, dir = trustedScripts) {
+  const p = String(path ?? '');
+  if (gatePaths.test(p)) return true;
+  const m = /^scripts\/([\w.-]+?)(\.test)?\.mjs$/.exec(p);
+  if (!m) return false;
+  let gate;
+  try { gate = gateModules(dir); } catch { return true; }
+  return gate.modules.has(m[1]) || (Boolean(m[2]) && gate.tests.has(m[1]));
+}
 
 // Null when a fallback merge may go ahead; otherwise why the PR waits.
 export function fallbackProblem(pr) {
@@ -52,7 +102,7 @@ export function fallbackProblem(pr) {
   if (labels.includes(releaseCheckLabel)) return 'chữ privacy/consent/crisis/safety chưa được owner duyệt nguyên văn: chờ owner';
   const files = (pr.files ?? []).map(f => f.path).filter(Boolean);
   if (!files.length) return 'không đọc được danh sách file';
-  const gate = files.find(p => gateFiles.test(p));
+  const gate = files.find(p => isGateFile(p));
   if (gate) return `đụng file cổng của vòng (${gate}): chờ Claude`;
   return null;
 }
@@ -143,13 +193,15 @@ export function secondReviewProblem(pr) {
   return { turn: 'hold', reason: 'Codex đã sửa PR này: chờ phản biện thứ hai (Antigravity, Claude hoặc Gemini) @ head' };
 }
 
-const git = (args, cwd, run, left = () => Infinity) => String(run('/usr/bin/git', args, { cwd, encoding: 'utf8', timeout: boundedTimeout(300000, left), maxBuffer: 64 * 1024 * 1024 })).trim();
+// Codex auto-3 on #894 (P1): host Git runs no hook and no fsmonitor of the clone, whatever its config says.
+export const hostGit = ['-c', 'core.hooksPath=/dev/null', '-c', 'core.fsmonitor=false'];
+const git = (args, cwd, run, left = () => Infinity) => String(run('/usr/bin/git', [...hostGit, ...args], { cwd, encoding: 'utf8', timeout: boundedTimeout(300000, left), maxBuffer: 64 * 1024 * 1024 })).trim();
 
 // Codex r1 on #894 (P1): the trimmed porcelain output lost the first character of the first path
 // (" M .github/x" → "github/x"), so a protected path passed. NUL-separated and untrimmed, every
 // untracked file listed one by one (a new directory is not one entry).
 export function changedFiles(dir, run, left = () => Infinity) {
-  const out = String(run('/usr/bin/git', ['status', '--porcelain=v1', '-z', '--no-renames', '--untracked-files=all'], { cwd: dir, encoding: 'utf8', timeout: boundedTimeout(300000, left), maxBuffer: 64 * 1024 * 1024 }));
+  const out = String(run('/usr/bin/git', [...hostGit, 'status', '--porcelain=v1', '-z', '--no-renames', '--untracked-files=all'], { cwd: dir, encoding: 'utf8', timeout: boundedTimeout(300000, left), maxBuffer: 64 * 1024 * 1024 }));
   return out.split('\0').filter(Boolean).map(entry => entry.slice(3));
 }
 
@@ -158,14 +210,14 @@ export function changedFiles(dir, run, left = () => Infinity) {
 // integration), and the tests run under sandbox-exec: no network, writes only inside the clone and a
 // fresh temp dir, an env with nothing but PATH and a temp HOME (no tokens, no SSH agent).
 const trustedDir = dirname(fileURLToPath(import.meta.url));
-export const sandboxProfile = (dir, tmp) => `(version 1)(allow default)(deny network*)(allow network* (local unix))(deny file-write*)(allow file-write* (subpath "${dir}") (subpath "${tmp}") (literal "/dev/null") (literal "/dev/tty") (regex #"^/dev/fd/"))`;
+export const sandboxProfile = (dir, tmp) => `(version 1)(allow default)(deny network*)(allow network* (local unix))(deny file-write*)(allow file-write* (subpath "${dir}") (subpath "${tmp}") (literal "/dev/null") (literal "/dev/tty") (regex #"^/dev/fd/"))(deny file-write* (subpath "${dir}/.git"))`;
 export function testCommand(dir) {
   const script = readJson(join(dir, 'package.json'), {})?.scripts?.['collab:test'] ?? '';
   const files = /^node --test((?: [A-Za-z0-9_./-]+\.test\.mjs)+)$/.exec(script)?.[1].trim().split(' ') ?? [];
   if (!files.length || files.some(f => f.includes('..') || f.startsWith('/'))) throw new Error('collab:test của nhánh không phải "node --test <file test>": không chạy');
   return files;
 }
-export function sandboxedTest(dir, { run = execFileSync, left = () => Infinity, base = stateDir } = {}) {
+export function sandboxedTest(dir, { run = groupExec, left = () => Infinity, base = stateDir } = {}) {
   const files = testCommand(dir);
   mkdirSync(base, { recursive: true });
   const tmp = realpathSync(mkdtempSync(join(base, 'fallback-test-')));
@@ -192,10 +244,25 @@ export function reserveFallbackRun(date, home = stateDir) {
   } finally { release(); }
 }
 
+// Codex auto-3 on #894 (P1): the Git metadata of the clone (config, hooks) must be what the script
+// checked out. A change by Codex or by a branch test refuses the fix (hooks are off for host Git anyway).
+export function gitMeta(dir) {
+  const hash = createHash('sha256');
+  for (const rel of ['config', 'info/attributes', 'info/exclude']) {
+    try { hash.update(`${rel}\0${readFileSync(join(dir, '.git', rel))}\0`); } catch { hash.update(`${rel}\0-\0`); }
+  }
+  let hooks = [];
+  try { hooks = readdirSync(join(dir, '.git', 'hooks')).filter(n => !n.endsWith('.sample')).sort(); } catch {}
+  hash.update(hooks.join('\0'));
+  return hash.digest('hex');
+}
+
 // Codex r1 on #894 (P1): no absolute deadline. Every step is bounded by the cutoff (23:59 minus 15 s);
 // Codex keeps room for the test and the push, and nothing starts from 23:35.
 export const finishReserveMs = 15 * 60000;
 export const fallbackLeft = (now, nowMs = Date.now) => { const end = cutoffMs(now.date) - 15000; return () => end - nowMs(); };
+export const cutoffLeft = (nowMs = Date.now) => fallbackLeft(vnNow(new Date(nowMs())), nowMs);
+const startEndMs = date => Date.parse(`${date}T${hhmmOf(lastStartAt)}:00+07:00`);
 
 // What Codex may not leave behind.
 export function changeProblems(files, markers) {
@@ -212,8 +279,10 @@ export function commitMessage(pr, turn, oldHead) {
 }
 
 // One fallback fix. Returns {status, ...}; never throws for an expected stop.
-export function runFallbackFix(turn, { gh, run = execFileSync, exec = null, test = null, terms = readGuardTerms, now = vnNow(), nowMs = Date.now, left = fallbackLeft(now, nowMs), home = stateDir, log = () => {} } = {}) {
+export function runFallbackFix(turn, { gh: ghIn, run = execFileSync, exec = null, test = null, terms = readGuardTerms, now = vnNow(), nowMs = Date.now, left = fallbackLeft(now, nowMs), home = stateDir, log = () => {} } = {}) {
   const number = turn.number;
+  // Codex auto-3 on #894 (P1): every GitHub call ends by the same deadline.
+  const gh = ghIn.withDeadline?.(left) ?? ghIn;
   if (now.hour * 60 + now.minute >= lastStartAt) return { status: 'refused', pr: number, reason: `từ ${hhmmOf(lastStartAt)} không bắt đầu lượt sửa mới` };
   const day = readJson(dayStatePath(now.date), { codexRuns: 0, failures: 0 });
   const budget = fallbackBudget(day);
@@ -236,7 +305,11 @@ export function runFallbackFix(turn, { gh, run = execFileSync, exec = null, test
       try { g(['-c', 'user.name=la-lanh-agent', '-c', 'user.email=la-lanh-agent@users.noreply.github.com', 'merge', '--no-edit', '--no-ff', `origin/${integration}`], dir); }
       catch { conflicts = g(['diff', '--name-only', '--diff-filter=U'], dir).split('\n').filter(Boolean); }
     }
+    const meta = gitMeta(dir);
     const brief = fallbackBrief({ pr, turn, findings: headFindings(pr), conflicts });
+    // Codex auto-3 on #894 (P1): `now` is the tick's start. The clone and fetch take time, so the
+    // 23:35 line is checked again on the clock before Codex is reserved or started.
+    if (nowMs() >= startEndMs(now.date)) return { status: 'refused', pr: number, reason: `hết giờ: đã qua ${hhmmOf(lastStartAt)} sau bước chuẩn bị, không gọi Codex` };
     const codexTimeout = boundedTimeout(40 * 60000, () => left() - finishReserveMs);
     const reserved = reserveFallbackRun(now.date, home);
     if (!reserved.ok) return { status: 'refused', pr: number, reason: reserved.reason };
@@ -246,18 +319,31 @@ export function runFallbackFix(turn, { gh, run = execFileSync, exec = null, test
         '-c', 'sandbox_workspace_write.network_access=false', '-C', dir, '--color', 'never', '-'],
       { input: brief, encoding: 'utf8', timeout: codexTimeout, maxBuffer: 64 * 1024 * 1024 });
     } catch (error) { return { status: 'error', pr: number, reason: `Codex lỗi: ${clean(error.message, 200)}` }; }
-    const files = changedFiles(dir, run, left);
-    const changed = [...new Set([...files, ...conflicts])];
-    let markers = [];
-    const present = changed.filter(p => existsSync(join(dir, p)));
-    if (present.length) try { markers = g(['grep', '--no-index', '-l', '-E', '^(<<<<<<<|>>>>>>>)( |$)', '--', ...present], dir).split('\n').filter(Boolean); } catch {}
-    const problems = changeProblems(files, markers);
-    if (problems.length) return { status: 'refused', pr: number, reason: problems.join('; ') };
-    const tested = test ?? (d => sandboxedTest(d, { run, left, base: home }));
+    // What would be committed: the changed files, conflict markers, forbidden paths, Git metadata.
+    const inspect = () => {
+      const files = changedFiles(dir, run, left);
+      const changed = [...new Set([...files, ...conflicts])];
+      let markers = [];
+      const present = changed.filter(p => existsSync(join(dir, p)));
+      if (present.length) try { markers = g(['grep', '--no-index', '-l', '-E', '^(<<<<<<<|>>>>>>>)( |$)', '--', ...present], dir).split('\n').filter(Boolean); } catch {}
+      const problems = changeProblems(files, markers);
+      if (gitMeta(dir) !== meta) problems.push('cấu hình hoặc hook Git của bản clone bị đổi');
+      return { files, problems };
+    };
+    const before = inspect();
+    if (before.problems.length) return { status: 'refused', pr: number, reason: before.problems.join('; ') };
+    const tested = test ?? (d => sandboxedTest(d, { run: run === execFileSync ? groupExec : run, left, base: home }));
     try { tested(dir); } catch (error) {
       if (error instanceof DeadlineError) throw error;
       return { status: 'refused', pr: number, reason: `collab:test hỏng sau khi Codex sửa: ${clean(error.message, 200)}` };
     }
+    // Codex auto-3 on #894 (P1): a passing test could still add a workflow or touch the rule sheet.
+    // The commit is checked again after the test, and must be exactly what was checked before it.
+    const after = inspect();
+    const same = after.files.length === before.files.length && after.files.every(p => before.files.includes(p));
+    if (!same) after.problems.push(`collab:test đổi danh sách file: ${clean(after.files.filter(p => !before.files.includes(p)).join(', ') || 'mất file', 200)}`);
+    if (after.problems.length) return { status: 'refused', pr: number, reason: after.problems.join('; ') };
+    const files = after.files;
     g(['add', '-A'], dir);
     g(['-c', 'user.name=la-lanh-agent', '-c', 'user.email=la-lanh-agent@users.noreply.github.com', 'commit', '-q', '-m', commitMessage(pr, turn, pr.headRefOid)], dir);
     const head = g(['rev-parse', 'HEAD'], dir);
@@ -286,7 +372,8 @@ export function runFallbackFix(turn, { gh, run = execFileSync, exec = null, test
 // goes to Codex; below 95% a PR labelled `incident` stays with Claude.
 export const incidentLabel = 'incident';
 const isIncident = pr => (pr?.labels ?? []).some(l => (l.name ?? l) === incidentLabel);
-export function fallbackStep({ gh, mode, turns = [], prs = [], fix = runFallbackFix, left, log = () => {} }) {
+export function fallbackStep({ gh: ghIn, mode, turns = [], prs = [], fix = runFallbackFix, left, log = () => {} }) {
+  const gh = left ? (ghIn.withDeadline?.(left) ?? ghIn) : ghIn;
   if (mode !== 'fallback') {
     const held = prs.filter(p => (p.labels ?? []).some(l => (l.name ?? l) === holdLabel));
     for (const p of held) {
@@ -301,7 +388,8 @@ export function fallbackStep({ gh, mode, turns = [], prs = [], fix = runFallback
 }
 
 // Called by runMerge when the gate refuses in fallback: the label holds the PR in prTurn.
-export function holdForClaude(gh, number) {
+export function holdForClaude(ghIn, number, left = cutoffLeft()) {
+  const gh = ghIn.withDeadline?.(left) ?? ghIn;
   gh.raw(['label', 'create', holdLabel, '--repo', repo, '--color', 'C5DEF5', '--description', 'Chế độ chuyển sang Codex: chờ Claude hoặc owner', '--force']);
   gh.raw(['pr', 'edit', String(number), '--repo', repo, '--add-label', holdLabel]);
 }
