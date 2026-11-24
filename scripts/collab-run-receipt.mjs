@@ -44,8 +44,9 @@ export function auditReceiptResult(r) {
 // Persona night (Codex r5/r6 on #858): a night that stopped part-way is an error, and so is a night
 // whose Codex cross-check was started and left no scores (timeout, crash, unreadable answer), even
 // when `finish` then writes its report.
-export function personasReceiptResult({ failed = false, codexAttempt = null, codexScored = false } = {}) {
-  if (failed) return 'error';
+// codexInvalid (r7): scores were stored but do not cover every sampled item with a valid score.
+export function personasReceiptResult({ failed = false, codexAttempt = null, codexScored = false, codexInvalid = false } = {}) {
+  if (failed || codexInvalid) return 'error';
   return codexAttempt && (codexAttempt.error || !codexScored) ? 'error' : 'ok';
 }
 

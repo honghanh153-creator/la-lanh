@@ -407,6 +407,18 @@ export function codex(date, { run = execFileSync, now = vnNow, nowMs = Date.now 
   } finally { release(); }
 }
 
+// Codex r7 on #858: what is wrong with the stored Codex scores for tonight's sample (empty, partial,
+// out-of-range). null when no readable scores were stored; [] when every sampled item is scored.
+function codexScoreProblems(date) {
+  const dir = dayDir(date);
+  const scores = readMaybe(join(dir, 'codex-scores.json'));
+  if (scores === null) return null;
+  let sample;
+  try { sample = readFileSync(join(dir, 'codex-sample.jsonl'), 'utf8').split('\n'); } catch { return ['codex-sample.jsonl is missing']; }
+  if (!sample.some(l => l.trim())) return ['codex-sample.jsonl is empty'];
+  return checkJudgeOutput(sample, scores);
+}
+
 function codexComparison(date) {
   const codexScores = readMaybe(join(dayDir(date), 'codex-scores.json'));
   if (!Array.isArray(codexScores)) return null;
@@ -441,6 +453,7 @@ export function renderNightly({ state, cmp, leaks, codexCmp, judged, endMetrics 
   for (const r of cmp.rows) lines.push(`| ${r.group} | ${r.threshold} | ${r.start} (${word(r.startOk)}) | ${r.end} (${word(r.endOk)}) |`);
   lines.push('', '## Codex chấm đối chiếu', '');
   if (!codexCmp) lines.push('- Không chạy (không có nội dung mới, hoặc hết lượt Codex trong ngày).');
+  else if (codexCmp.invalid) lines.push(`- Codex trả lời thiếu hoặc sai (${codexCmp.invalid} lỗi): không dùng điểm này, đêm này ghi là lỗi.`);
   else if (!codexCmp.items) lines.push('- Codex đã chấm nhưng chưa có điểm Claude để so.');
   else lines.push(`- ${codexCmp.items} mục chọn trước theo hạt: Codex ${fmt2(codexCmp.codexMean)}, Claude ${fmt2(codexCmp.claudeMean)}, lệch trung bình ${fmt2(codexCmp.meanAbsDiff)}; lệch từ 2 điểm: ${codexCmp.farApart}.`);
   const load = state.runs ?? {};
@@ -485,7 +498,10 @@ function finishRun(date, state, { alert, gh, receipt, report, counts }) {
   const end = report(clone, join(dir, 'end'), personasPath, `end ${date}`);
   const { cmp, leaks, reasons } = safetyReasons(start, end, transcriptRows(dir, 'end'));
   const judged = { needed: end.understood.items_needed + start.understood.items_needed, scored: end.understood.items_scored + start.understood.items_scored };
-  const codexCmp = codexComparison(date);
+  const scoreProblems = codexScoreProblems(date);
+  const codexInvalid = (scoreProblems?.length ?? 0) > 0;
+  // Scores that fail the check are not compared: the report and the receipt both say so.
+  const codexCmp = codexInvalid ? { invalid: scoreProblems.length } : codexComparison(date);
   const out = join(reportRoot(), nextDay(date), 'personas');
   mkdirSync(out, { recursive: true });
   writeFileSync(join(out, 'report.md'), renderNightly({ state, cmp, leaks, codexCmp, judged, endMetrics: end }));
@@ -495,8 +511,9 @@ function finishRun(date, state, { alert, gh, receipt, report, counts }) {
   const raised = raiseNew(date, state, reasons, { alert, gh });
   writeState(date, state);
   // Research item 3 (owner 21.11): the run's receipt names the integration commit it measured. A
-  // Codex cross-check that was started and left no scores makes the night an error, not ok.
-  const result = personasReceiptResult({ codexAttempt: state.codexAttempt ?? null, codexScored: codexCmp !== null });
+  // Codex cross-check that was started and left no scores, or left scores that do not cover every
+  // sampled item with a valid score, makes the night an error, not ok.
+  const result = personasReceiptResult({ codexAttempt: state.codexAttempt ?? null, codexScored: scoreProblems !== null && !codexInvalid, codexInvalid });
   try { receipt({ kind: 'personas', result, sha: state.end, counts: { ...counts, safetyReasons: reasons.length } }); } catch {}
   return { status: 'finished', report: join(out, 'report.md'), alert: raised.raised.length > 0, reasons: raised.raised, allReasons: reasons, issue: raised.issue };
 }
