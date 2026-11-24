@@ -15,8 +15,8 @@ import { parseAyanamsa, parseHouseSystem, parseTradition } from "./insightConfig
 import "./insights.css";
 
 const traditionCopy: Record<Tradition, { label: string; detail: string }> = {
-  western: { label: "Tây phương", detail: "Tropical · nhà · góc chiếu" },
-  jyotish: { label: "Jyotish", detail: "Sidereal · nakshatra · drishti" },
+  western: { label: "Tây phương", detail: "Hoàng đạo theo mùa · nhà · góc chiếu" },
+  jyotish: { label: "Jyotish", detail: "Hoàng đạo theo chòm sao · nakshatra · drishti" },
 };
 
 export function InsightsPage() {
@@ -48,7 +48,7 @@ export function InsightsPage() {
       </header>
 
       <section className="insight-hero">
-        <p className="eyebrow"><Sparkle aria-hidden="true" weight="fill" /> Bản đọc Natal</p>
+        <p className="eyebrow"><Sparkle aria-hidden="true" weight="fill" /> Bản đọc lá số</p>
         <h1>Bạn có muốn<br />hiểu mình hơn?</h1>
         <p>Vì sao một kiểu chuyện hay chạm đúng bạn? Điều gì cứ quay lại, và bạn đang học cách phản ứng khác đi ở đâu?</p>
         <small>Chart không gây ra sự kiện và không viết sẵn số phận. Bản đọc nối các dữ kiện để bạn đối chiếu với đời thật.</small>
