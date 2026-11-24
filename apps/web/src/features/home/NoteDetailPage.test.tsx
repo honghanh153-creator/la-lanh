@@ -17,7 +17,9 @@ import {
   type DailyNote,
   type ReadingProjection,
 } from "../../shared/api/client";
+import { dailyReadOnlyKey } from "../../shared/hooks/useDailyActionView";
 import { clearCachedDailyNote } from "../../shared/storage/noteCache";
+import { FOLDED_ACTION_LABEL, READ_ONLY_TODAY, SHOW_ACTION_AGAIN } from "../../shared/ui/ReadingContent";
 import { NoteDetailPage } from "./NoteDetailPage";
 
 vi.mock("../../shared/api/client", async (original) => {
@@ -121,6 +123,31 @@ describe("NoteDetailPage rich reading", () => {
     expect(screen.getByRole("button", { name: "Xem việc nhẹ hơn" })).toBeInTheDocument();
   });
 
+  it("offers the slow action on a Căng day and keeps it from the note page (#701)", async () => {
+    const own = { action_key: "d".repeat(64), action: "Nhắn một người để hẹn lại lịch.", observation: "Bạn đã nhắn chưa?", permission: "Không hợp thì bỏ qua." };
+    const slow = { action_key: "f".repeat(64), action: "Đợi năm phút rồi mới gửi câu trả lời.", observation: "Bạn thấy người dịu hơn chưa?", permission: "Không hợp thì bỏ qua." };
+    const withSlow: DailyNote = {
+      ...note,
+      reading_projection: {
+        ...note.reading_projection,
+        active: { ...note.reading_projection.active, experiment: own, slow_action: { action: slow.action, weight: "slow", experiment: slow } },
+      },
+    };
+    vi.mocked(getDailyNote).mockResolvedValue(withSlow);
+    vi.mocked(getCurrentMood).mockResolvedValue({ id: "00000000-0000-4000-8000-000000000096", daily_note_id: note.id, mood: "Căng", checked_in_at: "2026-09-07T00:00:00Z" });
+    vi.mocked(chooseDailyExperiment).mockRejectedValue(new ApiProblem(503, "UNAVAILABLE", "Test rejection"));
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(<QueryClientProvider client={client}><MemoryRouter><NoteDetailPage /></MemoryRouter></QueryClientProvider>);
+
+    expect(await screen.findByText(slow.action)).toBeInTheDocument();
+    expect(screen.queryByText(own.action)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /Giữ để thử hôm nay/ }));
+    await waitFor(() => expect(chooseDailyExperiment).toHaveBeenLastCalledWith(note.id, expect.objectContaining({ action_key: slow.action_key })));
+    await userEvent.click(screen.getByRole("button", { name: "Xem việc ban đầu" }));
+    expect(screen.getByText(own.action)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Xem việc chậm lại" })).toBeInTheDocument();
+  });
+
   it("keeps the card's own action for another mood and does not read the mood without a lighter action (#627)", async () => {
     const light = { action_key: "e".repeat(64), action: "Uống một ly nước rồi ngồi yên hai phút.", observation: "Bạn thấy người dịu hơn chưa?", permission: "Không hợp thì bỏ qua." };
     const withLighter: DailyNote = {
@@ -146,6 +173,25 @@ describe("NoteDetailPage rich reading", () => {
     render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><MemoryRouter><NoteDetailPage /></MemoryRouter></QueryClientProvider>);
     expect(await screen.findByText(note.reading_projection.active.sections.micro_action)).toBeInTheDocument();
     expect(getCurrentMood).not.toHaveBeenCalled();
+  });
+
+  it("shows the action box folded when it was folded on Home, and opens it again here (#700)", async () => {
+    vi.mocked(getDailyNote).mockResolvedValue(note);
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    // What Home leaves in memory after "Hôm nay chỉ muốn đọc".
+    client.setQueryData(dailyReadOnlyKey(note.id), true);
+    render(<QueryClientProvider client={client}><MemoryRouter><NoteDetailPage /></MemoryRouter></QueryClientProvider>);
+
+    await screen.findByRole("heading", { name: "Hook từ active revision" });
+    const folded = screen.getByRole("region", { name: FOLDED_ACTION_LABEL });
+    expect(folded.children).toHaveLength(1);
+    expect(screen.queryByRole("heading", { name: "Thử một việc nhỏ" })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: SHOW_ACTION_AGAIN }));
+    expect(await screen.findByRole("heading", { name: "Thử một việc nhỏ" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: READ_ONLY_TODAY })).toBeInTheDocument();
+    expect(client.getQueryData(dailyReadOnlyKey(note.id))).toBe(false);
+    expect(chooseDailyExperiment).not.toHaveBeenCalled();
   });
 
   it("does not display the cached auto note when the selected context cannot be fetched", async () => {
