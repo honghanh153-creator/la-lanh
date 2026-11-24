@@ -1,7 +1,7 @@
 """Hợp gu share-card links (owner AL1, 20.11.2026; direction C, first half).
 
-Revision ID: 20261120_0043
-Revises: 20261111_0042
+Revision ID: 20261120_0044
+Revises: 20261120_0043
 
 A card link shows a frozen, encrypted snapshot of a Hợp gu result (tier name, one line, the
 relationship and at most an initial): never a birth date or a real name. It lives no longer than
@@ -14,8 +14,8 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "20261120_0043"
-down_revision: str | Sequence[str] | None = "20261111_0042"
+revision: str = "20261120_0044"
+down_revision: str | Sequence[str] | None = "20261120_0043"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
