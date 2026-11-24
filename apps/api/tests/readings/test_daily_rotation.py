@@ -32,6 +32,7 @@ from app.domains.readings.daily_rotation import (
     staircase_slots,
     top_k_slot,
 )
+from app.domains.readings.daily_topics import block_start
 from app.domains.readings.models import (
     DailyVariety,
     ReadingPlan,
@@ -829,3 +830,132 @@ async def test_census_no_situation_three_days_in_a_row_on_actual_output() -> Non
     assert moved > 0 and moved_then_changed > 0  # the guard and changing pools are exercised
     # `exempt` counts third days whose one-entry pool made moving impossible (6 of 1440 days
     # in this census at the time of writing); each was verified above.
+
+
+# ------------------------------------------------------------- topic anti-repeat (plan 2026-11-21)
+
+
+def _topic_service(repository: MemoryReadingRepository) -> ReadingApplicationService:
+    return ReadingApplicationService(
+        repository,
+        NatalChartEngine(),
+        daily_variety_key=KEY,
+        daily_variety_from=START,
+        daily_topic_schedule_from=START,
+    )
+
+
+async def _served_topic(snapshot: Any, day: date, *, schedule: bool) -> tuple[str, Any]:
+    """(served situation, served candidate) for ``day`` opened with nothing stored before it."""
+
+    repository = MemoryReadingRepository()
+    service = _topic_service(repository) if schedule else _service(repository, START)
+    candidate = _served(repository, await _open(service, snapshot, day))
+    return candidate.semantic_blueprint.mechanism_key.removeprefix("psychology:"), candidate
+
+
+def _repeats_within(days: list[str], window: int) -> int:
+    return sum(1 for i, key in enumerate(days) if key in days[max(0, i - window + 1) : i])
+
+
+async def test_topic_history_is_exactly_what_the_earlier_days_of_the_block_served() -> None:
+    """No history is stored, yet each day's recomputed history equals the situations actually
+    served on the earlier days of its block, and recomputing a day gives what it served."""
+
+    for snapshot in _snapshots(3):
+        repository = MemoryReadingRepository()
+        service = _topic_service(repository)
+        served: dict[date, str] = {}
+        for offset in range(26):
+            day = START + timedelta(days=offset)
+            projection = await _open(service, snapshot, day)
+            issue = _served(repository, projection).semantic_blueprint.mechanism_key
+            served[day] = issue.removeprefix("psychology:")
+            plan = _stored_plan(repository, projection.active.revision_id)
+            assert plan.daily_variety is not None
+            history = plan.daily_variety.topic_history
+            assert history is not None and plan.daily_variety.recent_issue_keys == ()
+            assert len(history) <= 6
+            # Exactly the earlier days of this block (at most six) as they were served.
+            index = day_index(day)
+            in_block = min(index - block_start(plan.daily_variety.seed, index), offset, 6)
+            earlier = [served[day - timedelta(days=n)] for n in range(in_block, 0, -1)]
+            assert list(history) == earlier
+            assert served[day] == await service._computed_daily_issue(
+                OWNER_A, snapshot.result, day, None, topic_history=history
+            )
+
+
+async def test_topic_schedule_halves_weekly_topic_repeats_on_actual_output() -> None:
+    """Census on what is served, each day opened with nothing stored. A chart supports only two
+    or three situations on most days, so a seven-day window cannot be kept clear; what the
+    schedule must do is stop the short loop: repeats within three days drop by at least half
+    (31% to 6% of days at the time of writing) and repeats within a week drop too (68% to 56%)."""
+
+    old_days: list[list[str]] = []
+    new_days: list[list[str]] = []
+    for snapshot in _snapshots(12):
+        old: list[str] = []
+        new: list[str] = []
+        for offset in range(28):
+            day = START + timedelta(days=offset)
+            old.append((await _served_topic(snapshot, day, schedule=False))[0])
+            new.append((await _served_topic(snapshot, day, schedule=True))[0])
+        old_days.append(old)
+        new_days.append(new)
+    old_short = sum(_repeats_within(days, 3) for days in old_days)
+    new_short = sum(_repeats_within(days, 3) for days in new_days)
+    assert old_short > 0 and new_short * 2 <= old_short, (old_short, new_short)
+    old_week = sum(_repeats_within(days, 7) for days in old_days)
+    new_week = sum(_repeats_within(days, 7) for days in new_days)
+    assert new_week < old_week, (old_week, new_week)
+    # No fewer different situations over the four weeks.
+    assert sum(len(set(d)) for d in new_days) >= sum(len(set(d)) for d in old_days)
+
+
+async def test_date_only_topics_come_back_only_after_the_whole_pool() -> None:
+    snapshot = _date_only_snapshot(GUEST, OWNER_A)
+    served = [
+        await _served_topic(snapshot, START + timedelta(days=offset), schedule=True)
+        for offset in range(24)
+    ]
+    topics = [issue for issue, _ in served]
+    size = len(set(topics))
+    assert size >= 2
+    for i in range(size, len(topics)):
+        assert topics[i] == topics[i - size]
+    assert _repeats_within(topics, size) == 0
+    # Consecutive appearances of one situation still change headline (per-appearance order).
+    by_topic: dict[str, list[str]] = {}
+    for issue, candidate in served:
+        by_topic.setdefault(issue, []).append(candidate.hook)
+    assert all(a != b for hooks in by_topic.values() for a, b in pairwise(hooks))
+
+
+def test_plans_without_a_topic_history_keep_their_hash_and_identity() -> None:
+    variety = _variety(OWNER_A, START)
+    assert variety.topic_history is None
+    assert "topic_history" not in variety.model_dump(mode="json")
+    assert "topic_history" not in variety.model_dump_json()
+    with_history = variety.model_copy(update={"topic_history": ("quick-reply",)})
+    assert with_history.model_dump(mode="json")["topic_history"] == ["quick-reply"]
+
+
+async def test_topic_schedule_starts_on_its_own_date() -> None:
+    snapshot = _snapshots(1)[0]
+    repository = MemoryReadingRepository()
+    service = ReadingApplicationService(
+        repository,
+        NatalChartEngine(),
+        daily_variety_key=KEY,
+        daily_variety_from=START,
+        daily_topic_schedule_from=START + timedelta(days=3),
+    )
+    before = await _open(service, snapshot, START + timedelta(days=2))
+    after = await _open(service, snapshot, START + timedelta(days=3))
+    plan_before = _stored_plan(repository, before.active.revision_id)
+    plan_after = _stored_plan(repository, after.active.revision_id)
+    assert plan_before.daily_variety is not None and plan_after.daily_variety is not None
+    assert plan_before.daily_variety.topic_history is None
+    # The first scheduled day has no earlier scheduled day in its block.
+    assert plan_after.daily_variety.topic_history == ()
