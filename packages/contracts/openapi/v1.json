@@ -3802,8 +3802,12 @@
             ]
           },
           "weight": {
-            "const": "light",
             "default": "light",
+            "enum": [
+              "light",
+              "slow",
+              "clear"
+            ],
             "title": "Weight",
             "type": "string"
           }
@@ -5759,6 +5763,16 @@
         "additionalProperties": false,
         "description": "The single private response contract shared by Daily and Insights.",
         "properties": {
+          "clear_action": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LighterActionProjection"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "created_at": {
             "format": "date-time",
             "title": "Created At",
@@ -5807,6 +5821,16 @@
           },
           "sections": {
             "$ref": "#/components/schemas/ReadingSectionsProjection"
+          },
+          "slow_action": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LighterActionProjection"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "source": {
             "$ref": "#/components/schemas/ReadingRevisionSource"
