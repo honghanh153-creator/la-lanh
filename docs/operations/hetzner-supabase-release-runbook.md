@@ -5,7 +5,16 @@ operator or Codex session should be able to use it without relying on chat histo
 status checklist is
 `docs/plans/2026-09-26-hetzner-supabase-public-beta-deployment-plan.md`.
 
-## Current production — 2026-11-15 (hotfix)
+## Current production — 2026-11-20
+
+Release `577a5d0b7a98` is live (`main` = `577a5d0b7a9875d0e66c9a780e6f4db5cb77b68c`, #769: `collab/integration`
+`059d3c35` merged with `main`; tree identical to `059d3c35`; image `sha256:a9eb4b1fcb73…`; Alembic head unchanged at
+`20261111_0042`). Weekly release approved by the owner (item AH, 20.11). Staging runs the same image and now has the
+staging DB TLS renewal timer. `LA_LANH_KEEP_ACTION_ALL_PROFILES` is not set (#740 not in this release). Rollback
+anchor: `la-lanh:56523ccb7de5` (same schema; no lighter-action row can exist yet). Receipt:
+[production-release-2026-11-20](../reviews/production-release-2026-11-20/receipt.md).
+
+## Previous production — 2026-11-15 (hotfix)
 
 Release `56523ccb7de5` is live (`main` = `56523ccb7de5a18df7e5aa9510e27a48e77d2794`, #549: only the #546 fix on top
 of `f6246ed2fb7a`; image `sha256:f42a945ee43e…`; Alembic head unchanged at `20261111_0042`). "Đọc bản mới" opens
