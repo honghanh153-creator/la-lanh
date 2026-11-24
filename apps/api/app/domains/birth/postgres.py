@@ -26,6 +26,7 @@ from app.domains.erasure_journal.journal import ErasureJournal, ErasureKind
 from app.domains.experiments.tables import DailyExperimentRow
 from app.domains.guest.models import OnboardingStatus
 from app.domains.guest.tables import GuestSessionRow
+from app.domains.month_answer.tables import SavedMonthAnswerRow
 from app.domains.radar.tables import RadarRequestRow
 from app.domains.readings.tables import ReadingPlanRow, ReadingProjectionRow
 from app.domains.saved.tables import SavedNoteRow
@@ -528,9 +529,12 @@ async def _replace_subject(session: AsyncSession, profile: BirthProfileRow) -> N
 
 
 async def delete_copies(session: AsyncSession, guest_id: UUID) -> None:
-    """Every saved note and share link the guest owns, attached to a source or not."""
+    """Every saved note, saved month answer and share link the guest owns."""
 
     await session.execute(delete(SavedNoteRow).where(SavedNoteRow.guest_id == guest_id))
+    await session.execute(
+        delete(SavedMonthAnswerRow).where(SavedMonthAnswerRow.guest_id == guest_id)
+    )
     await session.execute(delete(ShareArtifactRow).where(ShareArtifactRow.guest_id == guest_id))
 
 

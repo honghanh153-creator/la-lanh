@@ -840,6 +840,112 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/month/answers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Month Answer */
+        post: operations["month_answer_v1_month_answers_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/month/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Month Overview */
+        get: operations["month_overview_v1_month_overview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/month/saved": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Saved Month Answers */
+        get: operations["list_saved_month_answers_v1_month_saved_get"];
+        put?: never;
+        /**
+         * Save Month Answer
+         * @description Explicit "Lưu" only. The answer is recomputed server-side; the client sends no text.
+         */
+        post: operations["save_month_answer_v1_month_saved_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/month/saved/{saved_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Saved Month Answer */
+        delete: operations["delete_saved_month_answer_v1_month_saved__saved_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/month/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Month Status */
+        get: operations["month_status_v1_month_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/month/window": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Month Window */
+        get: operations["month_window_v1_month_window_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/public/la-chung/receipt/withdraw": {
         parameters: {
             query?: never;
@@ -2156,6 +2262,8 @@ export interface components {
             radar_received: components["schemas"]["ExportRadarReceived"][];
             /** Radar Sent */
             radar_sent: components["schemas"]["ExportRadarSent"][];
+            /** Saved Month Answers */
+            saved_month_answers?: components["schemas"]["ExportSavedMonthAnswer"][];
             /** Saved Notes */
             saved_notes: components["schemas"]["ExportSavedNote"][];
             /** Share Links */
@@ -2733,6 +2841,39 @@ export interface components {
             /** Transit */
             transit: string | null;
         };
+        /**
+         * ExportSavedMonthAnswer
+         * @description A month answer the person saved with "Lưu" (US-25).
+         */
+        ExportSavedMonthAnswer: {
+            /** Act */
+            act: string | null;
+            /** Basis */
+            basis: string | null;
+            /** Basis Detail */
+            basis_detail: string | null;
+            /** Disclaimer */
+            disclaimer: string | null;
+            /** Month */
+            month: string;
+            /** Question */
+            question: string | null;
+            /**
+             * Saved At
+             * Format: date-time
+             */
+            saved_at: string;
+            /** Say */
+            say: string | null;
+            /** Theme */
+            theme: string | null;
+            /** Tip */
+            tip: string | null;
+            /** Topic */
+            topic: string;
+            /** Topic Label */
+            topic_label: string | null;
+        };
         /** ExportSavedNote */
         ExportSavedNote: {
             /** Body */
@@ -3281,6 +3422,110 @@ export interface components {
             verification_reason_code: string | null;
             verification_status: components["schemas"]["VerificationStatus"];
         };
+        /** MonthAnswerRequest */
+        MonthAnswerRequest: {
+            preset?: components["schemas"]["PresetId"] | null;
+            topic: components["schemas"]["Topic"];
+        };
+        /** MonthAnswerResponse */
+        MonthAnswerResponse: {
+            answer: components["schemas"]["MonthAnswerView"];
+            /**
+             * Status
+             * @constant
+             */
+            status: "answered";
+        };
+        /** MonthAnswerView */
+        MonthAnswerView: {
+            /** Act */
+            act: string;
+            /** Answer Key */
+            answer_key: string;
+            basis: components["schemas"]["MonthBasis"];
+            /** Disclaimer */
+            disclaimer: string;
+            /** Month */
+            month: string;
+            preset: components["schemas"]["PresetId"] | null;
+            /** Question */
+            question: string | null;
+            /** Say */
+            say: string;
+            /** Theme */
+            theme: string;
+            /** Tip */
+            tip: string | null;
+            topic: components["schemas"]["Topic"];
+            /** Topic Label */
+            topic_label: string;
+        };
+        /** MonthBasis */
+        MonthBasis: {
+            /** Detail */
+            detail: string;
+            /** Line */
+            line: string;
+        };
+        /** MonthOverviewItem */
+        MonthOverviewItem: {
+            /**
+             * Area
+             * @enum {string}
+             */
+            area: "work" | "love" | "money" | "self";
+            /** Label */
+            label: string;
+            /** Line */
+            line: string;
+            /** Try Text */
+            try_text: string;
+        };
+        /** MonthOverviewResponse */
+        MonthOverviewResponse: {
+            /** Items */
+            items: components["schemas"]["MonthOverviewItem"][];
+            /** Month */
+            month: string;
+        };
+        /** MonthPresetView */
+        MonthPresetView: {
+            id: components["schemas"]["PresetId"];
+            /** Text */
+            text: string;
+            topic: components["schemas"]["Topic"];
+        };
+        /** MonthSaveRequest */
+        MonthSaveRequest: {
+            /** Answer Key */
+            answer_key: string;
+            topic: components["schemas"]["Topic"];
+        };
+        /** MonthStatusResponse */
+        MonthStatusResponse: {
+            /** Available */
+            available: boolean;
+            /** Month */
+            month: string;
+            /**
+             * Presets
+             * @default []
+             */
+            presets: components["schemas"]["MonthPresetView"][];
+        };
+        /** MonthWindowResponse */
+        MonthWindowResponse: {
+            /** Basis */
+            basis?: string | null;
+            /** End */
+            end?: string | null;
+            /** Found */
+            found: boolean;
+            /** Line */
+            line?: string | null;
+            /** Start */
+            start?: string | null;
+        };
         /** MoodRequest */
         MoodRequest: {
             mood: components["schemas"]["MoodValue"];
@@ -3445,6 +3690,11 @@ export interface components {
             /** Active */
             active: boolean;
         };
+        /**
+         * PresetId
+         * @enum {string}
+         */
+        PresetId: "work.hard_talk" | "work.too_much" | "work.shifts" | "money.month_end" | "money.ask_back" | "money.say_no" | "love.closer" | "love.say_tired" | "love.far" | "family.parents_ask" | "family.my_path" | "family.compare" | "study.many_exams" | "study.exam_energy" | "study.start_project" | "mind.homesick" | "mind.sleep" | "mind.heavy";
         /** ProblemResponse */
         ProblemResponse: {
             /** Code */
@@ -4187,6 +4437,27 @@ export interface components {
             /** Watermark */
             watermark: string;
         };
+        /** SavedMonthAnswerList */
+        SavedMonthAnswerList: {
+            /** Items */
+            items: components["schemas"]["SavedMonthAnswerView"][];
+        };
+        /** SavedMonthAnswerView */
+        SavedMonthAnswerView: {
+            answer: components["schemas"]["MonthAnswerView"];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Month */
+            month: string;
+            /**
+             * Saved At
+             * Format: date-time
+             */
+            saved_at: string;
+        };
         /** SavedNoteRequest */
         SavedNoteRequest: {
             /** Revision Id */
@@ -4645,6 +4916,11 @@ export interface components {
          * @enum {string}
          */
         TimePrecision: "exact" | "approximate" | "unknown";
+        /**
+         * Topic
+         * @enum {string}
+         */
+        Topic: "work" | "money" | "love" | "family" | "study" | "mind";
         /**
          * Tradition
          * @enum {string}
@@ -8716,6 +8992,373 @@ export interface operations {
             };
             /** @description Conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    month_answer_v1_month_answers_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MonthAnswerRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonthAnswerResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Request input was rejected */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    month_overview_v1_month_overview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonthOverviewResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_saved_month_answers_v1_month_saved_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedMonthAnswerList"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    save_month_answer_v1_month_saved_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MonthSaveRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedMonthAnswerView"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Request input was rejected */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    delete_saved_month_answer_v1_month_saved__saved_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path: {
+                saved_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Request input was rejected */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    month_status_v1_month_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonthStatusResponse"];
+                };
+            };
+        };
+    };
+    month_window_v1_month_window_get: {
+        parameters: {
+            query: {
+                topic: components["schemas"]["Topic"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonthWindowResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Request input was rejected */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -1,7 +1,7 @@
 """Hợp gu "Hai bạn tuần này": the invited person keeps the pair (owner AR1, 21.11.2026).
 
-Revision ID: 20261121_0045
-Revises: 20261120_0044
+Revision ID: 20261121_0046
+Revises: 20261120_0045
 
 A pair is kept only when the invited person ticks their own box on the link page. Two columns
 let that person delete it again for its whole 90 days:
@@ -19,8 +19,8 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "20261121_0045"
-down_revision: str | Sequence[str] | None = "20261120_0044"
+revision: str = "20261121_0046"
+down_revision: str | Sequence[str] | None = "20261120_0045"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

@@ -73,6 +73,8 @@ function answer(key: string): { status: number; json: unknown } | null {
     // Hôm nay asks whether "Hai bạn tuần này" is on (Hợp gu C); off here.
     case "GET /v1/public/radar/consent-options":
       return { status: 200, json: { invite_first: false, sentences: {}, authorized_input_version: "radar-authorized-input-v1", date_consent_version: "radar-pair-date-v1", card_links: false, weekly: false, weekly_sentences: {} } };
+    case "GET /v1/month/status":
+      return { status: 200, json: { available: false, month: "2026-09", presets: [] } };
     case "GET /v1/birth-profile/supplement":
       return { status: 200, json: { profile_id: "profile-test", profile_level: 3, birth_time_mode: "exact", time_precision: "exact", place_display_name: null, timezone_id: null, approx_window: null } };
     default:

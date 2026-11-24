@@ -54,6 +54,8 @@ class ErasureKind(StrEnum):
     # Account device sign-out (logout, revoke one, revoke others), keyed by the device row id,
     # empty scope. Replay keeps the device revoked, so a restore never revives its session (#206).
     DEVICE_REVOKED = "device_revoked"
+    # US-25: one saved month answer deleted by its owner, keyed by the row's own random id.
+    SAVED_MONTH_ANSWER_REMOVED = "saved_month_answer_removed"
 
 
 class ErasureJournal:
