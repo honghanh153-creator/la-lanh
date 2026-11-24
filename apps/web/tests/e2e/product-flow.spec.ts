@@ -200,7 +200,7 @@ test("guest can reveal, save mood, and create a share card", async ({ page }) =>
 
   await page.goto("/card");
   await expect(page.getByRole("heading", { name: "Đừng biến mình thành deadline." })).toBeVisible();
-  await page.getByRole("button", { name: /safe link/i }).click();
+  await page.getByRole("button", { name: /Tạo link riêng/i }).click();
   await expect(page.getByRole("status")).toContainText("Không kèm ngày/giờ/nơi sinh");
   expect(sharedRevisionId).toBe("00000000-0000-4000-8000-000000000010");
 });
@@ -445,7 +445,7 @@ test("guest can add exact birth time and place only after explicit deep-data con
 
   await expect(page).toHaveURL(/\/aura-cutover$/);
   await expect(page.getByRole("heading", { name: "Aura không tự thay Note của bạn." })).toBeFocused();
-  await expect(page.getByText("Các House và lĩnh vực đời sống")).toBeVisible();
+  await expect(page.getByText("Các nhà và lĩnh vực đời sống")).toBeVisible();
   await page.getByRole("button", { name: "Dùng Aura hôm nay" }).click();
 
   await expect(page).toHaveURL(/\/home$/);
