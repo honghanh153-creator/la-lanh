@@ -471,6 +471,44 @@ def lighter_action_for(revision_id: UUID, mechanism_key: str | None = None) -> s
     return text
 
 
+def mood_action_for(kind: str, revision_id: UUID, mechanism_key: str | None) -> str | None:
+    """The ``kind`` ("slow" or "clear") action offered with a card (#701); ``None`` while unserved.
+
+    Only a card of a known Daily issue offers one: its issue's fixed slot, served once approved
+    with the digest the catalog names, within the length bound and within ten minutes."""
+
+    issue_key = issue_key_of(mechanism_key)
+    if issue_key is None:
+        return None
+    slots = mood_slots(kind, issue_key)
+    if not slots:
+        return None
+    seed = sha256(f"mood-{kind}-v1\x1f{issue_key}\x1f{revision_id}".encode()).digest()
+    entry_id, digest, _shape = slots[int.from_bytes(seed[:8], "big") % len(slots)]
+    text = approved_copy(entry_id)
+    if (
+        text is None
+        or copy_digest(text) != digest
+        or len(text) > LIGHTER_ACTION_MAX_CHARS
+        or not within_ten_minutes(text)
+    ):
+        return None
+    return text
+
+
+def mood_action_projection(
+    kind: str, revision_id: UUID, *, keepable: bool, mechanism_key: str | None = None
+) -> LighterActionProjection | None:
+    action = mood_action_for(kind, revision_id, mechanism_key)
+    if action is None:
+        return None
+    return LighterActionProjection(
+        action=action,
+        weight="slow" if kind == "slow" else "clear",
+        experiment=lighter_experiment_for(revision_id, action) if keepable else None,
+    )
+
+
 def lighter_experiment_for(revision_id: UUID, action: str) -> ExperimentProjection:
     """The keepable form of a lighter action: its own key, the generic observation wording."""
 

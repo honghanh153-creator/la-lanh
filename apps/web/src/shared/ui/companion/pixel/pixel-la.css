@@ -1,0 +1,22 @@
+.pixel-la {
+  display: inline-grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 16px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.pixel-la svg {
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+
+.pixel-la:focus-visible {
+  outline: 3px solid #dfff4f;
+  outline-offset: 3px;
+}

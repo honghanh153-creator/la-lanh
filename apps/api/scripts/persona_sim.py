@@ -6,7 +6,8 @@ fresh local SQLite file per worker: synthetic data only, never production, no pr
 Daily API tests pin their clock (tests/daily/conftest.py). The web layer's mood reaction is
 read from the web catalog file the Home screen imports, so "what the persona sees" is the API
 note plus that line. The small action is the one the web would show after the mood is saved
-(``shown_action``): on a "Đuối" day that is the lighter action when the API offers one.
+(``shown_action``): on a "Đuối" day that is the lighter action when the API offers one, on a
+"Căng" day the slow one, on a "Lạc trôi" day one clear step (#701).
 
     uv run --directory apps/api python -m scripts.persona_sim --out ../../qa/personas/runs/<name>
 
@@ -89,6 +90,13 @@ def _client(db_url: str) -> Any:
             guest_cookie_name="la_lanh_guest",
             guest_cookie_secure=False,
             daily_variety_from=PRODUCTION_DAILY_VARIETY_FROM,
+            # Off as in production; PERSONA_SIM_TOPIC_SCHEDULE_FROM=YYYY-MM-DD measures the topic
+            # anti-repeat (plan 2026-11-21) before it is switched on.
+            daily_topic_schedule_from=(
+                date.fromisoformat(os.environ["PERSONA_SIM_TOPIC_SCHEDULE_FROM"])
+                if os.environ.get("PERSONA_SIM_TOPIC_SCHEDULE_FROM")
+                else None
+            ),
         )
     )
     client = TestClient(app, base_url=ORIGIN)
@@ -103,35 +111,49 @@ def _section(note: dict[str, Any], name: str) -> str | None:
     return value if isinstance(value, str) else None
 
 
-def shown_action(active: dict[str, Any], saved_mood: str | None) -> dict[str, Any]:
-    """The small action on the persona's screen, chosen the way the web chooses it (#627).
+# The saved mood's offer, as ``MOOD_ALTERNATIVES`` in useDailyActionView.ts (#627, #701).
+MOOD_ALTERNATIVES: dict[str, str] = {
+    "Đuối": "lighter_action",
+    "Căng": "slow_action",
+    "Lạc trôi": "clear_action",
+}
 
-    Same rule as ``useDailyActionView.ts`` / ``HomePage.tsx``: the lighter action is shown only
-    when the reading carries one and the mood the server confirmed for this note is "Đuối". A
-    mood that was not saved never changes the action. The persona does not press the switch.
-    The kept action is the one on screen (``NoteDetailPage.tsx``), so its experiment comes back
-    with it; a lighter action without one cannot be kept.
+
+def shown_action(active: dict[str, Any], saved_mood: str | None) -> dict[str, Any]:
+    """The small action on the persona's screen, chosen the way the web chooses it (#627, #701).
+
+    Same rule as ``useDailyActionView.ts`` / ``HomePage.tsx``: the saved mood's offer is shown
+    only when the reading carries it and the server confirmed that mood for this note: "Đuối"
+    the lighter action, "Căng" the slow one, "Lạc trôi" one clear step. Other moods, and a mood
+    that was not saved, never change the action. The persona does not press the switch. The kept
+    action is the one on screen (``NoteDetailPage.tsx``), so its experiment comes back with it;
+    an offer without one cannot be kept.
+
+    ``lighter_offered`` is true when the reading carries any of the three offers (the transcript
+    keeps the old key, so runs without approved offers keep the baseline row shape), and
+    ``lighter_shown`` when the saved mood's offer is the one on screen.
     """
 
-    from scripts.persona_metrics import LOW_MOOD
-
     experiment = active.get("experiment") or None
-    lighter = active.get("lighter_action") or None
-    sections = active.get("sections") or {}
-    own = sections.get("micro_action")
-    if lighter is not None and saved_mood == LOW_MOOD:
+    offers = {field: active.get(field) or None for field in MOOD_ALTERNATIVES.values()}
+    field = MOOD_ALTERNATIVES.get(saved_mood or "")
+    shown = offers.get(field) if field else None
+    offered = any(offer is not None for offer in offers.values())
+    if shown is not None:
         return {
-            "action": lighter.get("action"),
-            "weight": lighter.get("weight"),
-            "experiment": lighter.get("experiment") or None,
+            "action": shown.get("action"),
+            "weight": shown.get("weight"),
+            "experiment": shown.get("experiment") or None,
             "lighter_offered": True,
             "lighter_shown": True,
         }
+    sections = active.get("sections") or {}
+    own = sections.get("micro_action")
     return {
         "action": (own if isinstance(own, str) else None) or (experiment or {}).get("action"),
         "weight": (experiment or {}).get("weight") or active.get("action_weight"),
         "experiment": experiment,
-        "lighter_offered": lighter is not None,
+        "lighter_offered": offered,
         "lighter_shown": False,
     }
 
