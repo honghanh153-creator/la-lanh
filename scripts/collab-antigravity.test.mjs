@@ -178,3 +178,35 @@ test('Codex r1 on #894 (P1): a diff longer than the brief is not sent to Antigra
   postSecond({ gh: s.gh, number: 901, reviewer: 'Claude', verdict: 'APPROVE', head: SHA, notes: 'Kết luận: APPROVE\nĐã đọc đủ diff' });
   assert.equal(secondReviewProblem(pr(s.state)), null, 'Claude reads the full diff and may approve');
 });
+
+test('Codex auto-3 on #899 (P1): with two ready PRs, the one not yet critiqued is held too, until its own critique; a stopped app holds nothing', async () => {
+  const { criticPending, answerLimitMs } = await import('./collab-antigravity.mjs');
+  const ready = (n, head) => ({ number: n, title: 'ops: y', headRefOid: head, comments: [], labels: [], author: { login: ownerLogin }, isCrossRepository: false, files: [{ path: 'scripts/b.mjs', additions: 2 }] });
+  const a = ready(902, 'b'.repeat(40));
+  const b = ready(904, 'c'.repeat(40));
+  const turns = [{ number: 904, turn: 'codex-review' }, { number: 902, turn: 'merge' }];
+  const home = mkdtempSync(join(tmpdir(), 'ag-queue-'));
+  const started = [];
+  const gh = { raw: () => 'diff --git a/x b/x\n+y', comment: (k, n, body) => `https://github.com/o/r/pull/${n}#issuecomment-1\n` };
+  const step = (nowMs, answers = []) => antigravityStep({ gh, prs: [a, b], turns, home, nowMs, start: (brief, title) => { started.push(title); return `conv-${started.length}`; }, steps: () => answers });
+  const at = 5_000_000;
+  assert.deepEqual(step(at), { status: 'started', pr: 902 });
+  // 904 is queued behind 902: the merge gate holds both heads.
+  assert.match(criticPending(a, { home, nowMs: at + 60000 }), /đang phản biện/);
+  assert.match(criticPending(b, { home, nowMs: at + 60000 }), /đang xếp hàng/);
+  assert.ok(mergeGate({ ...b, comments: [] }, { disputes: {}, critic: p => criticPending(p, { home, nowMs: at + 60000 }) }).reasons.some(r => /đang xếp hàng/.test(r)));
+  // While 902's critique is open, 904 stays held (no second conversation).
+  assert.deepEqual(step(at + 120000, [user, reply('Kết', 'CORTEX_STEP_STATUS_GENERATING')]), { status: 'waiting', pr: 902 });
+  assert.match(criticPending(b, { home, nowMs: at + 180000 }), /đang xếp hàng/);
+  assert.equal(started.length, 1);
+  // A moved head is not held by its old queue entry.
+  assert.equal(criticPending({ ...b, headRefOid: 'e'.repeat(40) }, { home, nowMs: at + 180000 }), null);
+  // The app stops answering: 20 minutes after its last answer the queue holds nothing.
+  assert.equal(criticPending(b, { home, nowMs: at + 120000 + answerLimitMs + 1 }), null);
+
+  // An app that was never reached (start fails) holds no queued PR.
+  const cold = mkdtempSync(join(tmpdir(), 'ag-cold-'));
+  assert.throws(() => antigravityStep({ gh, prs: [a, b], turns, home: cold, nowMs: at, start: () => { throw new Error('Antigravity chưa chạy'); }, steps: () => [] }), /chưa chạy/);
+  assert.equal(criticPending(a, { home: cold, nowMs: at + 1000 }), null);
+  assert.equal(criticPending(b, { home: cold, nowMs: at + 1000 }), null);
+});

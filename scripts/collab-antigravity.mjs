@@ -23,6 +23,9 @@ import { isMain } from './is-main.mjs';
 export const reviewer = 'Antigravity';
 export const answerLimitMs = 20 * 60000;
 export const statePath = (home = stateDir) => join(home, 'state', 'antigravity-reviews.json');
+// When the app last started or answered a critique (ms). Queued PRs are held only while it answers.
+export const alivePath = (home = stateDir) => join(home, 'state', 'antigravity-alive.json');
+const markAlive = (home, nowMs) => writeJson(alivePath(home), { at: nowMs });
 const appHome = (user = homedir()) => join(user, '.gemini', 'antigravity');
 const textOnly = 'Chỉ đọc và trả lời bằng chữ. Không chạy lệnh, không mở hay sửa file, không dùng trình duyệt hay công cụ nào: câu trả lời có dùng công cụ sẽ bị bỏ.';
 
@@ -58,9 +61,17 @@ export function secondTargets(prs = [], turns = []) {
 
 // Codex r1 on #899 (P1): a critique started for the live head holds the merge until it is read, or
 // until its 20 minutes pass (a stopped app never holds a PR for longer). A diff too long to send holds nothing.
+// Codex auto-3 on #899 (P1): every PR waiting for a critique is queued with its head, so a second
+// ready PR is held until its own critique, not only the one under way. A queue holds only while the app
+// answers: 20 minutes after its last start or answer (app stopped or never reached), nothing is held.
 export function criticPending(pr, { home = stateDir, nowMs = Date.now() } = {}) {
   const job = readJson(statePath(home), {})[String(pr?.number)];
-  if (!job || job.tooLong || job.head !== pr.headRefOid || nowMs - job.at > answerLimitMs) return null;
+  if (!job || job.tooLong || job.head !== pr.headRefOid) return null;
+  if (job.queued) {
+    const alive = readJson(alivePath(home), {}).at;
+    return Number.isFinite(alive) && nowMs - alive <= answerLimitMs ? 'Antigravity chưa phản biện head này (đang xếp hàng): chờ tới lượt' : null;
+  }
+  if (nowMs - job.at > answerLimitMs) return null;
   return 'Antigravity đang phản biện head này: chờ câu trả lời (tối đa 20 phút)';
 }
 
@@ -71,9 +82,13 @@ export function antigravityStep({ gh, prs = [], turns = [], start, steps, home =
   const save = () => writeJson(statePath(home), all);
   const live = new Map(prs.filter(pr => !lastSecond(pr)).map(pr => [String(pr.number), pr]));
   for (const n of Object.keys(all)) if (live.get(n)?.headRefOid !== all[n].head) { delete all[n]; log(`antigravity #${n}: head moved or PR no longer waiting, dropped`); }
-  const [n, job] = Object.entries(all).find(([, j]) => !j.tooLong) ?? [];
+  // Every waiting head is queued before anything else, so the merge gate holds it this tick.
+  for (const p of waiting) all[String(p.number)] ??= { head: p.headRefOid, queued: true, at: nowMs };
+  save();
+  const [n, job] = Object.entries(all).find(([, j]) => j.id) ?? [];
   if (job) {
     const answer = readAnswer(steps(job.id));
+    markAlive(home, nowMs);
     const drop = reason => { delete all[n]; save(); return { status: 'dropped', pr: Number(n), reason }; };
     if (answer.tools.length) return drop(`Antigravity dùng công cụ (${answer.tools.join(', ')}): không tính`);
     if (!answer.done) return nowMs - job.at > answerLimitMs ? drop('quá 20 phút chưa trả lời') : (save(), { status: 'waiting', pr: Number(n) });
@@ -85,7 +100,7 @@ export function antigravityStep({ gh, prs = [], turns = [], start, steps, home =
   }
   // A diff longer than the brief is not sent: Antigravity would read a cut copy (Codex r1 on #894).
   // The PR is remembered for its head and waits for Claude; the next waiting PR goes instead.
-  const pr = waiting.find(p => !all[String(p.number)]);
+  const pr = waiting.find(p => all[String(p.number)]?.queued);
   if (!pr) { save(); return null; }
   const diff = String(gh.raw(['pr', 'diff', String(pr.number), '--repo', repo]));
   if (!briefComplete(diff)) {
@@ -94,6 +109,7 @@ export function antigravityStep({ gh, prs = [], turns = [], start, steps, home =
     return { status: 'skipped', pr: pr.number, reason: `diff dài hơn ${briefLimit} ký tự: chờ Claude phản biện` };
   }
   const id = start(antigravityBrief(pr, diff), `Phản biện PR #${pr.number}`);
+  markAlive(home, nowMs);
   all[String(pr.number)] = { head: pr.headRefOid, id, at: nowMs };
   save();
   return { status: 'started', pr: pr.number };
