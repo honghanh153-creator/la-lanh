@@ -10,6 +10,12 @@ compressed middle band. Synthetic only: no user data, no network.
 The pair mix mirrors ``radar-pairs-v1``: person A always has an exact birth time (Radar needs an
 exact owner chart); person B has an unknown time for 25% of pairs and is then treated like
 ``BirthService.calculate_transient_chart`` (no Moon, houses or angles).
+
+``--basis date_only`` builds ``radar-tier-ref-date-v1`` (Hợp gu AL1): both people are read from
+their birth dates alone, as ``BirthChartService.calculate_date_only_chart`` does (local noon in
+Asia/Ho_Chi_Minh, then no Moon, houses or angles).
+
+    uv run python -m scripts.radar_tier_reference --basis date_only [--check]
 """
 
 from __future__ import annotations
@@ -24,9 +30,11 @@ from zoneinfo import ZoneInfo
 
 from app.domains.astro.engine import NatalChartEngine
 from app.domains.astro.models import CalculationConfig, ChartInput, NatalChart, TimePrecision
+from app.domains.birth.service import DATE_ONLY_REFERENCE_POINT, date_only_reduction
 from app.domains.radar import reading
 
 SEED = "la-lanh-radar-tier-ref-v1"
+DATE_ONLY_SEED = "la-lanh-radar-tier-ref-date-v1"
 PAIRS = 2_000
 UNKNOWN_TIME_SHARE = 0.25
 TZ = ZoneInfo("Asia/Ho_Chi_Minh")
@@ -46,15 +54,21 @@ PLACES = (
 )
 
 
-def _chart(engine: NatalChartEngine, rng: random.Random, *, unknown: bool) -> NatalChart:
+def _chart(
+    engine: NatalChartEngine, rng: random.Random, *, unknown: bool, date_only: bool = False
+) -> NatalChart:
     day = FIRST_DAY + timedelta(days=rng.randrange((LAST_DAY - FIRST_DAY).days + 1))
-    minute = 12 * 60 if unknown else rng.randrange(24 * 60)
+    minute = 12 * 60 if unknown or date_only else rng.randrange(24 * 60)
     latitude, longitude = PLACES[rng.randrange(len(PLACES))]
+    if date_only:
+        latitude, longitude = DATE_ONLY_REFERENCE_POINT
     local = datetime.combine(day, time(minute // 60, minute % 60), TZ)
     chart = engine.calculate_chart(
         ChartInput(utc_datetime=local.astimezone(UTC), latitude=latitude, longitude=longitude),
         CalculationConfig.western_recommended(),
     )
+    if date_only:
+        return date_only_reduction(chart)
     if not unknown:
         return chart
     return chart.model_copy(
@@ -70,14 +84,21 @@ def _chart(engine: NatalChartEngine, rng: random.Random, *, unknown: bool) -> Na
     )
 
 
-def reference_signals(pairs: int = PAIRS) -> list[reading.PairSignals | None]:
+def reference_signals(
+    pairs: int = PAIRS, *, basis: str = reading.BASIS_FULL
+) -> list[reading.PairSignals | None]:
     engine = NatalChartEngine()
-    rng = random.Random(SEED)  # noqa: S311 - a reproducible synthetic fixture, not a secret
+    date_only = basis == reading.BASIS_DATE_ONLY
+    seed = DATE_ONLY_SEED if date_only else SEED
+    rng = random.Random(seed)  # noqa: S311 - a reproducible synthetic fixture, not a secret
+    reference = reading.TIER_REFERENCE_DATE_ONLY if date_only else reading.TIER_REFERENCE
     out: list[reading.PairSignals | None] = []
     for _ in range(pairs):
-        a = _chart(engine, rng, unknown=False)
-        b = _chart(engine, rng, unknown=rng.random() < UNKNOWN_TIME_SHARE)
-        out.append(reading.pair_signals(engine.calculate_relationship_bundle(a, b)))
+        a = _chart(engine, rng, unknown=False, date_only=date_only)
+        b = _chart(engine, rng, unknown=rng.random() < UNKNOWN_TIME_SHARE, date_only=date_only)
+        out.append(
+            reading.pair_signals(engine.calculate_relationship_bundle(a, b), reference=reference)
+        )
     return out
 
 
@@ -89,11 +110,15 @@ def quantiles(values: list[float], steps: int = 20) -> tuple[float, ...]:
     return tuple(round(value, 4) for value in (ordered[0], *cuts, ordered[-1]))
 
 
-def report(signals: list[reading.PairSignals | None]) -> dict[str, object]:
+def report(
+    signals: list[reading.PairSignals | None], *, basis: str = reading.BASIS_FULL
+) -> dict[str, object]:
     ranked = [item for item in signals if item is not None]
     tiers = Counter(item.tier for item in ranked)
     return {
-        "calibration_version": reading.TIER_CALIBRATION_VERSION,
+        "calibration_version": reading.TIER_CALIBRATION_DATE_ONLY_VERSION
+        if basis == reading.BASIS_DATE_ONLY
+        else reading.TIER_CALIBRATION_VERSION,
         "pairs": len(signals),
         "low_signal_pairs": len(signals) - len(ranked),
         "ease_quantiles": list(quantiles([item.ease for item in ranked])),
@@ -106,11 +131,17 @@ def report(signals: list[reading.PairSignals | None]) -> dict[str, object]:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
+    parser.add_argument("--basis", choices=reading.BASES, default=reading.BASIS_FULL)
     args = parser.parse_args()
-    signals = reference_signals()
-    result = report(signals)
+    signals = reference_signals(basis=args.basis)
+    result = report(signals, basis=args.basis)
     print(json.dumps(result, ensure_ascii=False, indent=1))
-    if args.check and tuple(result["ease_quantiles"]) != reading.TIER_REFERENCE:  # type: ignore[arg-type]
+    expected = (
+        reading.TIER_REFERENCE_DATE_ONLY
+        if args.basis == reading.BASIS_DATE_ONLY
+        else reading.TIER_REFERENCE
+    )
+    if args.check and tuple(result["ease_quantiles"]) != expected:  # type: ignore[arg-type]
         raise SystemExit(
             "radar tier reference differs from reading.TIER_REFERENCE; regenerate it, bump "
             "TIER_CALIBRATION_VERSION and refresh the fallback approval"

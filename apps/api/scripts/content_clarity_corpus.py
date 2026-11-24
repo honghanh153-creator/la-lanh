@@ -27,8 +27,7 @@ from app.domains.astro.models import (
     TransitToNatalSnapshot,
     ZodiacSign,
 )
-from app.domains.radar.reading import CONTEXTS as RADAR_CONTEXTS
-from app.domains.radar.reading import build_radar_reading
+from app.domains.radar.reading import CONTEXTS, FALLBACK_CONTEXTS, build_radar_reading
 from app.domains.readings.clarity_lint import (
     DAILY_FOLLOW_DAYS,
     AstroFacts,
@@ -47,6 +46,10 @@ from app.domains.tarot.knowledge import all_cards
 from app.domains.tarot.models import TarotContext, TarotReading, TarotSpread, TarotVoice
 from app.domains.tarot.variants import choose_variants
 from app.domains.tarot.voice import effective_voice
+
+# Hợp gu AL1: coworker and family serve the approved "someone" sentences until their own
+# registry lines are approved, so the corpus samples only contexts with their own tables.
+RADAR_CONTEXTS = tuple(context for context in CONTEXTS if context not in FALLBACK_CONTEXTS)
 
 # A12 minimums from the spec; the committed baseline may only raise them.
 MINIMUM_SAMPLES = {"daily": 60, "tarot": 200, "radar": 80, "kham_pha": 80}

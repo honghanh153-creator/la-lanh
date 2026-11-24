@@ -248,7 +248,8 @@ const screens: Array<{ name: string; scenario: Scenario; path: string; ready: (p
   },
   {
     name: "10-radar-start-full-form", path: "/radar/start", scenario: { ...signedIn, deepData: true, ownerClaim: "ok" },
-    ready: (page) => page.getByRole("button", { name: /Check kín ngay/ }),
+    // Owner AP2 (21.11.2026): no form; the hub leads to the invite.
+    ready: (page) => page.getByRole("link", { name: "Mời họ tự nhập" }),
   },
   {
     name: "11-card", path: "/card", scenario: signedIn,

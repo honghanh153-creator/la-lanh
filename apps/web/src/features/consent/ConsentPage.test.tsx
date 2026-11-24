@@ -57,6 +57,54 @@ describe("ConsentPage privacy details", () => {
     expect(MOOD_LIGHTER_TASK_NOTE).toBe("Mood bạn chọn cũng dùng để gợi ý việc nhỏ nhẹ hơn trong ngày, dành cho bạn.");
   });
 
+  it("shows the owner-approved Hợp gu privacy text word for word (AM1, 20.11.2026)", () => {
+    renderPrivacyPage();
+    const registry = JSON.parse(readFileSync(join(process.cwd(), "../api/app/domains/content/copy_registry.json"), "utf8")) as {
+      entries: { id: string; category: string; text: string; status: string; approver?: string; date?: string }[];
+    };
+    for (const id of ["privacy.radar.consent-invite", "privacy.radar.consent-recipient"]) {
+      const entry = registry.entries.find((item) => item.id === id);
+      expect(entry).toMatchObject({ category: "privacy", status: "approved", approver: "owner", date: "2026-11-20" });
+      expect(screen.getByText(entry!.text)).toBeInTheDocument();
+    }
+    expect(document.body.textContent).not.toMatch(/[Cc]heck kín/);
+  });
+
+  // Owner AP2/AQ1 (21.11.2026): the self-attested check is retired, so its "enter someone else's
+  // data" block is gone; the still-true storage sentences stay word for word; the weekly note is
+  // the owner-approved sentence (replaced by AV1, 21.11.2026).
+  it("drops the retired Hợp gu tick block and shows the owner-approved weekly note (AP2/AQ1)", () => {
+    renderPrivacyPage();
+    const registry = JSON.parse(readFileSync(join(process.cwd(), "../api/app/domains/content/copy_registry.json"), "utf8")) as {
+      entries: { id: string; category: string; text: string; status: string; approver?: string; date?: string }[];
+    };
+    expect(screen.queryByText("Radar xem riêng")).not.toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/Việc bạn đánh dấu xác nhận|Chỉ nhập thông tin sinh của người khác/);
+    expect(screen.getByText(/Hệ thống mã hoá tên gọi và kết quả trước khi lưu\./)).toBeInTheDocument();
+    const weekly = registry.entries.find((item) => item.id === "privacy.radar.weekly.privacy-page");
+    expect(weekly).toMatchObject({ category: "privacy", status: "approved", approver: "owner", date: "2026-11-21" });
+    expect(screen.getByText(weekly!.text)).toBeInTheDocument();
+    expect(weekly!.text.startsWith("Phần Hai bạn tuần này chỉ có khi người được mời tự tick")).toBe(true);
+    expect(document.body.textContent).not.toMatch(/Chỉ chọn khi người ấy đồng ý cho việc này/);
+  });
+
+  // Owner AT1 (21.11.2026): the card-link line, word for word, in its own block after "Hai bạn tuần này"
+  // and before "Tải bản sao dữ liệu".
+  it("shows the owner-approved card-link line in the Thẻ Hợp gu block (AT1)", () => {
+    renderPrivacyPage();
+    const registry = JSON.parse(readFileSync(join(process.cwd(), "../api/app/domains/content/copy_registry.json"), "utf8")) as {
+      entries: { id: string; category: string; text: string; status: string; approver?: string; date?: string }[];
+    };
+    const card = registry.entries.find((item) => item.id === "privacy.radar.cards.privacy-page");
+    expect(card).toMatchObject({ category: "privacy", status: "approved", approver: "owner", date: "2026-11-21" });
+    const line = screen.getByText(card!.text);
+    expect(line.closest("details")?.querySelector("summary")?.textContent).toBe("Thẻ Hợp gu");
+    const summaries = [...document.querySelectorAll("details.consent-detail > summary")].map((node) => node.textContent);
+    const at = summaries.indexOf("Thẻ Hợp gu");
+    expect(summaries[at - 1]).toBe("Hai bạn tuần này");
+    expect(summaries[at + 1]).toBe("Tải bản sao dữ liệu");
+  });
+
   it("gives network users a visible link to the corresponding source", () => {
     renderPrivacyPage();
 

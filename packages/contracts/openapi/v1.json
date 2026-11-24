@@ -1272,6 +1272,13 @@
             "title": "Radar Sent",
             "type": "array"
           },
+          "saved_month_answers": {
+            "items": {
+              "$ref": "#/components/schemas/ExportSavedMonthAnswer"
+            },
+            "title": "Saved Month Answers",
+            "type": "array"
+          },
           "saved_notes": {
             "items": {
               "$ref": "#/components/schemas/ExportSavedNote"
@@ -2644,6 +2651,140 @@
           "companion"
         ],
         "title": "ExportReadingSections",
+        "type": "object"
+      },
+      "ExportSavedMonthAnswer": {
+        "additionalProperties": false,
+        "description": "A month answer the person saved with \"Lưu\" (US-25).",
+        "properties": {
+          "act": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Act"
+          },
+          "basis": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Basis"
+          },
+          "basis_detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Basis Detail"
+          },
+          "disclaimer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Disclaimer"
+          },
+          "month": {
+            "title": "Month",
+            "type": "string"
+          },
+          "question": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Question"
+          },
+          "saved_at": {
+            "format": "date-time",
+            "title": "Saved At",
+            "type": "string"
+          },
+          "say": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Say"
+          },
+          "theme": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Theme"
+          },
+          "tip": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tip"
+          },
+          "topic": {
+            "title": "Topic",
+            "type": "string"
+          },
+          "topic_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topic Label"
+          }
+        },
+        "required": [
+          "saved_at",
+          "month",
+          "topic",
+          "topic_label",
+          "question",
+          "tip",
+          "theme",
+          "act",
+          "say",
+          "basis",
+          "basis_detail",
+          "disclaimer"
+        ],
+        "title": "ExportSavedMonthAnswer",
         "type": "object"
       },
       "ExportSavedNote": {
@@ -4091,6 +4232,331 @@
         "title": "MatchingReadinessResponse",
         "type": "object"
       },
+      "MonthAnswerRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "preset": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PresetId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "topic": {
+            "$ref": "#/components/schemas/Topic"
+          }
+        },
+        "required": [
+          "topic"
+        ],
+        "title": "MonthAnswerRequest",
+        "type": "object"
+      },
+      "MonthAnswerResponse": {
+        "properties": {
+          "answer": {
+            "$ref": "#/components/schemas/MonthAnswerView"
+          },
+          "status": {
+            "const": "answered",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "answer"
+        ],
+        "title": "MonthAnswerResponse",
+        "type": "object"
+      },
+      "MonthAnswerView": {
+        "properties": {
+          "act": {
+            "title": "Act",
+            "type": "string"
+          },
+          "answer_key": {
+            "title": "Answer Key",
+            "type": "string"
+          },
+          "basis": {
+            "$ref": "#/components/schemas/MonthBasis"
+          },
+          "disclaimer": {
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "month": {
+            "title": "Month",
+            "type": "string"
+          },
+          "preset": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PresetId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "question": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Question"
+          },
+          "say": {
+            "title": "Say",
+            "type": "string"
+          },
+          "theme": {
+            "title": "Theme",
+            "type": "string"
+          },
+          "tip": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tip"
+          },
+          "topic": {
+            "$ref": "#/components/schemas/Topic"
+          },
+          "topic_label": {
+            "title": "Topic Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "month",
+          "topic",
+          "topic_label",
+          "preset",
+          "question",
+          "tip",
+          "theme",
+          "act",
+          "say",
+          "basis",
+          "disclaimer",
+          "answer_key"
+        ],
+        "title": "MonthAnswerView",
+        "type": "object"
+      },
+      "MonthBasis": {
+        "properties": {
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "line": {
+            "title": "Line",
+            "type": "string"
+          }
+        },
+        "required": [
+          "line",
+          "detail"
+        ],
+        "title": "MonthBasis",
+        "type": "object"
+      },
+      "MonthOverviewItem": {
+        "properties": {
+          "area": {
+            "enum": [
+              "work",
+              "love",
+              "money",
+              "self"
+            ],
+            "title": "Area",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "line": {
+            "title": "Line",
+            "type": "string"
+          },
+          "try_text": {
+            "title": "Try Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "area",
+          "label",
+          "line",
+          "try_text"
+        ],
+        "title": "MonthOverviewItem",
+        "type": "object"
+      },
+      "MonthOverviewResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MonthOverviewItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "month": {
+            "title": "Month",
+            "type": "string"
+          }
+        },
+        "required": [
+          "month",
+          "items"
+        ],
+        "title": "MonthOverviewResponse",
+        "type": "object"
+      },
+      "MonthPresetView": {
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/PresetId"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "topic": {
+            "$ref": "#/components/schemas/Topic"
+          }
+        },
+        "required": [
+          "id",
+          "topic",
+          "text"
+        ],
+        "title": "MonthPresetView",
+        "type": "object"
+      },
+      "MonthSaveRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "answer_key": {
+            "maxLength": 32,
+            "minLength": 32,
+            "pattern": "^[0-9a-f]{32}$",
+            "title": "Answer Key",
+            "type": "string"
+          },
+          "topic": {
+            "$ref": "#/components/schemas/Topic"
+          }
+        },
+        "required": [
+          "topic",
+          "answer_key"
+        ],
+        "title": "MonthSaveRequest",
+        "type": "object"
+      },
+      "MonthStatusResponse": {
+        "properties": {
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "month": {
+            "title": "Month",
+            "type": "string"
+          },
+          "presets": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/MonthPresetView"
+            },
+            "title": "Presets",
+            "type": "array"
+          }
+        },
+        "required": [
+          "available",
+          "month"
+        ],
+        "title": "MonthStatusResponse",
+        "type": "object"
+      },
+      "MonthWindowResponse": {
+        "properties": {
+          "basis": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Basis"
+          },
+          "end": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End"
+          },
+          "found": {
+            "title": "Found",
+            "type": "boolean"
+          },
+          "line": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Line"
+          },
+          "start": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start"
+          }
+        },
+        "required": [
+          "found"
+        ],
+        "title": "MonthWindowResponse",
+        "type": "object"
+      },
       "MoodRequest": {
         "additionalProperties": false,
         "properties": {
@@ -4478,6 +4944,30 @@
         "title": "PoolMembershipInput",
         "type": "object"
       },
+      "PresetId": {
+        "enum": [
+          "work.hard_talk",
+          "work.too_much",
+          "work.shifts",
+          "money.month_end",
+          "money.ask_back",
+          "money.say_no",
+          "love.closer",
+          "love.say_tired",
+          "love.far",
+          "family.parents_ask",
+          "family.my_path",
+          "family.compare",
+          "study.many_exams",
+          "study.exam_energy",
+          "study.start_project",
+          "mind.homesick",
+          "mind.sleep",
+          "mind.heavy"
+        ],
+        "title": "PresetId",
+        "type": "string"
+      },
       "ProblemResponse": {
         "properties": {
           "code": {
@@ -4547,6 +5037,46 @@
         "title": "PublicInviteResponse",
         "type": "object"
       },
+      "PublicRadarCardResponse": {
+        "description": "A card as anyone with the link sees it: no birth data, no name beyond an initial.",
+        "properties": {
+          "context": {
+            "title": "Context",
+            "type": "string"
+          },
+          "initial": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Initial"
+          },
+          "line": {
+            "title": "Line",
+            "type": "string"
+          },
+          "tier": {
+            "title": "Tier",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "version",
+          "context",
+          "tier",
+          "line"
+        ],
+        "title": "PublicRadarCardResponse",
+        "type": "object"
+      },
       "PublicRadarInviteResponse": {
         "properties": {
           "consent_version": {
@@ -4574,13 +5104,18 @@
             "type": "string"
           },
           "requires_exact_birth_profile": {
-            "default": true,
+            "default": false,
             "title": "Requires Exact Birth Profile",
             "type": "boolean"
           },
           "voice": {
             "title": "Voice",
             "type": "string"
+          },
+          "weekly_offer": {
+            "default": false,
+            "title": "Weekly Offer",
+            "type": "boolean"
           }
         },
         "required": [
@@ -4778,6 +5313,156 @@
         "title": "RadarAcceptRequest",
         "type": "object"
       },
+      "RadarAskAnswerResponse": {
+        "properties": {
+          "based_on": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RadarAskBasis"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "can_send": {
+            "title": "Can Send",
+            "type": "string"
+          },
+          "question": {
+            "title": "Question",
+            "type": "string"
+          },
+          "question_id": {
+            "title": "Question Id",
+            "type": "string"
+          },
+          "refusal": {
+            "title": "Refusal",
+            "type": "boolean"
+          },
+          "say": {
+            "title": "Say",
+            "type": "string"
+          },
+          "try_today": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Try Today"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          },
+          "why": {
+            "title": "Why",
+            "type": "string"
+          }
+        },
+        "required": [
+          "version",
+          "question_id",
+          "question",
+          "say",
+          "why",
+          "can_send",
+          "refusal"
+        ],
+        "title": "RadarAskAnswerResponse",
+        "type": "object"
+      },
+      "RadarAskBasis": {
+        "properties": {
+          "evidence_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence Ids",
+            "type": "array"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "level_label": {
+            "title": "Level Label",
+            "type": "string"
+          },
+          "technical_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Technical Note"
+          },
+          "theme": {
+            "title": "Theme",
+            "type": "string"
+          }
+        },
+        "required": [
+          "theme",
+          "level_label"
+        ],
+        "title": "RadarAskBasis",
+        "type": "object"
+      },
+      "RadarAskQuestion": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "text"
+        ],
+        "title": "RadarAskQuestion",
+        "type": "object"
+      },
+      "RadarAskQuestionsResponse": {
+        "properties": {
+          "questions": {
+            "items": {
+              "$ref": "#/components/schemas/RadarAskQuestion"
+            },
+            "title": "Questions",
+            "type": "array"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "version",
+          "questions"
+        ],
+        "title": "RadarAskQuestionsResponse",
+        "type": "object"
+      },
       "RadarBoundActionRequest": {
         "additionalProperties": false,
         "properties": {
@@ -4793,6 +5478,108 @@
         "title": "RadarBoundActionRequest",
         "type": "object"
       },
+      "RadarCardCreateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "show_initial": {
+            "default": false,
+            "title": "Show Initial",
+            "type": "boolean"
+          }
+        },
+        "title": "RadarCardCreateRequest",
+        "type": "object"
+      },
+      "RadarCardResponse": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "share_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Share Url"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "created_at",
+          "expires_at"
+        ],
+        "title": "RadarCardResponse",
+        "type": "object"
+      },
+      "RadarConsentOptionsResponse": {
+        "description": "Whether the invite-first consent screens are live, with their owner-approved sentences.",
+        "properties": {
+          "authorized_input_version": {
+            "title": "Authorized Input Version",
+            "type": "string"
+          },
+          "card_links": {
+            "default": false,
+            "title": "Card Links",
+            "type": "boolean"
+          },
+          "date_consent_version": {
+            "title": "Date Consent Version",
+            "type": "string"
+          },
+          "invite_first": {
+            "title": "Invite First",
+            "type": "boolean"
+          },
+          "sentences": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Sentences",
+            "type": "object"
+          },
+          "weekly": {
+            "default": false,
+            "title": "Weekly",
+            "type": "boolean"
+          },
+          "weekly_sentences": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Weekly Sentences",
+            "type": "object"
+          }
+        },
+        "required": [
+          "invite_first",
+          "authorized_input_version",
+          "date_consent_version"
+        ],
+        "title": "RadarConsentOptionsResponse",
+        "type": "object"
+      },
       "RadarCreateRequest": {
         "additionalProperties": false,
         "properties": {
@@ -4801,7 +5588,9 @@
               "crush",
               "friend",
               "partner",
-              "someone"
+              "someone",
+              "coworker",
+              "family"
             ],
             "title": "Context",
             "type": "string"
@@ -4822,6 +5611,40 @@
           "context"
         ],
         "title": "RadarCreateRequest",
+        "type": "object"
+      },
+      "RadarDateAcceptRequest": {
+        "additionalProperties": false,
+        "description": "The one-field invite (AL1): B's own birth date and B's consent, nothing else.",
+        "properties": {
+          "birth_date": {
+            "format": "date",
+            "title": "Birth Date",
+            "type": "string"
+          },
+          "consent_version": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Consent Version",
+            "type": "string"
+          },
+          "keep_weekly": {
+            "default": false,
+            "title": "Keep Weekly",
+            "type": "boolean"
+          },
+          "request_id": {
+            "format": "uuid",
+            "title": "Request Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id",
+          "birth_date",
+          "consent_version"
+        ],
+        "title": "RadarDateAcceptRequest",
         "type": "object"
       },
       "RadarInviteResponse": {
@@ -4937,7 +5760,8 @@
             "default": "exact",
             "enum": [
               "exact",
-              "unknown"
+              "unknown",
+              "date_only"
             ],
             "title": "Birth Time Mode",
             "type": "string"
@@ -4953,16 +5777,30 @@
               "crush",
               "friend",
               "partner",
-              "someone"
+              "someone",
+              "coworker",
+              "family"
             ],
             "title": "Context",
             "type": "string"
           },
+          "keep_weekly": {
+            "default": false,
+            "title": "Keep Weekly",
+            "type": "boolean"
+          },
           "place_id": {
-            "maxLength": 80,
-            "minLength": 2,
-            "title": "Place Id",
-            "type": "string"
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "minLength": 2,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Place Id"
           },
           "recipient_label": {
             "maxLength": 40,
@@ -4979,7 +5817,6 @@
           "recipient_label",
           "context",
           "birth_date",
-          "place_id",
           "consent_version",
           "authorization_attested"
         ],
@@ -5060,6 +5897,17 @@
             },
             "title": "Compatibility Map",
             "type": "array"
+          },
+          "context": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Context"
           },
           "dimensions": {
             "items": {
@@ -5190,6 +6038,113 @@
         ],
         "title": "RadarStatus",
         "type": "string"
+      },
+      "RadarWeeklyItem": {
+        "properties": {
+          "context": {
+            "title": "Context",
+            "type": "string"
+          },
+          "easy": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Easy"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "initial": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Initial"
+          },
+          "quiet": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quiet"
+          },
+          "try_line": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Try Line"
+          },
+          "watch": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Watch"
+          },
+          "week_of": {
+            "format": "date",
+            "title": "Week Of",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "context",
+          "week_of",
+          "expires_at"
+        ],
+        "title": "RadarWeeklyItem",
+        "type": "object"
+      },
+      "RadarWeeklyResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/RadarWeeklyItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "version",
+          "items"
+        ],
+        "title": "RadarWeeklyResponse",
+        "type": "object"
       },
       "ReadinessCheck": {
         "properties": {
@@ -5783,6 +6738,51 @@
           "watermark"
         ],
         "title": "SafeShareSnapshotResponse",
+        "type": "object"
+      },
+      "SavedMonthAnswerList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SavedMonthAnswerView"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "SavedMonthAnswerList",
+        "type": "object"
+      },
+      "SavedMonthAnswerView": {
+        "properties": {
+          "answer": {
+            "$ref": "#/components/schemas/MonthAnswerView"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "month": {
+            "title": "Month",
+            "type": "string"
+          },
+          "saved_at": {
+            "format": "date-time",
+            "title": "Saved At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "month",
+          "saved_at",
+          "answer"
+        ],
+        "title": "SavedMonthAnswerView",
         "type": "object"
       },
       "SavedNoteRequest": {
@@ -6940,6 +7940,18 @@
           "unknown"
         ],
         "title": "TimePrecision",
+        "type": "string"
+      },
+      "Topic": {
+        "enum": [
+          "work",
+          "money",
+          "love",
+          "family",
+          "study",
+          "mind"
+        ],
+        "title": "Topic",
         "type": "string"
       },
       "Tradition": {
@@ -12758,6 +13770,354 @@
         ]
       }
     },
+    "/v1/month/answers": {
+      "post": {
+        "operationId": "month_answer_v1_month_answers_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MonthAnswerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonthAnswerResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Month Answer",
+        "tags": [
+          "month-answers"
+        ]
+      }
+    },
+    "/v1/month/overview": {
+      "get": {
+        "operationId": "month_overview_v1_month_overview_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonthOverviewResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Month Overview",
+        "tags": [
+          "month-answers"
+        ]
+      }
+    },
+    "/v1/month/saved": {
+      "get": {
+        "operationId": "list_saved_month_answers_v1_month_saved_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedMonthAnswerList"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "List Saved Month Answers",
+        "tags": [
+          "month-answers"
+        ]
+      },
+      "post": {
+        "description": "Explicit \"Lưu\" only. The answer is recomputed server-side; the client sends no text.",
+        "operationId": "save_month_answer_v1_month_saved_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MonthSaveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedMonthAnswerView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
+          },
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Save Month Answer",
+        "tags": [
+          "month-answers"
+        ]
+      }
+    },
+    "/v1/month/saved/{saved_id}": {
+      "delete": {
+        "operationId": "delete_saved_month_answer_v1_month_saved__saved_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "saved_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Saved Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Delete Saved Month Answer",
+        "tags": [
+          "month-answers"
+        ]
+      }
+    },
+    "/v1/month/status": {
+      "get": {
+        "operationId": "month_status_v1_month_status_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonthStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Month Status",
+        "tags": [
+          "month-answers"
+        ]
+      }
+    },
+    "/v1/month/window": {
+      "get": {
+        "operationId": "month_window_v1_month_window_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "topic",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Topic"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonthWindowResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Month Window",
+        "tags": [
+          "month-answers"
+        ]
+      }
+    },
     "/v1/public/la-chung/receipt/withdraw": {
       "post": {
         "operationId": "withdraw_response_v1_public_la_chung_receipt_withdraw_post",
@@ -12950,6 +14310,71 @@
         ]
       }
     },
+    "/v1/public/radar/cards/{token}": {
+      "get": {
+        "description": "The card behind a link: no-store, no-referrer, noindex; one not-found for every refusal\n(off, unknown, revoked, expired, result gone or withdrawn).",
+        "operationId": "public_card_v1_public_radar_cards__token__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicRadarCardResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
+          }
+        },
+        "summary": "Public Card",
+        "tags": [
+          "radar-public"
+        ]
+      }
+    },
+    "/v1/public/radar/consent-options": {
+      "get": {
+        "description": "No personal data; tells the web which consent screens it may show (AL1).",
+        "operationId": "consent_options_v1_public_radar_consent_options_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RadarConsentOptionsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Consent Options",
+        "tags": [
+          "radar-public"
+        ]
+      }
+    },
     "/v1/public/radar/current": {
       "get": {
         "operationId": "current_invite_v1_public_radar_current_get",
@@ -13069,6 +14494,66 @@
           }
         },
         "summary": "Accept Invite",
+        "tags": [
+          "radar-public"
+        ]
+      }
+    },
+    "/v1/public/radar/current/accept-date": {
+      "post": {
+        "description": "AL1 one-field invite. 404 while the invite-first consent is off or unapproved.\n\nNo guest session: the capability cookie (SameSite=Lax, path-bound), the trusted Origin and the\nbound ``request_id`` guard the action, as for decline and invite-link withdrawal. The token is\nsingle use: completing it moves the invite out of ``pending`` under a row lock.",
+        "operationId": "accept_invite_with_date_v1_public_radar_current_accept_date_post",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "la_lanh_radar_invite",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "La Lanh Radar Invite"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RadarDateAcceptRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicRadarResultResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
+          }
+        },
+        "summary": "Accept Invite With Date",
         "tags": [
           "radar-public"
         ]
@@ -13304,8 +14789,61 @@
         ]
       }
     },
+    "/v1/radar/cards/{card_id}/revoke": {
+      "post": {
+        "operationId": "revoke_card_v1_radar_cards__card_id__revoke_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "card_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Card Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
+          }
+        },
+        "summary": "Revoke Card",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
     "/v1/radar/private-checks": {
       "post": {
+        "deprecated": true,
         "operationId": "create_private_check_v1_radar_private_checks_post",
         "parameters": [
           {
@@ -14057,6 +15595,293 @@
           }
         },
         "summary": "Owner Result",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
+    "/v1/radar/results/{request_id}/ask": {
+      "get": {
+        "description": "Hợp gu direction B: pre-written questions only, for the owner of a live result.",
+        "operationId": "ask_questions_v1_radar_results__request_id__ask_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RadarAskQuestionsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
+          }
+        },
+        "summary": "Ask Questions",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
+    "/v1/radar/results/{request_id}/ask/{question_id}": {
+      "get": {
+        "operationId": "ask_answer_v1_radar_results__request_id__ask__question_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "question_id",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-z]{1,16}$",
+              "title": "Question Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RadarAskAnswerResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
+          }
+        },
+        "summary": "Ask Answer",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
+    "/v1/radar/results/{request_id}/cards": {
+      "get": {
+        "operationId": "list_cards_v1_radar_results__request_id__cards_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/RadarCardResponse"
+                  },
+                  "title": "Response List Cards V1 Radar Results  Request Id  Cards Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
+          }
+        },
+        "summary": "List Cards",
+        "tags": [
+          "radar"
+        ]
+      },
+      "post": {
+        "description": "AL1 direction C: a revocable link to a frozen card. 404 while the switch is off.",
+        "operationId": "create_card_v1_radar_results__request_id__cards_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RadarCardCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RadarCardResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
+          }
+        },
+        "summary": "Create Card",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
+    "/v1/radar/weekly": {
+      "get": {
+        "description": "\"Hai bạn tuần này\": 404 while the feature is off or the owner has no session.",
+        "operationId": "weekly_pairs_v1_radar_weekly_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RadarWeeklyResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Weekly Pairs",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
+    "/v1/radar/weekly/{pair_id}": {
+      "delete": {
+        "description": "Turning a pair off deletes it, with the stored birth date.",
+        "operationId": "delete_weekly_pair_v1_radar_weekly__pair_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pair_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Pair Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
+          }
+        },
+        "summary": "Delete Weekly Pair",
         "tags": [
           "radar"
         ]
