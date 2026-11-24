@@ -20,6 +20,7 @@ from app.domains.readings.daily_personalization import (
     SUN_ISSUES,
     SUN_MODALITY_ISSUES,
     SupportedSituation,
+    approved_registry_pairs,
     eligible_daily_situations,
 )
 from app.domains.readings.daily_rotation import (
@@ -1104,6 +1105,7 @@ def daily_content_fingerprint() -> str:
     """
 
     bundles = {issue.key: found for issue in DAILY_ISSUES if (found := approved_bundles(issue.key))}
+    registry_pairs = approved_registry_pairs()
     return sha256(
         json.dumps(
             {
@@ -1124,6 +1126,8 @@ def daily_content_fingerprint() -> str:
                 "rotation": DAILY_ROTATION_RULE,
                 # Only present once a bundle is approved, so today's revision stays put.
                 **({"bundles": bundles} if bundles else {}),
+                # Same rule for approved pair-rule sentences (#847): absent while all are pending.
+                **({"registry_pairs": registry_pairs} if registry_pairs else {}),
             },
             ensure_ascii=False,
             sort_keys=True,
