@@ -43,8 +43,8 @@ test('research item 3: the tick, the night audit and the nightly personas each l
   assert.ok(given.health().includes('Đã chạy thật 24 giờ qua: x.'), 'the board shows the receipts line');
   const failing = runTick({ raw: () => '', json: () => [] }, () => [], { run: () => ({ status: 'ran' }), gapNote: () => null, areaNote: () => null, probe: () => [], receipt: () => { throw new Error('disk full'); } });
   assert.equal(failing.status, 'ran', 'a failed receipt never fails the tick');
-  const source = readFileSync(join(import.meta.dirname, 'personas-nightly.mjs'), 'utf8');
-  assert.match(source, /receipt\(\{ kind: 'personas', result: 'ok', sha: state\.end,/, 'the persona run names the commit it measured');
+  // The persona night's receipts (good, failed, Codex failed) are proven by behaviour in
+  // personas-nightly.test.mjs ("#858: ..."), not by reading the source.
   const tick = readFileSync(join(import.meta.dirname, 'collab-tick.mjs'), 'utf8');
   assert.match(tick, /receipt\(\{ kind: 'night-audit',/);
 });

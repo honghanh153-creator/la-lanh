@@ -3,11 +3,13 @@
 import './collab-test-home.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { acquireLock } from './collab-lock.mjs';
+import { personasReceiptResult, readReceipts, receiptSummary, writeRunReceipt } from './collab-run-receipt.mjs';
 import { dayCap, dayStatePath, readJson, stateDir, writeJson } from './collab-trust.mjs';
-import { checkJudgeOutput, checkLabelOutput, classifyChanges, codex, compareRuns, crossLeaks, dayDir, nextDay, pickCodexItems, pickIds, raiseNew, renderNightly, safetyReasons, seedOf, startRun, unionLabels } from './personas-nightly.mjs';
+import { checkJudgeOutput, checkLabelOutput, classifyChanges, codex, compareRuns, crossLeaks, dayDir, finish, nextDay, pickCodexItems, pickIds, raiseNew, renderNightly, safetyReasons, seedOf, startRun, unionLabels, withFailureReceipt } from './personas-nightly.mjs';
 
 test('only app-facing or unknown changes trigger a run', () => {
   assert.equal(classifyChanges(['docs/a.md', 'scripts/x.mjs', 'qa/personas/r.md', 'apps/api/tests/t.py']).run, false);
@@ -148,6 +150,77 @@ test('the nightly Codex call waits for the shared review lock and respects the c
   assert.equal(codex(day, { run: () => { throw new Error('no'); }, ...at('23:10') }).reason, 'hết lượt Codex trong ngày');
   assert.equal(readJson(dayStatePath(day), {}).codexRuns, dayCap({}) - 1);
   assert.equal(codex(day, { run: () => { throw new Error('no'); }, ...at('23:59') }).status, 'refused');
+});
+
+// Codex r5/r6 on #858: a failed persona night is recorded with its real outcome.
+const measured = 'b'.repeat(40);
+const receiptFile = () => join(mkdtempSync(join(tmpdir(), 'persona-receipts-')), 'run-receipts.jsonl');
+const boardAt = path => receiptSummary(readReceipts(path), { nowMs: Date.now() + 1000 }).personas;
+
+test('#858: a simulation that times out or exits non-zero leaves an error receipt naming the measured commit', async () => {
+  const path = receiptFile();
+  const receipt = r => writeRunReceipt({ ...r, path });
+  // The same throw prepare() makes at the simulation step, inside the real night lock.
+  const night = () => startRun('2026-11-22', async () => { throw new Error('persona_sim end exit null: killed after the time limit'); }, { waitMs: 0, stepMs: 1 });
+  // On a machine that is running another heavy job the night never starts; throw the same error then.
+  const failing = async () => { const r = await night(); if (r?.status === 'busy') throw new Error('persona_sim end exit 1: x'); return r; };
+  await assert.rejects(withFailureReceipt(measured, failing, receipt), /persona_sim end exit/, 'the failure still reaches the caller');
+  const rows = readReceipts(path);
+  assert.equal(rows.length, 1);
+  assert.deepEqual({ kind: rows[0].kind, result: rows[0].result, sha: rows[0].sha }, { kind: 'personas', result: 'error', sha: measured });
+  assert.deepEqual(boardAt(path), { runs: 1, errors: 1, last: { at: rows[0].at, sha: measured } }, 'the board shows the failed night, not "chưa chạy"');
+  // A night that never started (busy, too late) returns its status and leaves nothing.
+  assert.deepEqual(await withFailureReceipt(measured, async () => ({ status: 'busy' }), receipt), { status: 'busy' });
+  assert.equal(readReceipts(path).length, 1);
+  // A receipt that cannot be written does not hide the real failure.
+  await assert.rejects(withFailureReceipt(measured, async () => { throw new Error('sim failed'); }, () => { throw new Error('disk full'); }), /sim failed/);
+});
+
+function seedFinish(day, extra = {}) {
+  const dir = dayDir(day);
+  for (const role of ['start', 'end']) {
+    mkdirSync(join(dir, role), { recursive: true });
+    writeFileSync(join(dir, role, 'report.md'), `# ${role}\n`);
+  }
+  writeFileSync(join(dir, 'end', 'transcript.jsonl'), '');
+  writeJson(join(dir, 'state.json'), { date: day, start: 'a'.repeat(40), end: measured, seed: seedOf(day), ids: ['P1', 'P2'], appChanges: ['apps/web/src/x.ts'], unknownChanges: [], codexItems: ['x'], alerted: [], ...extra });
+  process.env.LA_LANH_REPORT_DIR = mkdtempSync(join(tmpdir(), 'persona-report-'));
+}
+const finishDeps = written => ({ alert: () => ({ number: 1 }), gh: () => null, receipt: r => written.push(r), report: () => ({ ...metrics(5, 0, true), understood: { items_needed: 1, items_scored: 1 }, coverage: { http_errors: 0 } }) });
+
+test('#858: a Codex timeout followed by finish is an error receipt; a clean night is ok', () => {
+  const day = '2026-11-23';
+  const at = { now: () => ({ date: day, hour: 23, minute: 10 }), nowMs: () => Date.parse(`${day}T23:10:00+07:00`) };
+  seedFinish(day);
+  assert.equal(codex(day, { run: () => { throw new Error('spawnSync codex ETIMEDOUT'); }, ...at }).status, 'failed');
+  const written = [];
+  assert.equal(finish(day, finishDeps(written)).status, 'finished', 'the report is still written');
+  assert.deepEqual(written, [{ kind: 'personas', result: 'error', sha: measured, counts: { personas: 2, safetyReasons: 0 } }]);
+
+  // Codex answered with something unreadable: the attempt is on record and no scores exist.
+  seedFinish(day, { codexAttempt: { startedAt: '2026-11-23T16:10:00.000Z' } });
+  const unreadable = [];
+  finish(day, finishDeps(unreadable));
+  assert.equal(unreadable[0].result, 'error');
+
+  // Scores exist, or Codex was never called: a good night.
+  writeFileSync(join(dayDir(day), 'codex-scores.json'), '[]');
+  const scored = [];
+  finish(day, finishDeps(scored));
+  assert.equal(scored[0].result, 'ok');
+  seedFinish('2026-11-24');
+  const clean = [];
+  finish('2026-11-24', finishDeps(clean));
+  assert.deepEqual(clean, [{ kind: 'personas', result: 'ok', sha: measured, counts: { personas: 2, safetyReasons: 0 } }]);
+});
+
+test('#858: a finish that stops part-way leaves an error receipt and still throws', () => {
+  const day = '2026-11-25';
+  seedFinish(day);
+  const written = [];
+  assert.throws(() => finish(day, { ...finishDeps(written), report: () => { throw new Error('persona_report exit 1'); } }), /persona_report exit 1/);
+  assert.deepEqual(written, [{ kind: 'personas', result: 'error', sha: measured, counts: { personas: 2 } }]);
+  assert.deepEqual([{ failed: true }, { codexAttempt: { error: 'x' }, codexScored: true }, { codexAttempt: {}, codexScored: false }, { codexAttempt: {}, codexScored: true }, {}].map(personasReceiptResult), ['error', 'error', 'error', 'ok', 'ok']);
 });
 
 test('a second prepare for the same date waits for the lock and leaves a running night\'s files alone (#565)', async () => {

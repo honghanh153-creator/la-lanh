@@ -41,6 +41,13 @@ export function auditReceiptResult(r) {
   if (r.status === 'error' || r.codexError) return 'error';
   return r.status === 'limit' ? 'skipped' : 'ok';
 }
+// Persona night (Codex r5/r6 on #858): a night that stopped part-way is an error, and so is a night
+// whose Codex cross-check was started and left no scores (timeout, crash, unreadable answer), even
+// when `finish` then writes its report.
+export function personasReceiptResult({ failed = false, codexAttempt = null, codexScored = false } = {}) {
+  if (failed) return 'error';
+  return codexAttempt && (codexAttempt.error || !codexScored) ? 'error' : 'ok';
+}
 
 export function writeRunReceipt({ kind, result, counts = {}, sha = runningSha, at = new Date(), path = receiptsPath() }) {
   if (!receiptKinds[kind]) throw new Error(`unknown receipt kind: ${kind}`);

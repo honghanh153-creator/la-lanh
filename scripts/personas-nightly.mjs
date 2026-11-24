@@ -25,7 +25,7 @@ import { codexBin, codexModel } from './codex-review.mjs';
 import { opsAlert } from './collab-turn.mjs';
 import { cutoffMs, dayCap, dayStatePath, hhmmOf, integration, lastStartAt, makeGh, readJson, repo, stateDir, vnNow, writeJson } from './collab-trust.mjs';
 import { isMain } from './is-main.mjs';
-import { writeRunReceipt } from './collab-run-receipt.mjs';
+import { personasReceiptResult, writeRunReceipt } from './collab-run-receipt.mjs';
 
 export const sampleSize = 200;
 export const codexSampleSize = 10;
@@ -273,7 +273,18 @@ export function startRun(date, fn, lockOptions) {
   }, lockOptions);
 }
 
-export async function prepare({ date = vnNow().date, anyTime = false, alerting = {} } = {}) {
+// Research item 3, Codex r5/r6 on #858: a night that stops after its integration commit was chosen
+// (simulation timeout or non-zero exit, out of time, a failed report) leaves an error receipt naming
+// that commit, so the board never shows "chưa chạy" or an older good night for it. The error goes on
+// to the caller unchanged. A night that never started (busy, too late) threw nothing: no receipt.
+export async function withFailureReceipt(sha, fn, receipt = writeRunReceipt, counts = {}) {
+  try { return await fn(); } catch (error) {
+    try { receipt({ kind: 'personas', result: personasReceiptResult({ failed: true }), sha, counts }); } catch {}
+    throw error;
+  }
+}
+
+export async function prepare({ date = vnNow().date, anyTime = false, alerting = {}, receipt = writeRunReceipt } = {}) {
   if (!anyTime && pastStart(date)) return refusedLate;
   const work = join(nightlyDir(), 'clone-end');
   mkdirSync(nightlyDir(), { recursive: true });
@@ -287,7 +298,7 @@ export async function prepare({ date = vnNow().date, anyTime = false, alerting =
   const base = { date, start, end, appChanges: kinds.app, unknownChanges: kinds.unknown };
   if (!kinds.run) return writeSkip(date, start === end ? 'hôm nay không có commit mới trên nhánh chung' : 'hôm nay không có thay đổi chạm tới app', base);
 
-  return startRun(date, async dir => {
+  return withFailureReceipt(end, () => startRun(date, async dir => {
     if (!anyTime && pastStart(date)) return refusedLate;
     const limitMs = () => (anyTime ? 30 * 60000 : Math.min(30 * 60000, cutoffMs(date) - Date.now()));
     const endClone = prepareClone('end', end, end);
@@ -332,7 +343,7 @@ export async function prepare({ date = vnNow().date, anyTime = false, alerting =
     const raised = raiseNew(date, state, safety.reasons, alerting);
     writeState(date, state);
     return { status: 'prepared', dir, chunks, labelPackets: labels.size, codexItems: codexItems.length, alert: raised.raised.length > 0, reasons: raised.raised };
-  });
+  }), receipt);
 }
 
 export function check(date, chunk) {
@@ -457,8 +468,16 @@ export function raiseNew(date, state, reasons, { alert = opsAlert, gh = () => ma
 }
 const transcriptRows = (dir, role) => readFileSync(join(dir, role, 'transcript.jsonl'), 'utf8').split('\n').filter(Boolean).map(l => JSON.parse(l));
 
-export function finish(date, { alert = opsAlert, gh = () => makeGh(), receipt = writeRunReceipt } = {}) {
+export function finish(date, { alert = opsAlert, gh = () => makeGh(), receipt = writeRunReceipt, report: runReport = report } = {}) {
   const state = readState(date);
+  const counts = { personas: (state.ids ?? []).length };
+  try { return finishRun(date, state, { alert, gh, receipt, report: runReport, counts }); } catch (error) {
+    try { receipt({ kind: 'personas', result: personasReceiptResult({ failed: true }), sha: state.end, counts }); } catch {}
+    throw error;
+  }
+}
+
+function finishRun(date, state, { alert, gh, receipt, report, counts }) {
   const dir = dayDir(date);
   const clone = join(nightlyDir(), 'clone-end');
   const personasPath = join(dir, 'personas-200.json');
@@ -475,8 +494,10 @@ export function finish(date, { alert = opsAlert, gh = () => makeGh(), receipt = 
   writeFileSync(join(out, 'metrics.json'), `${JSON.stringify({ date, seed: state.seed, start: state.start, end: state.end, ids: state.ids, appChanges: state.appChanges, unknownChanges: state.unknownChanges, comparison: cmp.rows, safety: cmp.safety, leaks: leaks.length, judged, codex: codexCmp, runs: state.runs }, null, 1)}\n`);
   const raised = raiseNew(date, state, reasons, { alert, gh });
   writeState(date, state);
-  // Research item 3 (owner 21.11): the run's receipt names the integration commit it measured.
-  try { receipt({ kind: 'personas', result: 'ok', sha: state.end, counts: { personas: (state.ids ?? []).length, safetyReasons: reasons.length } }); } catch {}
+  // Research item 3 (owner 21.11): the run's receipt names the integration commit it measured. A
+  // Codex cross-check that was started and left no scores makes the night an error, not ok.
+  const result = personasReceiptResult({ codexAttempt: state.codexAttempt ?? null, codexScored: codexCmp !== null });
+  try { receipt({ kind: 'personas', result, sha: state.end, counts: { ...counts, safetyReasons: reasons.length } }); } catch {}
   return { status: 'finished', report: join(out, 'report.md'), alert: raised.raised.length > 0, reasons: raised.raised, allReasons: reasons, issue: raised.issue };
 }
 
