@@ -101,3 +101,14 @@ export function contentVerdict({ expect, api, ui = null }) {
 export const contentMode = (env = process.env) => (env.LA_LANH_QA_CONTENT === "enforce" ? "enforce" : "report");
 // Exit code contribution of the content verdicts: only enforce mode fails on them.
 export const contentExit = (verdicts, mode) => (mode === "enforce" && verdicts.some((v) => v.status !== "PASS") ? 1 : 0);
+
+// Codex, journey 21.11: trace the one console 401. The entry page asks for a session before a new
+// visitor has one (GET /v1/session → 401 GUEST_SESSION_MISSING) and then creates the guest
+// (POST /v1/guest-sessions). That single answer is by design; any other 4xx is listed as unexpected,
+// so a real 401 no longer hides behind the expected one. Only method, redacted route, status and the
+// public problem code are kept: never a body, cookie or id.
+export function clientError({ method, url, status, code = null }, { guestCreated = false } = {}) {
+  const route = redactRoute(url);
+  const expected = !guestCreated && method === "GET" && route === "/v1/session" && status === 401 && code === "GUEST_SESSION_MISSING";
+  return { request: `${method} ${route}`, status, code: typeof code === "string" && /^[A-Z_]{3,64}$/.test(code) ? code : null, expected };
+}

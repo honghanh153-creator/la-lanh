@@ -28,7 +28,7 @@ Kiểm bằng máy: `node scripts/collab-rules.mjs` (khối `rules-facts` cuối
 | R14 | GitHub, AI bên ngoài | Repo công khai: không dữ liệu cá nhân của owner (ngày sinh, email…), không số tiền ngân sách. Không gửi file riêng của owner (trí nhớ, transcript) cho Codex hay dịch vụ AI khác; chỉ gửi bản tóm tắt đã lược. | owner 03.11 (sự cố lộ dữ liệu) | 03.11.2026 | — | chạy (`private-guard` trước push) |
 | R15 | Câu chữ cho người dùng | Tiếng Việt đời thường, ngắn, cụ thể; không câu thơ; không giải thích nguyên nhân kỹ thuật (vd múi giờ). | owner 03.11 và 10.11 | 10.11.2026 | Lời văn bay bổng | chạy (Codex chấm) |
 | R16 | Mọi việc | Ý tưởng phải thành code chạy được có bằng chứng; không nói "đã có" khi chưa có chỗ gọi và test. Không tự cắt phạm vi; owner quyết phần cắt. | owner 12.11 | 12.11.2026 | — | chạy |
-| R17 | Sự cố và góp ý | Mỗi sự cố hoặc góp ý của owner thành một kiểm tra bằng máy: bài học trong `scripts/collab-lessons.json` có test đỏ khi lỗi quay lại. | owner 03.11 và 13.11; code #481 | 13.11.2026 | Ghi chú chỉ trong trí nhớ/retro | chạy |
+| R17 | Sự cố và góp ý | Mỗi sự cố hoặc góp ý của owner thành một kiểm tra bằng máy: bài học trong `scripts/lessons/` (bài cũ: `scripts/collab-lessons.json`) có test đỏ khi lỗi quay lại. | owner 03.11 và 13.11; code #481 | 13.11.2026 | Ghi chú chỉ trong trí nhớ/retro | chạy |
 
 [h15]: https://github.com/honghanh153-creator/la-lanh/issues/2#issuecomment-6893191704
 [h16]: https://github.com/honghanh153-creator/la-lanh/issues/2#issuecomment-6904505088

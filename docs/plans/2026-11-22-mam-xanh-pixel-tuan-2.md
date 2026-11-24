@@ -22,7 +22,7 @@ Lá pixel chưa có US riêng. Tuần 5 (Mầm xanh thay "Vibe") cần một US 
 | #714 AC4 | Sau cờ tắt, không màn người dùng nào hiện | `pixel/flag.ts` | test: cờ tắt và chỉ trang thử nội bộ dùng Lá pixel |
 | #714 AC5 | Ghi giờ làm thực tế | mô tả PR | — |
 | #715 AC1 | Thêm 2 động tác, đủ 4 | `pixel/moves/kinhRoi.ts`, `pixel/moves/uongTra.ts` | test đếm |
-| #715 AC2 | Một test trong CI kiểm cả 4 (≤ 8 KB, ≤ 5 giây, đứng yên khi giảm chuyển động, bấm được bằng bàn phím), đỏ khi một động tác vượt | `pixel/moves.budget.test.tsx` | chạy trong `pnpm check` (web:test); có ca đối chứng âm |
+| #715 AC2 | Một test trong CI kiểm cả 4 (≤ 8 KB, ≤ 5 giây, đứng yên khi giảm chuyển động, bấm được bằng bàn phím), đỏ khi một động tác vượt | `pixel/moves.budget.test.tsx` (thay `moves.budget.test.ts` của #714) | chạy trong `pnpm check` (web:test); có ca đối chứng âm |
 | #715 AC3 | Vẫn sau cờ tắt | như #714 AC4 | như #714 AC4 |
 
 ## Bốn động tác
@@ -32,7 +32,7 @@ Chọn mỗi động tác ở một nhóm khác nhau, không dùng nhóm "Nhây"
 1. **Chào** (Vui): nhún lên, vẫy tay, lá trên đầu lắc.
 2. **Ngồi cùng** (Buồn và ngồi cùng): thở chậm, mắt dịu, một trái tim nhỏ hiện rồi tan.
 3. **Kính rơi** (Lá tự hỏng việc): đeo kính đen làm dáng, kính trượt xuống rơi, Lá ngượng.
-4. **Uống trà** (Việc nhỏ): nâng cốc, hơi bốc lên, nhấp một ngụm, lè lưỡi vì nóng.
+4. **Uống trà** (Việc nhỏ): cầm cốc ấm, hơi bốc lên, nhấp một ngụm chậm, thở ra dễ chịu. (Bản "uống trà bỏng lưỡi" thuộc nhóm Lá tự hỏng việc, để sau.)
 
 ## Cách làm
 

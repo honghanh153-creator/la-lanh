@@ -20,3 +20,19 @@ export const MOVE_MAX_MS = 5000;
 export function moveDurationMs(move: PixelMove): number {
   return Math.round((move.frames.length * 1000) / move.fps);
 }
+
+/** Shortest and longest move, from the 15.11 design note (12–24 pictures per move). */
+export const MOVE_MIN_FRAMES = 12;
+export const MOVE_MAX_FRAMES = 24;
+
+/** Why a move breaks the week-2 budget; empty when it fits. `sourceBytes` is its file size. */
+export function moveProblems(move: PixelMove, sourceBytes: number): string[] {
+  const problems: string[] = [];
+  if (sourceBytes > MOVE_MAX_BYTES) problems.push(`${move.id}: ${sourceBytes} byte > ${MOVE_MAX_BYTES}`);
+  if (moveDurationMs(move) > MOVE_MAX_MS) problems.push(`${move.id}: ${moveDurationMs(move)} ms > ${MOVE_MAX_MS}`);
+  if (move.frames.length < MOVE_MIN_FRAMES || move.frames.length > MOVE_MAX_FRAMES) {
+    problems.push(`${move.id}: ${move.frames.length} hình, cần ${MOVE_MIN_FRAMES}–${MOVE_MAX_FRAMES}`);
+  }
+  if (move.group === "nhay") problems.push(`${move.id}: nhóm "nhay" chỉ dùng khi người dùng tự chạm Lá để chơi`);
+  return problems;
+}

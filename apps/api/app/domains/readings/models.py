@@ -258,6 +258,19 @@ class DailyVariety(BaseModel):
     # Issue keys actually served on D-1 and D-2 (most recent first), used only
     # for the top-K guard. Closed catalog keys, never user text.
     recent_issue_keys: tuple[str, ...] = Field(default=(), max_length=2)
+    # Topic anti-repeat (plan 2026-11-21, US-21 AC05 new): the issue keys this same choice gave on
+    # the earlier days of the reader's 7-day block, oldest first ("" = no situation that day),
+    # recomputed from the chart, never stored apart from this plan. ``None`` = the top-3 rotation
+    # with the AC05 guard pair (plans before the switch, and dates before it).
+    topic_history: tuple[str, ...] | None = Field(default=None, max_length=6)
+
+    @model_serializer(mode="wrap")
+    def _drop_absent_topic_history(self, handler: SerializerFunctionWrapHandler) -> Any:
+        # Plans made before the topic schedule keep their plan hash and identity unchanged.
+        data = handler(self)
+        if isinstance(data, dict) and data.get("topic_history") is None:
+            data.pop("topic_history", None)
+        return data
 
 
 class ReadingPlan(BaseModel):
