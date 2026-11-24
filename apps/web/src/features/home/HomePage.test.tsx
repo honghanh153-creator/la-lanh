@@ -29,6 +29,8 @@ import {
 import { clearCachedDailyNote, writeCachedDailyNote } from "../../shared/storage/noteCache";
 import { clearChartDerivedData } from "../../shared/storage/clearChartDerivedData";
 import ultravioletStyles from "../../shared/styles/ultraviolet.css?raw";
+import { dailyReadOnlyKey } from "../../shared/hooks/useDailyActionView";
+import { FOLDED_ACTION_LABEL, READ_ONLY_TODAY, SHOW_ACTION_AGAIN } from "../../shared/ui/ReadingContent";
 import { HomePage } from "./HomePage";
 import { LA_MOOD_REACTIONS } from "../../shared/ui/la/laVoice";
 
@@ -514,6 +516,37 @@ describe("HomePage rich reading", () => {
     await user.click(screen.getByRole("button", { name: /Chill/ }));
     await waitFor(() => expect(screen.queryByText("Thu hẹp lựa chọn khi đang mệt.")).not.toBeInTheDocument());
     expect(screen.getAllByText(LA_MOOD_REACTIONS.Chill).length).toBeGreaterThan(0);
+  });
+
+  it.each([
+    ["Căng", "slow_action", "Đợi năm phút rồi mới gửi câu trả lời.", "Xem việc chậm lại"],
+    ["Lạc trôi", "clear_action", "Viết ra một việc duy nhất cần xong trước trưa.", "Xem một bước rõ"],
+  ] as const)("shows the %s action after that check-in and lets the reader switch back (#701)", async (mood, field, text, label) => {
+    const user = userEvent.setup();
+    const original = vibe.sections.micro_action;
+    const offers = {
+      ...vibe,
+      lighter_action: { action: "Uống một ly nước rồi ngồi yên hai phút.", weight: "light" as const, experiment: null },
+      slow_action: { action: "Đợi năm phút rồi mới gửi câu trả lời.", weight: "slow" as const, experiment: null },
+      clear_action: { action: "Viết ra một việc duy nhất cần xong trước trưa.", weight: "clear" as const, experiment: null },
+    };
+    vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(offers)));
+    renderPage();
+
+    expect(await screen.findByText(original)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Chọn cảm giác hôm nay" }));
+    await user.click(screen.getByRole("button", { name: new RegExp(mood) }));
+    expect(await screen.findByText(text)).toBeInTheDocument();
+    expect(offers[field].action).toBe(text);
+    expect(screen.queryByText(original)).not.toBeInTheDocument();
+    // The note itself never changes (US-04 AC14); only the action shown does.
+    expect(screen.getByText(vibe.sections.hook)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Xem việc ban đầu" }));
+    expect(screen.getByText(original)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: label }));
+    expect(screen.getByText(text)).toBeInTheDocument();
+    expect(JSON.stringify({ ...localStorage, ...sessionStorage })).not.toContain(text);
   });
 
   it("shows the lighter action after a Đuối check-in and lets the reader switch back (#627)", async () => {
@@ -1145,6 +1178,69 @@ describe("HomePage kept action (#741)", () => {
     expect(card.getByText(vibe.sections.micro_action)).toBeInTheDocument();
     expect(card.queryByRole("button", { name: "Giữ để thử hôm nay" })).not.toBeInTheDocument();
     expect(getCurrentDailyExperiment).not.toHaveBeenCalled();
+  });
+
+  // #700: "Hôm nay chỉ muốn đọc" folds the action box to one line.
+  it("folds the action box to one line and opens it again, without a request, storage or leaving Home (#700)", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getCurrentDailyExperiment).mockResolvedValue(held(own));
+    const { client } = renderPage();
+    const card = within(await advice());
+    await card.findByRole("button", { name: "Bỏ giữ việc này" });
+    const calls = () => [getDailyNote, getCurrentDailyExperiment, getCurrentMood, checkInMood, chooseDailyExperiment, undoDailyExperiment, reflectDailyExperiment, recordResonance]
+      .map((mock) => vi.mocked(mock).mock.calls.length);
+    const callsBefore = calls();
+    const storedBefore = JSON.stringify({ ...localStorage, ...sessionStorage });
+
+    const fold = card.getByRole("button", { name: READ_ONLY_TODAY });
+    fold.focus();
+    await user.keyboard("{Enter}");
+
+    const folded = await screen.findByRole("complementary", { name: FOLDED_ACTION_LABEL });
+    expect(within(folded).getByRole("button", { name: SHOW_ACTION_AGAIN })).toHaveFocus();
+    expect(within(folded).getAllByRole("button")).toHaveLength(1);
+    expect(folded).not.toHaveTextContent(own.action);
+    expect(folded).not.toHaveTextContent("Thử một việc nhỏ");
+    // The note itself and the way to the full note stay.
+    expect(screen.getByRole("heading", { name: keepable.sections.hook })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Đọc đầy đủ/ })).toBeInTheDocument();
+    // Not "bỏ việc": nothing was sent, nothing was written to the device, no sign-in prompt.
+    expect(calls()).toEqual(callsBefore);
+    expect(JSON.stringify({ ...localStorage, ...sessionStorage })).toBe(storedBefore);
+    expect(client.getQueryData(dailyReadOnlyKey(baseNoteId))).toBe(true);
+    expect(screen.queryByText(/Đã bỏ giữ/)).not.toBeInTheDocument();
+
+    await user.keyboard("{Enter}");
+    const open = within(await advice());
+    expect(open.getByRole("button", { name: READ_ONLY_TODAY })).toHaveFocus();
+    expect(open.getByText(own.action)).toBeInTheDocument();
+    // The kept action is still kept.
+    expect(await open.findByRole("button", { name: "Bỏ giữ việc này" })).toBeInTheDocument();
+    expect(undoDailyExperiment).not.toHaveBeenCalled();
+  });
+
+  it("opens the box again for the next day's note when Home stays open (#700, US-04 AC12)", async () => {
+    const user = userEvent.setup();
+    const { client } = renderPage();
+    await user.click(await within(await advice()).findByRole("button", { name: READ_ONLY_TODAY }));
+    await screen.findByRole("complementary", { name: FOLDED_ACTION_LABEL });
+
+    const nextNoteId = "00000000-0000-4000-8000-000000000002";
+    const tomorrow = { ...noteWith(projection(keepable)), id: nextNoteId, note_date: "2026-09-08" };
+    vi.mocked(getDailyNote).mockResolvedValue(tomorrow);
+    await act(async () => { await client.invalidateQueries(); });
+
+    const card = within(await advice());
+    expect(await card.findByRole("button", { name: READ_ONLY_TODAY })).toBeInTheDocument();
+    expect(card.getByText(own.action)).toBeInTheDocument();
+  });
+
+  it("offers the fold button for an action that cannot be kept too (#700)", async () => {
+    vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(vibe)));
+    renderPage();
+    await userEvent.click(await within(await advice()).findByRole("button", { name: READ_ONLY_TODAY }));
+    const folded = await screen.findByRole("complementary", { name: FOLDED_ACTION_LABEL });
+    expect(folded).not.toHaveTextContent(vibe.sections.micro_action);
   });
 });
 
