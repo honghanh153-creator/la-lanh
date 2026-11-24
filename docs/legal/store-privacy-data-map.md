@@ -48,7 +48,7 @@ The app target includes `PrivacyInfo.xcprivacy` with `NSPrivacyTracking=false`. 
 | Other User Content | birth date/time, selected context, mood and user-initiated response fields | Yes | No | App Functionality, Product Personalization |
 | Product Interaction | mood/save/share/activation state required to provide the feature | Yes | No | App Functionality |
 | Other Data Types | derived natal/transit factors, reading plan/revision and astrology profile | Yes | No | App Functionality, Product Personalization |
-| Other User Content | Radar nickname/context, permission attestation and minimized relationship result (audience: private mode owner only; invite mode the invited pair) | Yes | No | App Functionality, Product Personalization |
+| Other User Content | Radar nickname/context, pair consent and minimized relationship result (audience: the invited pair; earlier private-mode results the owner only until they expire); frozen share-card snapshot (tier, one line, relationship, optional initial) shown to whoever holds a card link; kept pair for "Hai bạn tuần này" (the other person's birth date, encrypted, at most 90 days) | Yes | No | App Functionality, Product Personalization |
 
 Before App Store submission:
 
@@ -67,9 +67,11 @@ Use the following as the draft answer source, then map to the current Play Conso
 | Location — precise | user-selected birthplace coordinates, not current device location | Yes | No by default | Optional | App functionality, Personalization |
 | App activity — App interactions | mood/save/share/activation state | Yes | No | Optional by action | App functionality |
 | User-generated content / Other | Lá Chứng response/context where enabled | Yes | Only with an explicit capability link and bounded projection | Optional | App functionality |
-| Personal info / User-generated content | Radar nickname/context, permission attestation or pair consent, and minimized relationship result | Yes | Private mode: owner only; invite mode: invited pair; raw birth inputs are never exchanged | Optional | App functionality, Personalization, Security |
+| Personal info / User-generated content | Radar nickname/context, pair consent, minimized relationship result, share-card snapshot, kept weekly pair (other person's birth date, encrypted, ≤90 days) | Yes | Invited pair; a card link discloses the snapshot (no birth data, at most an initial) to whoever holds it; raw birth inputs are never exchanged | Optional | App functionality, Personalization, Security |
 
 ## Radar hợp gu release delta
+
+- **Owner AP2/AQ1 (21.11.2026), supersedes the private-mode lines below for new data.** The self-attested `private_check` is retired: new checks return 410, so A never enters B's birth data. A pair is read only through the invite: in the one-field invite B types only B's own birth date, which is used once in request memory and never stored; B needs no profile or session and keeps the result by the HttpOnly receipt (30 days, withdrawable). Results created before the release keep their 24-hour life. Share-card links (built; off at release until the owner approves the privacy-page line, then on per AQ1): a frozen, AES-GCM-encrypted snapshot (tier, one line, relationship, optional initial) behind a hashed 256-bit token, no longer than the result, revocable, deleted with the result; public delivery is no-store/no-referrer/no-index. "Hai bạn tuần này" (on): when the owner keeps a pair, the other person's birth date (date only) and the nickname are stored AES-GCM-encrypted for at most 90 days, deletable at any time and with the owner's data. Apple App Privacy: still "Other User Content" (linked, not tracking); Google Data Safety: "Personal info / User-generated content", shared with the link holder for card links. No new SDK, recipient or tracking.
 
 - Intended public scope is a private, known-person 1:1 Radar. Pool/discovery, 5 hidden cards, mutual, chat and recap (US-14–18) are deferred. Legacy matching routes are still mounted for existing data. Audit P02 (2026-10-22) found that they still accepted new profiles (gender identity, dating intent, preference, age range, region) without matching consent or DOB; the fix gates profile, consent and pool-join writes behind `matching_accepting_new_activity` (default off, HTTP 410 after the owner/CSRF check), keeping consent withdrawal and leaving the pool. Until a release with that fix is live, do not claim matching collection is impossible; existing rows still need the deletion paths and an aggregate count before any purge decision.
 - Primary `private_check` lets A enter B's birth data only after attesting that B allowed this use. Raw B DOB/time/place is processed in request memory and must not be persisted as raw inputs, logged, cached or turned into a profile. Retained fields include encrypted nickname/result, attestation timestamp/version, coarse context/voice and keyed retry metadata, for 24 hours of result access (owner decision 2026-10-19; results created earlier keep their original expiry of at most 30 days). Expired rows are hidden at once. The six-hour `cleanup_expired` job deletes them with their rewrite jobs (cascade), nominally within about 30 hours of creation; each run that meets an active rewrite send fence or started generation attempt for that owner defers deletion by one six-hour run, with no hard upper bound (see the Radar spec §6). Backup expiry is a separate lifecycle check. A consented invite result keeps 30 days from acceptance.
@@ -273,3 +275,28 @@ never sent; lean conclusions and reasons stay local. No new data type, recipient
 - Never in the file: ids, hashes, digests, capability/receipt tokens, CSRF or session secrets, Radar result prose, Lá Chứng responder content, other people's birth data, birthplace centroid coordinates, rows the app already hides (expired Daily history, Tarot, Radar), internal reading/rewrite state.
 - Delivery: built on request from a fresh read, not stored or cached server-side (`no-store`, `Pragma: no-cache`, `nosniff`, `no-referrer`, fixed filename `la-lanh-du-lieu-cua-toi.json`), CSRF + trusted origin, 5/min per peer. The web client hands the Blob to the device and keeps no copy; the Capacitor shell writes the JSON to the app's own cache directory with the official `@capacitor/filesystem` plugin, opens it with `@capacitor/share` (system share sheet), and deletes the temp file as soon as the sheet closes (saved, cancelled or failed); if that delete fails, the file stays only in the app-private cache until the OS or app clears it. Neither plugin sends data off the device. Real iOS/Android device testing is still required before release. No third party or SDK receives it, so Apple App Privacy and Google Play Data Safety answers do not change (no new collection or sharing). Play's "users can request data deletion" answer is unchanged; the export is an additional in-app right.
 - **P09 D2:** B's self-service screens (session list/view/withdraw, used-invite withdraw, receipt) are in integration since #83; Mình and the privacy page now link B to them and explain what is held. B is never asked for birth data again. Inventory and open questions: [plan](../plans/2026-10-29-privacy-export-and-b-rights.md).
+
+## Hỏi Lá bằng lá số delta — AK2, 2026-11-20
+
+"Hỏi về tháng này" answers a topic from the person's stored chart and this month's transits
+(`app/domains/month_answer`, `/v1/month/*`). It reads the existing birth snapshot and, for an
+exact time, recomputes the chart from the existing encrypted supplement; it collects no new
+birth, place or identity field and calls no third party or AI service.
+
+- **Request:** closed values only: a topic label and, optionally, one of 18 preset question ids.
+  There is no typed-question box (owner chose AS1 on 2026-11-21), so no free text is collected and
+  no consent or separate crisis notice is needed for this screen. A request carrying free text is
+  rejected by validation and never read.
+- **Answers:** answers, the on-tap easier window and the Khám phá month card are computed per
+  request and not stored, cached or logged (`Cache-Control: no-store`). No row is written; a test
+  compares every table's row count.
+- **Saving (US-25 AC12):** nothing is saved automatically. "Lưu" sends a topic and an answer key
+  only; the server recomputes the answer and stores the composed answer (topic label, preset
+  question and its tip if one was picked, three parts, basis, disclaimer) in `saved_month_answers`,
+  AES-GCM encrypted with the row id as context, never a date window. Own list, deletable one by
+  one; delete appends a `saved_month_answer_removed` erasure-journal entry (keyed digest, no
+  content). Retention: until the person deletes it, removes birth time or place (deleted with saved
+  notes and share links), or the guest is erased (cascade). Included in the data export as
+  `saved_month_answers`. RLS on, no grants to `anon`/`authenticated`. At most 200 per guest.
+- **Declarations:** App Privacy and Data Safety answers do not change (no new data type; derived
+  astrology content is already declared).

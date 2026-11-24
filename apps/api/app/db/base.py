@@ -18,6 +18,7 @@ from app.domains.human_tarot import tables as human_tarot_tables  # noqa: E402,F
 from app.domains.identity import tables as identity_tables  # noqa: E402,F401
 from app.domains.la_chung import tables as la_chung_tables  # noqa: E402,F401
 from app.domains.matching import tables as matching_tables  # noqa: E402,F401
+from app.domains.month_answer import tables as month_answer_tables  # noqa: E402,F401
 from app.domains.radar import tables as radar_tables  # noqa: E402,F401
 from app.domains.readings import tables as reading_tables  # noqa: E402,F401
 from app.domains.resonance import tables as resonance_tables  # noqa: E402,F401

@@ -100,6 +100,8 @@ _CONTEXT_TERMS = {
     "crush": ("crush",),
     "friend": ("bạn thân", "tình bạn"),
     "partner": ("người yêu", "nửa kia", "bạn đời"),
+    "coworker": ("đồng nghiệp",),
+    "family": ("gia đình",),
 }
 # Ordinary phrases that contain a context term but name no relationship ("người yêu cầu":
 # the person asking).

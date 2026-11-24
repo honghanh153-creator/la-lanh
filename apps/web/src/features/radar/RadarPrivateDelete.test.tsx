@@ -94,7 +94,6 @@ describe("Radar private delete needs an in-app confirmation", () => {
   it("shows when each private check deletes itself, in Vietnam time", async () => {
     renderPrivate();
     expect(await screen.findByText("Tự xoá lúc 07:00, 31/10")).toBeInTheDocument();
-    expect(screen.getByText(/chỉ giữ 24 giờ để bạn mở lại; sau đó tự xoá/)).toBeInTheDocument();
     expect(screen.queryByText(/30 ngày/)).not.toBeInTheDocument();
   });
 

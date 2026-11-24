@@ -840,6 +840,112 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/month/answers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Month Answer */
+        post: operations["month_answer_v1_month_answers_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/month/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Month Overview */
+        get: operations["month_overview_v1_month_overview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/month/saved": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Saved Month Answers */
+        get: operations["list_saved_month_answers_v1_month_saved_get"];
+        put?: never;
+        /**
+         * Save Month Answer
+         * @description Explicit "Lưu" only. The answer is recomputed server-side; the client sends no text.
+         */
+        post: operations["save_month_answer_v1_month_saved_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/month/saved/{saved_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Saved Month Answer */
+        delete: operations["delete_saved_month_answer_v1_month_saved__saved_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/month/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Month Status */
+        get: operations["month_status_v1_month_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/month/window": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Month Window */
+        get: operations["month_window_v1_month_window_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/public/la-chung/receipt/withdraw": {
         parameters: {
             query?: never;
@@ -908,6 +1014,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/public/radar/cards/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Public Card
+         * @description The card behind a link: no-store, no-referrer, noindex; one not-found for every refusal
+         *     (off, unknown, revoked, expired, result gone or withdrawn).
+         */
+        get: operations["public_card_v1_public_radar_cards__token__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/public/radar/consent-options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Consent Options
+         * @description No personal data; tells the web which consent screens it may show (AL1).
+         */
+        get: operations["consent_options_v1_public_radar_consent_options_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/public/radar/current": {
         parameters: {
             query?: never;
@@ -936,6 +1083,30 @@ export interface paths {
         put?: never;
         /** Accept Invite */
         post: operations["accept_invite_v1_public_radar_current_accept_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/public/radar/current/accept-date": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accept Invite With Date
+         * @description AL1 one-field invite. 404 while the invite-first consent is off or unapproved.
+         *
+         *     No guest session: the capability cookie (SameSite=Lax, path-bound), the trusted Origin and the
+         *     bound ``request_id`` guard the action, as for decline and invite-link withdrawal. The token is
+         *     single use: completing it moves the invite out of ``pending`` under a row lock.
+         */
+        post: operations["accept_invite_with_date_v1_public_radar_current_accept_date_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1032,6 +1203,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/radar/cards/{card_id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke Card */
+        post: operations["revoke_card_v1_radar_cards__card_id__revoke_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/radar/private-checks": {
         parameters: {
             query?: never;
@@ -1041,7 +1229,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Create Private Check */
+        /**
+         * Create Private Check
+         * @deprecated
+         */
         post: operations["create_private_check_v1_radar_private_checks_post"];
         delete?: never;
         options?: never;
@@ -1168,6 +1359,104 @@ export interface paths {
         post?: never;
         /** Delete Owner Result */
         delete: operations["delete_owner_result_v1_radar_results__request_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/radar/results/{request_id}/ask": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Ask Questions
+         * @description Hợp gu direction B: pre-written questions only, for the owner of a live result.
+         */
+        get: operations["ask_questions_v1_radar_results__request_id__ask_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/radar/results/{request_id}/ask/{question_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ask Answer */
+        get: operations["ask_answer_v1_radar_results__request_id__ask__question_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/radar/results/{request_id}/cards": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Cards */
+        get: operations["list_cards_v1_radar_results__request_id__cards_get"];
+        put?: never;
+        /**
+         * Create Card
+         * @description AL1 direction C: a revocable link to a frozen card. 404 while the switch is off.
+         */
+        post: operations["create_card_v1_radar_results__request_id__cards_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/radar/weekly": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Weekly Pairs
+         * @description "Hai bạn tuần này": 404 while the feature is off or the owner has no session.
+         */
+        get: operations["weekly_pairs_v1_radar_weekly_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/radar/weekly/{pair_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Weekly Pair
+         * @description Turning a pair off deletes it, with the stored birth date.
+         */
+        delete: operations["delete_weekly_pair_v1_radar_weekly__pair_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1973,6 +2262,8 @@ export interface components {
             radar_received: components["schemas"]["ExportRadarReceived"][];
             /** Radar Sent */
             radar_sent: components["schemas"]["ExportRadarSent"][];
+            /** Saved Month Answers */
+            saved_month_answers?: components["schemas"]["ExportSavedMonthAnswer"][];
             /** Saved Notes */
             saved_notes: components["schemas"]["ExportSavedNote"][];
             /** Share Links */
@@ -2550,6 +2841,39 @@ export interface components {
             /** Transit */
             transit: string | null;
         };
+        /**
+         * ExportSavedMonthAnswer
+         * @description A month answer the person saved with "Lưu" (US-25).
+         */
+        ExportSavedMonthAnswer: {
+            /** Act */
+            act: string | null;
+            /** Basis */
+            basis: string | null;
+            /** Basis Detail */
+            basis_detail: string | null;
+            /** Disclaimer */
+            disclaimer: string | null;
+            /** Month */
+            month: string;
+            /** Question */
+            question: string | null;
+            /**
+             * Saved At
+             * Format: date-time
+             */
+            saved_at: string;
+            /** Say */
+            say: string | null;
+            /** Theme */
+            theme: string | null;
+            /** Tip */
+            tip: string | null;
+            /** Topic */
+            topic: string;
+            /** Topic Label */
+            topic_label: string | null;
+        };
         /** ExportSavedNote */
         ExportSavedNote: {
             /** Body */
@@ -3098,6 +3422,110 @@ export interface components {
             verification_reason_code: string | null;
             verification_status: components["schemas"]["VerificationStatus"];
         };
+        /** MonthAnswerRequest */
+        MonthAnswerRequest: {
+            preset?: components["schemas"]["PresetId"] | null;
+            topic: components["schemas"]["Topic"];
+        };
+        /** MonthAnswerResponse */
+        MonthAnswerResponse: {
+            answer: components["schemas"]["MonthAnswerView"];
+            /**
+             * Status
+             * @constant
+             */
+            status: "answered";
+        };
+        /** MonthAnswerView */
+        MonthAnswerView: {
+            /** Act */
+            act: string;
+            /** Answer Key */
+            answer_key: string;
+            basis: components["schemas"]["MonthBasis"];
+            /** Disclaimer */
+            disclaimer: string;
+            /** Month */
+            month: string;
+            preset: components["schemas"]["PresetId"] | null;
+            /** Question */
+            question: string | null;
+            /** Say */
+            say: string;
+            /** Theme */
+            theme: string;
+            /** Tip */
+            tip: string | null;
+            topic: components["schemas"]["Topic"];
+            /** Topic Label */
+            topic_label: string;
+        };
+        /** MonthBasis */
+        MonthBasis: {
+            /** Detail */
+            detail: string;
+            /** Line */
+            line: string;
+        };
+        /** MonthOverviewItem */
+        MonthOverviewItem: {
+            /**
+             * Area
+             * @enum {string}
+             */
+            area: "work" | "love" | "money" | "self";
+            /** Label */
+            label: string;
+            /** Line */
+            line: string;
+            /** Try Text */
+            try_text: string;
+        };
+        /** MonthOverviewResponse */
+        MonthOverviewResponse: {
+            /** Items */
+            items: components["schemas"]["MonthOverviewItem"][];
+            /** Month */
+            month: string;
+        };
+        /** MonthPresetView */
+        MonthPresetView: {
+            id: components["schemas"]["PresetId"];
+            /** Text */
+            text: string;
+            topic: components["schemas"]["Topic"];
+        };
+        /** MonthSaveRequest */
+        MonthSaveRequest: {
+            /** Answer Key */
+            answer_key: string;
+            topic: components["schemas"]["Topic"];
+        };
+        /** MonthStatusResponse */
+        MonthStatusResponse: {
+            /** Available */
+            available: boolean;
+            /** Month */
+            month: string;
+            /**
+             * Presets
+             * @default []
+             */
+            presets: components["schemas"]["MonthPresetView"][];
+        };
+        /** MonthWindowResponse */
+        MonthWindowResponse: {
+            /** Basis */
+            basis?: string | null;
+            /** End */
+            end?: string | null;
+            /** Found */
+            found: boolean;
+            /** Line */
+            line?: string | null;
+            /** Start */
+            start?: string | null;
+        };
         /** MoodRequest */
         MoodRequest: {
             mood: components["schemas"]["MoodValue"];
@@ -3262,6 +3690,11 @@ export interface components {
             /** Active */
             active: boolean;
         };
+        /**
+         * PresetId
+         * @enum {string}
+         */
+        PresetId: "work.hard_talk" | "work.too_much" | "work.shifts" | "money.month_end" | "money.ask_back" | "money.say_no" | "love.closer" | "love.say_tired" | "love.far" | "family.parents_ask" | "family.my_path" | "family.compare" | "study.many_exams" | "study.exam_energy" | "study.start_project" | "mind.homesick" | "mind.sleep" | "mind.heavy";
         /** ProblemResponse */
         ProblemResponse: {
             /** Code */
@@ -3298,6 +3731,22 @@ export interface components {
             /** Statements */
             statements: components["schemas"]["PublicStatementResponse"][];
         };
+        /**
+         * PublicRadarCardResponse
+         * @description A card as anyone with the link sees it: no birth data, no name beyond an initial.
+         */
+        PublicRadarCardResponse: {
+            /** Context */
+            context: string;
+            /** Initial */
+            initial?: string | null;
+            /** Line */
+            line: string;
+            /** Tier */
+            tier: string;
+            /** Version */
+            version: string;
+        };
         /** PublicRadarInviteResponse */
         PublicRadarInviteResponse: {
             /**
@@ -3324,7 +3773,7 @@ export interface components {
             request_id: string;
             /**
              * Requires Exact Birth Profile
-             * @default true
+             * @default false
              */
             requires_exact_birth_profile: boolean;
             /** Voice */
@@ -3402,6 +3851,53 @@ export interface components {
              */
             request_id: string;
         };
+        /** RadarAskAnswerResponse */
+        RadarAskAnswerResponse: {
+            based_on?: components["schemas"]["RadarAskBasis"] | null;
+            /** Can Send */
+            can_send: string;
+            /** Question */
+            question: string;
+            /** Question Id */
+            question_id: string;
+            /** Refusal */
+            refusal: boolean;
+            /** Say */
+            say: string;
+            /** Try Today */
+            try_today?: string | null;
+            /** Version */
+            version: string;
+            /** Why */
+            why: string;
+        };
+        /** RadarAskBasis */
+        RadarAskBasis: {
+            /** Evidence Ids */
+            evidence_ids?: string[];
+            /** Label */
+            label?: string | null;
+            /** Level Label */
+            level_label: string;
+            /** Technical Note */
+            technical_note?: string | null;
+            /** Theme */
+            theme: string;
+        };
+        /** RadarAskQuestion */
+        RadarAskQuestion: {
+            /** Id */
+            id: string;
+            /** Text */
+            text: string;
+        };
+        /** RadarAskQuestionsResponse */
+        RadarAskQuestionsResponse: {
+            /** Questions */
+            questions: components["schemas"]["RadarAskQuestion"][];
+            /** Version */
+            version: string;
+        };
         /** RadarBoundActionRequest */
         RadarBoundActionRequest: {
             /**
@@ -3410,17 +3906,95 @@ export interface components {
              */
             request_id: string;
         };
+        /** RadarCardCreateRequest */
+        RadarCardCreateRequest: {
+            /**
+             * Show Initial
+             * @default false
+             */
+            show_initial: boolean;
+        };
+        /** RadarCardResponse */
+        RadarCardResponse: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Share Url */
+            share_url?: string | null;
+            /** Status */
+            status: string;
+        };
+        /**
+         * RadarConsentOptionsResponse
+         * @description Whether the invite-first consent screens are live, with their owner-approved sentences.
+         */
+        RadarConsentOptionsResponse: {
+            /** Authorized Input Version */
+            authorized_input_version: string;
+            /**
+             * Card Links
+             * @default false
+             */
+            card_links: boolean;
+            /** Date Consent Version */
+            date_consent_version: string;
+            /** Invite First */
+            invite_first: boolean;
+            /** Sentences */
+            sentences?: {
+                [key: string]: string;
+            };
+            /**
+             * Weekly
+             * @default false
+             */
+            weekly: boolean;
+            /** Weekly Sentences */
+            weekly_sentences?: {
+                [key: string]: string;
+            };
+        };
         /** RadarCreateRequest */
         RadarCreateRequest: {
             /**
              * Context
              * @enum {string}
              */
-            context: "crush" | "friend" | "partner" | "someone";
+            context: "crush" | "friend" | "partner" | "someone" | "coworker" | "family";
             /** Recipient Label */
             recipient_label: string;
             /** @default straight_warm */
             voice: components["schemas"]["RelationshipVoice"];
+        };
+        /**
+         * RadarDateAcceptRequest
+         * @description The one-field invite (AL1): B's own birth date and B's consent, nothing else.
+         */
+        RadarDateAcceptRequest: {
+            /**
+             * Birth Date
+             * Format: date
+             */
+            birth_date: string;
+            /** Consent Version */
+            consent_version: string;
+            /**
+             * Request Id
+             * Format: uuid
+             */
+            request_id: string;
         };
         /** RadarInviteResponse */
         RadarInviteResponse: {
@@ -3479,16 +4053,21 @@ export interface components {
              * @default exact
              * @enum {string}
              */
-            birth_time_mode: "exact" | "unknown";
+            birth_time_mode: "exact" | "unknown" | "date_only";
             /** Consent Version */
             consent_version: string;
             /**
              * Context
              * @enum {string}
              */
-            context: "crush" | "friend" | "partner" | "someone";
+            context: "crush" | "friend" | "partner" | "someone" | "coworker" | "family";
+            /**
+             * Keep Weekly
+             * @default false
+             */
+            keep_weekly: boolean;
             /** Place Id */
-            place_id: string;
+            place_id?: string | null;
             /** Recipient Label */
             recipient_label: string;
             /** @default straight_warm */
@@ -3532,6 +4111,8 @@ export interface components {
             compatibility_map?: {
                 [key: string]: unknown;
             }[];
+            /** Context */
+            context?: string | null;
             /** Dimensions */
             dimensions?: {
                 [key: string]: unknown;
@@ -3573,6 +4154,43 @@ export interface components {
          * @enum {string}
          */
         RadarStatus: "pending" | "completed" | "revoked" | "withdrawn" | "expired";
+        /** RadarWeeklyItem */
+        RadarWeeklyItem: {
+            /** Context */
+            context: string;
+            /** Easy */
+            easy?: string | null;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Initial */
+            initial?: string | null;
+            /** Quiet */
+            quiet?: string | null;
+            /** Try Line */
+            try_line?: string | null;
+            /** Watch */
+            watch?: string | null;
+            /**
+             * Week Of
+             * Format: date
+             */
+            week_of: string;
+        };
+        /** RadarWeeklyResponse */
+        RadarWeeklyResponse: {
+            /** Items */
+            items: components["schemas"]["RadarWeeklyItem"][];
+            /** Version */
+            version: string;
+        };
         /** ReadinessCheck */
         ReadinessCheck: {
             /** Blocking */
@@ -3808,6 +4426,27 @@ export interface components {
             title: string;
             /** Watermark */
             watermark: string;
+        };
+        /** SavedMonthAnswerList */
+        SavedMonthAnswerList: {
+            /** Items */
+            items: components["schemas"]["SavedMonthAnswerView"][];
+        };
+        /** SavedMonthAnswerView */
+        SavedMonthAnswerView: {
+            answer: components["schemas"]["MonthAnswerView"];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Month */
+            month: string;
+            /**
+             * Saved At
+             * Format: date-time
+             */
+            saved_at: string;
         };
         /** SavedNoteRequest */
         SavedNoteRequest: {
@@ -4267,6 +4906,11 @@ export interface components {
          * @enum {string}
          */
         TimePrecision: "exact" | "approximate" | "unknown";
+        /**
+         * Topic
+         * @enum {string}
+         */
+        Topic: "work" | "money" | "love" | "family" | "study" | "mind";
         /**
          * Tradition
          * @enum {string}
@@ -8345,6 +8989,373 @@ export interface operations {
             };
         };
     };
+    month_answer_v1_month_answers_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MonthAnswerRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonthAnswerResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Request input was rejected */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    month_overview_v1_month_overview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonthOverviewResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_saved_month_answers_v1_month_saved_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedMonthAnswerList"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    save_month_answer_v1_month_saved_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MonthSaveRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedMonthAnswerView"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Request input was rejected */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    delete_saved_month_answer_v1_month_saved__saved_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path: {
+                saved_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Request input was rejected */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    month_status_v1_month_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonthStatusResponse"];
+                };
+            };
+        };
+    };
+    month_window_v1_month_window_get: {
+        parameters: {
+            query: {
+                topic: components["schemas"]["Topic"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonthWindowResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Request input was rejected */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     withdraw_response_v1_public_la_chung_receipt_withdraw_post: {
         parameters: {
             query?: never;
@@ -8489,6 +9500,57 @@ export interface operations {
             };
         };
     };
+    public_card_v1_public_radar_cards__token__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicRadarCardResponse"];
+                };
+            };
+            /** @description Request input was rejected */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    consent_options_v1_public_radar_consent_options_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarConsentOptionsResponse"];
+                };
+            };
+        };
+    };
     current_invite_v1_public_radar_current_get: {
         parameters: {
             query?: never;
@@ -8534,6 +9596,41 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["RadarAcceptRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicRadarResultResponse"];
+                };
+            };
+            /** @description Request input was rejected */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    accept_invite_with_date_v1_public_radar_current_accept_date_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                la_lanh_radar_invite?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RadarDateAcceptRequest"];
             };
         };
         responses: {
@@ -8704,6 +9801,37 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["PublicRadarInviteResponse"];
                 };
+            };
+            /** @description Request input was rejected */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    revoke_card_v1_radar_cards__card_id__revoke_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path: {
+                card_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Request input was rejected */
             422: {
@@ -9114,6 +10242,188 @@ export interface operations {
             };
             path: {
                 request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Request input was rejected */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    ask_questions_v1_radar_results__request_id__ask_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarAskQuestionsResponse"];
+                };
+            };
+            /** @description Request input was rejected */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    ask_answer_v1_radar_results__request_id__ask__question_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+                question_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarAskAnswerResponse"];
+                };
+            };
+            /** @description Request input was rejected */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    list_cards_v1_radar_results__request_id__cards_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarCardResponse"][];
+                };
+            };
+            /** @description Request input was rejected */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    create_card_v1_radar_results__request_id__cards_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RadarCardCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarCardResponse"];
+                };
+            };
+            /** @description Request input was rejected */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    weekly_pairs_v1_radar_weekly_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarWeeklyResponse"];
+                };
+            };
+        };
+    };
+    delete_weekly_pair_v1_radar_weekly__pair_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path: {
+                pair_id: string;
             };
             cookie?: never;
         };

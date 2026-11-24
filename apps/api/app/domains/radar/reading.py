@@ -19,6 +19,7 @@ wants, and makes no fate or success claim.
 from __future__ import annotations
 
 from bisect import bisect_right
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
@@ -29,6 +30,7 @@ from app.domains.astro.models import (
     RelationshipBundle,
     SynastryContact,
 )
+from app.domains.content.copy_approval import copy_text
 from app.domains.relationships.knowledge import (
     RELATIONSHIP_KNOWLEDGE_VERSION,
     build_editorial_plan,
@@ -84,6 +86,35 @@ TIER_REFERENCE = (
     0.6565,
 )
 
+# Ease quantiles of ``radar-tier-ref-date-v1`` (Hợp gu AL1): the same 2,000-pair recipe with
+# both people read from their birth dates only (``scripts.radar_tier_reference --basis
+# date_only``). Without the Moon and with whole-day bounds, fewer contacts survive, so a
+# date-only pair is ranked against date-only pairs, not against exact charts.
+TIER_CALIBRATION_DATE_ONLY_VERSION = "radar-tier-ref-date-v1"
+TIER_REFERENCE_DATE_ONLY = (
+    -0.1899,
+    -0.0431,
+    0.0007,
+    0.0299,
+    0.0515,
+    0.0706,
+    0.0896,
+    0.1049,
+    0.1208,
+    0.1343,
+    0.1498,
+    0.1657,
+    0.182,
+    0.1973,
+    0.2147,
+    0.2365,
+    0.2615,
+    0.2851,
+    0.3095,
+    0.3505,
+    0.5317,
+)
+
 # Tier by rank against the reference: top 15%, next 25%, middle 30%, next 20%, last 10%.
 TIER_BANDS = (
     ("very_easy", 85.0),
@@ -93,7 +124,19 @@ TIER_BANDS = (
     ("patient", 0.0),
 )
 
-CONTEXTS = ("crush", "friend", "partner", "someone")
+CONTEXTS = ("crush", "friend", "partner", "someone", "coworker", "family")
+# Hợp gu AL1 (owner, 20.11.2026) adds Đồng nghiệp and Gia đình. Their sentences enter the copy
+# registry as pending ``radar.<context>.<path>`` entries; until each is approved, the reading
+# serves the approved "someone" sentence in its place (copy_text), so no unapproved line ships.
+FALLBACK_CONTEXTS = {"coworker": "someone", "family": "someone"}
+
+# What a reading rests on. "full": the owner's exact chart and the other chart as given
+# (exact, or unknown time with a place). "date_only" (AL1): both people read from their birth
+# dates alone, ranked against their own reference distribution.
+BASIS_FULL = "full"
+BASIS_DATE_ONLY = "date_only"
+BASES = (BASIS_FULL, BASIS_DATE_ONLY)
+DATE_ONLY_BASIS_NOTE = "Dựa vào: ngày sinh của hai bạn."
 
 
 @dataclass(frozen=True)
@@ -897,11 +940,45 @@ def build_radar_reading(
     *,
     context: str,
     voice: RelationshipVoice = RelationshipVoice.STRAIGHT_WARM,
+    basis: str = BASIS_FULL,
 ) -> dict[str, Any]:
     """Project relationship facts into a short default reading plus one "Xem thêm" layer."""
 
-    safe_context = context if context in CONTEXTS else "someone"
-    signals = pair_signals(bundle)
+    if basis not in BASES:
+        raise ValueError("unknown reading basis")
+    result = _build_reading(
+        bundle,
+        context=context if context in CONTEXTS else "someone",
+        voice=voice,
+        reference=TIER_REFERENCE_DATE_ONLY if basis == BASIS_DATE_ONLY else TIER_REFERENCE,
+    )
+    if basis == BASIS_DATE_ONLY:
+        metadata = result["metadata"]
+        metadata["basis"] = BASIS_DATE_ONLY
+        metadata["basis_note"] = DATE_ONLY_BASIS_NOTE
+        metadata["tier_calibration_version"] = TIER_CALIBRATION_DATE_ONLY_VERSION
+    return result
+
+
+def _say(context: str, path: str, pick: Callable[[str], str]) -> str:
+    """The sentence ``pick`` finds for ``context``; a new context serves its approved registry
+    line ``radar.<context>.<path>`` or, while that is pending, the "someone" sentence."""
+
+    base = FALLBACK_CONTEXTS.get(context)
+    if base is None:
+        return pick(context)
+    return copy_text(f"radar.{context}.{path}", pick(base))
+
+
+def _build_reading(
+    bundle: RelationshipBundle,
+    *,
+    context: str,
+    voice: RelationshipVoice,
+    reference: tuple[float, ...],
+) -> dict[str, Any]:
+    safe_context = context
+    signals = pair_signals(bundle, reference=reference)
     if signals is None:
         return _low_signal_reading(bundle, context=safe_context, voice=voice)
 
@@ -909,17 +986,25 @@ def build_radar_reading(
     focus = tension if tension is not None else fit
     if focus is None:  # pragma: no cover - a pair has at least one theme, watch or calm
         return _low_signal_reading(bundle, context=safe_context, voice=voice)
-    tier_label = TIER_LABELS[safe_context][signals.tier]
-    action, question = SUGGESTIONS[focus.key][safe_context]
+    tier_label = _say(safe_context, f"tier.{signals.tier}", lambda c: TIER_LABELS[c][signals.tier])
+    action = _say(
+        safe_context, f"suggestion.{focus.key}.action", lambda c: SUGGESTIONS[focus.key][c][0]
+    )
+    question = _say(
+        safe_context, f"suggestion.{focus.key}.question", lambda c: SUGGESTIONS[focus.key][c][1]
+    )
     support = signals.support
     tension_receipts = _cluster_receipts(tension, mode="friction") if tension else []
     if fit is not None and signals.levels[fit.key] == "good":
-        headline = HEADLINES[fit.key][safe_context]
+        headline = _say(safe_context, f"headline.{fit.key}", lambda c: HEADLINES[fit.key][c])
         summary = TIER_REASONS[signals.tier].format(fit=THEME_PLAIN[fit.key])
         fit_receipts = _cluster_receipts(fit, mode="fit")
-        fit_body = FIT_COPY[fit.key][safe_context]
+        fit_body = _say(safe_context, f"fit.{fit.key}", lambda c: FIT_COPY[fit.key][c])
         if support is not None:
-            fit_body = f"{fit_body} {FIT_COPY[support.key][safe_context]}"
+            support_body = _say(
+                safe_context, f"fit.{support.key}", lambda c: FIT_COPY[support.key][c]
+            )
+            fit_body = f"{fit_body} {support_body}"
         fit_section = _section(
             "fit",
             body=fit_body,
@@ -931,7 +1016,7 @@ def build_radar_reading(
     else:
         # Codex r55: no theme is "good" (or the only one is "watch"), so nothing is presented as
         # easy. The tier and the friction classification are unchanged.
-        headline = UNCLEAR_FIT_HEADLINES[safe_context]
+        headline = _say(safe_context, "headline.unclear", lambda c: UNCLEAR_FIT_HEADLINES[c])
         summary = NO_CLEAR_FIT_REASON["tension" if tension is not None else "even"]
         fit_receipts = _cluster_receipts(fit, mode="fit") if fit is not None else []
         fit_section = _section(
@@ -950,7 +1035,9 @@ def build_radar_reading(
         sections.append(
             _section(
                 "friction",
-                body=TENSION_COPY[tension.key][safe_context],
+                body=_say(
+                    safe_context, f"tension.{tension.key}", lambda c: TENSION_COPY[tension.key][c]
+                ),
                 topics=[tension.label],
                 evidence=tension_receipts,
             )
@@ -1053,7 +1140,9 @@ def build_radar_reading(
     }
 
 
-def pair_signals(bundle: RelationshipBundle) -> PairSignals | None:
+def pair_signals(
+    bundle: RelationshipBundle, *, reference: tuple[float, ...] | None = None
+) -> PairSignals | None:
     """Rank and classify one directed pair; None when no pair-specific contact survives."""
 
     motifs = tuple(_motifs(bundle))
@@ -1061,7 +1150,7 @@ def pair_signals(bundle: RelationshipBundle) -> PairSignals | None:
         return None
     clusters = tuple(_clusters(list(motifs)))
     ease = ease_signal(list(motifs))
-    percentile = rank_percentile(ease)
+    percentile = rank_percentile(ease, reference or TIER_REFERENCE)
     levels = {cluster.key: _cluster_level(cluster) for cluster in clusters}
     good = [cluster for cluster in clusters if levels[cluster.key] == "good"]
     calm = [cluster for cluster in clusters if levels[cluster.key] != "watch"]
@@ -1110,10 +1199,9 @@ def ease_signal(motifs: list[Motif]) -> float:
     )
 
 
-def rank_percentile(ease: float) -> float:
+def rank_percentile(ease: float, reference: tuple[float, ...] = TIER_REFERENCE) -> float:
     """Position (0-100) of ``ease`` in the reference distribution, linear between quantiles."""
 
-    reference = TIER_REFERENCE
     if ease <= reference[0]:
         return 0.0
     if ease >= reference[-1]:
@@ -1140,7 +1228,7 @@ def _cluster_level(cluster: ThemeCluster) -> str:
 def _areas(signals: PairSignals, context: str) -> list[dict[str, str]]:
     by_key = {cluster.key: cluster for cluster in signals.clusters}
     areas: list[dict[str, str]] = []
-    for key, label, themes in AREAS[context]:
+    for key, label, themes in _context_areas(context):
         present = [by_key[theme] for theme in themes if theme in by_key]
         if not present:
             areas.append(
@@ -1173,6 +1261,20 @@ def _areas(signals: PairSignals, context: str) -> list[dict[str, str]]:
             }
         )
     return areas
+
+
+def _context_areas(context: str) -> tuple[tuple[str, str, tuple[str, ...]], ...]:
+    """Areas of ``context``; a new context keeps the "someone" themes with its own labels."""
+
+    base = FALLBACK_CONTEXTS.get(context, context)
+    return tuple(
+        (key, _say(context, f"area.{key}", _fixed(label)), themes)
+        for key, label, themes in AREAS[base]
+    )
+
+
+def _fixed(text: str) -> Callable[[str], str]:
+    return lambda _context: text
 
 
 def _factors(signals: PairSignals) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
@@ -1375,8 +1477,9 @@ def _low_signal_reading(
     """An honest short reading when no pair-specific contact survives filtering."""
 
     perspective_body, perspective_receipts, perspective_items = _perspective(bundle, [])
-    action, question = LOW_SIGNAL_SUGGESTIONS[context]
-    tier_label = TIER_LABELS[context]["unclear"]
+    action = _say(context, "low_signal.action", lambda c: LOW_SIGNAL_SUGGESTIONS[c][0])
+    question = _say(context, "low_signal.question", lambda c: LOW_SIGNAL_SUGGESTIONS[c][1])
+    tier_label = _say(context, "tier.unclear", lambda c: TIER_LABELS[c]["unclear"])
     sections = [
         _section("fit", body=LOW_SIGNAL_COPY["fit"]),
         _section("check", body=action, question=question),
@@ -1415,7 +1518,7 @@ def _low_signal_reading(
                     "level_label": LEVEL_LABELS["quiet"],
                     "note": f"Chưa đủ dữ kiện cho mảng {label.lower()}.",
                 }
-                for key, label, _ in AREAS[context]
+                for key, label, _ in _context_areas(context)
             ],
             "themes": [],
         },
