@@ -1,4 +1,4 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { onlineManager, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type { PropsWithChildren } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -11,7 +11,7 @@ import {
   undoDailyExperiment,
   type DailyExperiment,
 } from "../api/client";
-import { dailyExperimentQueryKey, useDailyExperiment } from "./useDailyExperiment";
+import { dailyExperimentErrorMessage, dailyExperimentQueryKey, useDailyExperiment } from "./useDailyExperiment";
 import { invalidateSessionRequests, SESSION_EPOCH_KEY } from "../session/sessionIdentity";
 import { clearChartDerivedData } from "../storage/clearChartDerivedData";
 import { clearPersonalDataOnDevice } from "../storage/clearPersonalData";
@@ -65,7 +65,40 @@ describe("useDailyExperiment", () => {
     vi.mocked(getCurrentDailyExperiment).mockResolvedValue(null);
   });
 
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => {
+    vi.restoreAllMocks();
+    onlineManager.setOnline(true);
+  });
+
+  // #741: with no network the request is sent at once and fails, the screen returns to what was
+  // kept, and the message says nothing changed. It is not held back to be sent later.
+  it.each(["choose", "undo", "reflect"] as const)("sends %s at once with no network and keeps the earlier state when it fails", async (operation) => {
+    vi.mocked(getCurrentDailyExperiment).mockResolvedValue(chosenExperiment);
+    const failed = new TypeError("Failed to fetch");
+    vi.mocked(chooseDailyExperiment).mockRejectedValue(failed);
+    vi.mocked(undoDailyExperiment).mockRejectedValue(failed);
+    vi.mocked(reflectDailyExperiment).mockRejectedValue(failed);
+    const onError = vi.fn();
+    const { result } = renderSharedHooks({ onError });
+    await waitFor(() => expect(result.current.first.experiment).toEqual(chosenExperiment));
+
+    vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
+    act(() => { onlineManager.setOnline(false); });
+    act(() => {
+      if (operation === "choose") result.current.first.choose(choice);
+      if (operation === "undo") result.current.first.undo({ experiment_id: experimentId, expected_version: 1 });
+      if (operation === "reflect") result.current.first.reflect({ experiment_id: experimentId, expected_version: 1, outcome: "helpful" });
+    });
+
+    const sent = operation === "choose" ? chooseDailyExperiment : operation === "undo" ? undoDailyExperiment : reflectDailyExperiment;
+    await waitFor(() => expect(sent).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(onError).toHaveBeenCalledTimes(1));
+    expect(result.current.first.isChoosing || result.current.first.isUndoing || result.current.first.isReflecting).toBe(false);
+    expect(result.current.first.experiment).toEqual(chosenExperiment);
+    expect(result.current.second.experiment).toEqual(chosenExperiment);
+    expect(result.current.first.errorMessage).toBe(dailyExperimentErrorMessage(failed));
+    expect(result.current.first.errorMessage).toContain("Ý định chưa được thay đổi");
+  });
 
   it("publishes a chosen experiment to every observer sharing the QueryClient", async () => {
     vi.mocked(chooseDailyExperiment).mockResolvedValue(chosenExperiment);

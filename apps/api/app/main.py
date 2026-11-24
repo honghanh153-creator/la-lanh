@@ -319,6 +319,7 @@ def create_app(
                         if app.state.birth_chart_service is not None
                         else None
                     ),
+                    daily_topic_schedule_from=resolved_settings.daily_topic_schedule_from,
                     keep_action_all_profiles=resolved_settings.keep_action_all_profiles,
                 )
         try:

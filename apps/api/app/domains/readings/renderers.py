@@ -422,6 +422,10 @@ class DeterministicVietnameseRenderer:
             if frame.daily_meaning is not None
             else self.version
         )
+        if frame.wording_version is not None and frame.daily_meaning is None:
+            # The synthesis prose itself is shown (Daily replaces it with its own matrix), so a
+            # wording fix gets its own identity instead of colliding with a stored revision.
+            base_version = f"{base_version}+{frame.wording_version}"
         if plan.precision is TimePrecision.APPROXIMATE and frame.daily_meaning is not None:
             base_version = f"{base_version}+{APPROXIMATE_DAILY_EVIDENCE_VERSION}"
         if plan.tradition is Tradition.JYOTISH:

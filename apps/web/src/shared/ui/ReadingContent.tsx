@@ -23,14 +23,42 @@ type ReadingContentProps = {
   onReflect?: (outcome: ExperimentOutcome) => void;
   /** Present only when the reader can switch between the card's action and the lighter one (#627). */
   lighter?: LighterSwitch | null;
+  /** Present only where the reader can fold the small-action box away for the day (#700). */
+  readOnly?: ReadOnlySwitch | null;
   toolbar?: ReactNode;
 };
 
-export type LighterSwitch = { shown: boolean; onSwitch: () => void };
+/** The mood's alternative action and how to switch to it (#627, #701). */
+export type LighterSwitch = {
+  shown: boolean;
+  onSwitch: () => void;
+  /** The alternative to show; defaults to the lighter action. */
+  action?: NonNullable<ReadingContentModel["lighter_action"]> | null;
+  /** The switch label while the card's action is shown; defaults to the lighter one. */
+  label?: string;
+};
+export type ReadOnlySwitch = { readOnly: boolean; onToggle: () => void };
 
 const ACTION_HEADING = "Thử một việc nhỏ";
 export const SHOW_ORIGINAL_ACTION = "Xem việc ban đầu";
 export const SHOW_LIGHTER_ACTION = "Xem việc nhẹ hơn";
+// Same text as `web.action.read-only.*` in the copy store (copy_registry.json); a test holds them equal.
+export const READ_ONLY_TODAY = "Hôm nay chỉ muốn đọc";
+export const SHOW_ACTION_AGAIN = "Hiện lại việc nhỏ";
+export const FOLDED_ACTION_LABEL = "Việc nhỏ hôm nay đang ẩn";
+
+/**
+ * The one button that folds the small-action box to a single line and opens it again. It only
+ * changes what this page shows: no request, nothing stored, a kept action stays kept. Render it
+ * with the same key in both states so the element, and the keyboard focus on it, survive the press.
+ */
+export function ReadOnlyToggle({ className, control }: { className: string; control: ReadOnlySwitch }) {
+  return (
+    <button className={`text-button ${className}`} onClick={control.onToggle} type="button">
+      {control.readOnly ? SHOW_ACTION_AGAIN : READ_ONLY_TODAY}
+    </button>
+  );
+}
 
 const outcomeLabels: Record<ExperimentOutcome, string> = {
   not_tried: "Chưa thử",
@@ -49,6 +77,7 @@ export function ReadingContent({
   onUndo,
   onReflect,
   lighter = null,
+  readOnly = null,
   toolbar,
 }: ReadingContentProps) {
   const isVibeFallback = content.mode === "vibe_fallback";
@@ -62,6 +91,7 @@ export function ReadingContent({
       onChoose={onChoose}
       onReflect={onReflect}
       onUndo={onUndo}
+      readOnly={readOnly}
       status={experimentStatus}
     />
   );
@@ -114,6 +144,7 @@ function ExperimentSection({
   onChoose,
   onReflect,
   onUndo,
+  readOnly,
   status,
 }: {
   compact: boolean;
@@ -124,49 +155,44 @@ function ExperimentSection({
   onChoose?: () => void;
   onReflect?: (outcome: ExperimentOutcome) => void;
   onUndo?: () => void;
+  readOnly: ReadOnlySwitch | null;
   status: DailyExperimentStatus;
 }) {
   // The lighter action replaces what is shown, never the note itself (US-04 AC14).
-  const lighterAction = lighter?.shown ? content.lighter_action : null;
+  const alternative = lighter ? (lighter.action ?? content.lighter_action) : null;
+  const lighterAction = lighter?.shown ? alternative : null;
   const experiment = lighterAction ? lighterAction.experiment : content.experiment;
   const plainAction = lighterAction ? lighterAction.action : content.sections.micro_action;
-  const switchButton = lighter && content.lighter_action ? (
+  const switchButton = lighter && alternative ? (
     <button className="text-button reading-content__lighter-switch" onClick={lighter.onSwitch} type="button">
-      {lighter.shown ? SHOW_ORIGINAL_ACTION : SHOW_LIGHTER_ACTION}
+      {lighter.shown ? SHOW_ORIGINAL_ACTION : (lighter.label ?? SHOW_LIGHTER_ACTION)}
     </button>
   ) : null;
-  const [replaceConfirming, setReplaceConfirming] = useState(false);
-  const [reflectionOpen, setReflectionOpen] = useState(false);
-  const currentMatches = Boolean(experiment && currentExperiment?.action_key === experiment.action_key);
-  const busy = status === "choosing" || status === "undoing" || status === "reflecting";
-
-  useEffect(() => {
-    setReplaceConfirming(false);
-    setReflectionOpen(false);
-  }, [currentExperiment?.id, currentExperiment?.version, experiment?.action_key]);
-
+  const readOnlyToggle = readOnly ? (
+    <ReadOnlyToggle className="reading-content__read-only" control={readOnly} key="read-only-toggle" />
+  ) : null;
+  const isDaily = content.purpose === "daily_note" || content.purpose === "personalized_sky";
+  // Home already shows this action; the detail page must not drop it just
+  // because a non-exact reading has no holdable experiment.
+  if (!experiment && (compact || !isDaily || !plainAction)) return null;
+  if (readOnly?.readOnly) {
+    // Folded to one line (#700). Every branch returns a <section>, so the toggle keeps its focus.
+    return (
+      <section aria-label={FOLDED_ACTION_LABEL} className="reading-content__action reading-content__action--read-only">
+        {readOnlyToggle}
+      </section>
+    );
+  }
   if (!experiment) {
-    const isDaily = content.purpose === "daily_note" || content.purpose === "personalized_sky";
-    // Home already shows this action; the detail page must not drop it just
-    // because a non-exact reading has no holdable experiment.
-    if (compact || !isDaily || !plainAction) return null;
     return (
       <section className="reading-content__action" aria-labelledby="reading-action-title">
         <h2 id="reading-action-title">{ACTION_HEADING}</h2>
         <p className="reading-content__experiment-action">{plainAction}</p>
         {switchButton}
+        {readOnlyToggle}
       </section>
     );
   }
-
-  const isReflected = currentMatches && currentExperiment?.state === "reflected";
-  const actionLabel = status === "choosing"
-    ? "Đang giữ…"
-    : currentMatches
-      ? "Đang giữ việc này"
-      : currentExperiment
-        ? replaceConfirming ? "Xác nhận thay việc đang giữ" : "Thay việc đang giữ"
-        : "Giữ để thử hôm nay";
 
   return (
     <section className="reading-content__action" aria-labelledby={`experiment-${experiment.action_key}`}>
@@ -178,6 +204,63 @@ function ExperimentSection({
       </div>
       {switchButton}
 
+      <ExperimentControls
+        currentExperiment={currentExperiment}
+        error={error}
+        experiment={experiment}
+        onChoose={onChoose}
+        onReflect={onReflect}
+        onUndo={onUndo}
+        status={status}
+      />
+      {readOnlyToggle}
+    </section>
+  );
+}
+
+/**
+ * Keep, stop keeping, replace and look back on the day's action. Home and the note page render
+ * this one component over the same server state, so the two cannot drift apart (US-03 AC33).
+ */
+export function ExperimentControls({
+  experiment,
+  currentExperiment,
+  error,
+  onChoose,
+  onReflect,
+  onUndo,
+  status,
+}: {
+  /** The action on screen that can be kept. */
+  experiment: NonNullable<ReadingContentModel["experiment"]>;
+  currentExperiment: DailyExperiment | null;
+  error: string | null;
+  onChoose?: () => void;
+  onReflect?: (outcome: ExperimentOutcome) => void;
+  onUndo?: () => void;
+  status: DailyExperimentStatus;
+}) {
+  const [replaceConfirming, setReplaceConfirming] = useState(false);
+  const [reflectionOpen, setReflectionOpen] = useState(false);
+  const currentMatches = currentExperiment?.action_key === experiment.action_key;
+  const busy = status === "choosing" || status === "undoing" || status === "reflecting";
+
+  useEffect(() => {
+    setReplaceConfirming(false);
+    setReflectionOpen(false);
+  }, [currentExperiment?.id, currentExperiment?.version, experiment.action_key]);
+
+  const isReflected = currentMatches && currentExperiment?.state === "reflected";
+  const actionLabel = status === "choosing"
+    ? "Đang giữ…"
+    : currentMatches
+      ? "Đang giữ việc này"
+      : currentExperiment
+        ? replaceConfirming ? "Xác nhận thay việc đang giữ" : "Thay việc đang giữ"
+        : "Giữ để thử hôm nay";
+
+  return (
+    <>
       {isReflected ? (
         <div className="reading-content__reflected" role="status">
           <Check aria-hidden="true" />
@@ -248,7 +331,7 @@ function ExperimentSection({
       ) : null}
 
       {error ? <p className="reading-content__experiment-error" role="alert">{error}</p> : null}
-    </section>
+    </>
   );
 }
 

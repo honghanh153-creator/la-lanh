@@ -11,19 +11,26 @@ import {
   activateReadingProjection,
   ApiProblem,
   checkInMood,
+  chooseDailyExperiment,
   getBirthSupplement,
   getContextualReading,
+  getCurrentDailyExperiment,
   getCurrentMood,
   getDailyNote,
   getResonanceStatus,
   listSavedNotes,
   recordResonance,
+  reflectDailyExperiment,
+  undoDailyExperiment,
+  type DailyExperiment,
   type DailyNote,
   type ReadingProjection,
 } from "../../shared/api/client";
 import { clearCachedDailyNote, writeCachedDailyNote } from "../../shared/storage/noteCache";
 import { clearChartDerivedData } from "../../shared/storage/clearChartDerivedData";
 import ultravioletStyles from "../../shared/styles/ultraviolet.css?raw";
+import { dailyReadOnlyKey } from "../../shared/hooks/useDailyActionView";
+import { FOLDED_ACTION_LABEL, READ_ONLY_TODAY, SHOW_ACTION_AGAIN } from "../../shared/ui/ReadingContent";
 import { HomePage } from "./HomePage";
 import { LA_MOOD_REACTIONS } from "../../shared/ui/la/laVoice";
 
@@ -33,13 +40,17 @@ vi.mock("../../shared/api/client", async (original) => {
     ...actual,
     activateReadingProjection: vi.fn(),
     checkInMood: vi.fn(),
+    chooseDailyExperiment: vi.fn(),
     getBirthSupplement: vi.fn(),
     getContextualReading: vi.fn(),
+    getCurrentDailyExperiment: vi.fn(),
     getCurrentMood: vi.fn(),
     getDailyNote: vi.fn(),
     getResonanceStatus: vi.fn(),
     listSavedNotes: vi.fn(),
     recordResonance: vi.fn(),
+    reflectDailyExperiment: vi.fn(),
+    undoDailyExperiment: vi.fn(),
   };
 });
 
@@ -505,6 +516,37 @@ describe("HomePage rich reading", () => {
     await user.click(screen.getByRole("button", { name: /Chill/ }));
     await waitFor(() => expect(screen.queryByText("Thu hẹp lựa chọn khi đang mệt.")).not.toBeInTheDocument());
     expect(screen.getAllByText(LA_MOOD_REACTIONS.Chill).length).toBeGreaterThan(0);
+  });
+
+  it.each([
+    ["Căng", "slow_action", "Đợi năm phút rồi mới gửi câu trả lời.", "Xem việc chậm lại"],
+    ["Lạc trôi", "clear_action", "Viết ra một việc duy nhất cần xong trước trưa.", "Xem một bước rõ"],
+  ] as const)("shows the %s action after that check-in and lets the reader switch back (#701)", async (mood, field, text, label) => {
+    const user = userEvent.setup();
+    const original = vibe.sections.micro_action;
+    const offers = {
+      ...vibe,
+      lighter_action: { action: "Uống một ly nước rồi ngồi yên hai phút.", weight: "light" as const, experiment: null },
+      slow_action: { action: "Đợi năm phút rồi mới gửi câu trả lời.", weight: "slow" as const, experiment: null },
+      clear_action: { action: "Viết ra một việc duy nhất cần xong trước trưa.", weight: "clear" as const, experiment: null },
+    };
+    vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(offers)));
+    renderPage();
+
+    expect(await screen.findByText(original)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Chọn cảm giác hôm nay" }));
+    await user.click(screen.getByRole("button", { name: new RegExp(mood) }));
+    expect(await screen.findByText(text)).toBeInTheDocument();
+    expect(offers[field].action).toBe(text);
+    expect(screen.queryByText(original)).not.toBeInTheDocument();
+    // The note itself never changes (US-04 AC14); only the action shown does.
+    expect(screen.getByText(vibe.sections.hook)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Xem việc ban đầu" }));
+    expect(screen.getByText(original)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: label }));
+    expect(screen.getByText(text)).toBeInTheDocument();
+    expect(JSON.stringify({ ...localStorage, ...sessionStorage })).not.toContain(text);
   });
 
   it("shows the lighter action after a Đuối check-in and lets the reader switch back (#627)", async () => {
@@ -1021,6 +1063,184 @@ describe("HomePage rich reading", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+// #741: Home shows and changes the kept action through the same controls as the note page
+// (US-03 §22, AC33). Synthetic data only.
+describe("HomePage kept action (#741)", () => {
+  const cues = { observation: "Bạn thấy nhẹ hơn chưa?", permission: "Không hợp thì bỏ qua." };
+  const own = { action_key: "d".repeat(64), action: "Chọn một câu cần nói rõ hôm nay.", ...cues };
+  const light = { action_key: "e".repeat(64), action: "Uống một ly nước rồi ngồi yên hai phút.", ...cues };
+  const keepable = { ...aura, experiment: own, lighter_action: { action: light.action, weight: "light" as const, experiment: light } };
+  const held = (offer: typeof own, over: Partial<DailyExperiment> = {}): DailyExperiment => ({
+    id: "10000000-0000-4000-8000-000000000001", version: 1, daily_note_id: baseNoteId,
+    revision_id: keepable.revision_id, state: "chosen", background_lens: "auto", ...offer, outcome: null,
+    created_at: "2026-09-07T12:00:00Z", updated_at: "2026-09-07T12:00:00Z",
+    expires_at: "2026-10-07T12:00:00Z", reflected_at: null, ...over,
+  });
+  const advice = () => screen.findByRole("complementary", { name: "Việc có thể thử hôm nay" });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+    clearCachedDailyNote();
+    moodServer.reset();
+    vi.mocked(getCurrentMood).mockImplementation((noteId) => Promise.resolve(moodServer.read(noteId)));
+    vi.mocked(listSavedNotes).mockResolvedValue([]);
+    vi.mocked(getBirthSupplement).mockRejectedValue(new Error("not found"));
+    vi.mocked(getResonanceStatus).mockResolvedValue({ consented: false, feedback_count: 0, last_choice: null });
+    vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(keepable)));
+    vi.mocked(getCurrentDailyExperiment).mockResolvedValue(null);
+  });
+
+  it("keeps the action on screen from Home, with the same request as the note page", async () => {
+    const user = userEvent.setup();
+    vi.mocked(chooseDailyExperiment).mockResolvedValue(held(own));
+    renderPage();
+    const card = within(await advice());
+    await user.click(await card.findByRole("button", { name: "Giữ để thử hôm nay" }));
+
+    expect(await card.findByRole("button", { name: "Bỏ giữ việc này" })).toBeEnabled();
+    expect(card.queryByRole("button", { name: "Giữ để thử hôm nay" })).not.toBeInTheDocument();
+    expect(chooseDailyExperiment).toHaveBeenCalledWith(baseNoteId, {
+      revision_id: keepable.revision_id, background_lens: "auto", action_key: own.action_key,
+      consent_version: "action-experiment-v1", expected_experiment_id: null, expected_version: null,
+    });
+    expect(screen.getAllByText("Đã giữ một việc nhỏ để thử hôm nay. Bạn có thể dừng bất cứ lúc nào.").length).toBeGreaterThan(0);
+  });
+
+  it("shows an action kept earlier (on the note page) and stops keeping it", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getCurrentDailyExperiment).mockResolvedValue(held(own));
+    vi.mocked(undoDailyExperiment).mockImplementation(() => {
+      vi.mocked(getCurrentDailyExperiment).mockResolvedValue(null);
+      return Promise.resolve();
+    });
+    renderPage();
+    const card = within(await advice());
+    await user.click(await card.findByRole("button", { name: "Bỏ giữ việc này" }));
+
+    expect(await card.findByRole("button", { name: "Giữ để thử hôm nay" })).toBeEnabled();
+    expect(vi.mocked(undoDailyExperiment).mock.calls[0][0]).toEqual({ experiment_id: held(own).id, expected_version: 1 });
+  });
+
+  it("asks once before replacing the kept action with the one on screen", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getCurrentDailyExperiment).mockResolvedValue(held(light, { version: 3 }));
+    vi.mocked(chooseDailyExperiment).mockResolvedValue(held(own, { id: "10000000-0000-4000-8000-000000000002" }));
+    renderPage();
+    const card = within(await advice());
+    expect(await card.findByText("Việc đang giữ")).toBeInTheDocument();
+    expect(card.getAllByText(light.action).length).toBeGreaterThan(0);
+
+    await user.click(card.getByRole("button", { name: "Thay việc đang giữ" }));
+    expect(chooseDailyExperiment).not.toHaveBeenCalled();
+    await user.click(card.getByRole("button", { name: "Xác nhận thay việc đang giữ" }));
+    await waitFor(() => expect(chooseDailyExperiment).toHaveBeenCalledWith(baseNoteId, expect.objectContaining({
+      action_key: own.action_key, expected_experiment_id: held(light).id, expected_version: 3,
+    })));
+    expect(await card.findByRole("button", { name: "Bỏ giữ việc này" })).toBeInTheDocument();
+    expect(card.queryByText("Việc đang giữ")).not.toBeInTheDocument();
+  });
+
+  it("opens the look-back only when asked and records the outcome", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getCurrentDailyExperiment).mockResolvedValue(held(own));
+    vi.mocked(reflectDailyExperiment).mockResolvedValue(held(own, { state: "reflected", outcome: "helpful", version: 2 }));
+    renderPage();
+    const card = within(await advice());
+    await card.findByRole("button", { name: "Bỏ giữ việc này" });
+    expect(card.queryByRole("group", { name: "Điều gì đúng với bạn?" })).not.toBeInTheDocument();
+
+    await user.click(card.getByRole("button", { name: "Mở phần nhìn lại" }));
+    await user.click(card.getByRole("button", { name: "Có ích một chút" }));
+    expect(await card.findByText("Có ích một chút")).toBeInTheDocument();
+    expect(vi.mocked(reflectDailyExperiment).mock.calls[0][0]).toEqual({ experiment_id: held(own).id, expected_version: 1, outcome: "helpful" });
+    expect(card.queryByRole("button", { name: "Bỏ giữ việc này" })).not.toBeInTheDocument();
+  });
+
+  it("follows the action on screen: on a low day the lighter action is the one kept", async () => {
+    const user = userEvent.setup();
+    moodServer.save(baseNoteId, "Đuối");
+    vi.mocked(chooseDailyExperiment).mockResolvedValue(held(light));
+    renderPage();
+    const card = within(await advice());
+    expect(await card.findByText(light.action)).toBeInTheDocument();
+    await user.click(await card.findByRole("button", { name: "Giữ để thử hôm nay" }));
+    await waitFor(() => expect(chooseDailyExperiment).toHaveBeenCalledWith(baseNoteId, expect.objectContaining({ action_key: light.action_key })));
+  });
+
+  it("reads no kept action and shows no keep button when today's reading offers none", async () => {
+    vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(vibe)));
+    renderPage();
+    const card = within(await advice());
+    expect(card.getByText(vibe.sections.micro_action)).toBeInTheDocument();
+    expect(card.queryByRole("button", { name: "Giữ để thử hôm nay" })).not.toBeInTheDocument();
+    expect(getCurrentDailyExperiment).not.toHaveBeenCalled();
+  });
+
+  // #700: "Hôm nay chỉ muốn đọc" folds the action box to one line.
+  it("folds the action box to one line and opens it again, without a request, storage or leaving Home (#700)", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getCurrentDailyExperiment).mockResolvedValue(held(own));
+    const { client } = renderPage();
+    const card = within(await advice());
+    await card.findByRole("button", { name: "Bỏ giữ việc này" });
+    const calls = () => [getDailyNote, getCurrentDailyExperiment, getCurrentMood, checkInMood, chooseDailyExperiment, undoDailyExperiment, reflectDailyExperiment, recordResonance]
+      .map((mock) => vi.mocked(mock).mock.calls.length);
+    const callsBefore = calls();
+    const storedBefore = JSON.stringify({ ...localStorage, ...sessionStorage });
+
+    const fold = card.getByRole("button", { name: READ_ONLY_TODAY });
+    fold.focus();
+    await user.keyboard("{Enter}");
+
+    const folded = await screen.findByRole("complementary", { name: FOLDED_ACTION_LABEL });
+    expect(within(folded).getByRole("button", { name: SHOW_ACTION_AGAIN })).toHaveFocus();
+    expect(within(folded).getAllByRole("button")).toHaveLength(1);
+    expect(folded).not.toHaveTextContent(own.action);
+    expect(folded).not.toHaveTextContent("Thử một việc nhỏ");
+    // The note itself and the way to the full note stay.
+    expect(screen.getByRole("heading", { name: keepable.sections.hook })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Đọc đầy đủ/ })).toBeInTheDocument();
+    // Not "bỏ việc": nothing was sent, nothing was written to the device, no sign-in prompt.
+    expect(calls()).toEqual(callsBefore);
+    expect(JSON.stringify({ ...localStorage, ...sessionStorage })).toBe(storedBefore);
+    expect(client.getQueryData(dailyReadOnlyKey(baseNoteId))).toBe(true);
+    expect(screen.queryByText(/Đã bỏ giữ/)).not.toBeInTheDocument();
+
+    await user.keyboard("{Enter}");
+    const open = within(await advice());
+    expect(open.getByRole("button", { name: READ_ONLY_TODAY })).toHaveFocus();
+    expect(open.getByText(own.action)).toBeInTheDocument();
+    // The kept action is still kept.
+    expect(await open.findByRole("button", { name: "Bỏ giữ việc này" })).toBeInTheDocument();
+    expect(undoDailyExperiment).not.toHaveBeenCalled();
+  });
+
+  it("opens the box again for the next day's note when Home stays open (#700, US-04 AC12)", async () => {
+    const user = userEvent.setup();
+    const { client } = renderPage();
+    await user.click(await within(await advice()).findByRole("button", { name: READ_ONLY_TODAY }));
+    await screen.findByRole("complementary", { name: FOLDED_ACTION_LABEL });
+
+    const nextNoteId = "00000000-0000-4000-8000-000000000002";
+    const tomorrow = { ...noteWith(projection(keepable)), id: nextNoteId, note_date: "2026-09-08" };
+    vi.mocked(getDailyNote).mockResolvedValue(tomorrow);
+    await act(async () => { await client.invalidateQueries(); });
+
+    const card = within(await advice());
+    expect(await card.findByRole("button", { name: READ_ONLY_TODAY })).toBeInTheDocument();
+    expect(card.getByText(own.action)).toBeInTheDocument();
+  });
+
+  it("offers the fold button for an action that cannot be kept too (#700)", async () => {
+    vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(vibe)));
+    renderPage();
+    await userEvent.click(await within(await advice()).findByRole("button", { name: READ_ONLY_TODAY }));
+    const folded = await screen.findByRole("complementary", { name: FOLDED_ACTION_LABEL });
+    expect(folded).not.toHaveTextContent(vibe.sections.micro_action);
   });
 });
 
