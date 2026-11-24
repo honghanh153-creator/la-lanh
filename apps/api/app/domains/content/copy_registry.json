@@ -12445,6 +12445,162 @@
    "status": "pending"
   },
   {
+   "id": "web.action.read-only.hide",
+   "category": "reading",
+   "text": "Hôm nay chỉ muốn đọc",
+   "status": "pending"
+  },
+  {
+   "id": "web.action.read-only.show",
+   "category": "reading",
+   "text": "Hiện lại việc nhỏ",
+   "status": "pending"
+  },
+  {
+   "id": "web.action.read-only.folded",
+   "category": "reading",
+   "text": "Việc nhỏ hôm nay đang ẩn",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.alone.missing-context.01",
+   "category": "reading",
+   "text": "Ghi ra giấy một chỗ bạn chưa hiểu trong tin nhắn, giữ cho riêng mình.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.alone.too-many-open-loops.01",
+   "category": "reading",
+   "text": "Ghi ra giấy ba việc đang dở rồi chọn một việc làm trước.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.alone.changed-plan.01",
+   "category": "reading",
+   "text": "Ghi lịch mới vào sổ rồi xem việc nào của bạn phải đổi giờ.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.alone.comparison-loop.01",
+   "category": "reading",
+   "text": "Ghi ra một việc bạn đã làm xong trong tuần này.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.alone.automatic-caretaking.01",
+   "category": "reading",
+   "text": "Ghi ra giấy phần việc bạn còn đủ sức giúp trong hôm nay.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.alone.decision-fatigue.01",
+   "category": "reading",
+   "text": "Ghi hai lựa chọn ra giấy rồi gạch đi cái bạn ít cần hơn.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.alone.perfect-before-start.01",
+   "category": "reading",
+   "text": "Đặt đồng hồ mười phút rồi viết bản nháp đầu, chưa sửa gì.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.alone.group-pressure.01",
+   "category": "reading",
+   "text": "Ghi ra giấy một chỗ bạn chưa hiểu trong việc của nhóm.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.alone.avoid-small-conflict.01",
+   "category": "reading",
+   "text": "Viết ra giấy phần việc bạn không nhận được, giữ cho riêng mình.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.alone.defend-old-choice.01",
+   "category": "reading",
+   "text": "Ghi ra giấy kết quả cách cũ đang cho bạn trong tuần này.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.alone.capacity-before-agreement.01",
+   "category": "reading",
+   "text": "Mở lịch tuần này rồi đánh dấu những giờ bạn còn trống.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.alone.quick-reply.01",
+   "category": "reading",
+   "text": "Viết câu bạn định đáp vào ghi chú, để đó mười phút rồi đọc lại.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.alone.repair-reply.01",
+   "category": "reading",
+   "text": "Viết vào ghi chú một câu rõ hơn cho điều bạn muốn người kia hiểu.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.alone.specific-feedback.01",
+   "category": "reading",
+   "text": "Chọn một đoạn trong bản nháp mà bạn thấy chưa ổn nhất rồi đánh dấu lại.",
+   "status": "pending"
+  },
+  {
+   "id": "lighter.alone.name-the-need.01",
+   "category": "reading",
+   "text": "Ghi ra giấy một việc cụ thể bạn đang cần được giúp.",
+   "status": "pending"
+  },
+  {
+   "id": "student.common.01",
+   "category": "reading",
+   "text": "Nhiều bạn cũng gặp chuyện này, không riêng gì bạn.",
+   "status": "pending"
+  },
+  {
+   "id": "student.common.02",
+   "category": "reading",
+   "text": "Chuyện này nhiều bạn cũng gặp.",
+   "status": "pending"
+  },
+  {
+   "id": "student.common.03",
+   "category": "reading",
+   "text": "Bạn không phải người duy nhất gặp chuyện này.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.moon-neptune.tense",
+   "category": "reading",
+   "text": "Bạn dễ thấy mình cần điều gì đó nhưng chưa gọi được tên.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.moon-uranus.tense",
+   "category": "reading",
+   "text": "Bạn dễ muốn có khoảng riêng nhưng chưa nói ra với ai.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.moon-saturn.tense",
+   "category": "reading",
+   "text": "Bạn quen tự lo nên dễ giữ trong lòng điều mình đang cần.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.moon-sun.tense",
+   "category": "reading",
+   "text": "Bạn dễ thấy việc mình muốn làm và điều mình cần đang kéo về hai phía.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.moon-venus.tense",
+   "category": "reading",
+   "text": "Bạn dễ chiều ý người khác rồi quên hỏi mình đang cần gì.",
+   "status": "pending"
+  },
+  {
    "id": "privacy.radar.consent-invite",
    "category": "privacy",
    "text": "Kết quả dùng link mời chỉ mở khi người nhận tự nhập dữ liệu và đồng ý. Link là quyền truy cập riêng, hãy gửi đúng người. Người nhận có thể rút đồng ý; người tạo có thể xoá kết quả. Xem riêng không có link công khai. Mỗi hồ sơ giữ tối đa 100 lần Radar, kể cả lời mời đã thu hồi; xoá một lần để tạo thêm.",
