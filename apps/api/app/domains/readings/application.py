@@ -29,6 +29,7 @@ from app.domains.readings.daily_rotation import (
     daily_variety_seed,
     day_index,
 )
+from app.domains.readings.daily_topics import TOPIC_WINDOW_DAYS, block_start
 from app.domains.readings.gates import evaluate_candidate
 from app.domains.readings.lighter_action import lighter_action_projection, mood_action_projection
 from app.domains.readings.models import (
@@ -118,6 +119,7 @@ class ReadingApplicationService:
         content_rewrite_service: ContentRewriteService | None = None,
         daily_variety_key: bytes | None = None,
         daily_variety_from: date | None = None,
+        daily_topic_schedule_from: date | None = None,
         keep_action_all_profiles: bool = False,
     ) -> None:
         self._repository = repository
@@ -133,6 +135,9 @@ class ReadingApplicationService:
         self._content_rewrite_service = content_rewrite_service
         self._daily_variety_key = daily_variety_key
         self._daily_variety_from = daily_variety_from
+        # Topic anti-repeat (plan 2026-11-21): first Daily date that chooses its situation against
+        # the recomputed 7-day block instead of the top-3 rotation. Unset keeps the old rotation.
+        self._daily_topic_schedule_from = daily_topic_schedule_from
         # #716: off until the owner turns it on (R2 kind 4, new personal-data collection). Off,
         # only an exact-time full synthesis offers the Daily action to keep, as before.
         self._keep_action_all_profiles = keep_action_all_profiles
@@ -501,10 +506,86 @@ class ReadingApplicationService:
                 self._daily_variety_key, profile_id, DAILY_PSYCHOLOGY_MATRIX_VERSION
             ),
             day_index=day_index(local_date),
-            recent_issue_keys=await self._guard_issue_keys(
-                profile_id, chart, local_date, background_lens
+            recent_issue_keys=(
+                ()
+                if self._topic_schedule_applies(local_date)
+                else await self._guard_issue_keys(profile_id, chart, local_date, background_lens)
             ),
+            topic_history=await self._topic_history(profile_id, chart, local_date, background_lens),
         )
+
+    def _topic_schedule_applies(self, local_date: date) -> bool:
+        return (
+            self._daily_topic_schedule_from is not None
+            and local_date >= self._daily_topic_schedule_from
+        )
+
+    async def _topic_history(
+        self,
+        profile_id: UUID,
+        chart: DateOnlySunResult | NatalChart,
+        local_date: date,
+        background_lens: BackgroundLens | None,
+    ) -> tuple[str, ...] | None:
+        """The situations this reader's earlier days of the 7-day block were given (plan
+        2026-11-21, US-21 AC05 new), oldest first; ``None`` before the switch date.
+
+        Each earlier day is recomputed with the same choice and the history before it, from the
+        chart, that day's transits and the reader's seed; nothing is read from storage or kept.
+        Day D's history is therefore exactly the one D was served with. A date-only pool is the
+        same every day and walks a fixed order instead, so it needs no history. The block starts
+        empty (``daily_topics``: no estimate of the previous block), so this is exact; at most 11
+        recomputations per new Daily note, and the plan keeps the last six days.
+        """
+
+        if not self._topic_schedule_applies(local_date):
+            return None
+        if (
+            isinstance(chart, DateOnlySunResult)
+            or self._daily_variety_key is None
+            or self._daily_topic_schedule_from is None
+        ):
+            return ()
+        seed = daily_variety_seed(
+            self._daily_variety_key, profile_id, DAILY_PSYCHOLOGY_MATRIX_VERSION
+        )
+        today = day_index(local_date)
+        first = local_date - timedelta(days=today - block_start(seed, today))
+        run = await self._topic_run(
+            profile_id,
+            chart,
+            max(first, self._daily_topic_schedule_from),
+            local_date,
+            background_lens,
+        )
+        return run[-(TOPIC_WINDOW_DAYS - 1) :]
+
+    async def _topic_run(
+        self,
+        profile_id: UUID,
+        chart: DateOnlySunResult | NatalChart,
+        start: date,
+        end: date,
+        background_lens: BackgroundLens | None,
+    ) -> tuple[str, ...]:
+        """Situations of the days ``start`` (inclusive) to ``end`` (exclusive), each chosen
+        against the days before it in the run (the block starts with an empty history)."""
+
+        history: list[str] = []
+        run: list[str] = []
+        day = start
+        while day < end:
+            key = await self._computed_daily_issue(
+                profile_id,
+                chart,
+                day,
+                background_lens,
+                topic_history=tuple(history[-(TOPIC_WINDOW_DAYS - 1) :]),
+            )
+            run.append(key or "")
+            history.append(key or "")
+            day += timedelta(days=1)
+        return tuple(run)
 
     async def _guard_issue_keys(
         self,
@@ -569,6 +650,7 @@ class ReadingApplicationService:
         background_lens: BackgroundLens | None,
         *,
         recent: tuple[str, ...] = (),
+        topic_history: tuple[str, ...] | None = None,
     ) -> str | None:
         """The situation the rotation selects for ``day`` with the guard pair ``recent``,
         recomputed from the chart, that day's transits and the owner's rotation seed, with the
@@ -587,6 +669,7 @@ class ReadingApplicationService:
             ),
             day_index=day_index(day),
             recent_issue_keys=recent,
+            topic_history=topic_history,
         )
         observed_at = datetime.combine(day, time(hour=DAILY_OBSERVED_HOUR_UTC), tzinfo=UTC)
         transits = await self._optional_transits(chart, ReadingPurpose.DAILY_NOTE, observed_at)
