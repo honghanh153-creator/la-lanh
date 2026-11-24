@@ -37,22 +37,33 @@ START = datetime(2026, 11, 21, 5, tzinfo=UTC)
 WORDS = re.compile(r"\b(?:sẽ|chắc chắn|định mệnh|số phận|vũ trụ|năng lượng)\b", re.IGNORECASE)
 
 
-def _approve_all(monkeypatch: pytest.MonkeyPatch) -> None:
-    entries = [
-        {
-            "id": entry.id,
-            "category": entry.category,
-            "text": entry.text,
-            "status": "approved",
-            "approver": "codex",
-            "date": "2026-11-21",
-            "digest": copy_digest(entry.text),
-        }
-        for entry in load_registry().values()
-        if entry.id.startswith("situation.pair.")
-    ]
+def _pair_entries(status: str, text_of: dict[str, str] | None = None) -> list[dict[str, str]]:
+    """The checked-in ``situation.pair.*`` entries, all set to ``status`` (explicit fixtures, so a
+    real approval in the copy batch never changes what these tests see; Codex P2 on #847)."""
+
+    entries = []
+    for entry in load_registry().values():
+        if not entry.id.startswith("situation.pair."):
+            continue
+        text = (text_of or {}).get(entry.id, entry.text)
+        row = {"id": entry.id, "category": entry.category, "text": text, "status": status}
+        if status == "approved":
+            row |= {"approver": "codex", "date": "2026-11-21", "digest": copy_digest(text)}
+        entries.append(row)
+    return entries
+
+
+def _use(monkeypatch: pytest.MonkeyPatch, entries: list[dict[str, str]]) -> None:
     registry = parse_registry({"version": copy_approval.REGISTRY_VERSION, "entries": entries})
     monkeypatch.setattr(copy_approval, "_runtime_registry", lambda: registry)
+
+
+def _pending(monkeypatch: pytest.MonkeyPatch) -> None:
+    _use(monkeypatch, _pair_entries("pending"))
+
+
+def _approve_all(monkeypatch: pytest.MonkeyPatch) -> None:
+    _use(monkeypatch, _pair_entries("approved"))
 
 
 def _pool_issues(chart: object, days: int) -> list[set[str]]:
@@ -110,6 +121,7 @@ def test_every_registry_rule_is_new_known_and_has_a_plain_pending_sentence() -> 
 
 
 def test_a_pending_rule_never_reaches_a_daily_pool(monkeypatch: pytest.MonkeyPatch) -> None:
+    _pending(monkeypatch)
     pending = {
         entry.text for key, entry in load_registry().items() if key.startswith("situation.pair.")
     }
@@ -131,6 +143,7 @@ def test_a_pending_rule_never_reaches_a_daily_pool(monkeypatch: pytest.MonkeyPat
 def test_approved_rules_widen_the_needs_group_and_render_accepted_cards(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    _pending(monkeypatch)
     before = [issues for chart in CHARTS for issues in _pool_issues(chart, 14)]
     _approve_all(monkeypatch)
     after = [issues for chart in CHARTS for issues in _pool_issues(chart, 14)]
@@ -178,3 +191,26 @@ def test_approved_cooperative_rules_add_situations(monkeypatch: pytest.MonkeyPat
     _approve_all(monkeypatch)
     after = [issues for chart in CHARTS for issues in _pool_issues(chart, 14)]
     assert sum(map(len, after)) > sum(map(len, before))
+
+
+def test_the_content_fingerprint_moves_only_when_a_pair_sentence_is_approved_or_revised(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Codex P1 on #847: an approved pair sentence is rendered text, so it belongs to the Daily
+    content fingerprint (part of the renderer version); while all are pending nothing moves."""
+
+    from app.domains.readings.daily_psychology import daily_content_fingerprint
+
+    _use(monkeypatch, [])
+    without = daily_content_fingerprint()
+    _pending(monkeypatch)
+    pending = daily_content_fingerprint()
+    assert pending == without
+    _approve_all(monkeypatch)
+    approved = daily_content_fingerprint()
+    assert approved != pending
+    first = REGISTRY_PAIR_RULES[0].copy_id
+    _use(
+        monkeypatch, _pair_entries("approved", {first: "Bạn dễ thấy mình cần nghỉ nhưng chưa nói."})
+    )
+    assert daily_content_fingerprint() not in {pending, approved}

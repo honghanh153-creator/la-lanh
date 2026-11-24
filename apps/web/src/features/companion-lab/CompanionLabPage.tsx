@@ -4,6 +4,9 @@ import type { AppVibe } from "../../shared/vibe/vibe";
 import { AuraSproutCompanion } from "../../shared/ui/companion/AuraSproutCompanion";
 import { SkyWindowCompanion } from "../../shared/ui/companion/SkyWindowCompanion";
 import type { CompanionReaction } from "../../shared/ui/companion/companionTypes";
+import { PixelLa } from "../../shared/ui/companion/pixel/PixelLa";
+import { moveDurationMs } from "../../shared/ui/companion/pixel/pixelMove";
+import { PIXEL_MOVES } from "../../shared/ui/companion/pixel/moves";
 import {
   DAY_PHASE_LABEL, GROWTH_LEVEL_LABEL, GROWTH_RULE_COPY, createSeed, dayStage, growthLevel, type FestivalKey,
 } from "../../shared/ui/companion/growth";
@@ -69,6 +72,9 @@ export function CompanionLabPage() {
   const [reacting, setReacting] = useState<CompanionReaction>(null);
   const [showGrid, setShowGrid] = useState(false);
   const [taps, setTaps] = useState({ aura: 0, sky: 0 });
+  const [pixelMoveId, setPixelMoveId] = useState(PIXEL_MOVES[0].id);
+  const [pixelPlay, setPixelPlay] = useState(0);
+  const pixelMove = PIXEL_MOVES.find((move) => move.id === pixelMoveId) ?? PIXEL_MOVES[0];
 
   const now = useMemo(() => atHour(hour), [hour]);
   const stage = dayStage(now);
@@ -166,6 +172,26 @@ export function CompanionLabPage() {
             <SkyWindowCompanion {...common} size={260} onTap={() => setTaps((t) => ({ ...t, sky: t.sky + 1 }))} />
           </SpokenLabel>
         </article>
+      </section>
+
+      <section className="clab__pixel" aria-label="Lá pixel, bản thử">
+        <h2>Lá pixel · Mầm xanh <small>bản thử, chưa bật cho người dùng</small></h2>
+        <div className="clab__pixel-stage">
+          <PixelLa move={pixelMove} label={`Lá pixel, bấm để chạy động tác ${pixelMove.name}`} size={192} still={still} playKey={pixelPlay} />
+        </div>
+        <div className="clab__chips" role="group" aria-label="Động tác">
+          {PIXEL_MOVES.map((move) => (
+            <button key={move.id} type="button" aria-pressed={move.id === pixelMove.id} onClick={() => { setPixelMoveId(move.id); setPixelPlay((n) => n + 1); }}>{move.name}</button>
+          ))}
+        </div>
+        <table className="clab__pixel-table">
+          <thead><tr><th scope="col">Động tác</th><th scope="col">Số hình</th><th scope="col">Hình/giây</th><th scope="col">Thời gian</th></tr></thead>
+          <tbody>
+            {PIXEL_MOVES.map((move) => (
+              <tr key={move.id}><th scope="row">{move.name}</th><td>{move.frames.length}</td><td>{move.fps}</td><td>{(moveDurationMs(move) / 1000).toFixed(1)} giây</td></tr>
+            ))}
+          </tbody>
+        </table>
       </section>
 
       <p className="clab__rule">{GROWTH_RULE_COPY}</p>
