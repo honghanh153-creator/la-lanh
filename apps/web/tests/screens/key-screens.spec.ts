@@ -258,7 +258,7 @@ const screens: Array<{ name: string; scenario: Scenario; path: string; ready: (p
     name: "12-card-share-link", path: "/card", scenario: signedIn,
     ready: (page) => page.getByRole("status"),
     before: async (page) => {
-      await page.getByRole("button", { name: /safe link/i }).click();
+      await page.getByRole("button", { name: /Tạo link riêng/i }).click();
     },
   },
 ];
