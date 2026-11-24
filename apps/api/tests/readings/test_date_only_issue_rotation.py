@@ -61,12 +61,15 @@ def _source(sign: str, status: str = "certain") -> DateOnlySunResult:
     return result.model_copy(update={"status": status, "sign": zodiac, "candidates": (zodiac,)})
 
 
-def _variety(local_date: date) -> DailyVariety:
+def _variety(local_date: date, *, schedule: bool = False) -> DailyVariety:
+    # ``schedule``: the topic anti-repeat (plan 2026-11-21) is on; a date-only plan then carries
+    # an empty history and walks its whole pool in a fixed per-reader order.
     return DailyVariety(
         key_version=VARIETY_KEY_VERSION,
         catalog_version=DAILY_PSYCHOLOGY_MATRIX_VERSION,
         seed=SEED,
         day_index=day_index(local_date),
+        topic_history=() if schedule else None,
     )
 
 
@@ -199,13 +202,17 @@ def test_the_extra_situations_rest_on_the_sun_factor_alone(sign: str) -> None:
         assert situation is own or situation.rank < own.rank
 
 
-def _days_of_cards(sign: str, days: int) -> list[tuple[int, str, str, str]]:
+def _days_of_cards(
+    sign: str, days: int, *, schedule: bool = False
+) -> list[tuple[int, str, str, str]]:
     """(day_index, situation, headline, scene) for ``days`` days from START."""
 
-    return [card[:4] for card in _full_cards(sign, days)]
+    return [card[:4] for card in _full_cards(sign, days, schedule=schedule)]
 
 
-def _full_cards(sign: str, days: int) -> list[tuple[int, str, str, str, str]]:
+def _full_cards(
+    sign: str, days: int, *, schedule: bool = False
+) -> list[tuple[int, str, str, str, str]]:
     """(day_index, situation, headline, scene, action) for ``days`` days from START."""
 
     planner, renderer = ReadingPlanner(), DeterministicVietnameseRenderer()
@@ -216,7 +223,7 @@ def _full_cards(sign: str, days: int) -> list[tuple[int, str, str, str, str]]:
             _source(sign),
             purpose=ReadingPurpose.DAILY_NOTE,
             editorial_seed=local_date.isoformat(),
-            daily_variety=_variety(local_date),
+            daily_variety=_variety(local_date, schedule=schedule),
         )
         card = renderer.render(plan)
         blueprint = card.semantic_blueprint
@@ -226,15 +233,18 @@ def _full_cards(sign: str, days: int) -> list[tuple[int, str, str, str, str]]:
     return out
 
 
+@pytest.mark.parametrize("schedule", [False, True])
 @pytest.mark.parametrize("sign", SIGNS)
-def test_a_situation_shows_all_its_headlines_before_one_comes_back(sign: str) -> None:
+def test_a_situation_shows_all_its_headlines_before_one_comes_back(
+    sign: str, schedule: bool
+) -> None:
     # A situation served every k-th day walks one fixed headline order by appearance (d // k), so
     # any 6 appearances in a row show 6 different headlines. Scenes only change between consecutive
     # appearances (they take an extra staircase step at each headline period, Codex on #778).
     # By calendar day the situation met only every k-th position of each reshuffled cycle and
     # repeated a headline after about n / 2 appearances.
     k = len(_expected(sign))
-    cards = _days_of_cards(sign, 6 * 3 * 3)
+    cards = _days_of_cards(sign, 6 * 3 * 3, schedule=schedule)
     by_issue: dict[str, list[tuple[int, str, str]]] = {}
     for index, issue, headline, scene in cards:
         by_issue.setdefault(issue, []).append((index // k, headline, scene))
@@ -252,12 +262,15 @@ def test_a_situation_shows_all_its_headlines_before_one_comes_back(sign: str) ->
             assert h1 != h2 and s1 != s2, (sign, issue)
 
 
+@pytest.mark.parametrize("schedule", [False, True])
 @pytest.mark.parametrize("sign", SIGNS)
-def test_a_whole_card_never_comes_back_within_90_days(sign: str) -> None:
+def test_a_whole_card_never_comes_back_within_90_days(sign: str, schedule: bool) -> None:
     # Codex auto-1 on #778: fixed orders walked side by side repeat the whole card after the least
     # common multiple of the axis sizes (24 appearances for 6, 8 and 24 lines: 48 days for a
     # two-situation sign). US-21 AC03 asks for at least 90 days.
-    cards = _full_cards(sign, 150)
+    # With the topic schedule (plan 2026-11-21, Codex P2 on #841) the appearance index is the
+    # global ``day_index // len(pool)``, never a count that restarts with a block.
+    cards = _full_cards(sign, 150, schedule=schedule)
     last: dict[tuple[str, str, str, str], int] = {}
     for index, issue, headline, scene, action in cards:
         key = (issue, headline, scene, action)

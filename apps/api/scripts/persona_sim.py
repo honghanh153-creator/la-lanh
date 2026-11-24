@@ -90,6 +90,13 @@ def _client(db_url: str) -> Any:
             guest_cookie_name="la_lanh_guest",
             guest_cookie_secure=False,
             daily_variety_from=PRODUCTION_DAILY_VARIETY_FROM,
+            # Off as in production; PERSONA_SIM_TOPIC_SCHEDULE_FROM=YYYY-MM-DD measures the topic
+            # anti-repeat (plan 2026-11-21) before it is switched on.
+            daily_topic_schedule_from=(
+                date.fromisoformat(os.environ["PERSONA_SIM_TOPIC_SCHEDULE_FROM"])
+                if os.environ.get("PERSONA_SIM_TOPIC_SCHEDULE_FROM")
+                else None
+            ),
         )
     )
     client = TestClient(app, base_url=ORIGIN)
