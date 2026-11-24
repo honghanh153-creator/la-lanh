@@ -272,6 +272,27 @@ REGISTRY_PAIR_RULES: tuple[RegistryPairRule, ...] = (
 )
 
 
+def approved_registry_pairs() -> dict[str, dict[str, object]]:
+    """Every registry pair rule whose sentence is approved: its definition and the text served.
+
+    Part of the Daily content fingerprint (Codex P1 on #847): approving or revising one of these
+    sentences changes the renderer version, so a stored note never re-renders with other words
+    under the same revision. Empty while every sentence is pending, so the fingerprint and today's
+    revisions stay as they are."""
+
+    found: dict[str, dict[str, object]] = {}
+    for rule in REGISTRY_PAIR_RULES:
+        text = approved_copy(rule.copy_id)
+        if text:
+            found[rule.copy_id] = {
+                "bodies": sorted(rule.bodies),
+                "kind": rule.kind,
+                "issue": rule.issue,
+                "text": text,
+            }
+    return found
+
+
 def _registry_pair(bodies: frozenset[str], kind: str) -> tuple[str, str] | None:
     """(issue, approved sentence) of the registry rule for ``bodies`` and ``kind``, if approved."""
 

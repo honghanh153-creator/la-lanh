@@ -14,7 +14,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { LOADING, PERSONA, contentExit, contentMode, contentVerdict, redactRoute } from "./qa-journey-lib.mjs";
+import { LOADING, PERSONA, contentExit, contentMode, contentVerdict, clientError, redactRoute } from "./qa-journey-lib.mjs";
 
 const here = fileURLToPath(new URL(".", import.meta.url));
 const requireFromWeb = createRequire(resolve(here, "../apps/web/package.json"));
@@ -40,6 +40,8 @@ mkdirSync(join(outDir, "text"), { recursive: true });
 const steps = [];
 const consoleErrors = [];
 const serverErrors = [];
+const clientErrors = [];
+let guestCreated = false;
 let index = 0;
 
 async function measure(page, minText = 80, before = null) {
@@ -143,8 +145,15 @@ page.on("response", async (response) => {
 page.on("console", (message) => {
   if (message.type() === "error") consoleErrors.push(message.text().replace(/[A-Za-z0-9_-]{24,}/g, ":redacted").slice(0, 160));
 });
-page.on("response", (response) => {
-  if (response.status() >= 500) serverErrors.push(`${response.status()} ${redactRoute(response.url())}`);
+page.on("response", async (response) => {
+  const status = response.status();
+  const method = response.request().method();
+  if (status >= 500) serverErrors.push(`${status} ${redactRoute(response.url())}`);
+  if (method === "POST" && /\/v1\/guest-sessions$/.test(new URL(response.url()).pathname) && response.ok()) guestCreated = true;
+  if (status < 400 || status >= 500 || !/\/v1\//.test(response.url())) return;
+  let code = null;
+  try { code = (await response.json())?.code ?? null; } catch {}
+  clientErrors.push(clientError({ method, url: response.url(), status, code }, { guestCreated }));
 });
 
 let deleted = false;
@@ -183,7 +192,7 @@ try {
   await step(page, "share-link", async () => {
     await page.getByRole("link", { name: "Chia sẻ" }).first().click();
     await page.waitForURL(/\/card/);
-    await button(page, /Tạo safe link/).click();
+    await button(page, /Tạo link riêng/).click();
     await button(page, /Thu hồi link/).waitFor({ timeout: 20_000 });
   }, { minText: 10 });
   await step(page, "share-revoke", async () => {
@@ -192,7 +201,8 @@ try {
   }, { minText: 10 });
   await step(page, "mood", async () => {
     await go(page, "/home");
-    await button(page, /Chọn mood/).click();
+    // #449 moved mood under the Note; the trigger is named "Chọn cảm giác hôm nay".
+    await button(page, /Chọn cảm giác hôm nay/).click();
     await button(page, /Chill/).click();
     await page.waitForTimeout(1500);
   }, { required: false });
@@ -249,10 +259,14 @@ const summary = {
   requiredFailed: steps.filter((s) => s.required && !s.ok).map((s) => s.id),
   consoleErrors: [...new Set(consoleErrors)].slice(0, 20),
   serverErrors: [...new Set(serverErrors)].slice(0, 20),
+  // 4xx answers from /v1: `expected` marks the new visitor's first session check (see clientError).
+  clientErrors: clientErrors.slice(0, 20),
   content: { mode: contentMode(), verdicts: content },
   steps,
 };
 writeFileSync(join(outDir, "journey.json"), `${JSON.stringify(summary, null, 2)}\n`);
 console.log(`required failed: ${summary.requiredFailed.length}; guest deleted: ${deleted}`);
+const unexpected4xx = clientErrors.filter((e) => !e.expected);
+console.log(`4xx from /v1: ${clientErrors.length - unexpected4xx.length} expected${unexpected4xx.length ? `; unexpected: ${unexpected4xx.map((e) => `${e.status} ${e.request}${e.code ? ` ${e.code}` : ""}`).join(", ")}` : ""}`);
 for (const v of content) console.log(`content (${summary.content.mode}) ${v.status} ${v.step}${v.findings.length ? `: ${v.findings.join(", ")}` : ""}`);
 process.exit(summary.requiredFailed.length === 0 && deleted ? contentExit(content, summary.content.mode) : 1);
