@@ -1,7 +1,7 @@
 """Saved month answers (US-25 AC12): explicit "Lưu", own list, deletable.
 
-Revision ID: 20261121_0046
-Revises: 20261121_0045
+Revision ID: 20261120_0043
+Revises: 20261111_0042
 """
 
 from collections.abc import Sequence
@@ -9,8 +9,8 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "20261121_0046"
-down_revision: str | Sequence[str] | None = "20261121_0045"
+revision: str = "20261120_0043"
+down_revision: str | Sequence[str] | None = "20261111_0042"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
