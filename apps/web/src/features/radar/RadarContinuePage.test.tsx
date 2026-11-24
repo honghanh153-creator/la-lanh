@@ -156,8 +156,9 @@ describe("RadarResultView", () => {
     expect(screen.getByText("Mặt Trăng của bạn tạo góc lục hợp với Mercury của người kia.")).toBeInTheDocument();
     expect(screen.getByRole("navigation", { name: "Tiến độ Radar" })).toBeInTheDocument();
     expect(screen.getByText("Bản đọc").closest('[aria-current="step"]')).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Check thêm một người" })).toHaveAttribute("href", "/radar/start");
-    expect(screen.getByRole("link", { name: "Xem các lần check" })).toHaveAttribute("href", "/radar/start#radar-history");
+    expect(screen.getByRole("heading", { name: "Muốn xem thêm một người?" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Xem thêm một người" })).toHaveAttribute("href", "/radar/start");
+    expect(screen.getByRole("link", { name: "Xem lại kết quả cũ" })).toHaveAttribute("href", "/radar/start#radar-history");
     expect(screen.getByRole("navigation", { name: "Điều hướng chính" })).toBeInTheDocument();
     expect(document.querySelector("#radar-chapter-fit")).toHaveAttribute("open");
     expect(document.querySelector("#radar-chapter-friction")).not.toHaveAttribute("open");

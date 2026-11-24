@@ -2,10 +2,16 @@ import type { RadarInvite, RadarVoice } from "../../shared/api/client";
 
 export const RADAR_CONTEXT_OPTIONS: Array<[RadarInvite["context"], string]> = [
   ["crush", "Crush"],
-  ["friend", "Bạn thân"],
+  ["friend", "Bạn bè"],
+  ["coworker", "Đồng nghiệp"],
   ["partner", "Người yêu"],
-  ["someone", "Một người"],
+  ["family", "Gia đình"],
 ];
+
+/** Labels for every context a stored result may carry, "someone" included (results before AL1). */
+export function radarContextLabel(context: string): string {
+  return RADAR_CONTEXT_OPTIONS.find(([value]) => value === context)?.[1] ?? "Một người";
+}
 
 export const RADAR_PENDING_REQUEST_KEY = "la-lanh-radar-pending-request-id";
 

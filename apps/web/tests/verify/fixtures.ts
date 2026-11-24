@@ -153,6 +153,19 @@ const radarResult = {
   disclaimer: "Dùng để soi lại trải nghiệm thật, không thay cho quyết định của bạn.",
 };
 
+const monthAnswer = {
+  month: "2026-11", topic: "work", topic_label: "Công việc", preset: null, question: null, tip: null,
+  theme: "Câu giả: tháng này công việc cần nói rõ.", act: "Câu giả: ghi ra ba việc.", say: "Câu giả để nói.",
+  basis: { line: "Dựa vào: dữ liệu giả.", detail: "Chi tiết giả." },
+  disclaimer: "Đây là một góc nhìn để bạn tự quyết, không phải điều chắc chắn sẽ xảy ra.",
+  answer_key: "0123456789abcdef0123456789abcdef",
+};
+
+const monthPresets = [
+  { id: "work.hard_talk", topic: "work", text: "Câu hỏi giả về công việc?" },
+  { id: "mind.sleep", topic: "mind", text: "Câu hỏi giả về giấc ngủ?" },
+];
+
 const accountStatus = {
   account_inactivity_days: 365, daily_note_hours: 24, google_login_enabled: false, guest_inactivity_days: 30,
   history_days: 30, login_enabled: false, masked_email: null, profile_expires_at: null, signed_in: false,
@@ -248,6 +261,14 @@ function answer(flags: Flags, method: string, path: string): Reply | null {
         ? { status: 200, json: { request_id: IDS.radarRequest, context: "friend", voice: "straight_warm", expires_at: "2026-11-19T03:00:00Z", consent_version: "radar-pair-v1",
           requires_exact_birth_profile: false, privacy_note: "Bản thử: chỉ dùng dữ liệu giả." } }
         : { status: 404, json: { code: "RADAR_INVITE_NOT_FOUND" } };
+    // Hợp gu AL1: the invite-first screens and card links are off, "Hỏi về hai bạn" has no
+    // approved question yet, and a card link that does not exist answers not-found.
+    case "GET /v1/public/radar/consent-options":
+      return { status: 200, json: { invite_first: false, sentences: {}, authorized_input_version: "radar-authorized-input-v1", date_consent_version: "radar-pair-date-v1", card_links: false } };
+    case `GET /v1/radar/results/${IDS.radarRequest}/ask`:
+      return { status: 200, json: { version: "radar-ask-v1", questions: [] } };
+    case "GET /v1/public/radar/cards/card-token-test":
+      return { status: 404, json: { code: "RADAR_CARD_NOT_FOUND" } };
     case "GET /v1/birth-places/search":
       return { status: 200, json: [] };
     case "GET /v1/birth-profile/supplement/edit":
@@ -256,6 +277,22 @@ function answer(flags: Flags, method: string, path: string): Reply | null {
       return { status: 200, json: [] };
     case `GET /v1/la-chung/results/${IDS.radarRequest}`:
       return { status: 404, json: { code: "LA_CHUNG_RESULT_NOT_FOUND" } };
+    // US-25 "Hỏi về tháng này": fake data only, the copy shown as if approved.
+    case "GET /v1/month/status":
+      return { status: 200, json: { available: signedIn, month: "2026-11", presets: signedIn ? monthPresets : [] } };
+    case "POST /v1/month/answers":
+      return { status: 200, json: { status: "answered", answer: monthAnswer } };
+    case "GET /v1/month/window":
+      return { status: 200, json: { found: true, start: "2026-11-24", end: "2026-11-25", basis: "Dựa vào: dữ liệu giả.", line: "Làm lúc nào cũng được; khoảng này chỉ dễ hơn một chút." } };
+    case "GET /v1/month/overview":
+      return { status: 200, json: { month: "2026-11", items: [
+        { area: "work", label: "Công việc", line: "Dòng giả về công việc.", try_text: "Việc thử giả." },
+        { area: "love", label: "Tình cảm", line: "Dòng giả về tình cảm.", try_text: "Việc thử giả." },
+        { area: "money", label: "Tiền", line: "Dòng giả về tiền.", try_text: "Việc thử giả." },
+        { area: "self", label: "Bản thân", line: "Dòng giả về bản thân.", try_text: "Việc thử giả." },
+      ] } };
+    case "GET /v1/month/saved":
+      return { status: 200, json: { items: [] } };
     case `GET /v1/tarot/sessions/${IDS.tarotSession}`:
       return { status: 404, json: { code: "TAROT_SESSION_NOT_FOUND" } };
     default:

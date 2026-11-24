@@ -46,3 +46,28 @@ class RadarRequestRow(Base):
     completed_at: Mapped[datetime | None] = mapped_column(UtcDateTime())
     revoked_at: Mapped[datetime | None] = mapped_column(UtcDateTime())
     withdrawn_at: Mapped[datetime | None] = mapped_column(UtcDateTime())
+
+
+class RadarShareCardRow(Base):
+    """A revocable link to a frozen Hợp gu card (AL1 direction C). No birth data, no real name:
+    the encrypted snapshot holds the tier name, one line, the relationship and at most an
+    initial. It never outlives its result and goes with it."""
+
+    __tablename__ = "radar_share_cards"
+    __table_args__ = (
+        Index("ix_radar_card_token_hash", "token_hash", unique=True),
+        Index("ix_radar_card_request", "request_id", "created_at"),
+    )
+
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
+    request_id: Mapped[UUID] = mapped_column(
+        ForeignKey("radar_requests.id", ondelete="CASCADE"), nullable=False
+    )
+    principal_id: Mapped[UUID] = mapped_column(
+        ForeignKey("principals.id", ondelete="CASCADE"), nullable=False
+    )
+    token_hash: Mapped[bytes] = mapped_column(LargeBinary(32), nullable=False)
+    snapshot_ciphertext: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(UtcDateTime(), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(UtcDateTime(), nullable=False)
+    revoked_at: Mapped[datetime | None] = mapped_column(UtcDateTime())

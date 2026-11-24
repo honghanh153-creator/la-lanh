@@ -44,6 +44,7 @@ from app.domains.data_export.models import (
     ExportRadarSent,
     ExportReadingEvidence,
     ExportReadingSections,
+    ExportSavedMonthAnswer,
     ExportSavedNote,
     ExportSavedReading,
     ExportShareLink,
@@ -68,6 +69,8 @@ from app.domains.matching.tables import (
     MatchingProfileRow,
     MatchingVerificationRow,
 )
+from app.domains.month_answer.saved import decrypt_saved
+from app.domains.month_answer.tables import SavedMonthAnswerRow
 from app.domains.mood.postgres import mood_value
 from app.domains.mood.tables import MoodCheckInRow
 from app.domains.radar.models import RadarStatus
@@ -186,6 +189,7 @@ class DataExportService:
             history_retention = await self._history(session, guest_id)
             daily_notes = await self._daily_notes(session, guest_id, current, truncated)
             saved_notes = await self._saved_notes(session, guest_id, truncated)
+            saved_month_answers = await self._saved_month_answers(session, guest_id, truncated)
             share_links = await self._share_links(session, guest_id, current, truncated)
             note_feedback = await self._feedback(session, guest_id, current, truncated)
             daily_experiments = await self._experiments(session, guest_id, current, truncated)
@@ -223,6 +227,7 @@ class DataExportService:
             history_retention=history_retention,
             daily_notes=daily_notes,
             saved_notes=saved_notes,
+            saved_month_answers=saved_month_answers,
             share_links=share_links,
             note_feedback=note_feedback,
             daily_experiments=daily_experiments,
@@ -455,6 +460,44 @@ class DataExportService:
                 revision_record(revision_row, self._envelope), projection_record(projection_row)
             )
             found.setdefault(projection_row.local_date, []).append(_reading(content))
+        return found
+
+    async def _saved_month_answers(
+        self, session: AsyncSession, guest_id: UUID, truncated: list[str]
+    ) -> list[ExportSavedMonthAnswer]:
+        rows = await self._rows(
+            session,
+            select(SavedMonthAnswerRow)
+            .where(SavedMonthAnswerRow.guest_id == guest_id)
+            .order_by(SavedMonthAnswerRow.saved_at.desc()),
+            "saved_month_answers",
+            truncated,
+        )
+        found: list[ExportSavedMonthAnswer] = []
+        for row in rows:
+            content = decrypt_saved(row, self._envelope).content
+            basis = content.get("basis")
+            basis = cast(dict[str, object], basis) if isinstance(basis, dict) else {}
+
+            def text(value: object) -> str | None:
+                return value if isinstance(value, str) else None
+
+            found.append(
+                ExportSavedMonthAnswer(
+                    saved_at=row.saved_at,
+                    month=row.month,
+                    topic=row.topic,
+                    topic_label=text(content.get("topic_label")),
+                    question=text(content.get("question")),
+                    tip=text(content.get("tip")),
+                    theme=text(content.get("theme")),
+                    act=text(content.get("act")),
+                    say=text(content.get("say")),
+                    basis=text(basis.get("line")),
+                    basis_detail=text(basis.get("detail")),
+                    disclaimer=text(content.get("disclaimer")),
+                )
+            )
         return found
 
     async def _saved_notes(

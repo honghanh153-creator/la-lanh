@@ -47,6 +47,7 @@ from app.domains.identity.service import OwnerIdentityService
 from app.domains.la_chung.service import LaChungService
 from app.domains.matching.postgres import PostgresMatchingRepository
 from app.domains.matching.service import MatchingService
+from app.domains.month_answer.saved import PostgresSavedMonthAnswers
 from app.domains.mood.postgres import PostgresMoodRepository
 from app.domains.mood.service import MoodService
 from app.domains.radar.service import RadarService
@@ -262,6 +263,8 @@ def create_app(
                 generation_prompt_version=OPENAI_REWRITE_PROMPT_VERSION,
                 content_rewrite_service=content_rewrite_service,
                 erasure_journal=erasure_journal,
+                invite_first_consent=resolved_settings.radar_invite_first_consent,
+                share_card_links=resolved_settings.radar_share_card_links,
             )
             if app.state.birth_chart_service is not None and engine is not None
             else None
@@ -290,6 +293,9 @@ def create_app(
                     erasure_journal,
                     keep_action_all_profiles=resolved_settings.keep_action_all_profiles,
                 )
+            )
+            app.state.saved_month_answers = PostgresSavedMonthAnswers(
+                database.sessions, envelope, erasure_journal
             )
             app.state.saved_note_service = SavedNoteService(
                 PostgresSavedNoteRepository(database.sessions, envelope, erasure_journal),
