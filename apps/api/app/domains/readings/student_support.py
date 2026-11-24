@@ -12,8 +12,10 @@
 
 Both stores follow the freeze of ``lighter_action``: a sentence is served only once approved and
 only with the text digest named here. The server reads nothing about the reader to pick either.
-Serving them (API field, then web) is a later step; nothing calls ``alone_action_for`` or
-``common_line_for`` from a route yet.
+
+The Daily reading sends both (``alone_action`` and ``common_line`` of the reading content). The
+alone action is sent only when one of the card's offered actions asks to contact someone, and it
+can be kept like the lighter action. The web does not show either yet.
 """
 
 from __future__ import annotations
@@ -23,12 +25,22 @@ import unicodedata
 from collections.abc import Iterable
 from hashlib import sha256
 from itertools import pairwise
+from typing import Literal
 from uuid import UUID
 
 from app.domains.content.copy_approval import approved_copy, copy_digest
 from app.domains.readings.daily_psychology import DailyIssuePattern
-from app.domains.readings.lighter_action import ACTION_SHAPES, issue_key_of, within_ten_minutes
-from app.domains.readings.models import LIGHTER_ACTION_MAX_CHARS
+from app.domains.readings.lighter_action import (
+    ACTION_SHAPES,
+    issue_key_of,
+    lighter_action_for,
+    lighter_experiment_for,
+    mood_action_for,
+    within_ten_minutes,
+)
+from app.domains.readings.models import LIGHTER_ACTION_MAX_CHARS, AloneActionProjection
+
+ContactKind = Literal["card", "light", "slow", "clear"]
 
 ALONE_PREFIX = "lighter.alone."
 COMMON_LINE_PREFIX = "student.common."
@@ -179,6 +191,44 @@ def alone_action_for(revision_id: UUID, mechanism_key: str | None) -> str | None
     if text is None or needs_contact(text) or not within_ten_minutes(text):
         return None
     return text
+
+
+def alone_offer_for(
+    revision_id: UUID, mechanism_key: str | None, card_action: str
+) -> tuple[str, tuple[ContactKind, ...]] | None:
+    """The alone action a card offers, and which of the card's actions ask to contact someone.
+
+    ``None`` when the issue has no served alone action, or when none of the actions the card
+    offers (its own, the lighter, the slow, the clear one) asks the reader to reach anyone.
+    """
+
+    text = alone_action_for(revision_id, mechanism_key)
+    if text is None:
+        return None
+    offered: tuple[tuple[ContactKind, str | None], ...] = (
+        ("card", card_action),
+        ("light", lighter_action_for(revision_id, mechanism_key)),
+        ("slow", mood_action_for("slow", revision_id, mechanism_key)),
+        ("clear", mood_action_for("clear", revision_id, mechanism_key)),
+    )
+    replaces = tuple(
+        kind for kind, action in offered if action is not None and needs_contact(action)
+    )
+    return (text, replaces) if replaces else None
+
+
+def alone_action_projection(
+    revision_id: UUID, *, keepable: bool, mechanism_key: str | None, card_action: str
+) -> AloneActionProjection | None:
+    offer = alone_offer_for(revision_id, mechanism_key, card_action)
+    if offer is None:
+        return None
+    action, replaces = offer
+    return AloneActionProjection(
+        action=action,
+        replaces=replaces,
+        experiment=lighter_experiment_for(revision_id, action) if keepable else None,
+    )
 
 
 def common_line_for(revision_id: UUID, mechanism_key: str | None) -> str | None:

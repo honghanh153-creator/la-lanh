@@ -124,7 +124,11 @@ def _snapshot_context(record_id: UUID) -> bytes:
 # A saved note is a frozen copy of the note itself. The lighter action (#627) is a live offer of
 # the Daily card, so it is never written: the stored snapshot keeps the released shape, and an
 # older release that forbids unknown fields can still read every saved note after a rollback.
-_NOT_SAVED = frozenset({"lighter_action", "slow_action", "clear_action"})
+# The same holds for the slow and clear actions (#701), the alone action and the "others meet
+# this too" line (#703).
+_NOT_SAVED = frozenset(
+    {"lighter_action", "slow_action", "clear_action", "alone_action", "common_line"}
+)
 
 
 def _encrypt_snapshot(record: SavedNoteRecord, envelope: EnvelopeCipher) -> str:
