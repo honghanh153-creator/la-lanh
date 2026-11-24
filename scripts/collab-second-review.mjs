@@ -10,7 +10,7 @@
 // The critic's notes are posted as a quote, so no line in them can read as a verdict.
 import { readFileSync } from 'node:fs';
 import { agentMarker, bindReceipt, clean, isSha, makeGh, repo, signReceipt } from './collab-trust.mjs';
-import { secondReviewers, secondReviewProblem } from './codex-fallback.mjs';
+import { cutoffLeft, secondReviewers, secondReviewProblem } from './codex-fallback.mjs';
 import { isMain } from './is-main.mjs';
 
 export const briefLimit = 60000;
@@ -45,7 +45,9 @@ export function secondComment({ verdict, head, reviewer, receipt, notes, number 
 // Posts only when the live head is the reviewed head and the PR is waiting for a second critic.
 // After a REQUEST_CHANGES on a head only a new fix (a new head) can be approved: the session that
 // drives Gemini cannot overrule the critic on the same head (Gemini, first second review, 22.11.2026).
-export function postSecond({ gh, number, reviewer, verdict, head, notes, diff = null }) {
+export function postSecond({ gh: ghIn, number, reviewer, verdict, head, notes, diff = null, left = cutoffLeft() }) {
+  // Codex auto-3 on #894 (P1): every GitHub call here ends by 23:59 (or the caller's deadline).
+  const gh = ghIn.withDeadline?.(left) ?? ghIn;
   if (!secondReviewers.includes(reviewer)) throw new Error(`reviewer phải là ${secondReviewers.join(' hoặc ')} (Codex không tự phản biện)`);
   if (!['APPROVE', 'REQUEST_CHANGES'].includes(verdict)) throw new Error('verdict phải là APPROVE hoặc REQUEST_CHANGES');
   if (!isSha(head)) throw new Error('--head phải là SHA đầy đủ');

@@ -14,7 +14,7 @@ import { readdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { boundedTimeout, clean, makeGh, readJson, repo, stateDir, writeJson } from './collab-trust.mjs';
-import { secondReviewProblem } from './codex-fallback.mjs';
+import { cutoffLeft, secondReviewProblem } from './codex-fallback.mjs';
 import { briefComplete, briefLimit, postSecond, secondBrief } from './collab-second-review.mjs';
 import { isMain } from './is-main.mjs';
 
@@ -45,7 +45,7 @@ export function parseCritic(text) {
 }
 
 // One tick step. Returns what it did, or null when no PR waits for a second critic.
-export function antigravityStep({ gh, prs = [], start, steps, home = stateDir, nowMs = Date.now(), log = () => {} }) {
+export function antigravityStep({ gh, prs = [], start, steps, home = stateDir, nowMs = Date.now(), left, log = () => {} }) {
   const waiting = prs.filter(pr => secondReviewProblem(pr)?.turn === 'hold');
   const all = readJson(statePath(home), {});
   const save = () => writeJson(statePath(home), all);
@@ -59,7 +59,7 @@ export function antigravityStep({ gh, prs = [], start, steps, home = stateDir, n
     if (!answer.done) return nowMs - job.at > answerLimitMs ? drop('quá 20 phút chưa trả lời') : (save(), { status: 'waiting', pr: Number(n) });
     const verdict = parseCritic(answer.text);
     if (!verdict) return drop('câu trả lời không theo mẫu "Kết luận: ..."');
-    const posted = postSecond({ gh, number: Number(n), reviewer, verdict, head: job.head, notes: answer.text });
+    const posted = postSecond({ gh, number: Number(n), reviewer, verdict, head: job.head, notes: answer.text, ...(left ? { left } : {}) });
     delete all[n]; save();
     return { status: 'posted', pr: Number(n), verdict, url: posted.url };
   }
@@ -105,7 +105,8 @@ export function conversationSteps(id, { env = appEnv(), left = () => Infinity } 
 }
 
 // `left`: time to the tick's absolute deadline (Codex r1 on #894); every call is bounded by it.
-export const runAntigravity = ({ gh, prs, log, left = () => Infinity }) => antigravityStep({ gh, prs, log, start: (b, t) => startConversation(b, t, { left }), steps: id => conversationSteps(id, { left }) });
+// Codex auto-3 on #894 (P1): the GitHub calls (diff, post) are bounded by the same deadline; without one, by 23:59.
+export const runAntigravity = ({ gh, prs, log, left = cutoffLeft() }) => antigravityStep({ gh: gh.withDeadline?.(left) ?? gh, prs, log, left, start: (b, t) => startConversation(b, t, { left }), steps: id => conversationSteps(id, { left }) });
 
 if (isMain(import.meta.url)) {
   if (process.argv.includes('--step')) {

@@ -3,12 +3,13 @@ import assert from 'node:assert/strict';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 process.env.LA_LANH_COLLAB_HOME = mkdtempSync(join(tmpdir(), 'fallback-'));
 const trust = await import('./collab-trust.mjs');
 const {
   changeProblems, changedFiles, codexFixed, commitMessage, currentMode, fallbackBrief, fallbackBudget, fallbackRuns, fallbackRunsPath, fallbackStep, fallbackSubCap,
-  finishReserveMs, fallbackProblem, holdLabel, runFallbackFix, sandboxedTest, testCommand,
+  finishReserveMs, fallbackProblem, gateModules, holdForClaude, holdLabel, hostGit, isGateFile, runFallbackFix, sandboxedTest, testCommand,
 } = await import('./codex-fallback.mjs');
 const { acquireLock } = await import('./collab-lock.mjs');
 const { mergeGate } = await import('./collab-merge.mjs');
@@ -16,15 +17,17 @@ const { prTurn } = await import('./collab-turn.mjs');
 const { modePath } = await import('./collab-usage.mjs');
 
 const SHA = 'a'.repeat(40);
+// Host Git calls start with the hook/fsmonitor overrides; the fakes read the command after them.
+const plain = args => { const out = [...args]; while (out[0] === '-c' && /^core\.(hooksPath|fsmonitor)=/.test(out[1] ?? '')) out.splice(0, 2); return out; };
 const pr = (over = {}) => ({ number: 901, title: 'ops(loop): x', headRefOid: SHA, headRefName: 'agent/claude/x', baseRefName: 'collab/integration', baseTipOid: 'b'.repeat(40),
-  labels: [{ name: 'area:ops' }], files: [{ path: 'scripts/collab-status.mjs', additions: 10, deletions: 2 }, { path: 'scripts/collab-status.test.mjs', additions: 30, deletions: 0 }], comments: [], body: '', ...over });
+  labels: [{ name: 'area:ops' }], files: [{ path: 'scripts/collab-chain.mjs', additions: 10, deletions: 2 }, { path: 'scripts/collab-chain.test.mjs', additions: 30, deletions: 0 }], comments: [], body: '', ...over });
 
 test('L82 (owner 23.11): in fallback every lane merges; only owner-only copy and the loop gates wait', () => {
   // Every lane, any size: the 7-week plan, Daily, content and process work all go through the usual gates.
   assert.equal(fallbackProblem(pr()), null);
   assert.equal(fallbackProblem(pr({ labels: [{ name: 'area:content' }, { name: 'ke-hoach-7-tuan' }], title: 'content: x', files: [{ path: 'apps/web/src/features/home/HomePage.tsx', additions: 900 }, { path: 'content/daily/a.json', additions: 400 }] })), null);
   assert.equal(fallbackProblem(pr({ labels: [{ name: 'area:privacy' }], title: 'privacy: x', files: [{ path: 'apps/api/app/privacy.py', additions: 30 }] })), null, 'privacy code is reviewed like any code; new collection is needs-owner');
-  for (const path of ['docs/operations/collab-auto-loop-plan.md', 'docs/reviews/x.md', 'scripts/collab-lessons.json', 'scripts/lessons/L99.json', 'scripts/collab-status.mjs', 'scripts/collab-chain.mjs', 'scripts/new-thing.mjs']) {
+  for (const path of ['docs/operations/collab-auto-loop-plan.md', 'docs/reviews/x.md', 'scripts/collab-lessons.json', 'scripts/lessons/L99.json', 'scripts/collab-chain.mjs', 'scripts/new-thing.mjs', 'apps/web/src/App.tsx']) {
     assert.equal(fallbackProblem(pr({ files: [{ path, additions: 1 }] })), null, path);
   }
   // Owner-only: sensitive copy not approved word for word waits for her (needs-owner is held by mergeGate itself).
@@ -93,8 +96,9 @@ test('L68: fallback step sends one claude-fix to Codex in fallback, and removes 
 test('runFallbackFix: workspace-write with no network, test before push, counted, push without force, claim released', () => {
   const calls = [];
   let status = ' M scripts/a.mjs\0?? scripts/a.test.mjs\0';
-  const run = (cmd, args) => {
-    calls.push([cmd, ...args].join(' '));
+  const run = (cmd, raw) => {
+    calls.push([cmd, ...raw].join(' '));
+    const args = plain(raw);
     if (args[0] === 'rev-parse') return calls.some(c => c.includes(' commit ')) ? 'c'.repeat(40) : SHA;
     if (args[0] === 'status') return status;
     if (args[0] === 'grep') throw new Error('no match');
@@ -129,15 +133,17 @@ test('runFallbackFix: workspace-write with no network, test before push, counted
 
 // Codex r1 on #894: a fake clone that records every call with its timeout.
 const at = hhmm => Date.parse(`2026-11-22T${hhmm}:00+07:00`);
-function fake({ status = ' M scripts/a.mjs\0', log = '', onPush = () => {} } = {}) {
+function fake({ status = ' M scripts/a.mjs\0', log = '', onPush = () => {}, onTest = null } = {}) {
   const calls = [];
-  const run = (cmd, args, opts = {}) => {
-    calls.push({ line: [cmd, ...args].join(' '), timeout: opts.timeout });
+  const run = (cmd, raw, opts = {}) => {
+    calls.push({ line: [cmd, ...raw].join(' '), timeout: opts.timeout, args: raw, opts });
+    const args = plain(raw);
     if (args[0] === 'rev-parse') return calls.some(c => c.line.includes(' commit ')) ? 'c'.repeat(40) : SHA;
     if (args[0] === 'status') return status;
     if (args[0] === 'grep') throw new Error('no match');
     if (args.includes('log')) return log;
     if (args[0] === 'push') onPush();
+    if (onTest && cmd === process.execPath) return onTest(raw, opts);
     return '';
   };
   const comments = [];
@@ -251,4 +257,103 @@ test('Codex r1 on #894 (P1): branch tests run sandboxed (no network, writes in t
     writeFileSync(join(dir, 'package.json'), JSON.stringify({ scripts: { 'collab:test': script } }));
     assert.throws(() => testCommand(dir), /không chạy/, script);
   }
+});
+
+test('Codex auto-3 on #894/#899 (P2): the gate inventory is every module the loop imports, its tests, shell wrappers and every dependency file', () => {
+  const { modules } = gateModules();
+  for (const name of ['collab-heal', 'collab-disagree', 'collab-dispatch', 'collab-check-log', 'collab-merge-probe', 'is-main', 'collab-status', 'collab-trust', 'collab-merge']) assert.ok(modules.has(name), name);
+  for (const path of ['scripts/collab-heal.mjs', 'scripts/collab-check-log.mjs', 'scripts/collab-dispatch.mjs', 'scripts/collab-disagree.mjs', 'scripts/collab-merge-probe.mjs', 'scripts/is-main.mjs',
+    'scripts/collab-cron.sh', 'scripts/ops-run.sh', 'scripts/collab-check-log.test.mjs', 'scripts/collab-dispatch.test.mjs', 'scripts/collab-disagree.test.mjs', 'scripts/collab-merge-probe.test.mjs',
+    'scripts/is-main.test.mjs', 'scripts/collab-loop.test.mjs', 'scripts/collab-merge-gate.test.mjs', 'scripts/codex-review-prompt.test.mjs', 'scripts/collab-pr-check-workflow.test.mjs',
+    'apps/api/pyproject.toml', 'apps/api/uv.lock', 'apps/mobile/android/build.gradle', 'apps/mobile/android/app/build.gradle', 'apps/mobile/android/app/capacitor.build.gradle',
+    'apps/mobile/ios/App/CapApp-SPM/Package.swift', 'apps/mobile/ios/App/Podfile', 'apps/api/requirements.txt', '.npmrc', '.nvmrc', 'apps/web/package.json', 'pnpm-lock.yaml']) {
+    assert.equal(isGateFile(path), true, path);
+    assert.match(fallbackProblem(pr({ files: [{ path, additions: 1 }] })), /file cổng của vòng/, path);
+  }
+  for (const path of ['apps/web/src/App.tsx', 'content/daily/a.json', 'scripts/lessons/L99.json', 'docs/operations/collab-auto-loop-plan.md', 'scripts/new-thing.mjs']) assert.equal(isGateFile(path), false, path);
+  // Every local import of every gate module is itself a gate module: a PR that changes only a helper
+  // (collab-heal's deadline, disagree's holds) waits like one that changes collab-merge.
+  const dir = fileURLToPath(new URL('.', import.meta.url));
+  for (const name of modules) {
+    const text = readFileSync(join(dir, `${name}.mjs`), 'utf8');
+    for (const m of text.matchAll(/from '\.\/([\w.-]+)\.mjs'/g)) assert.ok(modules.has(m[1]), `${name} → ${m[1]}`);
+  }
+  // An unreadable trusted copy fails closed: everything waits.
+  assert.throws(() => gateModules(mkdtempSync(join(tmpdir(), 'no-scripts-'))), /coi mọi file là file cổng/);
+  assert.equal(isGateFile('apps/web/src/App.tsx', mkdtempSync(join(tmpdir(), 'no-scripts-'))), false, 'fixed paths only for non-script files');
+  assert.equal(isGateFile('scripts/collab-chain.mjs', mkdtempSync(join(tmpdir(), 'no-scripts-'))), true);
+});
+
+test('Codex auto-3 on #894 (P1): L79 through runFallbackFix\'s own test path: branch tests run only under sandbox-exec, with Git metadata read-only', () => {
+  const tests = [];
+  const f = fake({ onTest: (args, opts) => { tests.push({ args, opts }); return ''; } });
+  mkdirSync(join(f.home, 'fallback'), { recursive: true });
+  writeFileSync(join(f.home, 'fallback', 'package.json'), JSON.stringify({ scripts: { 'collab:test': 'node --test scripts/a.test.mjs' } }));
+  const out = runFallbackFix(turn, f.opts({ test: undefined }));
+  assert.equal(out.status, 'pushed', out.reason);
+  assert.equal(tests.length, 1, 'the default path ran the branch tests once');
+  const { args, opts } = tests[0];
+  const sandbox = args.indexOf('/usr/bin/sandbox-exec');
+  assert.ok(sandbox > 0, 'tests run under sandbox-exec');
+  assert.ok(args.indexOf('--test') > sandbox, 'node --test only inside the sandbox');
+  assert.match(args[sandbox + 2], /\(deny file-write\* \(subpath "[^"]+\/fallback\/\.git"\)\)$/, 'the clone\'s .git is read-only to tests');
+  assert.ok(opts.timeout > 0);
+  // No other call runs a test runner on the host.
+  assert.ok(!f.calls.some(c => /(^|\s)(pnpm|npm)\s/.test(c.line)));
+  // Every host Git call has hooks and fsmonitor off.
+  for (const c of f.calls.filter(c => c.line.startsWith('/usr/bin/git '))) assert.deepEqual(c.args.slice(0, 4), hostGit, c.line);
+});
+
+test('Codex auto-3 on #894 (P1): a passing test that adds a protected file, a new file or a Git hook is refused before commit', () => {
+  for (const [name, after] of [['workflow', ' M scripts/a.mjs\0?? .github/workflows/synthetic.yml\0'], ['new file', ' M scripts/a.mjs\0?? scripts/b.mjs\0']]) {
+    let status = ' M scripts/a.mjs\0';
+    const f = fake();
+    const inner = f.run;
+    const run = (cmd, args, opts) => (plain(args)[0] === 'status' ? status : inner(cmd, args, opts));
+    const out = runFallbackFix(turn, f.opts({ run, test: () => { status = after; } }));
+    assert.equal(out.status, 'refused', name);
+    assert.ok(!f.calls.some(c => / (add|commit|push) /.test(c.line)), name);
+  }
+  const f = fake();
+  const clone = join(f.home, 'fallback', '.git', 'hooks');
+  mkdirSync(clone, { recursive: true });
+  const out = runFallbackFix(turn, f.opts({ test: () => writeFileSync(join(clone, 'pre-commit'), '#!/bin/sh\n') }));
+  assert.equal(out.status, 'refused');
+  assert.match(out.reason, /hook Git của bản clone bị đổi/);
+  assert.ok(!f.pushed());
+});
+
+test('Codex auto-3 on #894 (P1): 23:35 is checked again after the clone, and every GitHub call is bounded by the deadline', () => {
+  // Entered at 23:34, the fetch ends at 23:36: Codex is not reserved or started.
+  const f = fake();
+  let clock = at('23:34');
+  const inner = f.run;
+  const run = (cmd, args, opts) => { if (plain(args)[0] === 'fetch') clock = at('23:36'); return inner(cmd, args, opts); };
+  let ran = false;
+  const runsBefore = fallbackRuns(f.home);
+  const out = runFallbackFix(turn, f.opts({ run, now: { date: '2026-11-22', hour: 23, minute: 34 }, nowMs: () => clock, exec: () => { ran = true; } }));
+  assert.equal(out.status, 'refused');
+  assert.match(out.reason, /hết giờ: đã qua 23:35 sau bước chuẩn bị/);
+  assert.equal(ran, false);
+  assert.deepEqual(fallbackRuns(f.home), runsBefore, 'no Codex slot reserved');
+  // runFallbackFix talks to GitHub only through the client bound to its own deadline.
+  const g = fake();
+  const bindings = [];
+  const unbound = { withDeadline: l => { bindings.push(l); return g.gh; }, pr: () => assert.fail('unbounded client'), comment: () => assert.fail('unbounded client') };
+  const left = () => 3 * 3600000;
+  const viaBound = runFallbackFix(turn, g.opts({ gh: unbound, left }));
+  assert.equal(viaBound.status, 'pushed', viaBound.reason);
+  assert.deepEqual(bindings, [left]);
+  assert.equal(g.comments.length, 1);
+  // The real client caps each gh call at the time left.
+  const seen = [];
+  const real = trust.makeGh((cmd, args, opts) => { seen.push(opts.timeout); return '{}'; }).withDeadline(() => 4000);
+  real.raw(['pr', 'list']);
+  assert.ok(seen.length === 1 && seen[0] <= 4000, `gh timeout ${seen}`);
+  // fallbackStep and holdForClaude bind the client too.
+  const bound = [];
+  const gh = { withDeadline: l => { bound.push(l()); return { raw: () => '' }; }, raw: () => assert.fail('unbounded client') };
+  fallbackStep({ gh, mode: 'normal', prs: [{ number: 3, labels: [{ name: holdLabel }] }], left: () => 5000 });
+  holdForClaude(gh, 3, () => 7000);
+  assert.deepEqual(bound, [5000, 7000]);
 });
