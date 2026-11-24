@@ -37,7 +37,7 @@ describe("SharePreviewPage", () => {
     const image = await screen.findByRole("img", { name: /Đầu có ba câu thì chọn một câu chính/ });
     expect(screen.getByRole("heading", { name: artifact.safe_snapshot.title })).toBeInTheDocument();
     expect(image.getAttribute("alt")).toContain("Lanh");
-    expect(image.getAttribute("alt")).toContain("vuông 1:1");
+    expect(image.getAttribute("alt")).toContain("khổ vuông");
     expect(decodeURIComponent(image.getAttribute("src") ?? "")).not.toContain(token);
     expect(image.getAttribute("alt")).not.toContain(token);
   });

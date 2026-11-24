@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { getCurrentMood, type MoodCheckIn, type MoodValue, type ReadingContent } from "../api/client";
 import { clearChartDerivedData } from "../storage/clearChartDerivedData";
-import { applySavedMood, dailyActionViewKey, dailyMoodKey, newerMoodRow, readDailyMood, resetDailyActionChoice, useDailyActionView } from "./useDailyActionView";
+import { applySavedMood, dailyActionViewKey, dailyMoodKey, dailyReadOnlyKey, newerMoodRow, readDailyMood, resetDailyActionChoice, useDailyActionView, useReadOnlyToday } from "./useDailyActionView";
 
 vi.mock("../api/client", async (original) => ({
   ...(await original<typeof import("../api/client")>()),
@@ -120,5 +120,154 @@ describe("useDailyActionView (#627)", () => {
     expect(JSON.stringify({ ...localStorage, ...sessionStorage })).not.toContain("Đuối");
     await act(async () => { await clearChartDerivedData(client); });
     await waitFor(() => expect(result.current.lighterShown).toBe(true));
+  });
+});
+
+describe("mood alternatives for Căng and Lạc trôi (#701)", () => {
+  const all = {
+    lighter_action: { action: "Uống một ly nước rồi ngồi yên hai phút.", weight: "light", experiment: null },
+    slow_action: { action: "Đợi năm phút rồi mới gửi câu trả lời.", weight: "slow", experiment: null },
+    clear_action: { action: "Viết ra một việc duy nhất cần xong trước trưa.", weight: "clear", experiment: null },
+  } as unknown as ReadingContent;
+
+  it("shows the slow action for Căng and the clear one for Lạc trôi, each with its own switch label", () => {
+    const tense = setup("Căng", all).result.current;
+    expect(tense).toMatchObject({ lighterShown: true, canSwitch: true, alternativeLabel: "Xem việc chậm lại" });
+    expect(tense.alternative?.action).toBe("Đợi năm phút rồi mới gửi câu trả lời.");
+    const floating = setup("Lạc trôi", all).result.current;
+    expect(floating).toMatchObject({ lighterShown: true, alternativeLabel: "Xem một bước rõ" });
+    expect(floating.alternative?.action).toBe("Viết ra một việc duy nhất cần xong trước trưa.");
+    const drained = setup("Đuối", all).result.current;
+    expect(drained.alternative?.action).toBe("Uống một ly nước rồi ngồi yên hai phút.");
+    expect(drained.alternativeLabel).toBe("Xem việc nhẹ hơn");
+  });
+
+  it("keeps the card's action for Rực, Chill, an unsaved mood, or a reading without that offer", () => {
+    for (const mood of ["Rực", "Chill", null] as const) {
+      expect(setup(mood, all).result.current).toMatchObject({ lighterShown: false, canSwitch: false, alternative: null });
+    }
+    const onlyLighter = { lighter_action: all.lighter_action } as unknown as ReadingContent;
+    expect(setup("Căng", onlyLighter).result.current).toMatchObject({ lighterShown: false, canSwitch: false, alternative: null });
+  });
+
+  it("lets the reader switch back to the card's action and forward again", async () => {
+    const { result } = setup("Căng", all);
+    // The query cache notifies on the next tick, so each step waits for the hook to settle.
+    act(() => result.current.switchAction());
+    await waitFor(() => expect(result.current).toMatchObject({ lighterShown: false, canSwitch: true }));
+    act(() => result.current.switchAction());
+    await waitFor(() => expect(result.current.lighterShown).toBe(true));
+  });
+});
+
+describe("useReadOnlyToday (#700)", () => {
+  const NEXT_NOTE_ID = "00000000-0000-4000-8000-000000000002";
+
+  function setupReadOnly(noteId: string | null = NOTE_ID) {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const wrapper = ({ children }: { children: ReactNode }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+    const hook = renderHook(({ id }: { id: string | undefined }) => useReadOnlyToday(id), { wrapper, initialProps: { id: noteId ?? undefined } });
+    return { client, ...hook };
+  }
+
+  it("starts open, folds on a press and opens on the next", async () => {
+    const { result } = setupReadOnly();
+    expect(result.current.readOnly).toBe(false);
+    act(() => result.current.toggle());
+    await waitFor(() => expect(result.current.readOnly).toBe(true));
+    act(() => result.current.toggle());
+    await waitFor(() => expect(result.current.readOnly).toBe(false));
+  });
+
+  it("is shared by every screen of the same note, and does nothing without a note", async () => {
+    const { client, result } = setupReadOnly();
+    const wrapper = ({ children }: { children: ReactNode }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+    const otherScreen = renderHook(() => useReadOnlyToday(NOTE_ID), { wrapper });
+    act(() => result.current.toggle());
+    await waitFor(() => expect(otherScreen.result.current.readOnly).toBe(true));
+
+    const noNote = setupReadOnly(null);
+    act(() => noNote.result.current.toggle());
+    await act(async () => { await Promise.resolve(); });
+    expect(noNote.result.current.readOnly).toBe(false);
+    expect(noNote.client.getQueryCache().getAll().every((query) => query.state.data !== true)).toBe(true);
+  });
+
+  it("belongs to one note: the next day's note starts open again (US-04 AC12)", async () => {
+    const { result, rerender } = setupReadOnly();
+    act(() => result.current.toggle());
+    await waitFor(() => expect(result.current.readOnly).toBe(true));
+    rerender({ id: NEXT_NOTE_ID });
+    expect(result.current.readOnly).toBe(false);
+    // Yesterday's fold is not moved or copied to the new note.
+    rerender({ id: NOTE_ID });
+    expect(result.current.readOnly).toBe(true);
+  });
+
+  it("lives in memory only: no storage, no request, and it goes when chart-derived data is cleared", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    const stored = () => JSON.stringify({ ...localStorage, ...sessionStorage });
+    const before = stored();
+    const { client, result } = setupReadOnly();
+    act(() => result.current.toggle());
+    await waitFor(() => expect(result.current.readOnly).toBe(true));
+
+    expect(client.getQueryData(dailyReadOnlyKey(NOTE_ID))).toBe(true);
+    expect(stored()).toBe(before);
+    expect(fetchSpy).not.toHaveBeenCalled();
+    // It does not touch the lighter-action choice kept next to it.
+    expect(client.getQueryData(dailyActionViewKey(NOTE_ID))).toBeUndefined();
+    // A blanket refetch (Home does one when the day's note changes) does not open the box.
+    await act(async () => { await client.invalidateQueries(); });
+    expect(result.current.readOnly).toBe(true);
+
+    await act(async () => { await clearChartDerivedData(client); });
+    await waitFor(() => expect(result.current.readOnly).toBe(false));
+    fetchSpy.mockRestore();
+  });
+});
+
+describe("memory-only choices outlive a visit to another screen (#833 review)", () => {
+  // React Query drops an unused query after five minutes by default. These two choices have
+  // nothing to refetch, so they must stay for the app session: fold or switch, leave Home and the
+  // note page for a while, come back the same day, and the choice is still there.
+  const SIX_MINUTES = 6 * 60 * 1000;
+
+  it("keeps the folded box after unmount, six minutes away and a remount", () => {
+    vi.useFakeTimers();
+    try {
+      const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      const wrapper = ({ children }: { children: ReactNode }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+      const first = renderHook(() => useReadOnlyToday(NOTE_ID), { wrapper });
+      act(() => first.result.current.toggle());
+      act(() => { vi.advanceTimersByTime(1); }); // React Query hands updates over on a timer.
+      expect(first.result.current.readOnly).toBe(true);
+      first.unmount();
+      act(() => { vi.advanceTimersByTime(SIX_MINUTES); });
+      expect(client.getQueryData(dailyReadOnlyKey(NOTE_ID))).toBe(true);
+      const again = renderHook(() => useReadOnlyToday(NOTE_ID), { wrapper });
+      expect(again.result.current.readOnly).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps the switch press after unmount, six minutes away and a remount", () => {
+    vi.useFakeTimers();
+    try {
+      const { client, result, unmount } = setup("Đuối");
+      expect(result.current.lighterShown).toBe(true);
+      act(() => result.current.switchAction());
+      act(() => { vi.advanceTimersByTime(1); });
+      expect(result.current.lighterShown).toBe(false);
+      unmount();
+      act(() => { vi.advanceTimersByTime(SIX_MINUTES); });
+      expect(client.getQueryData(dailyActionViewKey(NOTE_ID))).toEqual({ choice: "original" });
+      const wrapper = ({ children }: { children: ReactNode }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+      const again = renderHook(() => useDailyActionView(NOTE_ID, reading, "Đuối"), { wrapper });
+      expect(again.result.current.lighterShown).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

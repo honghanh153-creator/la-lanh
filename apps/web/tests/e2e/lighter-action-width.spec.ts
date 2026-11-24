@@ -5,7 +5,8 @@ import { fileURLToPath } from "node:url";
 import { expect, test, type Page } from "@playwright/test";
 
 // #627 PR B, G2 evidence: on a "Đuối" day Home and the note page show the lighter action with a
-// switch back to the card's own action. Both controls must fit at 360 and 390px, be at least 44px
+// switch back to the card's own action; #701 adds "Căng" (slow action) and "Lạc trôi" (one clear
+// step), checked the same way. Both controls must fit at 360 and 390px, be at least 44px
 // tall, and work from the keyboard. Synthetic data only.
 const OUT_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "../../test-results/lighter-action");
 mkdirSync(OUT_DIR, { recursive: true });
@@ -14,7 +15,16 @@ const NOTE_ID = "note-test";
 const OWN = "Nhắn một người để hẹn lại lịch làm việc chung của tuần này.";
 // The longest sentence the contract allows (120 characters) must still wrap inside the card.
 const LIGHT = "Rót một ly nước, ngồi xuống ghế gần nhất, uống chậm từng ngụm và nhìn ra cửa sổ cho tới khi thấy vai mình thả lỏng hơn.";
+const SLOW = "Đợi mười phút rồi mới gửi câu trả lời đang gõ dở, trong lúc đó đặt điện thoại úp xuống bàn và thở chậm năm hơi thật sâu.";
+const CLEAR = "Viết ra giấy đúng một việc cần xong trước trưa hôm nay, gạch đầu dòng bước đầu tiên của nó rồi bắt tay làm bước đó ngay.";
 const cues = { observation: "Bạn thấy người dịu hơn chưa?", permission: "Không hợp thì bỏ qua." };
+// The saved mood the server returns in this test, and what each mood shows first (#701).
+const MOODS = [
+  { mood: "Đuối", key: "lighter", text: LIGHT, label: "Xem việc nhẹ hơn" },
+  { mood: "Căng", key: "slow", text: SLOW, label: "Xem việc chậm lại" },
+  { mood: "Lạc trôi", key: "clear", text: CLEAR, label: "Xem một bước rõ" },
+] as const;
+let savedMood: string = "Đuối";
 
 const active = { state: "active", onboarding_status: "completed", expires_at: "2026-12-30T00:00:00Z", resumed: true, session_epoch: "epoch-test" };
 const dailyNote = {
@@ -37,6 +47,8 @@ const dailyNote = {
       },
       experiment: { action_key: "d".repeat(64), action: OWN, ...cues },
       lighter_action: { action: LIGHT, weight: "light", experiment: { action_key: "e".repeat(64), action: LIGHT, ...cues } },
+      slow_action: { action: SLOW, weight: "slow", experiment: { action_key: "f".repeat(64), action: SLOW, ...cues } },
+      clear_action: { action: CLEAR, weight: "clear", experiment: { action_key: "c".repeat(64), action: CLEAR, ...cues } },
       evidence: { title: "Căn cứ trong lá số", claims: ["Ngày sinh đã cung cấp"], framework_disclosure: "Chiêm tinh là một khung diễn giải." },
       disclaimer: "Lá gợi một góc nhìn — quyền quyết định vẫn ở bạn.", created_at: "2026-09-02T00:00:00Z",
     },
@@ -51,7 +63,7 @@ function answer(key: string): { status: number; json: unknown } | null {
     case "GET /v1/daily-note":
       return { status: 200, json: dailyNote };
     case `GET /v1/daily-note/${NOTE_ID}/mood`:
-      return { status: 200, json: { id: "mood-test", daily_note_id: NOTE_ID, mood: "Đuối", checked_in_at: "2026-09-02T01:00:00Z" } };
+      return { status: 200, json: { id: "mood-test", daily_note_id: NOTE_ID, mood: savedMood, checked_in_at: "2026-09-02T01:00:00Z" } };
     case "GET /v1/daily-note/resonance":
       return { status: 200, json: { consented: false, feedback_count: 0, last_choice: null } };
     case "GET /v1/daily-note/experiment":
@@ -111,23 +123,26 @@ async function expectFits(page: Page, width: number, label: string, text: string
   expect(layout.button.height, `switch is a 44px target at ${width}px`).toBeGreaterThanOrEqual(44);
 }
 
-for (const [name, path] of [["home", "/home"], ["note", "/note/today"]] as const) {
-  test(`${name}: the lighter action and its switch fit at 360 and 390px and work from the keyboard (#627)`, async ({ page }) => {
-    for (const width of [360, 390]) {
-      await page.setViewportSize({ width, height: 800 });
-      await page.goto(path);
-      await expectFits(page, width, "Xem việc ban đầu", LIGHT);
-      await page.screenshot({ path: resolve(OUT_DIR, `${name}-${width}-lighter.png`), fullPage: true, animations: "disabled", scale: "css" });
+for (const { mood, key, text, label } of MOODS) {
+  for (const [name, path] of [["home", "/home"], ["note", "/note/today"]] as const) {
+    test(`${name}: on a ${mood} day the ${key} action and its switch fit at 360 and 390px and work from the keyboard (#627, #701)`, async ({ page }) => {
+      savedMood = mood;
+      for (const width of [360, 390]) {
+        await page.setViewportSize({ width, height: 800 });
+        await page.goto(path);
+        await expectFits(page, width, "Xem việc ban đầu", text);
+        await page.screenshot({ path: resolve(OUT_DIR, `${name}-${width}-${key}.png`), fullPage: true, animations: "disabled", scale: "css" });
 
-      // Keyboard: focus the switch, Enter shows the card's own action, Enter again the lighter one.
-      await page.getByRole("button", { name: "Xem việc ban đầu" }).focus();
-      await page.keyboard.press("Enter");
-      await expectFits(page, width, "Xem việc nhẹ hơn", OWN);
-      await expect(page.getByRole("button", { name: "Xem việc nhẹ hơn" })).toBeFocused();
-      await expect(page.getByText(LIGHT, { exact: true })).toHaveCount(0);
-      await page.screenshot({ path: resolve(OUT_DIR, `${name}-${width}-original.png`), fullPage: true, animations: "disabled", scale: "css" });
-      await page.keyboard.press("Enter");
-      await expect(page.getByText(LIGHT, { exact: true })).toBeVisible();
-    }
-  });
+        // Keyboard: focus the switch, Enter shows the card's own action, Enter again the mood's one.
+        await page.getByRole("button", { name: "Xem việc ban đầu" }).focus();
+        await page.keyboard.press("Enter");
+        await expectFits(page, width, label, OWN);
+        await expect(page.getByRole("button", { name: label })).toBeFocused();
+        await expect(page.getByText(text, { exact: true })).toHaveCount(0);
+        await page.screenshot({ path: resolve(OUT_DIR, `${name}-${width}-${key}-original.png`), fullPage: true, animations: "disabled", scale: "css" });
+        await page.keyboard.press("Enter");
+        await expect(page.getByText(text, { exact: true })).toBeVisible();
+      }
+    });
+  }
 }

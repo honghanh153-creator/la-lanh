@@ -3194,9 +3194,9 @@ export interface components {
             /**
              * Weight
              * @default light
-             * @constant
+             * @enum {string}
              */
-            weight: "light";
+            weight: "light" | "slow" | "clear";
         };
         /** LoginResponse */
         LoginResponse: {
@@ -4007,6 +4007,7 @@ export interface components {
          * @description The single private response contract shared by Daily and Insights.
          */
         ReadingContentProjection: {
+            clear_action?: components["schemas"]["LighterActionProjection"] | null;
             /**
              * Created At
              * Format: date-time
@@ -4026,6 +4027,7 @@ export interface components {
              */
             revision_id: string;
             sections: components["schemas"]["ReadingSectionsProjection"];
+            slow_action?: components["schemas"]["LighterActionProjection"] | null;
             source: components["schemas"]["ReadingRevisionSource"];
             tradition: components["schemas"]["Tradition"];
         };
