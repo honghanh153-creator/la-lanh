@@ -316,6 +316,8 @@
 /* #627: switch between the card's action and the lighter one. */
 :root .ultraviolet-app .home-daily-signal__lighter-switch { grid-column: 2; justify-self: start; padding: 0; border: 0; background: transparent; text-align: left; text-decoration: underline; text-underline-offset: 0.2em; }
 :root .ultraviolet-app .reading-content__lighter-switch { margin-top: 0.75rem; }
+:root .ultraviolet-app .home-daily-signal__alone-switch { grid-column: 2; justify-self: start; padding: 0; border: 0; background: transparent; text-align: left; text-decoration: underline; text-underline-offset: 0.2em; }
+:root .ultraviolet-app .reading-content__alone-switch { display: block; margin-top: 0.75rem; }
 /* #700: "Hôm nay chỉ muốn đọc" folds the small-action box to one line. */
 :root .ultraviolet-app .home-daily-signal__read-only { grid-column: 2; justify-self: start; padding: 0; border: 0; background: transparent; text-align: left; text-decoration: underline; text-underline-offset: 0.2em; }
 :root .ultraviolet-app .home-daily-signal__advice--read-only { align-items: center; }
