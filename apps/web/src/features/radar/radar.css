@@ -165,7 +165,12 @@
 .radar-flow-steps li.is-current strong { color: #f8f5ff; }
 .radar-flow-steps li.is-current span > span { border-color: #dfff42; color: #111224; background: #dfff42; box-shadow: 0 0 1rem rgb(223 255 66 / 30%); }
 .radar-flow-steps li.is-complete a > span { border-color: rgb(223 255 66 / 65%); color: #dfff42; }
-.radar-history-link { color: #cdb8ff; font-size: 0.72rem; font-weight: 800; text-align: center; text-underline-offset: 0.25rem; }
+/* Two clearly different ways back to old results, each a 44 px tap target (journey review 20.11: 306×15 links). */
+.radar-landing-history { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; }
+.radar-history-link { display: grid; min-height: 2.75rem; padding: 0.5rem 0.65rem; align-content: center; gap: 0.15rem; border: 1px solid rgb(255 255 255 / 28%); border-radius: 0.9rem; color: #cdb8ff; font-size: 0.78rem; font-weight: 800; line-height: 1.25; text-align: center; text-decoration: none; }
+.radar-history-link span { font-size: 0.68rem; font-weight: 600; opacity: 0.85; }
+.radar-history-link:hover, .radar-history-link:focus-visible { border-color: rgb(255 255 255 / 60%); }
+@media (max-width: 340px) { .radar-landing-history { grid-template-columns: 1fr; } }
 .radar-history { scroll-margin-top: 1rem; }
 .radar-history__empty { padding: 1rem; border: 1px dashed rgb(185 150 255 / 24%); border-radius: 1rem; background: rgb(20 18 52 / 45%); }
 .radar-owner-refresh { display: flex; min-height: 8rem; padding: 1rem; align-items: center; justify-content: center; gap: 0.6rem; color: #d8caff; font-size: 0.75rem; }
@@ -269,3 +274,35 @@
 .radar-factors li.is-watch span { color: #ffb4a8; }
 .radar-factors small { display: block; color: #9d93b5; font-size: 0.68rem; }
 @media (max-width: 480px) { .radar-areas { grid-template-columns: 1fr; } }
+/* AL1 (20.11.2026): invite-first start screen, optional time and place, one-field invite. */
+.radar-invite-first { position: relative; z-index: 1; display: grid; margin: 0 0 1.2rem; padding: 1rem; border: 1px solid rgb(223 255 52 / 34%); border-radius: 1.3rem; gap: 0.7rem; grid-template-columns: 1.5rem 1fr; background: rgb(223 255 52 / 7%); }
+.radar-invite-first > svg { color: var(--match-lime); }
+.radar-invite-first h2 { margin: 0; color: #f7f0ff; font-size: 1rem; line-height: 1.3; }
+.radar-invite-first p { margin: 0.35rem 0 0; color: #c8bfe0; font-size: 0.75rem; line-height: 1.5; }
+.radar-invite-first .matching-primary { grid-column: 1 / -1; }
+.radar-fuller-input { display: grid; gap: 0.8rem; padding: 0.8rem; border: 1px solid rgb(185 150 255 / 22%); border-radius: 1rem; }
+.radar-fuller-input summary { min-height: 2.75rem; display: flex; align-items: center; color: #d9c6ff; font-size: 0.78rem; cursor: pointer; }
+.radar-one-field { gap: 1rem; }
+/* Hợp gu B: "Hỏi về hai bạn". */
+.radar-ask { position: relative; z-index: 1; display: grid; margin: 1.5rem 0; padding: 1rem; border: 1px solid rgb(185 150 255 / 28%); border-radius: 1.3rem; gap: 0.75rem; background: rgb(20 18 52 / 70%); }
+.radar-ask .eyebrow { display: flex; align-items: center; gap: 0.4rem; }
+.radar-ask h2 { margin: 0; font-size: 1.15rem; }
+.radar-ask__questions { display: grid; margin: 0; padding: 0; gap: 0.5rem; list-style: none; }
+.radar-ask__questions button { width: 100%; min-height: 2.75rem; padding: 0.6rem 0.8rem; border: 1px solid rgb(185 150 255 / 35%); border-radius: 0.9rem; color: #efe8ff; background: transparent; font: inherit; font-size: 0.8rem; text-align: left; }
+.radar-ask__answer { display: grid; gap: 0.5rem; color: #c9bfe2; font-size: 0.8rem; line-height: 1.5; }
+.radar-ask__answer p { margin: 0; }
+.radar-ask__question { color: #a99bd0; }
+.radar-ask__say { color: #f7f0ff; font-size: 1rem; font-weight: 700; }
+.radar-ask__answer blockquote { margin: 0; padding: 0.7rem; border-left: 3px solid var(--match-lime); border-radius: 0.6rem; color: #f2ecff; background: rgb(223 255 52 / 6%); }
+/* Hợp gu C: share card. */
+.radar-card-open { margin: 0.5rem 0 1rem; }
+.radar-card { position: relative; z-index: 1; display: grid; margin: 1.5rem 0; padding: 1rem; border: 1px solid rgb(223 255 52 / 26%); border-radius: 1.3rem; gap: 0.8rem; background: rgb(20 18 52 / 70%); }
+.radar-card h2 { margin: 0; font-size: 1.1rem; }
+.radar-card .consent-check { display: grid; grid-template-columns: auto 1fr; gap: 0.6rem; min-height: 2.75rem; align-items: center; color: #eee9fa; font-size: 0.8rem; }
+.radar-card__links { display: grid; margin: 0; padding: 0; gap: 0.5rem; list-style: none; }
+.radar-card__links li { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; color: #c8bfe0; font-size: 0.78rem; }
+.radar-card__links button { display: flex; min-height: 2.75rem; padding: 0 0.7rem; border: 1px solid rgb(185 150 255 / 30%); border-radius: 0.75rem; align-items: center; gap: 0.3rem; color: #d9c6ff; background: transparent; font: inherit; }
+.radar-card-page { display: grid; gap: 1rem; }
+/* Hợp gu C: keep a pair for "Hai bạn tuần này" (off by default). */
+.radar-weekly-optin { display: grid; grid-template-columns: auto 1fr; gap: 0.6rem; padding: 0.8rem; border: 1px solid rgb(185 150 255 / 26%); border-radius: 1rem; color: #eee9fa; font-size: 0.74rem; line-height: 1.45; }
+.radar-weekly-optin small { display: block; margin-top: 0.25rem; color: #b9addb; }

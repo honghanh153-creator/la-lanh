@@ -18,6 +18,7 @@ import {
   getBirthSupplement,
   getContextualReading,
   getDailyNote,
+  getMonthStatus,
   getResonanceStatus,
   isGuestSessionUnavailable,
   isReadingContentRejected,
@@ -27,6 +28,9 @@ import {
   type ResonanceChoice,
   type SignalContext,
 } from "../../shared/api/client";
+import { MONTH_STATUS_KEY } from "../month/monthQueries";
+import { monthCopy } from "../month/monthCopy";
+import { isMondayInVietnam, monthReminderOn } from "../month/monthReminder";
 import { applySavedMood, dailyMoodKey, offersKeepableAction, readDailyMood, resetDailyActionChoice, useDailyActionView, useReadOnlyToday, type DailyActionChoice, type ReadOnlyToday } from "../../shared/hooks/useDailyActionView";
 import { useDailyExperiment } from "../../shared/hooks/useDailyExperiment";
 import { currentSessionEpoch, sessionGeneration } from "../../shared/session/sessionIdentity";
@@ -67,6 +71,7 @@ import { NightSky } from "../../shared/ui/NightSky";
 import { homeCompanionLine, type HomeCompanionState } from "./companionLine";
 import { NightNudgeNotice, WeekRecapNotice } from "./HomeRituals";
 import { useNightNudge, useWeekRecap } from "./homeRitualState";
+import { RadarWeeklyCard } from "../radar/RadarWeeklyCard";
 import "./home-vitality.css";
 
 const RITUAL_KEY = "la-lanh-daily-ritual-v1";
@@ -532,6 +537,8 @@ export function HomePage() {
         ) : null}
       </HomeCompanion>
 
+      <RadarWeeklyCard />
+
       <HomeExploreRoutes />
 
       <p className="sr-only" aria-live="polite" role="status">{message}</p>
@@ -715,10 +722,24 @@ function HomeDailySignal({
 }
 
 function HomeExploreRoutes() {
+  // US-25: the month entry shows only once every month sentence is approved. Home never shows a
+  // month answer or a date; the weekly line is off unless the person turned it on in Khám phá.
+  const month = useQuery({ queryKey: MONTH_STATUS_KEY, queryFn: ({ signal }) => getMonthStatus(signal), retry: false });
+  const monthOn = month.data?.available === true;
   return (
     <section aria-label="Khám phá thêm" className="home-explore-routes">
       <h2>Muốn hỏi chuyện khác?</h2>
+      {monthOn && monthReminderOn() && isMondayInVietnam() ? (
+        <Link className="home-month-reminder" to="/insights">{monthCopy("month.ui.reminder_home")}</Link>
+      ) : null}
       <div className="home-explore-routes__choices">
+        {monthOn ? (
+          <Link to="/hoi-thang">
+            <img alt="" src="/assets/ultraviolet/moon.webp" />
+            <strong>{monthCopy("month.ui.entry")}</strong>
+            <CaretRight aria-hidden="true" weight="bold" />
+          </Link>
+        ) : null}
         <Link to="/tarot">
           <img alt="" src="/assets/ultraviolet/tarot.webp" />
           <strong>Rút Tarot</strong>

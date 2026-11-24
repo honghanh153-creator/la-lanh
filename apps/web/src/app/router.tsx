@@ -27,6 +27,7 @@ import { ResponseManagementPage } from "../features/la-chung/ResponseManagementP
 import { RetiredFeaturePage } from "../features/la-chung/RetiredFeaturePage";
 import { ResultPage } from "../features/la-chung/ResultPage";
 import { PublicRadarPage } from "../features/radar/PublicRadarPage";
+import { RadarCardPage } from "../features/radar/RadarCardPage";
 import { RadarContinuePage } from "../features/radar/RadarContinuePage";
 import { RadarLandingPage } from "../features/radar/RadarLandingPage";
 import { RadarOwnerResultPage } from "../features/radar/RadarOwnerResultPage";
@@ -40,6 +41,7 @@ import { RevealPage } from "../features/reveal/RevealPage";
 import { SavedPage } from "../features/saved/SavedPage";
 import { WelcomePage } from "../features/welcome/WelcomePage";
 import { TarotPage } from "../features/tarot/TarotPage";
+import { MonthAskPage } from "../features/month/MonthAskPage";
 import { ContentStudioPage } from "../features/studio/ContentStudioPage";
 import { AppShell } from "./AppShell";
 
@@ -114,6 +116,7 @@ export const appRoutes: RouteObject[] = [
       { path: "existing-user", element: <ExistingUserPage key="google-login" /> },
       { path: "auth/callback", element: <ExistingUserPage key="google-callback" /> },
       { path: "tarot", element: <TarotPage /> },
+      { path: "hoi-thang", element: <MonthAskPage /> },
       { path: "tarot/:sessionId", element: <TarotPage /> },
     ],
   },
@@ -130,6 +133,11 @@ export const appRoutes: RouteObject[] = [
   {
     path: "/radar/i/:token",
     element: <PublicRadarPage />,
+    errorElement: <RouteErrorPage />,
+  },
+  {
+    path: "/radar/the/:token",
+    element: <RadarCardPage />,
     errorElement: <RouteErrorPage />,
   },
 ];

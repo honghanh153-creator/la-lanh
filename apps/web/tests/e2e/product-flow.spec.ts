@@ -34,10 +34,14 @@ test.beforeEach(async ({ page }) => {
     unmocked.push(path);
     await route.fulfill({ status: 503, json: { code: "E2E_UNMOCKED", path } });
   });
+  // Home and Khám phá ask whether "Hỏi về tháng này" is ready; these tests keep it hidden.
+  await page.route("**/v1/month/status", async (route) => route.fulfill({ status: 200, json: { available: false, month: "2026-09", presets: [] } }));
   await page.route("**/v1/session/renew", async (route) => route.fulfill({ status: 200, json: {
     state: "active", onboarding_status: "completed", expires_at: "2026-09-30T00:00:00Z", resumed: true, session_epoch: "epoch-test",
   } }));
   await page.route("**/v1/session/birth-profile-consent", async (route) => route.fulfill({ status: 204 }));
+  // Hôm nay asks whether "Hai bạn tuần này" is on (Hợp gu C); off here.
+  await page.route("**/v1/public/radar/consent-options", async (route) => route.fulfill({ status: 200, json: { invite_first: false, sentences: {}, authorized_input_version: "radar-authorized-input-v1", date_consent_version: "radar-pair-date-v1", card_links: false, weekly: false, weekly_sentences: {} } }));
   // Reveal and Welcome read sign-in availability (sign-in is off in this build).
   await page.route("**/v1/account", async (route) => route.fulfill({ status: 200, json: {
     login_enabled: false, google_login_enabled: false, signed_in: false, masked_email: null, profile_expires_at: null,
