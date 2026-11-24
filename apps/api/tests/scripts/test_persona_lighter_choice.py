@@ -68,12 +68,59 @@ def test_a_lighter_action_without_an_experiment_cannot_be_kept() -> None:
     assert view["experiment"] is None
 
 
-def test_the_run_uses_the_mood_and_the_rule_the_web_uses() -> None:
+SLOW = {
+    "action": "Đợi năm phút rồi mới trả lời tin nhắn đó.",
+    "weight": "slow",
+    "experiment": {"action_key": "c" * 64, "action": "Đợi năm phút rồi mới trả lời tin nhắn đó."},
+}
+CLEAR_TEXT = "Viết ra một việc duy nhất cần làm trước bữa trưa."
+CLEAR = {
+    "action": CLEAR_TEXT,
+    "weight": "clear",
+    "experiment": {"action_key": "d" * 64, "action": CLEAR_TEXT},
+}
+ALL_OFFERS = {"lighter_action": LIGHTER, "slow_action": SLOW, "clear_action": CLEAR}
+
+
+@pytest.mark.parametrize(
+    ("mood", "offer"), [("Đuối", LIGHTER), ("Căng", SLOW), ("Lạc trôi", CLEAR)]
+)
+def test_each_saved_mood_shows_its_own_offer_and_keeps_that_one(
+    mood: str, offer: dict[str, Any]
+) -> None:
+    view = shown_action(_active(**ALL_OFFERS), mood)
+    assert (view["action"], view["experiment"], view["weight"]) == (
+        offer["action"],
+        offer["experiment"],
+        offer["weight"],
+    )
+    assert (view["lighter_offered"], view["lighter_shown"]) == (True, True)
+
+
+@pytest.mark.parametrize("mood", ["Rực", "Chill", None])
+def test_moods_without_an_offer_keep_the_cards_own_action(mood: str | None) -> None:
+    view = shown_action(_active(**ALL_OFFERS), mood)
+    assert (view["action"], view["experiment"]) == (OWN["action"], OWN)
+    assert (view["lighter_offered"], view["lighter_shown"]) == (True, False)
+
+
+def test_another_moods_offer_never_stands_in_for_the_saved_moods() -> None:
+    view = shown_action(_active(slow_action=SLOW, clear_action=CLEAR), LOW_MOOD)
+    assert (view["action"], view["experiment"]) == (OWN["action"], OWN)
+    assert (view["lighter_offered"], view["lighter_shown"]) == (True, False)
+
+
+def test_the_run_uses_the_moods_and_the_rule_the_web_uses() -> None:
     source = WEB_RULE.read_text(encoding="utf-8")
     mood = re.search(r'export const LIGHTER_MOOD: MoodValue = "([^"]+)";', source)
     assert mood is not None and mood.group(1) == LOW_MOOD
-    # The web shows the lighter action when one is offered and the saved mood is that mood.
-    assert "reading?.lighter_action) && confirmedMood === LIGHTER_MOOD" in source
+    table = re.search(r"export const MOOD_ALTERNATIVES[^=]*= \{(.*?)\n\};", source, re.S)
+    assert table is not None
+    web = dict(re.findall(r'"([^"]+)": \{ field: "([a-z_]+)"', table.group(1)))
+    assert web == persona_sim.MOOD_ALTERNATIVES
+    # The web shows the saved mood's offer when the reading carries it.
+    assert "const mapping = confirmedMood ? MOOD_ALTERNATIVES[confirmedMood] : undefined;" in source
+    assert "const alternative = (mapping && reading?.[mapping.field]) || null;" in source
     assert 'lighterShown = canSwitch && view.choice !== "original"' in source
 
 

@@ -5,8 +5,8 @@ import { useState } from "react";
 import { listShareLinks, revokeShareArtifact, type ShareLink } from "../../shared/api/client";
 
 const FORMAT_LABEL: Record<ShareLink["format"], string> = {
-  story_9_16: "Ảnh dọc 9:16",
-  square_1_1: "Ảnh vuông 1:1",
+  story_9_16: "Ảnh dọc",
+  square_1_1: "Ảnh vuông",
 };
 
 const STATUS_LABEL: Record<ShareLink["status"], string> = {
