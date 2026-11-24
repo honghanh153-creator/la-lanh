@@ -797,6 +797,23 @@ class LighterActionProjection(BaseModel):
     experiment: ExperimentProjection | None = None
 
 
+class AloneActionProjection(BaseModel):
+    """An action that needs no contact with anyone, for a card that asks to reach someone (#703).
+
+    ``replaces`` names which of the card's offered actions ask the reader to contact someone:
+    the card's own ("card"), the lighter ("light"), the slow or the clear one. The reader's
+    device shows this action as another choice only next to one of those.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    action: str = Field(min_length=1, max_length=LIGHTER_ACTION_MAX_CHARS)
+    replaces: tuple[Literal["card", "light", "slow", "clear"], ...] = Field(
+        min_length=1, max_length=4
+    )
+    experiment: ExperimentProjection | None = None
+
+
 class AuraTransitionProjection(BaseModel):
     """Evidence-derived profile transition without shadow active/available depth fields."""
 
@@ -855,6 +872,10 @@ class ReadingContentProjection(BaseModel):
     # server never reads the mood; the reader's device chooses, as for the lighter action.
     slow_action: LighterActionProjection | None = None
     clear_action: LighterActionProjection | None = None
+    # Daily only (#703): sent only when one of the actions above asks to contact someone.
+    alone_action: AloneActionProjection | None = None
+    # Daily only (#703): one short "others meet this too" line, for a few everyday issues.
+    common_line: str | None = Field(default=None, min_length=1, max_length=LIGHTER_ACTION_MAX_CHARS)
 
 
 class AvailableReadingUpdate(BaseModel):
