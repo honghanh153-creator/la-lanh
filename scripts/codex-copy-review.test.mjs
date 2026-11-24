@@ -145,6 +145,35 @@ test('rejected copy does not fill every later batch; edited text is reviewed aga
   assert.ok(batchFor(edited, readRejected(file)).some(e => e.id === 'q.0'), 'an edited sentence comes back for review');
 });
 
+test('copy a finished feature waits on (lighter actions) goes first, the rest keeps registry order', () => {
+  const big = { version: 'copy-registry/v1', entries: [
+    ...Array.from({ length: batchSize + 5 }, (_, i) => ({ id: `daily.bundle.q.${i}.headline`, category: 'reading', text: `Câu thử ${i}.`, status: 'pending' })),
+    { id: 'lighter.action.01', category: 'reading', text: 'Câu nhẹ thử một.', status: 'pending' },
+    { id: 'lighter.issue.q.01', category: 'reading', text: 'Câu nhẹ thử hai.', status: 'pending' },
+    { id: 'rewrite.headline.q.01.direct', category: 'reading', text: 'Câu viết lại thử.', status: 'pending' },
+  ] };
+  const batch = batchFor(big).map(e => e.id);
+  assert.deepEqual(batch.slice(0, 4), ['lighter.action.01', 'lighter.issue.q.01', 'rewrite.headline.q.01.direct', 'daily.bundle.q.0.headline']);
+  assert.equal(batch.length, batchSize);
+  assert.equal(batch.at(-1), `daily.bundle.q.${batchSize - 4}.headline`);
+});
+
+test('month.* and insight.everyday|watch.* copy that hidden features wait on goes first; owner-only month copy never enters', () => {
+  const big = { version: 'copy-registry/v1', entries: [
+    ...Array.from({ length: batchSize + 5 }, (_, i) => ({ id: `daily.bundle.q.${i}.headline`, category: 'reading', text: `Câu thử ${i}.`, status: 'pending' })),
+    { id: 'month.theme.work.sun', category: 'reading', text: 'Câu tháng thử.', status: 'pending' },
+    { id: 'month.ui.entry', category: 'reading', text: 'Nhãn thử.', status: 'pending' },
+    { id: 'insight.watch.jupiter.pisces', category: 'reading', text: 'Câu Khám phá thử.', status: 'pending' },
+    { id: 'insight.other.q.01', category: 'reading', text: 'Câu Khám phá khác.', status: 'pending' },
+    { id: 'consent.month.typed_question', category: 'consent', text: 'Câu đồng ý thử.', status: 'pending' },
+    { id: 'crisis.self_harm.notice.month', category: 'crisis', text: 'Câu an toàn thử.', status: 'pending' },
+  ] };
+  const batch = batchFor(big).map(e => e.id);
+  assert.deepEqual(batch.slice(0, 4), ['month.theme.work.sun', 'month.ui.entry', 'insight.watch.jupiter.pisces', 'daily.bundle.q.0.headline']);
+  assert.ok(!batch.includes('consent.month.typed_question') && !batch.includes('crisis.self_harm.notice.month'));
+  assert.ok(batch.indexOf('insight.other.q.01') === -1 || batch.indexOf('insight.other.q.01') > 3, 'other insight.* keeps registry order');
+});
+
 test('one daily batch holds at most batchSize entries, so the PR body stays readable', () => {
   const big = { entries: Array.from({ length: batchSize + 30 }, (_, i) => ({ id: `r.${i}`, category: 'reading', text: `Câu thử ${i}.`, status: 'pending' })) };
   assert.equal(batchFor(big).length, batchSize);
@@ -274,4 +303,48 @@ test('19.11: loose Daily scenes are never sent to or approved by the copy batch;
   assert.deepEqual(next.entries.map(e => e.status), ['pending', 'approved', 'approved'], 'a loose scene stays pending even if a decision approves it');
   assert.equal(bundleOnly('daily.scene.x.02'), true);
   assert.equal(bundleOnly('daily.bundle.x.02.scene'), false);
+});
+
+// Research item 7 (owner 21.11.2026): the judge is calibrated with the owner's own decisions.
+test('item 7: the judge prompt carries the owner\'s labelled examples; the batch writes the local judge log', async () => {
+  const { calibrationExamples, standardExamples, standardDoc, agreement, renderAgreement, minLabels } = await import('./codex-copy-calibration.mjs');
+  const { readFileSync } = await import('node:fs');
+  const doc = readFileSync(join(import.meta.dirname, '..', standardDoc), 'utf8');
+  for (const x of standardExamples) assert.ok(doc.includes(x.text), `the standard still holds "${x.text}"`);
+  const withOwner = { ...registry, entries: [...registry.entries,
+    { id: 'tarot.owner', category: 'reading', text: 'Câu thử chị duyệt.', status: 'approved', approver: 'owner' },
+    { id: 'privacy.owner', category: 'privacy', text: 'Câu riêng tư thử.', status: 'approved', approver: 'owner' }] };
+  const examples = calibrationExamples(withOwner);
+  assert.ok(examples.some(x => x.text === 'Câu thử chị duyệt.'), 'a sentence the owner approved is an example');
+  assert.ok(!examples.some(x => x.text === 'Câu riêng tư thử.'), 'owner-only groups stay out of the batch prompt');
+
+  // The real batch path: the prompt Codex receives holds the examples, and the judge log gets one line per decision.
+  const dir = mkdtempSync(join(tmpdir(), 'judge-'));
+  const registryPath = join(dir, 'registry.json');
+  writeFileSync(registryPath, JSON.stringify(registry));
+  const judgeLog = join(dir, 'copy-judge-log.jsonl');
+  const prompts = [];
+  const run = (bin, args, opts) => {
+    if (bin !== codexBin) throw new Error(`unexpected ${bin}`);
+    prompts.push(opts.input);
+    writeFileSync(args[args.indexOf('-o') + 1], JSON.stringify({ decisions: [{ id: 'tarot.a', decision: 'reject', reason: 'khó hiểu' }, { id: 'tarot.b', decision: 'reject', reason: 'ẩn dụ' }] }));
+    return '';
+  };
+  const result = main([], { run, out: { write: () => {} }, registryPath, judgeLog, at: { date: '2026-11-21', hour: 9, minute: 0 } });
+  assert.equal(result.status, 'no-approvals');
+  assert.match(prompts[0], /Ví dụ người duyệt đã chấm/);
+  assert.match(prompts[0], /LOẠI: "Ý kiến đông người dễ nghe giống ý kiến đúng"/);
+  const lines = readFileSync(judgeLog, 'utf8').trim().split('\n').map(l => JSON.parse(l));
+  assert.deepEqual(lines.map(l => [l.id, l.decision, l.digest === digest(registry.entries.find(e => e.id === l.id).text)]), [['tarot.a', 'reject', true], ['tarot.b', 'reject', true]]);
+
+  // Agreement: few labels give no percentage; enough labels give one.
+  const few = agreement(lines, { entries: [{ ...registry.entries[0], status: 'approved', approver: 'owner' }] });
+  assert.deepEqual([few.labels, few.agreed, few.share], [1, 0, null]);
+  assert.match(renderAgreement(few), /chưa đủ nhãn \(1\/20/);
+  const many = Array.from({ length: minLabels }, (_, i) => ({ id: `x.${i}`, category: 'reading', text: `Câu ${i}.`, status: 'approved', approver: 'owner' }));
+  const log = many.map((e, i) => ({ id: e.id, digest: i < 15 ? digest(e.text) : digest('bản cũ'), decision: i < 12 ? 'approve' : i < 15 ? 'reject' : 'approve' }));
+  const a = agreement(log, { entries: many });
+  assert.deepEqual([a.labels, a.agreed, a.share, a.byKind['Codex chặt hơn chị'], a.byKind['chị duyệt câu khác câu Codex đã duyệt']], [20, 12, 60, 3, 5]);
+  const agentEdit = agreement([{ id: 'x.0', digest: digest('bản cũ'), decision: 'approve' }], { entries: [{ ...many[0], approver: 'codex' }] });
+  assert.equal(agentEdit.labels, 0, 'an agent edit after Codex is not the owner\'s label');
 });

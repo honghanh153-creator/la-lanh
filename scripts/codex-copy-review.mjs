@@ -15,6 +15,7 @@ import { acquireLock } from './collab-lock.mjs';
 import { dispatch } from './collab-dispatch.mjs';
 import { agentMarker, assertAgentBody, clean, integration, repo, stateDir, vnNow } from './collab-trust.mjs';
 import { isMain } from './is-main.mjs';
+import { calibrationExamples, judgeLogPath, recordJudgements, renderExamples } from './codex-copy-calibration.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const root = join(here, '..');
@@ -58,7 +59,18 @@ export const batchSize = 200;
 export const rejectedPath = join(stateDir, 'copy-rejected.json');
 export const readRejected = (path = rejectedPath) => { try { return JSON.parse(readFileSync(path, 'utf8')) ?? {}; } catch { return {}; } };
 const unreviewed = (registry, rejected) => selectPending(registry).filter(e => rejected[e.id] !== digest(e.text));
-export const batchFor = (registry, rejected = {}) => unreviewed(registry, rejected).slice(0, batchSize);
+// 20.11.2026 (returning-user persona run, #777): the batch read pending copy in registry order, so
+// the lighter Daily actions for a "Đuối" day (lighter.*, #627/#699: built, served as soon as they are
+// approved) sat behind about 500 bundle lines and no persona ever saw one. Copy that a finished
+// feature waits on goes first; the rest keeps registry order. The same holds for the rewrites of the
+// Daily headlines that say the reader is tired (rewrite.headline.*, #788): code waits only on them.
+// 20.11.2026: "Hỏi về tháng này" (US-25, #794) stays hidden until all of its month.* sentences
+// (answers and screen labels) are approved, and the Khám phá planet lines (insight.everyday.* and insight.watch.*, #775) wait the
+// same way; both go first too. Owner-only copy never enters the batch (selectPending).
+export const firstInBatch = [/^lighter\./, /^rewrite\.headline\./, /^month\./, /^insight\.(everyday|watch)\./];
+const rank = e => (firstInBatch.some(re => re.test(String(e.id ?? ''))) ? 0 : 1);
+export const batchFor = (registry, rejected = {}) =>
+  unreviewed(registry, rejected).map((e, i) => [rank(e), i, e]).sort((a, b) => a[0] - b[0] || a[1] - b[1]).map(([, , e]) => e).slice(0, batchSize);
 export function recordRejected(decisions, reviewed, path = rejectedPath) {
   const rejected = readRejected(path);
   for (const d of decisions) if (d.decision === 'reject' && reviewed.has(d.id)) rejected[d.id] = reviewed.get(d.id);
@@ -92,7 +104,8 @@ export const dropSaved = path => { try { rmSync(path, { force: true }); } catch 
 export const readLocalRegistry = () => JSON.parse(readFileSync(join(root, registryRel), 'utf8'));
 export const pendingCount = (registry = readLocalRegistry(), rejected = readRejected()) => unreviewed(registry, rejected).length;
 
-export function buildPrompt(pending) {
+// Research item 7 (owner 21.11): the owner's own decisions as labelled examples (codex-copy-calibration.mjs).
+export function buildPrompt(pending, examples = []) {
   const rows = pending.map(e => JSON.stringify({ id: e.id, category: e.category, text: e.text })).join('\n');
   return [
     'Bạn duyệt câu chữ mới của Lá Lành cho người dùng. Chỉ đọc, không sửa file.',
@@ -100,6 +113,7 @@ export function buildPrompt(pending) {
     'Duyệt (approve) chỉ khi câu: êm, rõ, dễ hiểu ngay lần đầu; tiếng Việt đời thường; có chủ thể;',
     'không dự đoán sự kiện đời sống; không giải thích cơ chế kỹ thuật; không đụng quyền riêng tư,',
     'đồng ý, khủng hoảng hay an toàn. Nghi ngờ thì reject và nêu lý do ngắn.',
+    ...renderExamples(examples),
     'Trả về đúng schema: một quyết định cho mỗi id dưới đây.',
     rows,
   ].join('\n');
@@ -222,7 +236,7 @@ function writeBatch(registry, body, date, branch, work, dir, run) {
 }
 
 export function main(argv, { run = execFileSync, out = process.stdout, registryPath = null, rejectedFile = registryPath ? null : rejectedPath,
-  savedFile = registryPath ? null : savedPath, progress = {}, at = vnNow(), gate = {} } = {}) {
+  savedFile = registryPath ? null : savedPath, judgeLog = registryPath ? null : judgeLogPath(), progress = {}, at = vnNow(), gate = {} } = {}) {
   const dryRun = argv.includes('--dry-run');
   const fakeAt = argv.indexOf('--fake-codex');
   // Review a pinned integration snapshot unless a test passes its own registry file.
@@ -250,10 +264,12 @@ export function main(argv, { run = execFileSync, out = process.stdout, registryP
     if (fakeAt < 0) progress.codexRan = true;
     const result = fakeAt >= 0
       ? JSON.parse(readFileSync(argv[fakeAt + 1], 'utf8'))
-      : runCodex(buildPrompt(pending), join(mkdtempSync(join(tmpdir(), 'copy-codex-')), 'out.json'), run);
+      : runCodex(buildPrompt(pending, calibrationExamples(registry)), join(mkdtempSync(join(tmpdir(), 'copy-codex-')), 'out.json'), run);
     decisions = validateDecisions(result, pending);
     reviewed = new Map(pending.map(e => [e.id, digest(e.text)]));
     if (!dryRun && savedFile) writeSaved(savedFile, { date, decisions, reviewed: [...reviewed] });
+    // Item 7: the judge log for the agreement measure; local only, never in git.
+    if (!dryRun && judgeLog) recordJudgements(decisions, reviewed, date, judgeLog);
   }
   const next = applyDecisions(registry, decisions, date, reviewed);
   const changed = next.entries.some((e, i) => e !== registry.entries[i]);

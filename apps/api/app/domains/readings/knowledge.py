@@ -98,6 +98,15 @@ class InterpretationFrame:
     scene_key: str = "general"
     action_key: str = "observe"
     daily_meaning: DailyMeaningBrief | None = None
+    # Set when this frame's wording differs from what the renderer wrote before a wording fix, so
+    # the renderer gives it a new revision identity (a stored revision of the old wording must
+    # never share a revision key with the new text; Codex r1 on #774).
+    wording_version: str | None = None
+
+
+# 20.11.2026 (#774): two placements in one sign name their style once, and a sextile headline
+# drops "khi bạn chủ động" when a need already says it.
+SYNTHESIS_WORDING_VERSION = "syn-wording-v1"
 
 
 PLANETS: dict[str, PlanetMeaning] = {
@@ -962,6 +971,7 @@ def full_frame(plan: ReadingPlan) -> InterpretationFrame:
     elif lens in {InterpretiveLens.WORK, InterpretiveLens.GROWTH}:
         knowledge_refs.extend((f"modality:{modality_a_key}", f"modality:{modality_b_key}"))
 
+    same_style = False
     if hero.kind is FactorKind.NATAL_ASPECT:
         parts = _parts(hero)
         aspect_name = parts[3]
@@ -977,8 +987,16 @@ def full_frame(plan: ReadingPlan) -> InterpretationFrame:
     else:
         aspect_name = None
         phase_copy = ""
+        # Two placements in one sign share one style: name it once, never "vừa X, vừa X"
+        # (new-user persona run 20.11.2026).
+        same_style = sign_a.style == sign_b.style
+        tendency = (
+            f"Bạn có xu hướng {sign_a.style}. "
+            if same_style
+            else f"Bạn vừa có xu hướng {sign_a.style}, vừa có xu hướng {sign_b.style}. "
+        )
         aspect_core = (
-            f"Bạn vừa có xu hướng {sign_a.style}, vừa có xu hướng {sign_b.style}. "
+            f"{tendency}"
             f"Điểm cần để ý là lúc bạn {planet_a.stress}, nhất là khi bạn cũng "
             f"{planet_b.stress}."
         )
@@ -1018,11 +1036,13 @@ def full_frame(plan: ReadingPlan) -> InterpretationFrame:
         dynamic=dynamic,
         aspect_name=aspect_name,
     )
+    circular_dropped = aspect_name == "sextile" and "chủ động" in f"{hook_need_a} {hook_need_b}"
     return InterpretationFrame(
         hook=hook,
         thesis=thesis,
         manifestation=manifestation,
         micro_action=action,
+        wording_version=(SYNTHESIS_WORDING_VERSION if same_style or circular_dropped else None),
         evidence_factor_refs=tuple(dict.fromkeys(evidence_refs)),
         knowledge_refs=tuple(dict.fromkeys(knowledge_refs)),
         arena=(
@@ -1140,7 +1160,13 @@ def _lens_copy(
             InterpretiveLens.COMMUNICATION: "Khi nói chuyện, bạn",
             InterpretiveLens.GROWTH: "Khi thử cách làm mới, bạn",
         }.get(lens, "Bạn")
-        initiative = " khi bạn chủ động" if aspect_name == "sextile" else ""
+        # A need that already says "chủ động" would make the line circular
+        # ("giữ quyền chủ động … hỗ trợ nhau khi bạn chủ động"), so the clause is left out then.
+        initiative = (
+            " khi bạn chủ động"
+            if aspect_name == "sextile" and "chủ động" not in f"{hook_need_a} {hook_need_b}"
+            else ""
+        )
         hook = (
             f"{prefix} có thể {hook_need_a} mà vẫn {hook_need_b}. "
             f"Hai nhu cầu này hỗ trợ nhau{initiative}."

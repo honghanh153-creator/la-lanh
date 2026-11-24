@@ -22,6 +22,19 @@ the offered reading for every profile type. Staging runs the same image. Rollbac
 (same schema; restores the bug). Receipt:
 [production-release-2026-11-15](../reviews/production-release-2026-11-15/receipt.md).
 
+## Next release — switches the owner has decided
+
+- `LA_LANH_KEEP_ACTION_ALL_PROFILES=true` on production, from the Friday release that ships #740
+  (owner answer AE1, 19.11.2026, recorded on #740:
+  https://github.com/honghanh153-creator/la-lanh/pull/740#issuecomment-7010305279 and the
+  answer record above it). It lets date-only and approximate-time profiles keep the Daily note's
+  action. Code keeps the switch **off** by default, so set it in the production environment file
+  (`infra/hetzner/app.env.example` documents it) and confirm it in the release receipt. Only when
+  #740 is in the release; without #740 the setting does nothing.
+- Rollback of the switch alone: set it back to `false`. New keeps for those profiles stop at
+  once; actions already kept stay until the person closes them or they expire (≤30 days), as
+  `docs/legal/privacy-security-flow-notes.md` describes.
+
 ## Previous production — 2026-11-13
 
 Release `f6246ed2fb7a` is live (`main` = `f6246ed2fb7a5033247ad6b41af33f35022cab12`, #472: full `collab/integration`

@@ -176,6 +176,8 @@ def test_lighter_action_names_at_most_five_minutes(key: str) -> None:
         "Tắm nước ấm rồi nằm nghỉ mười lăm phút.",
         "Nằm nghỉ hai mươi phút.",
         "Nằm nghỉ 10 phút.",
+        "Nằm nghỉ sáu phút.",
+        "Nằm nghỉ năm phút rưỡi.",
         "Nằm nghỉ vài phút.",
         "Nằm nghỉ nửa tiếng.",
         "Đi bộ một giờ.",
@@ -191,7 +193,14 @@ def test_longer_or_unclear_durations_are_not_light(
 
 
 @pytest.mark.parametrize(
-    "text", ["Nằm nghỉ năm phút.", "Nghe tiếng mưa một phút.", "Mở cửa sổ và đứng thở chậm."]
+    "text",
+    [
+        "Nằm nghỉ năm phút.",
+        "Nghe tiếng mưa một phút.",
+        "Nằm nghỉ bốn phút rưỡi.",
+        "Nằm nghỉ 5 phút.",
+        "Mở cửa sổ và đứng thở chậm.",
+    ],
 )
 def test_short_durations_are_light(text: str) -> None:
     assert within_five_minutes(text)
