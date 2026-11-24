@@ -1,0 +1,66 @@
+{
+ "git_head": "a23c2de3a041102b5f88dc202a29f34c10e77542",
+ "personas": 1000,
+ "by_precision": {
+  "approximate": 200,
+  "exact": 500,
+  "date_only": 300
+ },
+ "seconds": 139.2,
+ "database": "local SQLite per worker (synthetic, deleted with the temp dir)",
+ "copy": "month.* served as approved in memory for this run only",
+ "topic_answers": 6000,
+ "preset_answers": 18000,
+ "free_text": {
+  "sent": 1100,
+  "refused": 1100
+ },
+ "persona_wants": {
+  "tarot_questions": 4023,
+  "matching_a_preset": 1034,
+  "share": 0.257,
+  "personas_per_preset": {
+   "work.hard_talk": 50,
+   "work.too_much": 69,
+   "work.shifts": 123,
+   "money.month_end": 83,
+   "money.ask_back": 35,
+   "money.say_no": 23,
+   "love.closer": 21,
+   "love.say_tired": 12,
+   "love.far": 35,
+   "family.parents_ask": 56,
+   "family.my_path": 54,
+   "family.compare": 26,
+   "study.many_exams": 79,
+   "study.exam_energy": 53,
+   "study.start_project": 75,
+   "mind.homesick": 55,
+   "mind.sleep": 160,
+   "mind.heavy": 101
+  },
+  "questions_per_preset": {
+   "work.hard_talk": 51,
+   "work.too_much": 71,
+   "work.shifts": 150,
+   "money.month_end": 94,
+   "money.ask_back": 35,
+   "money.say_no": 23,
+   "love.closer": 21,
+   "love.say_tired": 12,
+   "love.far": 35,
+   "family.parents_ask": 56,
+   "family.my_path": 55,
+   "family.compare": 27,
+   "study.many_exams": 92,
+   "study.exam_energy": 58,
+   "study.start_project": 80,
+   "mind.homesick": 55,
+   "mind.sleep": 162,
+   "mind.heavy": 103
+  },
+  "method": "rough keyword match on the lowercased Tarot question; report only"
+ },
+ "failures": {},
+ "failing_personas": []
+}

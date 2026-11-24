@@ -12,6 +12,8 @@ test.beforeEach(async ({ page }) => {
   });
   const active = { state: "active", onboarding_status: "completed", expires_at: "2026-12-30T00:00:00Z", resumed: true, session_epoch: "epoch-test" };
   await page.route("**/v1/session", async (route) => route.fulfill({ status: 200, json: active }));
+  // Home and Khám phá ask whether "Hỏi về tháng này" is ready; these tests keep it hidden.
+  await page.route("**/v1/month/status", async (route) => route.fulfill({ status: 200, json: { available: false, month: "2026-09", presets: [] } }));
   await page.route("**/v1/session/renew", async (route) => route.fulfill({ status: 200, json: active }));
   await page.route("**/v1/birth-profile/supplement", async (route) => route.fulfill({ status: 200, json: {
     profile_id: "profile-test", profile_level: 2, birth_time_mode: "exact", time_precision: "exact", place_display_name: null, timezone_id: null, approx_window: null,

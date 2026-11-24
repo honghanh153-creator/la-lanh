@@ -24,6 +24,15 @@ import {
 export type HealthResponse =
   paths["/v1/health"]["get"]["responses"][200]["content"]["application/json"];
 export type GuestSession = components["schemas"]["GuestSessionResponse"];
+export type MonthTopic = components["schemas"]["Topic"];
+export type MonthStatus = components["schemas"]["MonthStatusResponse"];
+export type MonthAnswerResult = components["schemas"]["MonthAnswerResponse"];
+export type MonthAnswer = components["schemas"]["MonthAnswerView"];
+export type MonthPreset = components["schemas"]["MonthPresetView"];
+export type MonthPresetId = components["schemas"]["PresetId"];
+export type MonthWindow = components["schemas"]["MonthWindowResponse"];
+export type MonthOverview = components["schemas"]["MonthOverviewResponse"];
+export type SavedMonthAnswer = components["schemas"]["SavedMonthAnswerView"];
 export type BirthReveal = components["schemas"]["BirthRevealResponse"];
 export type ZodiacSign = components["schemas"]["ZodiacSign"];
 export type DailyNote = components["schemas"]["DailyNoteResponse"];
@@ -831,6 +840,50 @@ export function startTarotSession(input: {
     method: "POST",
     headers: { "Content-Type": "application/json", ...csrfHeader() },
     body: JSON.stringify(voice === "roast" ? { ...body, voice: "roast" } : body),
+  });
+}
+
+/** US-25: whether "Hỏi về tháng này" can show, and its preset questions. */
+export function getMonthStatus(signal?: AbortSignal): Promise<MonthStatus> {
+  return request<MonthStatus>("/month/status", { signal });
+}
+
+/** Ask about this month: a topic, optionally one of its preset questions. No typed text (AS1). */
+export function askMonth(input: { topic: MonthTopic; preset?: MonthPresetId | null }): Promise<MonthAnswerResult> {
+  const body = input.preset ? { topic: input.topic, preset: input.preset } : { topic: input.topic };
+  return request<MonthAnswerResult>("/month/answers", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...csrfHeader() },
+    body: JSON.stringify(body),
+  });
+}
+
+/** Only the "Xem lúc nào dễ hơn" tap calls this; answers never carry dates. */
+export function getMonthWindow(topic: MonthTopic, signal?: AbortSignal): Promise<MonthWindow> {
+  return request<MonthWindow>(`/month/window?topic=${encodeURIComponent(topic)}`, { signal });
+}
+
+export function getMonthOverview(signal?: AbortSignal): Promise<MonthOverview> {
+  return request<MonthOverview>("/month/overview", { signal });
+}
+
+export function saveMonthAnswer(topic: MonthTopic, answerKey: string): Promise<SavedMonthAnswer> {
+  return request<SavedMonthAnswer>("/month/saved", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...csrfHeader() },
+    body: JSON.stringify({ topic, answer_key: answerKey }),
+  });
+}
+
+export async function listSavedMonthAnswers(signal?: AbortSignal): Promise<SavedMonthAnswer[]> {
+  const result = await request<{ items: SavedMonthAnswer[] }>("/month/saved", { signal });
+  return result.items;
+}
+
+export function deleteSavedMonthAnswer(id: string): Promise<void> {
+  return request<void>(`/month/saved/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    headers: csrfHeader(),
   });
 }
 
