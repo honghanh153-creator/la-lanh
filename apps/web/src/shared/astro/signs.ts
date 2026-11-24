@@ -1,16 +1,16 @@
 import type { ZodiacSign } from "../api/client";
 
 export const signDetails: Record<ZodiacSign, { label: string; symbol: string; note: string }> = {
-  aries: { label: "Bạch Dương", symbol: "♈︎", note: "Điều đầu tiên bạn muốn làm thường là điều đáng nghe nhất." },
-  taurus: { label: "Kim Ngưu", symbol: "♉︎", note: "Chậm một nhịp không có nghĩa là đứng yên." },
-  gemini: { label: "Song Tử", symbol: "♊︎", note: "Có một câu hỏi đang mở đúng cánh cửa bạn cần." },
-  cancer: { label: "Cự Giải", symbol: "♋︎", note: "Bạn không cần giải thích mọi điều mình đang cảm thấy." },
-  leo: { label: "Sư Tử", symbol: "♌︎", note: "Đừng thu nhỏ niềm vui chỉ để vừa với căn phòng." },
-  virgo: { label: "Xử Nữ", symbol: "♍︎", note: "Việc nhỏ bạn làm hôm nay đang đỡ lấy một điều lớn." },
-  libra: { label: "Thiên Bình", symbol: "♎︎", note: "Một lựa chọn thật lòng đáng giá hơn một câu trả lời đẹp." },
-  scorpio: { label: "Bọ Cạp", symbol: "♏︎", note: "Điều chưa nói ra vẫn đang chỉ cho bạn một hướng đi." },
-  sagittarius: { label: "Nhân Mã", symbol: "♐︎", note: "Tò mò thêm một chút — câu chuyện chưa dừng ở đây." },
-  capricorn: { label: "Ma Kết", symbol: "♑︎", note: "Bạn không cần hoàn thành tất cả để thấy mình đã đi xa." },
-  aquarius: { label: "Bảo Bình", symbol: "♒︎", note: "Ý nghĩ khác thường ấy đáng được thử ở quy mô nhỏ." },
-  pisces: { label: "Song Ngư", symbol: "♓︎", note: "Tin vào điều bạn cảm được trước khi gọi tên được nó." },
+  aries: { label: "Bạch Dương", symbol: "♈︎", note: "Bạn hay bắt tay vào việc trước khi người khác kịp bàn xong." },
+  taurus: { label: "Kim Ngưu", symbol: "♉︎", note: "Bạn làm chậm mà chắc, và không thích bị giục." },
+  gemini: { label: "Song Tử", symbol: "♊︎", note: "Bạn hay tò mò, hỏi nhiều và học điều mới rất nhanh." },
+  cancer: { label: "Cự Giải", symbol: "♋︎", note: "Bạn hay nhận ra người bên cạnh đang buồn trước khi họ nói ra." },
+  leo: { label: "Sư Tử", symbol: "♌︎", note: "Bạn vui nhất khi được là chính mình và được người khác nhìn thấy." },
+  virgo: { label: "Xử Nữ", symbol: "♍︎", note: "Bạn hay để ý chi tiết và thấy yên tâm khi mọi việc gọn gàng." },
+  libra: { label: "Thiên Bình", symbol: "♎︎", note: "Bạn hay cân nhắc cho công bằng trước khi chọn." },
+  scorpio: { label: "Bọ Cạp", symbol: "♏︎", note: "Bạn ít kể về mình, nhưng nhìn người rất kỹ." },
+  sagittarius: { label: "Nhân Mã", symbol: "♐︎", note: "Bạn thích đi đây đó, học thêm và không muốn ở mãi một chỗ." },
+  capricorn: { label: "Ma Kết", symbol: "♑︎", note: "Bạn chịu khó, làm từng bước và giữ lời." },
+  aquarius: { label: "Bảo Bình", symbol: "♒︎", note: "Bạn hay nghĩ khác số đông và muốn làm theo cách riêng." },
+  pisces: { label: "Song Ngư", symbol: "♓︎", note: "Bạn dễ cảm thông và hay hiểu người khác mà không cần họ giải thích." },
 };
