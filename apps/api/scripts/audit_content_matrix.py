@@ -15,6 +15,7 @@ from app.domains.radar.reading import (
     BODY_WEIGHT,
     CONTEXTS,
     FACTOR_COPY,
+    FALLBACK_CONTEXTS,
     FIT_COPY,
     HEADLINES,
     SUGGESTIONS,
@@ -128,8 +129,14 @@ def validate_matrix() -> list[str]:
         failures.append("Radar aspect scoring and labels have different coverage")
     # radar-readable-v2: every theme has copy for every context, every context has its tier names
     # and areas, and each theme belongs to exactly one area of each context.
+    # AL1 (20.11.2026): coworker and family have no tables of their own; they serve their
+    # approved registry lines, else the sentences of the context they fall back to.
     radar_contexts = {"crush", "friend", "partner", "someone"}
-    if set(CONTEXTS) != radar_contexts or set(TIER_LABELS) != radar_contexts:
+    if (
+        set(CONTEXTS) != radar_contexts | set(FALLBACK_CONTEXTS)
+        or set(TIER_LABELS) != radar_contexts
+        or not set(FALLBACK_CONTEXTS.values()) <= radar_contexts
+    ):
         failures.append("Radar context copy is incomplete")
     for name, table in (
         ("HEADLINES", HEADLINES),

@@ -57,6 +57,19 @@ describe("ConsentPage privacy details", () => {
     expect(MOOD_LIGHTER_TASK_NOTE).toBe("Mood bạn chọn cũng dùng để gợi ý việc nhỏ nhẹ hơn trong ngày, dành cho bạn.");
   });
 
+  it("shows the owner-approved Hợp gu privacy text word for word (AM1, 20.11.2026)", () => {
+    renderPrivacyPage();
+    const registry = JSON.parse(readFileSync(join(process.cwd(), "../api/app/domains/content/copy_registry.json"), "utf8")) as {
+      entries: { id: string; category: string; text: string; status: string; approver?: string; date?: string }[];
+    };
+    for (const id of ["privacy.radar.consent-private-summary", "privacy.radar.consent-invite", "privacy.radar.consent-recipient"]) {
+      const entry = registry.entries.find((item) => item.id === id);
+      expect(entry).toMatchObject({ category: "privacy", status: "approved", approver: "owner", date: "2026-11-20" });
+      expect(screen.getByText(entry!.text)).toBeInTheDocument();
+    }
+    expect(document.body.textContent).not.toMatch(/[Cc]heck kín/);
+  });
+
   it("gives network users a visible link to the corresponding source", () => {
     renderPrivacyPage();
 
