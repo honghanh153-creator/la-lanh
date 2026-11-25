@@ -154,6 +154,16 @@ def test_approved_rules_widen_the_needs_group_and_render_accepted_cards(
     assert sum(map(len, after)) > sum(map(len, before))
 
 
+def test_approved_rules_widen_the_self_judgment_group(monkeypatch: pytest.MonkeyPatch) -> None:
+    group = {"comparison-loop", "perfect-before-start"}
+    before = [issues for chart in CHARTS for issues in _pool_issues(chart, 14)]
+    _approve_all(monkeypatch)
+    after = [issues for chart in CHARTS for issues in _pool_issues(chart, 14)]
+    assert sum(bool(group & issues) for issues in after) > sum(
+        bool(group & issues) for issues in before
+    )
+
+
 def test_the_content_fingerprint_moves_only_when_a_pair_sentence_is_approved_or_revised(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
