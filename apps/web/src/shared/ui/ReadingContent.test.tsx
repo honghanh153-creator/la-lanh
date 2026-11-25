@@ -1,9 +1,21 @@
-import { render, screen } from "@testing-library/react";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import type { ReadingContent as ReadingContentModel } from "../api/client";
-import { ReadingContent } from "./ReadingContent";
+import ultravioletStyles from "../styles/ultraviolet.css?raw";
+import {
+  FOLDED_ACTION_LABEL,
+  READ_ONLY_TODAY,
+  ReadingContent,
+  SHOW_ACTION_AGAIN,
+  SHOW_ALONE_ACTION,
+  SHOW_PREVIOUS_ACTION,
+} from "./ReadingContent";
 
 const content = {
   revision_id: "00000000-0000-4000-8000-000000000010",
@@ -50,6 +62,44 @@ describe("ReadingContent", () => {
     expect(screen.queryByRole("button", { name: "Giữ để thử hôm nay" })).not.toBeInTheDocument();
   });
 
+  it("shows the alone action in place of the one on screen, with a way back (#703)", async () => {
+    const onSwitch = vi.fn();
+    const action = { action: "Ghi ra giấy một câu bạn muốn nói, giữ cho riêng mình.", replaces: ["card" as const], experiment: null };
+    const limited = { ...content, mode: "limited" as const, precision: "unknown" as const };
+    const { rerender } = render(<ReadingContent alone={{ shown: false, onSwitch, action }} content={limited} />);
+
+    expect(screen.getByText(content.sections.micro_action)).toBeInTheDocument();
+    expect(screen.queryByText(action.action)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: SHOW_ALONE_ACTION }));
+    expect(onSwitch).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <ReadingContent
+        alone={{ shown: true, onSwitch, action }}
+        content={{ ...limited, lighter_action: { action: "Uống một ly nước.", weight: "light" as const, experiment: null } }}
+        lighter={{ shown: false, onSwitch: vi.fn() }}
+      />,
+    );
+    expect(screen.getByText(action.action)).toBeInTheDocument();
+    expect(screen.queryByText(content.sections.micro_action)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: SHOW_PREVIOUS_ACTION })).toBeInTheDocument();
+    // Only the way back is offered while the alone action is on screen.
+    expect(screen.queryByRole("button", { name: "Xem việc nhẹ hơn" })).not.toBeInTheDocument();
+  });
+
+  it("offers no alone button when the page passes none", () => {
+    render(<ReadingContent content={content} />);
+    expect(screen.queryByRole("button", { name: SHOW_ALONE_ACTION })).not.toBeInTheDocument();
+  });
+
+  it("shows the common line only when the server sends one (#703)", () => {
+    const line = "Nhiều bạn cũng chần chừ trước khi nhắn lại.";
+    const { rerender } = render(<ReadingContent content={{ ...content, common_line: line }} />);
+    expect(screen.getByText(line)).toBeInTheDocument();
+    rerender(<ReadingContent content={{ ...content, common_line: null }} />);
+    expect(screen.queryByText(line)).not.toBeInTheDocument();
+  });
+
   it("shows the lighter action in place of the card's own, with a way back (#627)", async () => {
     const onSwitch = vi.fn();
     const withLighter = {
@@ -73,6 +123,93 @@ describe("ReadingContent", () => {
     rerender(<ReadingContent content={withLighter} />);
     expect(screen.getByText(content.sections.micro_action)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Xem việc/ })).not.toBeInTheDocument();
+  });
+
+  // #700: "Hôm nay chỉ muốn đọc" folds the small-action box to one line. Synthetic data only.
+  describe("read-only today (#700)", () => {
+    const cues = { observation: "Bạn thấy nhẹ hơn chưa?", permission: "Không hợp thì bỏ qua." };
+    const experiment = { action_key: "d".repeat(64), action: "Viết câu chính trước.", ...cues };
+
+    function Harness({ model }: { model: ReadingContentModel }) {
+      const [readOnly, setReadOnly] = useState(false);
+      return <ReadingContent content={model} readOnly={{ readOnly, onToggle: () => setReadOnly((value) => !value) }} />;
+    }
+
+    it.each([
+      ["an action that can be kept", { ...content, experiment }],
+      ["an action that cannot be kept", { ...content, mode: "limited" as const, precision: "unknown" as const }],
+    ])("folds %s to one line and opens it again, keeping the focus on the button", async (_name, model) => {
+      const user = userEvent.setup();
+      render(<Harness model={model} />);
+      expect(screen.getByRole("heading", { name: "Thử một việc nhỏ" })).toBeInTheDocument();
+
+      const fold = screen.getByRole("button", { name: READ_ONLY_TODAY });
+      fold.focus();
+      await user.keyboard("{Enter}");
+
+      const folded = screen.getByRole("region", { name: FOLDED_ACTION_LABEL });
+      expect(folded.children).toHaveLength(1);
+      expect(within(folded).getByRole("button", { name: SHOW_ACTION_AGAIN })).toHaveFocus();
+      expect(screen.queryByRole("heading", { name: "Thử một việc nhỏ" })).not.toBeInTheDocument();
+      expect(screen.queryByText(content.sections.micro_action)).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Giữ để thử hôm nay" })).not.toBeInTheDocument();
+      // The rest of the note stays.
+      expect(screen.getByRole("heading", { name: content.sections.hook })).toBeInTheDocument();
+
+      await user.keyboard(" ");
+      expect(screen.getByRole("button", { name: READ_ONLY_TODAY })).toHaveFocus();
+      expect(screen.getByText(content.sections.micro_action)).toBeInTheDocument();
+    });
+
+    it("never keeps, stops or records anything when the box is folded over a kept action", async () => {
+      const handlers = { onChoose: vi.fn(), onUndo: vi.fn(), onReflect: vi.fn() };
+      const held = {
+        id: "10000000-0000-4000-8000-000000000001", version: 1, daily_note_id: "00000000-0000-4000-8000-000000000001",
+        revision_id: content.revision_id, state: "chosen" as const, background_lens: "auto" as const, ...experiment, outcome: null,
+        created_at: "2026-09-07T12:00:00Z", updated_at: "2026-09-07T12:00:00Z", expires_at: "2026-10-07T12:00:00Z", reflected_at: null,
+      };
+      function Kept() {
+        const [readOnly, setReadOnly] = useState(false);
+        return <ReadingContent content={{ ...content, experiment }} currentExperiment={held} readOnly={{ readOnly, onToggle: () => setReadOnly((value) => !value) }} {...handlers} />;
+      }
+      render(<Kept />);
+      expect(screen.getByRole("button", { name: "Bỏ giữ việc này" })).toBeInTheDocument();
+      await userEvent.click(screen.getByRole("button", { name: READ_ONLY_TODAY }));
+      await userEvent.click(screen.getByRole("button", { name: SHOW_ACTION_AGAIN }));
+
+      // Still kept, and no handler ran.
+      expect(screen.getByRole("button", { name: "Bỏ giữ việc này" })).toBeInTheDocument();
+      for (const handler of Object.values(handlers)) expect(handler).not.toHaveBeenCalled();
+    });
+
+    it("offers no fold button where the page did not ask for one, or where there is no action box", () => {
+      const { rerender } = render(<ReadingContent content={{ ...content, experiment }} />);
+      expect(screen.queryByRole("button", { name: READ_ONLY_TODAY })).not.toBeInTheDocument();
+      rerender(<ReadingContent content={{ ...content, purpose: "reading_detail" }} readOnly={{ readOnly: false, onToggle: vi.fn() }} />);
+      expect(screen.queryByRole("button", { name: READ_ONLY_TODAY })).not.toBeInTheDocument();
+      rerender(<ReadingContent content={{ ...content, purpose: "reading_detail" }} readOnly={{ readOnly: true, onToggle: vi.fn() }} />);
+      expect(screen.queryByRole("button", { name: SHOW_ACTION_AGAIN })).not.toBeInTheDocument();
+    });
+
+    it("uses the labels recorded in the copy store", () => {
+      const registry = JSON.parse(readFileSync(join(process.cwd(), "../api/app/domains/content/copy_registry.json"), "utf8")) as {
+        entries: { id: string; text: string }[];
+      };
+      const text = (id: string) => registry.entries.find((entry) => entry.id === id)?.text;
+      expect(text("web.action.read-only.hide")).toBe(READ_ONLY_TODAY);
+      expect(text("web.action.read-only.show")).toBe(SHOW_ACTION_AGAIN);
+      expect(text("web.action.read-only.folded")).toBe(FOLDED_ACTION_LABEL);
+      expect(text("web.action.alone.show")).toBe(SHOW_ALONE_ACTION);
+      expect(text("web.action.alone.back")).toBe(SHOW_PREVIOUS_ACTION);
+    });
+
+    it("gives the fold button a 44 px touch target on both pages", () => {
+      // .text-button is 2.75rem high app-wide; the two rules for this button must not undo that.
+      expect(ultravioletStyles).toMatch(/:is\(\.text-button,[^{]*\{ min-height: 2\.75rem;/);
+      for (const rule of ultravioletStyles.split("\n").filter((line) => line.includes("__read-only"))) {
+        expect(rule).not.toMatch(/(min-)?height:/);
+      }
+    });
   });
 
   it("does not add a Daily action to a natal reading", () => {

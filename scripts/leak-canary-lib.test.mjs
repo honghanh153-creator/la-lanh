@@ -4,8 +4,8 @@ import { test } from "node:test";
 import { deflateSync } from "node:zlib";
 
 import {
-  CANARY, NOT_CHECKED, REQUIRED_FILES, REQUIRED_SENDS, SAFETY_TEXT, SURFACES, TAROT_QUESTION,
-  buildMarks, canaryServerEnv, dumpWebStorage, findMarks, isLocalUrl, maskLogTime, missingFiles, missingSends, pngMetadata,
+  CANARY, NOT_CHECKED, PNG_ALLOWED_CHUNKS, PNG_CHUNK_NOT_ALLOWED, REQUIRED_FILES, REQUIRED_SENDS, SAFETY_TEXT, SURFACES, TAROT_QUESTION,
+  buildMarks, canaryServerEnv, dumpWebStorage, findMarks, isLocalUrl, maskLogTime, missingFiles, missingSends, notAllowedPngChunks, pngMetadata,
   reportLines, scanSurfaces, sendsIn, svgTextOf,
 } from "./leak-canary-lib.mjs";
 import { prepareQaDatabase } from "./qa-server.mjs";
@@ -386,7 +386,45 @@ test("#691 AC3: another date, or the same digits inside a longer number, is not 
   for (const text of others) assert.deepEqual(findMarks(`taken ${text} end`, marks), [], text);
 });
 
-test("#691 AC3: metadata without a mark stays clean in every reading", () => {
+// S57: searching for marks finds only what the marks describe. A chunk outside the allowed list
+// is red on its own, so a new way of writing data into the image cannot pass unseen.
+test("#691 AC3 (S57): a chunk outside the allowed list is red even with no mark in it", () => {
+  const cases = [
+    ["text", pngChunk("tEXt", Buffer.from("Software\0canvas", "latin1"))],
+    ["EXIF", pngChunk("eXIf", exifBlock({ tag: 0x0131, type: 2, value: Buffer.from("canvas export\0", "latin1") }))],
+    ["palette name", pngChunk("sPLT", Buffer.concat([Buffer.from("web safe\0\x08", "latin1"), Buffer.alloc(6)]))],
+    ["colour profile", pngChunk("iCCP", Buffer.from("sRGB\0\0", "latin1"))],
+    ["time", pngChunk("tIME", Buffer.from([0x07, 0xea, 11, 24, 9, 30, 0]))],
+    ["private chunk", pngChunk("prVt", Buffer.from([1, 2, 3]))],
+    ["newer public chunk", pngChunk("cICP", Buffer.from([1, 13, 0, 1]))],
+  ];
+  for (const [name, chunk] of cases) assert.deepEqual(metadataFindings(png(chunk)), [PNG_CHUNK_NOT_ALLOWED], name);
+  // Every allowed chunk together stays clean.
+  const allowed = PNG_ALLOWED_CHUNKS.filter((type) => !["IHDR", "IDAT", "IEND"].includes(type));
+  assert.deepEqual(metadataFindings(png(...allowed.map((type) => pngChunk(type, Buffer.alloc(4))))), []);
+  // The list holds no chunk that carries text, a name, a date or embedded data.
+  for (const type of ["tEXt", "zTXt", "iTXt", "eXIf", "tIME", "sPLT", "iCCP"]) assert.ok(!PNG_ALLOWED_CHUNKS.includes(type), type);
+  // Only the "chunks …" line of the image surface is read; other surfaces and lines are not.
+  assert.deepEqual(notAllowedPngChunks("chunks IHDR tEXt tEXt prVt IDAT IEND"), ["tEXt", "prVt"]);
+  assert.deepEqual(notAllowedPngChunks("tEXt\nComment"), []);
+  const elsewhere = clean();
+  elsewhere["file-name"].push("chunks tEXt");
+  assert.deepEqual(scanSurfaces(elsewhere, marks), []);
+});
+
+test("#691 AC3 (S57): the report names the chunk type, in plain words, and never its content", () => {
+  const surfaces = clean();
+  const { chunks, texts } = pngMetadata(png(pngChunk("tEXt", Buffer.from("Software\0canvas", "latin1"))));
+  surfaces["image-metadata"].push(`chunks ${chunks.join(" ")}`, ...texts);
+  const lines = reportLines({ surfaces, findings: scanSurfaces(surfaces, marks), missing: [] });
+  const line = lines.find((entry) => entry.includes("thông tin kèm trong file ảnh PNG"));
+  assert.match(line, /^ĐỎ/);
+  assert.match(line, /không nằm trong danh sách được phép: tEXt$/);
+  assert.ok(!lines.join("\n").includes("canvas"));
+  assert.equal(lines.at(-1), "Kết quả: ĐỎ");
+});
+
+test("#691 AC3: metadata without a mark carries no mark finding in any reading", () => {
   const harmless = png(
     pngChunk("eXIf", exifBlock({ tag: 0x0131, type: 2, value: Buffer.from("canvas export\0", "latin1") })),
     pngChunk("eXIf", exifBlock({ tag: 0x9c9c, type: 1, value: utf16le("ảnh chia sẻ\0") })),
@@ -395,7 +433,8 @@ test("#691 AC3: metadata without a mark stays clean in every reading", () => {
   );
   assert.deepEqual(pngMetadata(harmless).chunks, ["IHDR", "eXIf", "eXIf", "eXIf", "sPLT", "IDAT", "IEND"]);
   assert.equal(pngMetadata(harmless).texts.length, 4);
-  assert.deepEqual(metadataFindings(harmless), []);
+  // No mark is found; the only finding is that these chunks are not on the allowed list (S57).
+  assert.deepEqual([...new Set(metadataFindings(harmless))], [PNG_CHUNK_NOT_ALLOWED]);
 });
 
 test("#691 a file that is not a whole PNG breaks the run instead of passing", () => {

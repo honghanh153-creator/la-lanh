@@ -53,11 +53,11 @@ describe("CompanionLabPage", () => {
     expect(document.querySelectorAll('.clab__matrix .lc-companion[data-cmotion="still"]')).toHaveLength(40);
   });
 
-  it("shows the Lá pixel trial with its moves, timings and the still preview (#714)", () => {
+  it("shows the Lá pixel trial with its four moves, timings and the still preview (#714, #715)", () => {
     render(<CompanionLabPage />);
     const pixel = screen.getByRole("region", { name: "Lá pixel, bản thử" });
     expect(within(pixel).getByText("bản thử, chưa bật cho người dùng")).toBeInTheDocument();
-    for (const name of ["Chào", "Ngồi cùng"]) {
+    for (const name of ["Chào", "Ngồi cùng", "Kính rơi", "Uống trà"]) {
       expect(within(pixel).getByRole("rowheader", { name })).toBeInTheDocument();
     }
     fireEvent.click(within(pixel).getByRole("button", { name: "Ngồi cùng" }));

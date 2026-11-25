@@ -29,7 +29,7 @@ const addMinutes = (t, minutes) => {
 
 const warnings = lines => (Array.isArray(lines) ? lines : []).filter(l => String(l).includes('⚠️')).map(l => (String(l).startsWith('- ') ? String(l) : `- ${l}`));
 
-export function renderBoard({ now, status, doing = null, expectMinutes = null, area = null, turns = [], done = [], codexRuns = 0, cap = codexDailyCap, failures = 0, error = null, metrics = null, health = [], incidents = [] }) {
+export function renderBoard({ now, status, doing = null, expectMinutes = null, area = null, turns = [], done = [], codexRuns = 0, cap = codexDailyCap, failures = 0, error = null, metrics = null, health = [], incidents = [], usage = null }) {
   const [label, why] = STATES[status] ?? [status, ''];
   const waitingOwner = turns.filter(t => t.turn === 'hold' && /needs-owner|owner bỏ/.test(t.reason));
   const queue = turns.filter(t => t.turn !== 'hold').slice(0, 8);
@@ -46,6 +46,8 @@ export function renderBoard({ now, status, doing = null, expectMinutes = null, a
       : `**Trong giờ chạy, nếu giờ cập nhật cũ hơn 20 phút: Mac đang ngủ/tắt hoặc vòng bị kẹt.**`,
     '',
     `Nhóm đang làm: ${area ?? '—'} · Codex hôm nay: ${codexRuns}/${cap} · Lỗi liên tiếp: ${failures}`,
+    // L67: the weekly Claude %, the mode and today's share per project (collab-usage.mjs).
+    ...(usage ? [cell(usage)] : []),
     ...(lastDone ? [`Lượt vừa rồi: ${cell(lastDone)}`] : []),
     ...(error ? ['', `Lỗi: \`${cell(error)}\``] : []),
     // Only what needs a look; healthy lines stay in the morning plan.
