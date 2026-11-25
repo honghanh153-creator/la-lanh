@@ -1,15 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 process.env.LA_LANH_COLLAB_HOME = mkdtempSync(join(tmpdir(), 'fallback-'));
 const trust = await import('./collab-trust.mjs');
 const {
   changeProblems, changedFiles, codexFixed, commitMessage, currentMode, fallbackBrief, fallbackBudget, fallbackRuns, fallbackRunsPath, fallbackStep, fallbackSubCap,
-  finishReserveMs, fallbackProblem, gateModules, holdForClaude, holdLabel, hostGit, isGateFile, runFallbackFix, sandboxedTest, testCommand,
+  finishReserveMs, fallbackProblem, gateModules, holdForClaude, holdLabel, hostGit, isGateFile, knownProblem, privateRoots, runFallbackFix, sandboxProfile, sandboxedTest, testCommand,
 } = await import('./codex-fallback.mjs');
 const { acquireLock } = await import('./collab-lock.mjs');
 const { mergeGate } = await import('./collab-merge.mjs');
@@ -33,7 +34,9 @@ test('L82 (owner 23.11): in fallback every lane merges; only owner-only copy and
   // Owner-only: sensitive copy not approved word for word waits for her (needs-owner is held by mergeGate itself).
   assert.match(fallbackProblem(pr({ labels: [{ name: 'owner-release-check' }] })), /chờ owner/);
   // The loop's own gates, their tests, the rule sheet, hooks, CI and dependencies wait for Claude.
-  for (const path of ['scripts/collab-merge.mjs', 'scripts/collab-merge.test.mjs', 'scripts/collab-second-review.mjs', 'scripts/collab-antigravity.mjs', 'scripts/collab-check.mjs', 'scripts/collab-hooks.mjs', 'scripts/collab-test-guard.mjs', 'scripts/collab-tick.mjs', 'scripts/collab-turn.mjs', 'scripts/collab-preflight.mjs', 'scripts/collab-lock.mjs', 'scripts/collab-rules-hook.mjs', 'scripts/collab-owner-answer.mjs', 'scripts/collab-trust.mjs', 'scripts/collab-usage.mjs', 'scripts/codex-review.mjs', 'scripts/codex-fallback.mjs', 'scripts/guard-dangerous-commands.mjs', 'scripts/verify-privacy.mjs', 'docs/operations/luat-dang-hieu-luc.md', '.claude/settings.json', '.github/workflows/pr-check.test.yml', 'package.json', 'apps/web/package.json', 'pnpm-lock.yaml']) {
+  for (const path of ['scripts/collab-merge.mjs', 'scripts/collab-merge.test.mjs', 'scripts/collab-second-review.mjs', 'scripts/collab-antigravity.mjs', 'scripts/collab-check.mjs', 'scripts/collab-hooks.mjs', 'scripts/collab-test-guard.mjs', 'scripts/collab-tick.mjs', 'scripts/collab-turn.mjs', 'scripts/collab-preflight.mjs', 'scripts/collab-lock.mjs', 'scripts/collab-rules-hook.mjs', 'scripts/collab-owner-answer.mjs', 'scripts/collab-trust.mjs', 'scripts/collab-usage.mjs', 'scripts/codex-review.mjs', 'scripts/codex-fallback.mjs', 'scripts/guard-dangerous-commands.mjs', 'scripts/verify-privacy.mjs', 'docs/operations/luat-dang-hieu-luc.md', '.claude/settings.json', '.github/workflows/pr-check.test.yml', 'package.json', 'apps/web/package.json', 'pnpm-lock.yaml',
+    // Codex auto-7 on #894 (P2): the review prompt and the verdict schemas are policy inputs too.
+    'docs/operations/codex-review-prompt.md', 'scripts/codex-review-schema.json', 'scripts/codex-copy-review-schema.json', 'scripts/collab-audit-schema.json']) {
     assert.match(fallbackProblem(pr({ files: [{ path, additions: 1 }] })), /file cổng của vòng/, path);
   }
   assert.match(fallbackProblem(pr({ files: [] })), /không đọc được/);
@@ -281,7 +284,7 @@ test('Codex auto-3 on #894/#899 (P2): the gate inventory is every module the loo
     assert.equal(isGateFile(path), true, path);
     assert.match(fallbackProblem(pr({ files: [{ path, additions: 1 }] })), /file cổng của vòng/, path);
   }
-  for (const path of ['apps/web/src/App.tsx', 'content/daily/a.json', 'scripts/lessons/L99.json', 'docs/operations/collab-auto-loop-plan.md', 'scripts/new-thing.mjs']) assert.equal(isGateFile(path), false, path);
+  for (const path of ['apps/web/src/App.tsx', 'content/daily/a.json', 'scripts/lessons/L99.json', 'scripts/collab-lessons.json', 'docs/operations/collab-auto-loop-plan.md', 'scripts/new-thing.mjs']) assert.equal(isGateFile(path), false, path);
   // Every local import of every gate module is itself a gate module: a PR that changes only a helper
   // (collab-heal's deadline, disagree's holds) waits like one that changes collab-merge.
   const dir = fileURLToPath(new URL('.', import.meta.url));
@@ -295,7 +298,7 @@ test('Codex auto-3 on #894/#899 (P2): the gate inventory is every module the loo
   assert.equal(isGateFile('scripts/collab-chain.mjs', mkdtempSync(join(tmpdir(), 'no-scripts-'))), true);
 });
 
-test('Codex auto-3 on #894 (P1): L79 through runFallbackFix\'s own test path: branch tests run only under sandbox-exec, with Git metadata read-only', () => {
+test('Codex auto-3 on #894 (P1): L79 through the runFallbackFix test path: branch tests run only under sandbox-exec, with Git metadata read-only', () => {
   const tests = [];
   const f = fake({ onTest: (args, opts) => { tests.push({ args, opts }); return ''; } });
   mkdirSync(join(f.home, 'fallback'), { recursive: true });
@@ -308,6 +311,9 @@ test('Codex auto-3 on #894 (P1): L79 through runFallbackFix\'s own test path: br
   assert.ok(sandbox > 0, 'tests run under sandbox-exec');
   assert.ok(args.indexOf('--test') > sandbox, 'node --test only inside the sandbox');
   assert.match(args[sandbox + 2], /\(deny file-write\* \(subpath "[^"]+\/fallback\/\.git"\)\)$/, 'the clone\'s .git is read-only to tests');
+  // Codex auto-7 on #894 (P1, privacy): the same run may read only the clone, its temp folder and Node.
+  assert.match(args[sandbox + 2], /\(deny file-read-data \(subpath "\/Users"\)/);
+  assert.match(args[sandbox + 2], /\(allow file-read-data \(subpath "[^"]+\/fallback"\) \(subpath "[^"]+\/fallback-test-[^"]+"\)/);
   assert.ok(opts.timeout > 0);
   // No other call runs a test runner on the host.
   assert.ok(!f.calls.some(c => /(^|\s)(pnpm|npm)\s/.test(c.line)));
@@ -367,4 +373,82 @@ test('Codex auto-3 on #894 (P1): 23:35 is checked again after the clone, and eve
   fallbackStep({ gh, mode: 'normal', prs: [{ number: 3, labels: [{ name: holdLabel }] }], left: () => 5000 });
   holdForClaude(gh, 3, () => 7000);
   assert.deepEqual(bound, [5000, 7000]);
+});
+
+test('Codex auto-7 on #894 (P1): a gate or owner-only PR is held before any Codex run is reserved', () => {
+  const f = fake();
+  const labels = [];
+  const gh = { ...f.gh, pr: () => pr({ mergeable: 'MERGEABLE', files: [{ path: '.github/workflows/pr-check.yml', additions: 1 }] }), raw: args => labels.push(args.join(' ')) };
+  let ran = false;
+  const out = runFallbackFix(turn, f.opts({ gh, exec: () => { ran = true; } }));
+  assert.equal(out.status, 'held');
+  assert.match(out.reason, /file cổng/);
+  assert.equal(ran, false, 'Codex did not run');
+  assert.equal(f.calls.length, 0, 'no clone, no fetch');
+  assert.ok(labels.some(l => l.includes('--add-label cho-claude')));
+  const day = trust.readJson(trust.dayStatePath('2026-11-22'), {});
+  const before = day.fallbackRuns ?? 0;
+  runFallbackFix(turn, f.opts({ gh, exec: () => { ran = true; } }));
+  assert.equal(trust.readJson(trust.dayStatePath('2026-11-22'), {}).fallbackRuns ?? 0, before, 'a second tick spends nothing either');
+  // The owner-only copy label is held the same way.
+  const copy = { ...gh, pr: () => pr({ mergeable: 'MERGEABLE', labels: [{ name: 'owner-release-check' }] }) };
+  assert.equal(runFallbackFix(turn, f.opts({ gh: copy, exec: () => { ran = true; } })).status, 'held');
+  assert.equal(ran, false);
+});
+
+test('Codex auto-7 on #894 (P1): a conflict in a gate file is held before Codex', () => {
+  const f = fake();
+  const run = (cmd, raw, opts) => {
+    const args = plain(raw);
+    if (args.includes('merge')) throw new Error('conflict');
+    if (args[0] === 'diff') return '.github/workflows/pr-check.yml\n';
+    return f.run(cmd, raw, opts);
+  };
+  const gh = { ...f.gh, pr: () => pr({ mergeable: 'CONFLICTING' }), raw: () => '' };
+  let ran = false;
+  const out = runFallbackFix(turn, f.opts({ gh, run, exec: () => { ran = true; } }));
+  assert.equal(out.status, 'held');
+  assert.match(out.reason, /xung đột ở file cổng/);
+  assert.equal(ran, false);
+});
+
+test('#894: the tick pre-check holds only on what it knows; a PR listed without files goes on to runFallbackFix', () => {
+  assert.equal(knownProblem({ number: 8, labels: [] }, { number: 8 }), null);
+  assert.equal(knownProblem(undefined, { number: 8 }), null);
+  assert.match(knownProblem({ labels: [{ name: 'owner-release-check' }] }, {}), /owner/);
+  assert.match(knownProblem({ labels: [] }, { files: ['.github/workflows/x.yml'] }), /file cổng/);
+  assert.match(knownProblem({ labels: [], files: [{ path: 'scripts/collab-tick.mjs' }] }, { files: ['apps/web/a.ts'] }), /file cổng/);
+  assert.equal(knownProblem({ labels: [] }, { files: ['apps/web/a.ts'] }), null);
+});
+
+test('Codex auto-7 on #894 (P1): a held PR does not block the queue; the next claude-fix turn runs', () => {
+  const tried = [];
+  const raw = [];
+  const gh = { raw: args => raw.push(args.join(' ')) };
+  const turns = [{ number: 901, turn: 'claude-fix', head: SHA, files: ['.github/workflows/x.yml'] }, { number: 902, turn: 'claude-fix', head: SHA, files: ['apps/web/src/App.tsx'] }];
+  const out = fallbackStep({ gh, mode: 'fallback', turns, prs: [], fix: t => { tried.push(t.number); return { status: 'pushed', pr: t.number }; } });
+  assert.deepEqual(tried, [902], 'the gate PR never reached runFallbackFix');
+  assert.equal(out.pr, 902);
+  assert.ok(raw.some(l => l.includes('edit 901') && l.includes('--add-label cho-claude')));
+  // A turn runFallbackFix itself holds moves on too.
+  const next = fallbackStep({ gh, mode: 'fallback', turns: [{ number: 903, turn: 'claude-fix', head: SHA }, { number: 904, turn: 'claude-fix', head: SHA }], fix: t => (t.number === 903 ? { status: 'held', pr: 903 } : { status: 'pushed', pr: 904 }) });
+  assert.equal(next.pr, 904);
+});
+
+test('Codex auto-7 on #894 (P1, privacy): branch tests read only the clone, their temp folder and Node', () => {
+  const profile = sandboxProfile('/Users/x/clone', '/Users/x/tmp', '/opt/node');
+  const deny = /\(deny file-read-data ([^)]*\)[^(]*)+\)/.exec(profile)?.[0] ?? '';
+  for (const root of ['/Users', '/Volumes', '/private/var/folders', '/private/tmp']) assert.ok(privateRoots.includes(root) && deny.includes(`(subpath "${root}")`), root);
+  assert.match(profile, /\(allow file-read-data \(subpath "\/Users\/x\/clone"\) \(subpath "\/Users\/x\/tmp"\) \(subpath "\/opt\/node"\)\)/);
+  assert.ok(profile.indexOf('(deny file-read-data') < profile.indexOf('(allow file-read-data'), 'the allow comes last, so it wins for the clone');
+});
+
+test('Codex auto-7 on #894 (P1, privacy): on macOS the real sandbox refuses a file outside the clone', { skip: !existsSync('/usr/bin/sandbox-exec') && 'no sandbox-exec' }, () => {
+  const base = realpathSync(mkdtempSync(join(tmpdir(), 'fb-sbx-')));
+  const clone = join(base, 'clone'); const tmp = join(base, 'tmp'); const outside = join(base, 'outside');
+  for (const d of [clone, tmp, outside]) mkdirSync(d);
+  writeFileSync(join(clone, 'in.txt'), 'in'); writeFileSync(join(outside, 'secret.txt'), 'private');
+  const code = `const fs=require('fs');let a='',b='';try{a=fs.readFileSync(${JSON.stringify(join(clone, 'in.txt'))},'utf8')}catch(e){a=e.code}try{b=fs.readFileSync(${JSON.stringify(join(outside, 'secret.txt'))},'utf8')}catch(e){b=e.code}console.log(a+' '+b)`;
+  const r = spawnSync('/usr/bin/sandbox-exec', ['-p', sandboxProfile(clone, tmp), process.execPath, '-e', code], { cwd: clone, encoding: 'utf8' });
+  assert.equal(r.stdout.trim(), 'in EPERM', r.stderr);
 });

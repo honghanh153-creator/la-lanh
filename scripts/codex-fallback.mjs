@@ -52,7 +52,10 @@ export const releaseCheckLabel = 'owner-release-check';
 //   dependency manifests and lockfiles of every app (JS, Python, Gradle, Swift, CocoaPods, Ruby, Go, Rust);
 // - every module the loop's entry points import, directly or not (read from this script's own trusted
 //   copy, so a PR cannot shrink the set), and every test of such a module or that imports one.
-const gatePaths = /^(docs\/operations\/luat-dang-hieu-luc\.md$|\.claude\/|\.github\/|\.husky\/|scripts\/[\w.-]+\.sh$|(.*\/)?(package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|\.npmrc|\.nvmrc|\.node-version|\.python-version|pyproject\.toml|uv\.lock|poetry\.lock|Pipfile(\.lock)?|requirements[\w.-]*\.txt|[\w.-]*\.gradle(\.kts)?|gradle\.properties|gradle-wrapper\.properties|Package\.swift|Package\.resolved|Podfile(\.lock)?|Gemfile(\.lock)?|go\.(mod|sum)|Cargo\.(toml|lock))$)/;
+// Codex auto-7 on #894 (P2): the review prompt and the JSON schemas the loop hands Codex are policy too
+// (a schema-only PR could force APPROVE with no findings), so every scripts/*-schema.json and every
+// docs/operations/codex-*.md waits like a module.
+const gatePaths = /^(docs\/operations\/luat-dang-hieu-luc\.md$|docs\/operations\/codex-[\w.-]+\.md$|scripts\/[\w.-]+-schema\.json$|\.claude\/|\.github\/|\.husky\/|scripts\/[\w.-]+\.sh$|(.*\/)?(package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|\.npmrc|\.nvmrc|\.node-version|\.python-version|pyproject\.toml|uv\.lock|poetry\.lock|Pipfile(\.lock)?|requirements[\w.-]*\.txt|[\w.-]*\.gradle(\.kts)?|gradle\.properties|gradle-wrapper\.properties|Package\.swift|Package\.resolved|Podfile(\.lock)?|Gemfile(\.lock)?|go\.(mod|sum)|Cargo\.(toml|lock))$)/;
 export const gateRoots = ['codex-review', 'codex-fallback', 'codex-copy-review', 'collab-tick', 'collab-turn', 'collab-merge', 'collab-check', 'collab-preflight',
   'collab-second-review', 'collab-antigravity', 'collab-hooks', 'collab-rules', 'collab-rules-hook', 'collab-test-guard', 'collab-agent-gate', 'collab-owner-answer',
   'collab-ops-wrapper', 'collab-pr-claim', 'collab-heavy-slots', 'collab-reservation', 'collab-usage', 'guard-dangerous-commands', 'verify-privacy', 'leak-canary', 'leak-canary-lib', 'collab-test-home'];
@@ -100,11 +103,19 @@ export function isGateFile(path, dir = trustedScripts) {
 export function fallbackProblem(pr) {
   const labels = (pr.labels ?? []).map(l => l.name ?? l);
   if (labels.includes(releaseCheckLabel)) return 'chữ privacy/consent/crisis/safety chưa được owner duyệt nguyên văn: chờ owner';
-  const files = (pr.files ?? []).map(f => f.path).filter(Boolean);
+  const files = (pr.files ?? []).map(f => f?.path ?? f).filter(p => typeof p === 'string' && p);
   if (!files.length) return 'không đọc được danh sách file';
   const gate = files.find(p => isGateFile(p));
   if (gate) return `đụng file cổng của vòng (${gate}): chờ Claude`;
   return null;
+}
+// Pre-check from what the tick already knows. Missing file lists are not a reason to hold here:
+// runFallbackFix reads the full PR and checks again before any Codex run.
+export function knownProblem(known, turn = {}) {
+  const labels = known?.labels ?? [];
+  const files = known?.files?.length ? known.files : turn.files;
+  if (files?.length) return fallbackProblem({ labels, files });
+  return labels.some(l => (l.name ?? l) === releaseCheckLabel) ? fallbackProblem({ labels }) : null;
 }
 export const fallbackHoldReason = pr => {
   const why = fallbackProblem(pr);
@@ -210,7 +221,16 @@ export function changedFiles(dir, run, left = () => Infinity) {
 // integration), and the tests run under sandbox-exec: no network, writes only inside the clone and a
 // fresh temp dir, an env with nothing but PATH and a temp HOME (no tokens, no SSH agent).
 const trustedDir = dirname(fileURLToPath(import.meta.url));
-export const sandboxProfile = (dir, tmp) => `(version 1)(allow default)(deny network*)(allow network* (local unix))(deny file-write*)(allow file-write* (subpath "${dir}") (subpath "${tmp}") (literal "/dev/null") (literal "/dev/tty") (regex #"^/dev/fd/"))(deny file-write* (subpath "${dir}/.git"))`;
+// Codex auto-7 on #894 (P1, privacy): reads were open too, so a branch test could read an owner file
+// outside the clone and hide it, encoded, in a file it already changed. Now file contents are readable
+// only in the system (/System, /usr, /bin, /Library, /private/etc…), the clone, the temp dir and the Node
+// install. Home folders, other volumes and the shared temp folders are denied; names and sizes
+// (file-read-metadata) stay readable so Node can resolve paths.
+export const privateRoots = ['/Users', '/Volumes', '/private/var/folders', '/private/tmp', '/private/var/root', '/opt', '/usr/local'];
+export const nodeRoot = () => dirname(dirname(realpathSync(process.execPath)));
+export const sandboxProfile = (dir, tmp, node = nodeRoot()) => `(version 1)(allow default)(deny network*)(allow network* (local unix))` +
+  `(deny file-read-data ${privateRoots.map(p => `(subpath "${p}")`).join(' ')})(allow file-read-data (subpath "${dir}") (subpath "${tmp}") (subpath "${node}"))` +
+  `(deny file-write*)(allow file-write* (subpath "${dir}") (subpath "${tmp}") (literal "/dev/null") (literal "/dev/tty") (regex #"^/dev/fd/"))(deny file-write* (subpath "${dir}/.git"))`;
 export function testCommand(dir) {
   const script = readJson(join(dir, 'package.json'), {})?.scripts?.['collab:test'] ?? '';
   const files = /^node --test((?: [A-Za-z0-9_./-]+\.test\.mjs)+)$/.exec(script)?.[1].trim().split(' ') ?? [];
@@ -279,8 +299,10 @@ export function commitMessage(pr, turn, oldHead) {
 }
 
 // One fallback fix. Returns {status, ...}; never throws for an expected stop.
-export function runFallbackFix(turn, { gh: ghIn, run = execFileSync, exec = null, test = null, terms = readGuardTerms, now = vnNow(), nowMs = Date.now, left = fallbackLeft(now, nowMs), home = stateDir, log = () => {} } = {}) {
+export function runFallbackFix(turn, { gh: ghIn, run = execFileSync, exec = null, test = null, terms = readGuardTerms, now = vnNow(), nowMs = Date.now, left = fallbackLeft(now, nowMs), home = stateDir, log = () => {}, hold = true } = {}) {
   const number = turn.number;
+  // `hold`: label the PR cho-claude in fallback (95%); below that Claude is at work and the PR is only skipped.
+  const stop = reason => (hold ? holdBeforeCodex(gh, number, reason, left, log) : { status: 'held', pr: number, reason });
   // Codex auto-3 on #894 (P1): every GitHub call ends by the same deadline.
   const gh = ghIn.withDeadline?.(left) ?? ghIn;
   if (now.hour * 60 + now.minute >= lastStartAt) return { status: 'refused', pr: number, reason: `từ ${hhmmOf(lastStartAt)} không bắt đầu lượt sửa mới` };
@@ -290,6 +312,10 @@ export function runFallbackFix(turn, { gh: ghIn, run = execFileSync, exec = null
   if (!mayTouch(number, fallbackSession).ok) return { status: 'refused', pr: number, reason: 'PR đang có phiên khác giữ' };
   const pr = gh.pr(number);
   if (pr.headRefOid !== turn.head) return { status: 'refused', pr: number, reason: 'head đã đổi từ lúc xếp lượt' };
+  // Codex auto-7 on #894 (P1): a PR the fallback may not merge (owner-only copy, loop gate files) is
+  // held before any Codex run is reserved, so it cannot burn the day's fallback runs tick after tick.
+  const problem = fallbackProblem(pr);
+  if (problem) return stop(problem);
   const claim = claimPr(number, { session: fallbackSession, branch: pr.headRefName });
   if (!claim.ok) return { status: 'refused', pr: number, reason: `không giữ được PR (${claim.reason})` };
   const g = (args, cwd) => git(args, cwd, run, left);
@@ -305,6 +331,9 @@ export function runFallbackFix(turn, { gh: ghIn, run = execFileSync, exec = null
       try { g(['-c', 'user.name=la-lanh-agent', '-c', 'user.email=la-lanh-agent@users.noreply.github.com', 'merge', '--no-edit', '--no-ff', `origin/${integration}`], dir); }
       catch { conflicts = g(['diff', '--name-only', '--diff-filter=U'], dir).split('\n').filter(Boolean); }
     }
+    // A conflict inside a gate file (the integration side changed .github/, the rule sheet…) is held too.
+    const gateConflict = conflicts.find(p => isGateFile(p));
+    if (gateConflict) return stop(`xung đột ở file cổng của vòng (${gateConflict}): chờ Claude`);
     const meta = gitMeta(dir);
     const brief = fallbackBrief({ pr, turn, findings: headFindings(pr), conflicts });
     // Codex auto-3 on #894 (P1): `now` is the tick's start. The clone and fetch take time, so the
@@ -367,6 +396,14 @@ export function runFallbackFix(turn, { gh: ghIn, run = execFileSync, exec = null
   } finally { releasePr(number, { session: fallbackSession }); }
 }
 
+// Label the PR cho-claude (prTurn then holds it) and spend nothing. The label is best effort: the
+// check runs again on every tick before any reservation, so a failed edit still costs no Codex run.
+function holdBeforeCodex(gh, number, reason, left, log) {
+  try { holdForClaude(gh, number, left); } catch (error) { log(`fallback hold failed #${number}: ${clean(error.message, 200)}`); }
+  log(`fallback held #${number}: ${clean(reason, 200)}`);
+  return { status: 'held', pr: number, reason };
+}
+
 // One step per tick (collab-turn.mjs `fallback`). Outside fallback the hold labels come off first.
 // L71 (owner 22.11 "okie 1-2-3"): from 75% of the Claude week the first claude-fix turn nobody holds
 // goes to Codex; below 95% a PR labelled `incident` stays with Claude.
@@ -382,9 +419,24 @@ export function fallbackStep({ gh: ghIn, mode, turns = [], prs = [], fix = runFa
     if (held.length) return { status: 'released', prs: held.map(p => p.number) };
   }
   if (!codexFixModes.includes(mode)) return null;
+  // Codex auto-7 on #894 (P1): a held PR never blocks the queue. Known files are checked here, before
+  // runFallbackFix; a PR held there costs no run either, and the step moves on to the next turn.
+  // Below 95% Claude is still at work, so such a PR is left to Claude with no label (the label would
+  // come off again on the next tick).
+  const hold = mode === 'fallback';
   const byNumber = new Map(prs.map(p => [p.number, p]));
-  const next = turns.find(t => t.turn === 'claude-fix' && (mode === 'fallback' || !isIncident(byNumber.get(t.number))) && mayTouch(t.number, fallbackSession).ok);
-  return next ? fix(next, { gh, log, ...(left ? { left } : {}) }) : null;
+  let held = null;
+  for (const t of turns) {
+    if (t.turn !== 'claude-fix' || !mayTouch(t.number, fallbackSession).ok) continue;
+    const known = byNumber.get(t.number);
+    if (!hold && isIncident(known)) continue;
+    const problem = knownProblem(known, t);
+    if (problem) { held = hold ? holdBeforeCodex(gh, t.number, problem, left, log) : { status: 'held', pr: t.number, reason: problem }; continue; }
+    const out = fix(t, { gh, log, hold, ...(left ? { left } : {}) });
+    if (out?.status !== 'held') return out;
+    held = out;
+  }
+  return held;
 }
 
 // Called by runMerge when the gate refuses in fallback: the label holds the PR in prTurn.
