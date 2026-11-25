@@ -1302,7 +1302,7 @@
    "status": "done",
    "test": {
     "file": "scripts/codex-fallback.test.mjs",
-    "name": "Codex r1 on #894 (P1): branch tests run sandboxed (no network, writes in the clone only, bare env) through the trusted guard"
+    "name": "Codex auto-3 on #894 (P1): L79 through the runFallbackFix test path: branch tests run only under sandbox-exec, with Git metadata read-only"
    },
    "caller": {
     "file": "scripts/codex-fallback.mjs",
