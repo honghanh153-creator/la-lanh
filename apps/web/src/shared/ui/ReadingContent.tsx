@@ -25,6 +25,8 @@ type ReadingContentProps = {
   lighter?: LighterSwitch | null;
   /** Present only where the reader can fold the small-action box away for the day (#700). */
   readOnly?: ReadOnlySwitch | null;
+  /** Present only when the alone action can stand in for the action on screen (#703). */
+  alone?: AloneSwitch | null;
   toolbar?: ReactNode;
 };
 
@@ -38,6 +40,12 @@ export type LighterSwitch = {
   label?: string;
 };
 export type ReadOnlySwitch = { readOnly: boolean; onToggle: () => void };
+/** The action that needs no contact with anyone, when it can stand in for the one on screen (#703). */
+export type AloneSwitch = {
+  shown: boolean;
+  onSwitch: () => void;
+  action: NonNullable<ReadingContentModel["alone_action"]>;
+};
 
 const ACTION_HEADING = "Thử một việc nhỏ";
 export const SHOW_ORIGINAL_ACTION = "Xem việc ban đầu";
@@ -46,6 +54,21 @@ export const SHOW_LIGHTER_ACTION = "Xem việc nhẹ hơn";
 export const READ_ONLY_TODAY = "Hôm nay chỉ muốn đọc";
 export const SHOW_ACTION_AGAIN = "Hiện lại việc nhỏ";
 export const FOLDED_ACTION_LABEL = "Việc nhỏ hôm nay đang ẩn";
+// Same text as `web.action.alone.*` in the copy store; the same test holds them equal.
+export const SHOW_ALONE_ACTION = "Xem việc làm một mình";
+export const SHOW_PREVIOUS_ACTION = "Quay lại việc trước";
+
+/**
+ * Swaps the action on screen for the one that needs no contact with anyone, and back. Render it
+ * with the same key in both states so the keyboard focus stays on it after the press.
+ */
+export function AloneToggle({ className, control }: { className: string; control: Pick<AloneSwitch, "shown" | "onSwitch"> }) {
+  return (
+    <button className={`text-button ${className}`} onClick={control.onSwitch} type="button">
+      {control.shown ? SHOW_PREVIOUS_ACTION : SHOW_ALONE_ACTION}
+    </button>
+  );
+}
 
 /**
  * The one button that folds the small-action box to a single line and opens it again. It only
@@ -78,11 +101,15 @@ export function ReadingContent({
   onReflect,
   lighter = null,
   readOnly = null,
+  alone = null,
   toolbar,
 }: ReadingContentProps) {
   const isVibeFallback = content.mode === "vibe_fallback";
+  // "Others meet this too" (#703): the server sends it only for the issues it fits.
+  const commonLine = content.common_line ? <p className="reading-content__common-line">{content.common_line}</p> : null;
   const experiment = (
     <ExperimentSection
+      alone={alone}
       compact={compact}
       content={content}
       currentExperiment={currentExperiment}
@@ -105,6 +132,7 @@ export function ReadingContent({
           <p className="reading-mode"><Sparkle aria-hidden="true" weight="fill" /> {readingModeLabel(content)}</p>
           <h2>{content.sections.hook}</h2>
           {!isVibeFallback ? <p>{content.sections.manifestation}</p> : null}
+          {commonLine}
         </header>
         {experiment}
         <Evidence content={content} />
@@ -121,6 +149,7 @@ export function ReadingContent({
         <p className="reading-mode"><Sparkle aria-hidden="true" weight="fill" /> {readingModeLabel(content)}</p>
         <h1>{content.sections.hook}</h1>
         <p>{content.sections.thesis}</p>
+        {commonLine}
       </header>
       {!isVibeFallback ? (
         <section>
@@ -136,6 +165,7 @@ export function ReadingContent({
 }
 
 function ExperimentSection({
+  alone,
   compact,
   content,
   currentExperiment,
@@ -147,6 +177,7 @@ function ExperimentSection({
   readOnly,
   status,
 }: {
+  alone: AloneSwitch | null;
   compact: boolean;
   content: ReadingContentModel;
   currentExperiment: DailyExperiment | null;
@@ -161,9 +192,14 @@ function ExperimentSection({
   // The lighter action replaces what is shown, never the note itself (US-04 AC14).
   const alternative = lighter ? (lighter.action ?? content.lighter_action) : null;
   const lighterAction = lighter?.shown ? alternative : null;
-  const experiment = lighterAction ? lighterAction.experiment : content.experiment;
-  const plainAction = lighterAction ? lighterAction.action : content.sections.micro_action;
-  const switchButton = lighter && alternative ? (
+  // The alone action stands in for whichever of the two is on screen (#703).
+  const shown = alone?.shown ? alone.action : lighterAction;
+  const experiment = shown ? shown.experiment : content.experiment;
+  const plainAction = shown ? shown.action : content.sections.micro_action;
+  const aloneToggle = alone ? (
+    <AloneToggle className="reading-content__alone-switch" control={alone} key="alone-toggle" />
+  ) : null;
+  const switchButton = lighter && alternative && !alone?.shown ? (
     <button className="text-button reading-content__lighter-switch" onClick={lighter.onSwitch} type="button">
       {lighter.shown ? SHOW_ORIGINAL_ACTION : (lighter.label ?? SHOW_LIGHTER_ACTION)}
     </button>
@@ -189,6 +225,7 @@ function ExperimentSection({
         <h2 id="reading-action-title">{ACTION_HEADING}</h2>
         <p className="reading-content__experiment-action">{plainAction}</p>
         {switchButton}
+        {aloneToggle}
         {readOnlyToggle}
       </section>
     );
@@ -203,6 +240,7 @@ function ExperimentSection({
         <p className="reading-content__permission">{experiment.permission}</p>
       </div>
       {switchButton}
+      {aloneToggle}
 
       <ExperimentControls
         currentExperiment={currentExperiment}

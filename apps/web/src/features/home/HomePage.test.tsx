@@ -549,6 +549,41 @@ describe("HomePage rich reading", () => {
     expect(JSON.stringify({ ...localStorage, ...sessionStorage })).not.toContain(text);
   });
 
+  it("offers the alone action only next to an action it can replace, and shows the common line (#703)", async () => {
+    const user = userEvent.setup();
+    const original = vibe.sections.micro_action;
+    const solo = "Ghi ra giấy một câu bạn muốn nói, giữ cho riêng mình.";
+    const line = "Nhiều bạn cũng chần chừ trước khi nhắn lại.";
+    const offers = {
+      ...vibe,
+      lighter_action: { action: "Uống một ly nước rồi ngồi yên hai phút.", weight: "light" as const, experiment: null },
+      alone_action: { action: solo, replaces: ["card" as const], experiment: null },
+      common_line: line,
+    };
+    vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(offers)));
+    renderPage();
+
+    expect(await screen.findByText(original)).toBeInTheDocument();
+    expect(screen.getByText(line)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Xem việc làm một mình" }));
+    expect(screen.getByText(solo)).toBeInTheDocument();
+    expect(screen.queryByText(original)).not.toBeInTheDocument();
+    // The note itself never changes (US-04 AC14), and nothing about the choice is stored.
+    expect(screen.getByText(vibe.sections.hook)).toBeInTheDocument();
+    expect(JSON.stringify({ ...localStorage, ...sessionStorage })).not.toContain(solo);
+    await user.click(screen.getByRole("button", { name: "Quay lại việc trước" }));
+    expect(screen.getByText(original)).toBeInTheDocument();
+
+    // The lighter action is not one the alone action replaces here: no button next to it.
+    await user.click(screen.getByRole("button", { name: "Xem việc làm một mình" }));
+    await user.click(screen.getByRole("button", { name: "Chọn cảm giác hôm nay" }));
+    await user.click(screen.getByRole("button", { name: /Đuối/ }));
+    expect(await screen.findByText(offers.lighter_action.action)).toBeInTheDocument();
+    expect(screen.queryByText(solo)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Xem việc làm một mình" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Quay lại việc trước" })).not.toBeInTheDocument();
+  });
+
   it("shows the lighter action after a Đuối check-in and lets the reader switch back (#627)", async () => {
     const user = userEvent.setup();
     const original = vibe.sections.micro_action;
