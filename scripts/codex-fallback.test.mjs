@@ -10,7 +10,7 @@ process.env.LA_LANH_COLLAB_HOME = mkdtempSync(join(tmpdir(), 'fallback-'));
 const trust = await import('./collab-trust.mjs');
 const {
   changeProblems, changedFiles, codexFixed, commitMessage, currentMode, fallbackBrief, fallbackBudget, fallbackRuns, fallbackRunsPath, fallbackStep, fallbackSubCap,
-  finishReserveMs, fallbackProblem, gateModules, holdForClaude, holdLabel, hostGit, isGateFile, privateRoots, runFallbackFix, sandboxProfile, sandboxedTest, testCommand,
+  finishReserveMs, fallbackProblem, gateModules, holdForClaude, holdLabel, hostGit, isGateFile, knownProblem, privateRoots, runFallbackFix, sandboxProfile, sandboxedTest, testCommand,
 } = await import('./codex-fallback.mjs');
 const { acquireLock } = await import('./collab-lock.mjs');
 const { mergeGate } = await import('./collab-merge.mjs');
@@ -399,6 +399,15 @@ test('Codex auto-7 on #894 (P1): a conflict in a gate file is held before Codex'
   assert.equal(out.status, 'held');
   assert.match(out.reason, /xung đột ở file cổng/);
   assert.equal(ran, false);
+});
+
+test('#894: the tick pre-check holds only on what it knows; a PR listed without files goes on to runFallbackFix', () => {
+  assert.equal(knownProblem({ number: 8, labels: [] }, { number: 8 }), null);
+  assert.equal(knownProblem(undefined, { number: 8 }), null);
+  assert.match(knownProblem({ labels: [{ name: 'owner-release-check' }] }, {}), /owner/);
+  assert.match(knownProblem({ labels: [] }, { files: ['.github/workflows/x.yml'] }), /file cổng/);
+  assert.match(knownProblem({ labels: [], files: [{ path: 'scripts/collab-tick.mjs' }] }, { files: ['apps/web/a.ts'] }), /file cổng/);
+  assert.equal(knownProblem({ labels: [] }, { files: ['apps/web/a.ts'] }), null);
 });
 
 test('Codex auto-7 on #894 (P1): a held PR does not block the queue; the next claude-fix turn runs', () => {

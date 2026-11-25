@@ -109,6 +109,14 @@ export function fallbackProblem(pr) {
   if (gate) return `đụng file cổng của vòng (${gate}): chờ Claude`;
   return null;
 }
+// Pre-check from what the tick already knows. Missing file lists are not a reason to hold here:
+// runFallbackFix reads the full PR and checks again before any Codex run.
+export function knownProblem(known, turn = {}) {
+  const labels = known?.labels ?? [];
+  const files = known?.files?.length ? known.files : turn.files;
+  if (files?.length) return fallbackProblem({ labels, files });
+  return labels.some(l => (l.name ?? l) === releaseCheckLabel) ? fallbackProblem({ labels }) : null;
+}
 export const fallbackHoldReason = pr => {
   const why = fallbackProblem(pr);
   return why ? `chế độ chuyển sang Codex: PR này chưa merge được (${why})` : null;
@@ -404,8 +412,7 @@ export function fallbackStep({ gh: ghIn, mode, turns = [], prs = [], fix = runFa
   let held = null;
   for (const t of turns) {
     if (t.turn !== 'claude-fix' || !mayTouch(t.number, fallbackSession).ok) continue;
-    const known = prs.find(p => p.number === t.number) ?? (t.files?.length ? { files: t.files } : null);
-    const problem = known && fallbackProblem(known);
+    const problem = knownProblem(prs.find(p => p.number === t.number), t);
     if (problem) { held = holdBeforeCodex(gh, t.number, problem, left, log); continue; }
     const out = fix(t, { gh, log, ...(left ? { left } : {}) });
     if (out?.status !== 'held') return out;
