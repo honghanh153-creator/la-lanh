@@ -12463,6 +12463,18 @@
    "status": "pending"
   },
   {
+   "id": "web.action.alone.show",
+   "category": "reading",
+   "text": "Xem việc làm một mình",
+   "status": "pending"
+  },
+  {
+   "id": "web.action.alone.back",
+   "category": "reading",
+   "text": "Quay lại việc trước",
+   "status": "pending"
+  },
+  {
    "id": "lighter.alone.missing-context.01",
    "category": "reading",
    "text": "Ghi ra giấy một chỗ bạn chưa hiểu trong tin nhắn, giữ cho riêng mình.",

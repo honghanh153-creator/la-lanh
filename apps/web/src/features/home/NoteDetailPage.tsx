@@ -97,9 +97,11 @@ export function NoteDetailPage() {
   const actionView = useDailyActionView(note?.id, activeReading, moodQuery.data?.mood);
   // "Hôm nay chỉ muốn đọc" (#700): shared with Home, in memory only.
   const readOnlyToday = useReadOnlyToday(note?.id);
-  const shownExperiment = actionView.lighterShown
-    ? actionView.alternative?.experiment
-    : activeReading?.experiment;
+  const shownExperiment = actionView.aloneShown
+    ? actionView.aloneAction?.experiment
+    : actionView.lighterShown
+      ? actionView.alternative?.experiment
+      : activeReading?.experiment;
 
   const chooseExperiment = () => {
     if (!note || !activeReading || !shownExperiment) return;
@@ -150,6 +152,7 @@ export function NoteDetailPage() {
             experimentStatus={dailyExperiment.status}
             lighter={actionView.canSwitch ? { shown: actionView.lighterShown, onSwitch: actionView.switchAction, action: actionView.alternative, label: actionView.alternativeLabel } : null}
             readOnly={{ readOnly: readOnlyToday.readOnly, onToggle: readOnlyToday.toggle }}
+            alone={actionView.aloneAction ? { shown: actionView.aloneShown, onSwitch: actionView.switchAlone, action: actionView.aloneAction } : null}
             onChoose={chooseExperiment}
             onReflect={(outcome) => {
               const held = dailyExperiment.experiment;

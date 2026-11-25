@@ -123,6 +123,36 @@ describe("NoteDetailPage rich reading", () => {
     expect(screen.getByRole("button", { name: "Xem việc nhẹ hơn" })).toBeInTheDocument();
   });
 
+  it("offers the alone action next to a contact action and keeps whichever is on screen (#703)", async () => {
+    const own = { action_key: "d".repeat(64), action: "Nhắn một người để hẹn lại lịch.", observation: "Bạn đã nhắn chưa?", permission: "Không hợp thì bỏ qua." };
+    const solo = { action_key: "a".repeat(64), action: "Ghi ra giấy một câu bạn muốn nói, giữ cho riêng mình.", observation: "Bạn đã ghi chưa?", permission: "Không hợp thì bỏ qua." };
+    const line = "Nhiều bạn cũng chần chừ trước khi nhắn lại.";
+    const withAlone: DailyNote = {
+      ...note,
+      reading_projection: {
+        ...note.reading_projection,
+        active: { ...note.reading_projection.active, experiment: own, alone_action: { action: solo.action, replaces: ["card"], experiment: solo }, common_line: line },
+      },
+    };
+    vi.mocked(getDailyNote).mockResolvedValue(withAlone);
+    vi.mocked(chooseDailyExperiment).mockRejectedValue(new ApiProblem(503, "UNAVAILABLE", "Test rejection"));
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(<QueryClientProvider client={client}><MemoryRouter><NoteDetailPage /></MemoryRouter></QueryClientProvider>);
+
+    expect(await screen.findByText(own.action)).toBeInTheDocument();
+    expect(screen.getByText(line)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Xem việc làm một mình" }));
+    expect(screen.getByText(solo.action)).toBeInTheDocument();
+    expect(screen.queryByText(own.action)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /Giữ để thử hôm nay/ }));
+    await waitFor(() => expect(chooseDailyExperiment).toHaveBeenLastCalledWith(note.id, expect.objectContaining({ action_key: solo.action_key })));
+
+    await userEvent.click(screen.getByRole("button", { name: "Quay lại việc trước" }));
+    expect(screen.getByText(own.action)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /Giữ để thử hôm nay/ }));
+    await waitFor(() => expect(chooseDailyExperiment).toHaveBeenLastCalledWith(note.id, expect.objectContaining({ action_key: own.action_key })));
+  });
+
   it("offers the slow action on a Căng day and keeps it from the note page (#701)", async () => {
     const own = { action_key: "d".repeat(64), action: "Nhắn một người để hẹn lại lịch.", observation: "Bạn đã nhắn chưa?", permission: "Không hợp thì bỏ qua." };
     const slow = { action_key: "f".repeat(64), action: "Đợi năm phút rồi mới gửi câu trả lời.", observation: "Bạn thấy người dịu hơn chưa?", permission: "Không hợp thì bỏ qua." };
