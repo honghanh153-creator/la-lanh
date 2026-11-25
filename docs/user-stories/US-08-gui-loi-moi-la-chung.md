@@ -45,7 +45,7 @@ flowchart TD
   H -->|Thành công| I["S39 Chọn cách gửi"]
   H -->|Offline/lỗi| J["Giữ draft + Retry"]
   I -->|Share sheet| K["OS share sheet"] --> I
-  I -->|Copy link| M["Copy + privacy notice"] --> I
+  I -->|Chép link| M["Chép link + privacy notice"] --> I
   I -->|Contact picker| N["OS picker tối thiểu"] --> K
   N -->|Từ chối/hủy| I
   I -->|Xong| L["S40 Pending"]
