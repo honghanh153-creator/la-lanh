@@ -539,12 +539,12 @@ Trạng thái: đề xuất hợp đồng cho #709/PR #932, chờ review độc 
 - Money chỉ cho Daily với một trong bốn chuyện ở quyết định §2, không số tiền/free text/chọn sẵn/suy luận từ mood hay lịch sử. Mã và prose chỉ trong POST/memory hoặc envelope mã hóa; không ghi preference và không tự điền khi reload/sang ngày mới.
 - Note tiền hiển thị việc nhẹ/thường để đọc. Chưa tạo held experiment hay resonance feedback từ revision đó; không hiện nút ghi trực tiếp, API từ chối cả lens money và ID revision tiền kèm lens giả. Không gán feedback/việc tiền cho bản nền.
 - Muốn giữ việc/gửi feedback, người dùng chủ động mở bản nền riêng và xác nhận hành động đang thấy; không âm thầm chuyển bài hoặc thay nội dung khi bấm. Bản nền áp dụng đủ AC25/27–29/33–35, gồm consent/TTL hiện có. Chia sẻ/lưu riêng theo [US-05 §21](US-05-luu-va-chia-se-note.md#21-delta-góc-tiền-bạc-2026-11-25).
-- Money chỉ nhận voice vắng/direct, dùng renderer xác định sẵn; roast từ chối 422 trước tạo plan/enqueue/AI. Consent AI chung không mở rewrite cho money.
+- Money chỉ nhận voice vắng/direct, dùng renderer xác định sẵn. Khi voice vắng, server luôn dùng direct, không đọc preference/setting cũ kể cả roast; roast tường minh từ chối 422 trước tạo plan/enqueue/AI. Consent AI chung không mở rewrite cho money.
 - Tắt kỹ thuật giữ nguyên bài đã nhận, cho đọc/reload/list/export/unsave/rút/xóa khi quyền còn hiệu lực; chặn consent/generate/regenerate/save mới. Withdrawal chặn mọi read/list/export/write đang chạy bằng fence quyền chung và xóa cả saved/hidden root. Không tự đổi bài tiền đang mở sang nền.
 
 | AC delta | Kiểm chứng bắt buộc trước bật |
 |---|---|
-| AC-MONEY-01 | #711: bốn enum, thiếu/sai/extra/mảng/số tiền/free text bị từ chối, HTTP JSON không phản chiếu input/body/context; direct không AI, roast 422; facts/evidence/precision/confidence như AC22 |
+| AC-MONEY-01 | #711: bốn enum, thiếu/sai/extra/mảng/số tiền/free text bị từ chối, HTTP JSON không phản chiếu input/body/context; direct không AI, voice vắng vẫn direct dù setting cũ roast, roast tường minh 422; facts/evidence/precision/confidence như AC22 |
 | AC-MONEY-02 | #711/#712: không tạo held/feedback tiền, kể cả giả lens/revision; mở nền cần chủ động và xác nhận; cancel không đổi bài/không ghi, chức năng nền vẫn đủ AC hiện có |
 | AC-MONEY-03 | #712: reload/ngày mới không điền chuyện; nhãn/thông báo R15, không giả định thiếu tiền, status pending chưa được phục vụ; flag-off không đổi bài, read tiếp nhưng save mới bị chặn; stale response/phiên/rút không hiện dữ liệu cũ |
 | AC-MONEY-04 | #711: một active cho bốn chuyện trong scope qua rotation; replay không giành active lại. #712: reader/history/saved hiểu contract mới ở SHA sàn rollback, client cũ không nhận enum mới; 360/390 px và AC30 |
