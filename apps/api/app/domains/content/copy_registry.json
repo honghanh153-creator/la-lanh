@@ -12611,6 +12611,30 @@
    "category": "reading",
    "text": "Bạn dễ chiều ý người khác rồi quên hỏi mình đang cần gì.",
    "status": "pending"
+  },
+  {
+   "id": "situation.pair.chiron-sun.tense",
+   "category": "reading",
+   "text": "Bạn dễ để ý chỗ mình còn thiếu hơn là phần mình đã làm được.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.pluto-sun.tense",
+   "category": "reading",
+   "text": "Bạn dễ đòi hỏi mình rất cao khi thấy người khác làm tốt.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.jupiter-sun.tense",
+   "category": "reading",
+   "text": "Bạn dễ đặt kỳ vọng lớn rồi tự chê khi chưa theo kịp.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.mercury-pluto.tense",
+   "category": "reading",
+   "text": "Bạn dễ muốn nói thật kỹ nên cứ sửa mãi chưa gửi đi.",
+   "status": "pending"
   }
  ],
  "version": "copy-registry/v1"
