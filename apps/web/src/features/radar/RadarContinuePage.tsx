@@ -9,6 +9,7 @@ import { BrandMark } from "../../shared/ui/BrandMark";
 import { ReadingDisclaimer } from "../../shared/ui/ReadingDisclaimer";
 import "../matching/matching.css";
 import "./radar.css";
+import { RadarAsk } from "./RadarAsk";
 import { RadarFlowSteps } from "./RadarFlowSteps";
 import { formatRadarExpiry, radarVoiceLabel, RADAR_CONTEXT_OPTIONS, RADAR_PENDING_REQUEST_KEY } from "./radarOptions";
 import { NightSky } from "../../shared/ui/NightSky";
@@ -171,13 +172,13 @@ export function RadarContinuePage() {
   const acceptMismatch = accept.error instanceof ApiProblem && accept.error.status === 422;
   const contextLabel = RADAR_CONTEXT_OPTIONS.find(([value]) => value === invite.data.context)?.[1] ?? "Một người";
   return <main className="matching-page radar-public radar-continue"><header className="matching-header"><BrandMark /><span className="matching-signal"><LockKey /> consent riêng</span></header><RadarFlowSteps current={2} /><section className="radar-public__signal"><p className="eyebrow">Lời mời: {contextLabel.toLowerCase()}</p><h1>Đây đúng là lời mời bạn vừa mở?</h1><p>Radar chỉ dùng cho đúng lời mời này, với giọng “{radarVoiceLabel(invite.data.voice)}”. Ngày, giờ và nơi sinh của bạn không hiện trong kết quả và không gửi cho người mời.</p></section>
-    {session.isLoading ? <section aria-live="polite" className="radar-owner-refresh"><Sparkle className="matching-pulse" /><p>Đang kiểm tra chart trên thiết bị này…</p></section> : missingSession ? <section className="radar-public__card"><Sparkle /><h2>Tạo chart riêng trước</h2><p>Chưa cần tài khoản. Phiên khách tự hết hạn sau 30 ngày không hoạt động.</p><Link className="matching-primary" to="/consent">Tạo chart của mình <ArrowRight /></Link></section> : session.isError ? <section className="radar-public__card"><h2>Chưa kiểm tra được chart.</h2><p>Dữ liệu chưa được gửi. Kiểm tra mạng rồi thử lại.</p><button className="matching-primary" onClick={() => void session.refetch()} type="button">Thử lại</button></section> : <section className="radar-public__card"><ShieldCheck /><h2>Bạn chỉ đồng ý cho Lá đọc lá số của hai người</h2><ul><li>Lá so lá số của bạn với lá số người mời để viết phần đọc.</li><li>Không chia sẻ ngày, giờ, nơi sinh với người kia.</li><li>Không dùng Radar để xếp hạng, quảng cáo hoặc tìm người lạ.</li></ul><label className="consent-check"><input checked={consented} onChange={(event) => setConsented(event.target.checked)} type="checkbox" /><span>Tôi đồng ý dùng lá số của mình cho đúng lần Radar này. Tôi hiểu đây là nội dung để tự ngẫm, không phải lời khuyên để ra quyết định.</span></label>{chartMissing ? <p className="matching-message">Chart chưa đủ giờ và nơi sinh.</p> : null}{acceptMismatch ? <p className="matching-message">Lời mời đã thay đổi hoặc hết hạn. Mở lại link gốc để tiếp tục an toàn.</p> : null}{accept.isError && !chartMissing && !acceptMismatch ? <p className="matching-message">Radar chưa tính xong. Chưa có consent nào bị ghi nhận—bạn có thể thử lại.</p> : null}{chartMissing ? <Link className="matching-secondary" to="/birth-time">Hoàn thiện chart của mình</Link> : null}<button className="matching-primary" disabled={!consented || accept.isPending || acceptMismatch} onClick={() => accept.mutate()} type="button">{accept.isPending ? "Đang đọc hai chart…" : accept.isError && !acceptMismatch ? "Thử bật Radar lại" : "Đồng ý & bật Radar"}<ArrowRight /></button></section>}
+    {session.isLoading ? <section aria-live="polite" className="radar-owner-refresh"><Sparkle className="matching-pulse" /><p>Đang kiểm tra chart trên thiết bị này…</p></section> : missingSession ? <section className="radar-public__card"><Sparkle /><h2>Tạo chart riêng trước</h2><p>Chưa cần tài khoản. Phiên khách tự hết hạn sau 30 ngày không hoạt động.</p><Link className="matching-primary" to="/consent">Tạo chart của mình <ArrowRight /></Link></section> : session.isError ? <section className="radar-public__card"><h2>Chưa kiểm tra được chart.</h2><p>Dữ liệu chưa được gửi. Kiểm tra mạng rồi thử lại.</p><button className="matching-primary" onClick={() => void session.refetch()} type="button">Thử lại</button></section> : <section className="radar-public__card"><ShieldCheck /><h2>Bạn chỉ đồng ý cho Lá đọc lá số của hai người</h2><ul><li>Lá so lá số của bạn với lá số người mời để viết phần đọc.</li><li>Không chia sẻ ngày, giờ, nơi sinh với người kia.</li><li>Không dùng Radar để xếp hạng, quảng cáo hoặc tìm người lạ.</li></ul><label className="consent-check"><input checked={consented} onChange={(event) => setConsented(event.target.checked)} type="checkbox" /><span>Tôi đồng ý dùng lá số của mình cho đúng lần Radar này. Tôi hiểu đây là nội dung để tự ngẫm, không phải lời khuyên để ra quyết định.</span></label>{chartMissing ? <p className="matching-message">Chart chưa đủ giờ và nơi sinh.</p> : null}{acceptMismatch ? <p className="matching-message">Lời mời đã thay đổi hoặc hết hạn. Mở lại link gốc để tiếp tục an toàn.</p> : null}{accept.isError && !chartMissing && !acceptMismatch ? <p className="matching-message">Chưa xem được kết quả. Bạn chưa đồng ý gì cả, có thể thử lại.</p> : null}{chartMissing ? <Link className="matching-secondary" to="/birth-time">Hoàn thiện chart của mình</Link> : null}<button className="matching-primary" disabled={!consented || accept.isPending || acceptMismatch} onClick={() => accept.mutate()} type="button">{accept.isPending ? "Đang đọc hai chart…" : accept.isError && !acceptMismatch ? "Thử bật Radar lại" : "Đồng ý & xem kết quả"}<ArrowRight /></button></section>}
   </main>;
 }
 
 // States this result's own expiry: results created before the 24-hour rule keep their 30 days.
 function RadarPrivateRetentionNote({ expiresAt }: { expiresAt?: string | null }) {
-  return <section className="radar-consent-note radar-retention-note" role="note"><LockKey /><p><strong>{expiresAt ? `Bản đọc này tự xoá lúc ${formatRadarExpiry(expiresAt)}.` : "Bản đọc này tự xoá khi hết hạn."}</strong><br />Tới lúc đó, rời trang vẫn mở lại được trong “Những lần check gần đây”. Sau giờ đó bản đọc không mở lại được nữa và được xoá hẳn khỏi máy chủ trong đợt dọn dữ liệu định kỳ. Muốn xoá ngay, bấm nút bên dưới.</p></section>;
+  return <section className="radar-consent-note radar-retention-note" role="note"><LockKey /><p><strong>{expiresAt ? `Bản đọc này tự xoá lúc ${formatRadarExpiry(expiresAt)}.` : "Bản đọc này tự xoá khi hết hạn."}</strong><br />Tới lúc đó, rời trang vẫn mở lại được trong “Những người bạn đã xem gần đây”. Sau giờ đó bản đọc không mở lại được nữa và được xoá hẳn khỏi máy chủ trong đợt dọn dữ liệu định kỳ. Muốn xoá ngay, bấm nút bên dưới.</p></section>;
 }
 
 function RadarResultFooter({ ownerView, mode }: { ownerView: boolean; mode?: RadarResult["mode"] }) {
@@ -186,11 +187,11 @@ function RadarResultFooter({ ownerView, mode }: { ownerView: boolean; mode?: Rad
   return <>
     <section className="radar-next-step">
       <p className="eyebrow">Tiếp theo</p>
-      <h2>Muốn check thêm một kết nối?</h2>
-      <p>Mỗi bản đọc là riêng cho đúng hai chart. {mode === "private_check" ? "Bản check kín nằm trong lịch sử tới giờ tự xoá ghi ở trên." : "Kết quả cũ vẫn nằm trong lịch sử cho tới khi bạn xóa hoặc hết hạn."}</p>
+      <h2>Muốn xem thêm một người?</h2>
+      <p>Mỗi bản đọc chỉ dành cho hai lá số này. {mode === "private_check" ? "Bản đọc nằm trong lịch sử tới giờ tự xoá ghi ở trên." : "Kết quả cũ vẫn nằm trong lịch sử cho tới khi bạn xóa hoặc hết hạn."}</p>
       <div>
-        <Link className="matching-primary" to="/radar/start">Check thêm một người <ArrowRight /></Link>
-        <Link className="matching-secondary" to={historyUrl}>Xem các lần check</Link>
+        <Link className="matching-primary" to="/radar/start">Xem thêm một người <ArrowRight /></Link>
+        <Link className="matching-secondary" to={historyUrl}>Xem lại kết quả cũ</Link>
       </div>
     </section>
     <AppNav />
@@ -215,13 +216,14 @@ export function RadarResultView({ result, onWithdraw, withdrawing = false, actio
         <p className="radar-tier__reason">{signature.summary}</p>
         <h1>{signature.headline}</h1>
         {result.metadata?.voice_label ? <small className="radar-reading-voice">Giọng đọc bạn chọn · {result.metadata.voice_label}</small> : null}
-        {result.metadata?.precision_note ? <small className="radar-reading-precision"><LockKey /> {result.metadata.precision_note}</small> : null}
+        {result.metadata?.basis_note ? <small className="radar-reading-precision"><LockKey /> {result.metadata.basis_note}</small> : null}{result.metadata?.precision_note ? <small className="radar-reading-precision"><LockKey /> {result.metadata.precision_note}</small> : null}
       </section>
       {signature.areas?.length ? <ul aria-label="Từng mảng" className="radar-areas">{signature.areas.map((area) => <li className={`is-${area.level}`} key={area.key}>
         <span>{area.label}</span><strong>{area.level_label}</strong>
         <p>{area.note}</p>
       </li>)}</ul> : null}
       <RadarReadable sections={sections} />
+      {ownerView && result.request_id ? <RadarAsk requestId={result.request_id} /> : null}
       {ownerView ? <RadarTarotBridge /> : null}
       <ReadingDisclaimer>{result.disclaimer}</ReadingDisclaimer>
       {ownerView && result.mode === "private_check" ? <RadarPrivateRetentionNote expiresAt={result.expires_at} /> : null}
@@ -244,7 +246,7 @@ export function RadarResultView({ result, onWithdraw, withdrawing = false, actio
       <h1>{signature.headline}</h1>
       <p>{signature.summary}</p>
       {result.metadata?.voice_label ? <small className="radar-reading-voice">Giọng đọc bạn chọn · {result.metadata.voice_label}</small> : null}
-      {result.metadata?.precision_note ? <small className="radar-reading-precision"><LockKey /> {result.metadata.precision_note}</small> : null}
+      {result.metadata?.basis_note ? <small className="radar-reading-precision"><LockKey /> {result.metadata.basis_note}</small> : null}{result.metadata?.precision_note ? <small className="radar-reading-precision"><LockKey /> {result.metadata.precision_note}</small> : null}
     </section>
 
     <section aria-labelledby="radar-map-title" className="radar-compatibility-map">
