@@ -16,6 +16,38 @@ import { getCurrentMood, type MoodCheckIn, type MoodValue, type ReadingContent }
  */
 export const LIGHTER_MOOD: MoodValue = "Đuối";
 
+/** One of the day's offers that can stand in for the card's own action. */
+export type AlternativeAction = NonNullable<ReadingContent["lighter_action"]>;
+
+type AlternativeField = "lighter_action" | "slow_action" | "clear_action";
+
+/**
+ * Which offer a saved mood shows first, and the switch label that brings it back (#627, #701):
+ * Đuối a lighter action, Căng a slow one (pause before reacting), Lạc trôi one clear step.
+ * Rực and Chill keep the card's action. The server offers them all; only this device chooses.
+ */
+export const MOOD_ALTERNATIVES: Partial<Record<MoodValue, { field: AlternativeField; label: string }>> = {
+  "Đuối": { field: "lighter_action", label: "Xem việc nhẹ hơn" },
+  "Căng": { field: "slow_action", label: "Xem việc chậm lại" },
+  "Lạc trôi": { field: "clear_action", label: "Xem một bước rõ" },
+};
+
+/** True when the reading offers any mood alternative, so the saved mood is worth reading. */
+export function offersMoodAlternative(reading: ReadingContent | null | undefined): boolean {
+  return Boolean(reading?.lighter_action || reading?.slow_action || reading?.clear_action);
+}
+
+/** True when the card's action or any alternative can be kept today. */
+export function offersKeepableAction(reading: ReadingContent | null | undefined): boolean {
+  return Boolean(
+    reading?.experiment
+      || reading?.lighter_action?.experiment
+      || reading?.slow_action?.experiment
+      || reading?.clear_action?.experiment
+      || reading?.alone_action?.experiment,
+  );
+}
+
 /** Removed with the mood on every erase path (history clear, chart-derived wipe). */
 export const DAILY_ACTION_VIEW_KEY = "daily-action-view";
 
@@ -107,23 +139,41 @@ export function useReadOnlyToday(noteId: string | undefined): ReadOnlyToday {
 type DailyActionView = {
   /** Set only when the reader pressed the switch. */
   choice?: "original" | "lighter";
+  /** True when the reader asked for the action that needs no contact with anyone (#703). */
+  alone?: boolean;
 };
 
 const EMPTY: DailyActionView = {};
 
 /** A newly confirmed mood starts from its default action again. */
 export function resetDailyActionChoice(client: QueryClient, noteId: string): void {
-  if (client.getQueryData<DailyActionView>(dailyActionViewKey(noteId))?.choice) {
+  const view = client.getQueryData<DailyActionView>(dailyActionViewKey(noteId));
+  if (view?.choice || view?.alone) {
     client.setQueryData<DailyActionView>(dailyActionViewKey(noteId), EMPTY);
   }
 }
 
+/** The day's action that needs no contact with anyone (#703). */
+export type AloneAction = NonNullable<ReadingContent["alone_action"]>;
+
 export type DailyActionChoice = {
-  /** True when the lighter action is the one on screen. */
+  /** True when the saved mood's alternative (lighter, slow or clear) is the one on screen. */
   lighterShown: boolean;
+  /** The saved mood's alternative offer, or null when the mood has none or the reading lacks it. */
+  alternative: AlternativeAction | null;
+  /** Label of the switch that shows the alternative again. */
+  alternativeLabel: string;
   /** True when the reader can switch between the two actions. */
   canSwitch: boolean;
   switchAction: () => void;
+  /**
+   * The action that needs no contact with anyone, only when the action on screen (the card's own
+   * or the mood's alternative) is one the server says asks to contact someone (#703). Else null.
+   */
+  aloneAction: AloneAction | null;
+  /** True when the alone action is the one on screen. */
+  aloneShown: boolean;
+  switchAlone: () => void;
 };
 
 /** `confirmedMood` is the saved mood of this note; pass null while a check-in is unsaved. */
@@ -144,13 +194,28 @@ export function useDailyActionView(
     enabled: Boolean(noteId),
   });
   const view = data ?? EMPTY;
-  const canSwitch = Boolean(noteId && reading?.lighter_action) && confirmedMood === LIGHTER_MOOD;
+  const mapping = confirmedMood ? MOOD_ALTERNATIVES[confirmedMood] : undefined;
+  const alternative = (mapping && reading?.[mapping.field]) || null;
+  const canSwitch = Boolean(noteId && alternative);
   const lighterShown = canSwitch && view.choice !== "original";
+  const onScreen = lighterShown && alternative ? alternative.weight : "card";
+  const offered = noteId ? reading?.alone_action : null;
+  const aloneAction = offered && offered.replaces.includes(onScreen) ? offered : null;
+  const aloneShown = Boolean(aloneAction) && view.alone === true;
   return {
+    aloneAction,
+    aloneShown,
+    switchAlone: () => {
+      if (!aloneAction) return;
+      client.setQueryData<DailyActionView>(key, { ...view, alone: !aloneShown });
+    },
     lighterShown,
+    alternative: canSwitch ? alternative : null,
+    alternativeLabel: mapping?.label ?? MOOD_ALTERNATIVES["Đuối"]!.label,
     canSwitch,
     switchAction: () => {
       if (!canSwitch) return;
+      // A switch between the card's action and the mood's one starts without the alone action.
       client.setQueryData<DailyActionView>(key, { choice: lighterShown ? "original" : "lighter" });
     },
   };

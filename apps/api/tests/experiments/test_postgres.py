@@ -28,6 +28,7 @@ from app.domains.experiments.postgres import (
 )
 from app.domains.experiments.tables import DailyExperimentRow
 from app.domains.guest.tables import ConsentRow, GuestSessionRow
+from app.domains.readings import student_support
 from app.domains.readings.application import ReadingApplicationService
 from app.domains.readings.lighter_action import (
     CLEAR_PREFIX,
@@ -37,6 +38,7 @@ from app.domains.readings.lighter_action import (
     lighter_experiment_for,
 )
 from app.domains.readings.models import (
+    AloneActionProjection,
     BackgroundLens,
     ExperimentProjection,
     LighterActionProjection,
@@ -60,6 +62,7 @@ class ExperimentTarget:
     lighter: LighterActionProjection | None = None
     slow: LighterActionProjection | None = None
     clear: LighterActionProjection | None = None
+    alone: AloneActionProjection | None = None
 
 
 @pytest.fixture
@@ -196,6 +199,7 @@ async def _create_target(
         lighter=reading.active.lighter_action,
         slow=reading.active.slow_action,
         clear=reading.active.clear_action,
+        alone=reading.active.alone_action,
     )
 
 
@@ -640,3 +644,109 @@ async def test_pending_slow_and_clear_actions_are_not_offered_and_cannot_be_kept
                 expected_experiment_id=None,
                 expected_version=None,
             )
+
+
+ALONE_COPY = {
+    key: entry.text
+    for key, entry in copy_approval.load_registry().items()
+    if key.startswith(student_support.ALONE_PREFIX)
+}
+
+
+def _use_alone_copy(monkeypatch: pytest.MonkeyPatch, *, approved: bool, contact: bool) -> None:
+    """Lighter sentences approved; alone sentences approved or pending.
+
+    ``contact`` decides whether the card's other actions count as asking to reach someone.
+    """
+
+    entries: list[dict[str, str]] = []
+    for entry_id, text in {**LIGHTER_COPY, **ALONE_COPY}.items():
+        entry = {"id": entry_id, "category": "reading", "text": text, "status": "pending"}
+        if approved or entry_id in LIGHTER_COPY:
+            entry.update(
+                status="approved",
+                approver="codex",
+                date="2026-11-24",
+                digest=copy_approval.copy_digest(text),
+            )
+        entries.append(entry)
+    registry = copy_approval.parse_registry(
+        {"version": copy_approval.REGISTRY_VERSION, "entries": entries}
+    )
+    monkeypatch.setattr(copy_approval, "_runtime_registry", lambda: registry)
+    alone_texts = frozenset(ALONE_COPY.values())
+    monkeypatch.setattr(
+        student_support, "needs_contact", lambda text: contact and text not in alone_texts
+    )
+
+
+def _alone_draft(target: ExperimentTarget, action_key: str) -> ExperimentDraft:
+    return ExperimentDraft(
+        id=uuid4(),
+        guest_id=target.guest_id,
+        daily_note_id=target.daily_note_id,
+        revision_id=target.revision_id,
+        background_lens=BackgroundLens.WORK,
+        action_key=action_key,
+        created_at=NOW,
+        expires_at=NOW + timedelta(days=30),
+    )
+
+
+@pytest.mark.asyncio
+async def test_alone_action_is_offered_kept_and_read_back(  # type: ignore[no-untyped-def]
+    storage, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """#703: next to an action that asks to contact someone, a no-contact one can be kept."""
+
+    database, envelope, repository = storage
+    _use_alone_copy(monkeypatch, approved=True, contact=True)
+    target = await _create_target(database, envelope)
+    alone = target.alone
+    assert alone is not None and alone.experiment is not None
+    assert alone.action in ALONE_COPY.values()
+    assert "card" in alone.replaces and "light" in alone.replaces
+    others = {target.projection.action_key}
+    if target.lighter is not None and target.lighter.experiment is not None:
+        others.add(target.lighter.experiment.action_key)
+    assert alone.experiment.action_key not in others
+
+    chosen = await repository.choose_with_consent(
+        _alone_draft(target, alone.experiment.action_key),
+        consent_version="action-experiment-v1",
+        expected_experiment_id=None,
+        expected_version=None,
+    )
+    assert chosen.projection == alone.experiment
+    async with database.sessions() as session:
+        row = await session.get(DailyExperimentRow, chosen.id)
+    assert row is not None and alone.action not in row.payload_ciphertext
+
+    # The kept action still reads back after its sentence leaves the registry.
+    _use_alone_copy(monkeypatch, approved=False, contact=True)
+    current = await repository.current(target.guest_id, now=NOW + timedelta(minutes=1))
+    assert current is not None and current.projection == alone.experiment
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(("approved", "contact"), [(False, True), (True, False)])
+async def test_alone_action_not_offered_cannot_be_kept(  # type: ignore[no-untyped-def]
+    storage, monkeypatch: pytest.MonkeyPatch, approved: bool, contact: bool
+) -> None:
+    """Pending sentences, or a card with no contact action: no offer, and a forged key fails."""
+
+    database, envelope, repository = storage
+    _use_alone_copy(monkeypatch, approved=approved, contact=contact)
+    target = await _create_target(database, envelope)
+    assert target.alone is None
+    for text in ALONE_COPY.values():
+        forged = lighter_experiment_for(target.revision_id, text)
+        with pytest.raises(ExperimentTargetNotFound):
+            await repository.choose_with_consent(
+                _alone_draft(target, forged.action_key),
+                consent_version="action-experiment-v1",
+                expected_experiment_id=None,
+                expected_version=None,
+            )
+    kept = await _choose(repository, target)
+    assert kept.projection == target.projection
