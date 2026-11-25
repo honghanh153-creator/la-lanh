@@ -1,98 +1,94 @@
 # Bàn giao PR #933: nội dung sinh viên tuần 2
 
-Cập nhật 25.11.2026, Codex xử lý phản biện Antigravity vòng 1. Cỡ M.
+Cập nhật 25.11.2026, Codex xử lý phản biện Antigravity vòng 2, vòng cuối. Cỡ M.
 [PR #933](https://github.com/honghanh153-creator/la-lanh/pull/933) thực hiện
-[task #704](https://github.com/honghanh153-creator/la-lanh/issues/704), là phần nội dung của
+[task #704](https://github.com/honghanh153-creator/la-lanh/issues/704), phần nội dung của
 [#502 việc 4](https://github.com/honghanh153-creator/la-lanh/issues/502) trong
 [hub tuần 2 #686](https://github.com/honghanh153-creator/la-lanh/issues/686).
 Phụ thuộc [#699](https://github.com/honghanh153-creator/la-lanh/issues/699), kho việc theo sức.
 
-Nhánh `agent/codex/issue-704`. Bản gốc đã nằm trong PR tại
-`800294685d41664d626457a5238414eac8931616`, base `d3818f59b47cccccd8d59560fcb5e3d9625a294c`.
-Lượt sửa vòng 1 này chỉ nằm trong checkout, chưa commit/push theo yêu cầu người dùng.
-Không có verdict duyệt hoặc author check cho lượt sửa này. Không merge hay phát hành.
+Nhánh `agent/codex/issue-704`. Lúc bắt đầu vòng 2, HEAD checkout và head PR cùng là
+`0c6cebaff9c520ad5141f765b08af5359a290bda`, base PR `d3818f59b47cccccd8d59560fcb5e3d9625a294c`.
+Bản gốc `800294685d41664d626457a5238414eac8931616` và bản sửa vòng 1 đã được phiên điều phối
+đưa lên PR. Vì vậy ghi chú vòng 1 còn ở checkout trong bàn giao cũ đã hết đúng.
+Bản sửa vòng 2 ghi dưới đây chưa commit/push theo yêu cầu người dùng. Chưa có CI, verdict hoặc
+`Author check: PASS` cho diff vòng 2. Không lấy kiểm tra của hai commit trước làm biên nhận cho diff này.
 
-## Nguồn và phối hợp
+## Nguồn, phối hợp và quyết định
 
-- Đã đọc `AGENTS.md`, luật owner R1–R17, quy trình cộng tác, phát triển sản phẩm và checklist quyết định.
-- Đã đọc lại PR #933, comment phản biện `7164632749`, issue #704, #699, #502, #686 qua connector GitHub.
-  #699 còn mở tại lần kiểm. Không suy ra phụ thuộc đã hoàn tất từ việc mã đã có trong checkout.
-- `collaboration-inbox.mjs` không kết nối được GitHub qua CLI. Nguồn GitHub trên là lần đọc trực tiếp
-  các việc liên quan, không thay thế được toàn bộ inbox/WIP.
-- `collab-pr-claim.mjs --claim 933` thiếu session ở lần đầu; thử lại với session của lượt sửa bị EPERM
-  khi ghi khóa chung. Lệnh đọc trạng thái thấy claim của `coordinator`. Comment PR ghi Claude điều phối
-  và Codex sửa vòng tiếp theo, khớp yêu cầu người dùng. Không đổi hay cưỡng chế nhả claim.
-- Đọc PRD F1.2, SRS phần Daily, US-03 AC18 và chuẩn tiếng Việt đời thường; US-04 AC10/AC14;
-  `qa/personas/judge-rubric.md`, `docs/legal/store-privacy-data-map.md` và cổng content/UX release.
-- Đối chiếu `copy_approval.py`, `daily_psychology.py`, `lighter_action.py`, `action_tags.py`,
-  `companion.py`, `companion_pool.py`, `voice.py`, gate rewrite và các test liên quan.
-- Q1/Q3/Q4/Q5 không phát sinh thay đổi cần owner trong bản sửa này. Q2 có, nên câu vẫn pending.
-  G1/G3/G6/G7/G8 có bằng chứng dưới đây; G2 thiếu ảnh; G4/G5 không đổi kiến trúc, API hay FE;
-  G9 chưa phát hành; G10 không thêm dịch vụ, chi phí hay dependency.
+- Đã đọc `AGENTS.md`, luật R1–R17, quy trình cộng tác, phát triển sản phẩm và checklist quyết định.
+- Đã đọc PR #933 và hai comment [phản biện vòng 1](https://github.com/honghanh153-creator/la-lanh/pull/933#issuecomment-7164632749),
+  [trả lời vòng 1 được điều phối đăng lại](https://github.com/honghanh153-creator/la-lanh/pull/933#issuecomment-7165022895)
+  qua connector GitHub; phản biện vòng 2 do người dùng cung cấp là phạm vi lượt sửa này.
+- Đã đọc issue #704, #699, #502, #686 và comment kế hoạch phần 2 của #699. #699 vẫn mở tại lần kiểm
+  ngày 25.11.2026; không suy ra phụ thuộc đã xong vì có mã trong checkout.
+- `node scripts/collaboration-inbox.mjs` được gọi lại, exit 1 vì CLI không kết nối GitHub. Connector
+  đọc được các mục liên quan, chưa thay thế toàn bộ inbox/WIP. Lượt trước không ghi được khóa PR do
+  EPERM, claim thuộc `coordinator`; không lấy hay nhả khóa của phiên khác. Người dùng giao rõ Codex
+  sửa checkout này, Claude vẫn điều phối xuất bản. Không sửa script hoặc chuyển thư mục khóa.
+- Nguồn sản phẩm: PRD F1.2; SRS phần Content Generation; product plan tầng Daily;
+  US-03 AC18, §22 và DoD; US-04 AC10/AC14; chuẩn tiếng Việt đời thường;
+  `qa/personas/judge-rubric.md`; `docs/legal/store-privacy-data-map.md`.
+- Đối chiếu kho câu với `copy_approval.py`, `daily_psychology.py`, `companion.py`, `voice.py`,
+  gate rewrite, `lighter_action.py`, `action_tags.py` và các test liên quan.
+- Q1/Q3/Q4/Q5 không phát sinh quyết định owner trong diff sửa cục bộ. Q2 có: giữ toàn bộ câu pending.
+  Chọn giữ mạch nhờ người bạn xem hồ sơ vì khớp meaning, takeaway và lời Lá hiện có. Phương án tự nộp
+  bỏ góp ý sẽ đổi mạch toàn thẻ. Không đổi meaning hoặc lời Lá chỉ để qua kiểm tra.
 
-Không sửa `.github`, các script `collab-*` hay file luật owner. Bàn giao này là bản ghi cục bộ cho
-phiên điều phối đăng lại sau khi kiểm tra; chưa đăng comment, trả lời thread hay đổi nhãn PR.
+Phạm vi sửa vòng 2: `apps/api/app/domains/content/copy_registry.json`,
+`apps/api/app/domains/readings/normal_action_tags.json`,
+`apps/api/tests/content/test_student_daily_situations.py` và bàn giao này.
+Không đổi `.github`, script `collab-*` hay file luật owner. Chưa đăng comment hoặc đổi nhãn/thread;
+phiên điều phối cần đăng bàn giao vào Issue/PR khi xuất bản diff.
 
-## Trả lời từng điểm phản biện
+## Trả lời từng điểm phản biện vòng 2
 
-| Điểm | Kết luận | Sửa và bằng chứng | Còn thiếu |
+| Điểm | Kết luận | Đã sửa và bằng chứng | Còn thiếu |
 |---|---|---|---|
-| 1, P1: hồ sơ đóng nhưng lại kiểm kết quả cách cũ | Đồng ý | `copy_registry.json`: đổi cả bộ `defend-old-choice.13` thành đã gửi vài nơi chưa có hồi âm, giữ cách viết vì tiếc công; action kiểm các lần gửi và sửa một chỗ cho lần tiếp. Đồng bộ digest normal trong `normal_action_tags.json`. | Duyệt câu chữ độc lập. |
-| 2, P1: chủ thể đổi ca và neo ở nhà | Đồng ý | Headline dùng "được đề nghị"; scene nêu lịch ca trùng giờ học và giờ hai bên chưa chốt. Slot pending `lighter.issue.changed-plan.02` đổi thành đi vài bước, bỏ điều kiện quanh nhà; cập nhật đúng digest của slot trong `lighter_action.py`, giữ thứ tự/nhóm body. | Duyệt lại slot nhẹ đã sửa cùng bundle. |
-| 3, P2: sát hạn mà chờ góp ý | Đồng ý, sửa theo mạch còn thời gian xin góp ý | Cảnh nói còn vài ngày, bản nháp đã đủ ý; action đặt giờ tự rà lại trước hạn, không cần lấy hồi âm làm điều kiện. Giữ chuyện hạn nộp trong phạm vi #704 và giữ mạch gửi bản nháp của meaning/takeaway/lời Lá hiện có. Đồng bộ digest normal. | Review nghĩa toàn thẻ, gồm việc nhẹ gấp máy. |
-| 4, P2: chọn bài sau ca làm | Đồng ý | Scene nói phân vân chưa chọn được phần bài; action chọn phần gần hạn nhất và gác phần chưa gấp. Bỏ cách nói gạch phần bài; đồng bộ digest normal. | Duyệt câu chữ độc lập. |
-| 5, P2: thiếu kiểm chứng/duyệt | Đồng ý | Chạy lại test ngoại tuyến và các cổng chạy được; bảng AC và danh sách thiếu ở dưới không đánh dấu phục vụ thật hay đủ AC3. | pnpm check, CI đúng head sửa, ảnh 360/390, 100 người giả trước/sau, duyệt 20 câu liên quan và phục vụ sau duyệt. |
-| 6, P2: trạng thái và selector bị mock che | Đồng ý với khoảng trống test | Thêm test pre-approval bắt buộc 12 phần và 8 slot pending, metadata duyệt trống. Test runtime bỏ các nhánh if có thể bỏ qua. Kiểm độ rõ và luật hành động nhẹ cho 8 slot. Thêm test selector với nguyên registry, mở 13 bundle trong bộ nhớ, không mock eligibility: mỗi bundle xuất hiện đúng một lần trong chu kỳ 13 lượt. Cả hai giọng đều được gọi gate rewrite; giới hạn đúng hợp đồng giọng giải thích bên dưới. | Test mở khóa là mô phỏng trong bộ nhớ, không phải duyệt thật hay bằng chứng phục vụ trên môi trường phát hành. |
-| 7, P3: bàn giao cũ và đường dẫn máy | Đồng ý | Viết lại file bàn giao này theo PR #933; phân biệt commit gốc và lượt sửa chưa commit, nối rõ #704/#502/#686, bỏ toàn bộ đường dẫn máy. | Phiên điều phối cần đăng bản ghi lên PR sau khi có bản sửa được xuất bản. |
+| 1, P2: mạch hồ sơ và hai việc chồng nhau | Đồng ý | `copy_registry.json`: scene nói hồ sơ trên máy đã đủ ý nhưng vẫn sửa trước khi gửi bạn xem giúp; action chỉ gửi bản hiện có cho người định nhờ. Bỏ đặt giờ tự rà lại, không lấy hồi âm làm điều kiện nộp. Giữ nhãn connection và đồng bộ digest ở `normal_action_tags.json`. Test render kiểm cùng meaning/takeaway/lời Lá ở mọi arena và hai giọng. | Biên nhận Codex duyệt chính chữ cuối cùng. |
+| 2, P2: AC và kiểm chứng còn trống | Đồng ý | Bảng AC và mục việc còn thiếu tách rõ test cục bộ với CI, vòng tự động và xác minh sau merge. Không đánh dấu AC1/AC3 đã xong. | pnpm check, CI/author check đúng head mới, ảnh 360/390 và 100 người giả thuộc vòng tự động sau khi điều phối đẩy; #699 và duyệt 20 mục còn chờ. Không commit/push trong lượt này. |
+| 3, P3: slot nhẹ duyệt lệch bị bỏ qua | Đồng ý | `test_unservable_student_parts_never_enter_runtime` kiểm `approved_copy` cho cả 8 slot. `_assert_student_unlock` kiểm slot có đủ key và không servable trước nhánh continue khi cả bộ còn pending. Thêm 16 ca cho 4 bộ × 2 slot × duyệt riêng/thiếu slot. | Không còn khoảng trống kiểm này trong phạm vi test. Đây là cổng CI, không phải thay đổi quy tắc phục vụ runtime. |
+| 4, P3: gọt câu hồ sơ và đổi ca | Đồng ý | Action dùng "Kiểm tra cách viết hồ sơ, chọn một chỗ sửa lại cho lần nộp tiếp theo."; đồng bộ digest. Scene dùng "đổi ca làm trùng lịch học", bỏ "đổi lịch ca". `cách`/`lịch` giữ neo nghĩa đúng hợp đồng hiện có; không nới gate. | Duyệt câu chữ cùng các phần còn lại. |
+| 5, P3: trạng thái bàn giao khi xuất bản | Đồng ý | Cập nhật vòng 1 đã xuất bản tại `0c6cebaf…`, phân biệt rõ diff vòng 2 chưa xuất bản. Giao phiên điều phối cập nhật SHA/CI/author check thực tế khi đẩy. Ghi riêng slot changed-plan.02 sửa từ vòng 1 còn pending, cần đối chiếu #699 trước mở. | Chỉ có thể điền SHA và biên nhận mới sau khi điều phối commit/push; không ghi giả giá trị tương lai. |
 
-Điểm 2 có một suy luận chưa đúng về mã: `daily_psychology.lead_scene()` không thay phần "Khi ở nhà".
-Nó thêm lead và viết thường chữ đầu của cảnh. Điều này không làm mất neo, nhưng vẫn khiến cảnh gượng;
-vì vậy vẫn sửa P1, không giữ neo cũ để dựa vào suy luận này.
+Vòng 1 đã xử lý các điểm nhân quả hồ sơ chưa hồi âm, chủ thể "được đề nghị đổi ca", bỏ neo ở nhà,
+chọn phần bài sau ca, khóa pending, kiểm hai giọng và xoay đủ 13 bộ. Vòng 2 giữ các sửa đó.
 
-Ở điểm 6, `_check_action` của Daily đòi ID daily và neo của việc thường, nên không dùng nó để ép
-việc nhẹ phải làm học/việc. Tám slot chạy `_check_clarity`, `has_observable_action`, `light_by_rule`,
-giới hạn ký tự và `within_five_minutes`. `test_issue_light_store.py` còn kiểm cả kho theo cùng rubric.
-
-Gate `evaluate_daily_rewrite` dùng ý nhắc Thẳng từ `companion.nudge_failures`; `voice.py` và chuẩn
-nội dung quy định Cà khịa dùng thẻ viết sẵn, không ghép từng phần từ Luna. Test nay gọi gate ở cả
-hai giọng, không bỏ qua ROAST: cả bốn thẻ Thẳng đạt; Cà khịa của `changed-plan` và `defend-old-choice`
-trả đúng `daily_companion_off_brief` do câu Lá viết sẵn dùng chữ khác neo Thẳng. Hai Cà khịa còn lại
-đạt gate này. Không tuyên bố hai câu bị từ chối đã qua rewrite, không nới gate và không sửa lời Lá
-có sẵn để làm test xanh. Lượt `review_content_release` kiểm cả Direct/Roast cũng đạt; lượt đó kiểm
-nội dung đang phục vụ, không thay thế duyệt các câu pending mới.
-
-## Bốn bộ câu sau sửa
+## Bốn bộ câu sau sửa cuối
 
 Mỗi phần đều `category: reading`, `status: pending`, không có approver/date/digest duyệt.
-Hai nhóm dưới đây chỉ mô tả nội dung biên tập, không gắn nhãn hay suy ra nhóm của người dùng.
+Nhóm chỉ là mô tả biên tập, không gắn nhãn người dùng hay suy ra nghề nghiệp.
 
 | Nhóm | Bundle | Headline | Scene | Action và nhãn |
 |---|---|---|---|---|
-| Đang tìm việc | `daily.bundle.perfect-before-start.13` | Khi gần hạn nộp mà bạn vẫn sửa hồ sơ. | Khi còn vài ngày trước hạn nộp, bạn vẫn sửa hồ sơ trên máy dù bản nháp đã đủ ý. | Gửi bản nháp hồ sơ xin góp ý, đặt giờ tự rà lại trước hạn nộp. `normal / connection` |
-| Đang tìm việc | `daily.bundle.defend-old-choice.13` | Khi hồ sơ gửi đi chưa có hồi âm. | Khi hồ sơ gửi vài nơi chưa có hồi âm, bạn vẫn giữ cách viết cũ vì tiếc công sửa. | Kiểm tra kết quả các lần gửi hồ sơ, chọn một chỗ thay đổi cho lần nộp tiếp theo. `normal / study_work` |
-| Vừa học vừa làm | `daily.bundle.changed-plan.13` | Khi được đề nghị đổi ca trùng giờ học. | Khi được đề nghị đổi lịch ca trùng giờ học, bạn chưa biết hai bên sẽ chốt giờ nào. | Nói rõ giờ học cần giữ và đề xuất giờ khác để hai bên chốt ca mới. `normal / boundary` |
+| Đang tìm việc | `daily.bundle.perfect-before-start.13` | Khi gần hạn nộp mà bạn vẫn sửa hồ sơ. | Khi hồ sơ trên máy đã đủ ý, bạn vẫn sửa mãi dù định gửi bạn xem giúp trước hạn nộp. | Gửi bản hồ sơ hiện có cho người bạn định nhờ xem giúp. `normal / connection` |
+| Đang tìm việc | `daily.bundle.defend-old-choice.13` | Khi hồ sơ gửi đi chưa có hồi âm. | Khi hồ sơ gửi vài nơi chưa có hồi âm, bạn vẫn giữ cách viết cũ vì tiếc công sửa. | Kiểm tra cách viết hồ sơ, chọn một chỗ sửa lại cho lần nộp tiếp theo. `normal / study_work` |
+| Vừa học vừa làm | `daily.bundle.changed-plan.13` | Khi được đề nghị đổi ca trùng giờ học. | Khi được đề nghị đổi ca làm trùng lịch học, bạn chưa biết hai bên sẽ chốt giờ nào. | Nói rõ giờ học cần giữ và đề xuất giờ khác để hai bên chốt ca mới. `normal / boundary` |
 | Vừa học vừa làm | `daily.bundle.decision-fatigue.13` | Khi mệt sau ca, bài còn nhiều phần. | Khi mệt sau ca làm, bạn phân vân chưa chọn được phần bài nào dù chưa cần quyết ngay. | Chọn phần bài gần hạn nộp nhất để làm trước, gác lại các phần chưa gấp. `normal / study_work` |
 
 | Bundle issue | Slot nhẹ .01 | Slot nhẹ .02 | Đối chiếu nghĩa |
 |---|---|---|---|
-| `perfect-before-start` | Duỗi vai/cổ một phút, body | Gấp máy, thở năm hơi, rest | Máy và bản nháp có trong scene; còn vài ngày, việc nghỉ không yêu cầu chờ người khác. |
-| `defend-old-choice` | Uống nước/thở chậm, body | Ngồi yên hai phút, rest | Nghỉ trước khi xem cách cũ/cách mới; không dựng người tranh luận. |
-| `changed-plan` | Nghỉ ba phút, rest | Đi vài bước rồi nghỉ, body | Cả hai đều hoãn xếp lại khi giờ mới chưa chốt, không đòi đang ở nhà. |
-| `decision-fatigue` | Hoãn chọn năm phút/rửa mặt, body | Nhắm mắt một phút, rest | Cảnh nói chưa cần quyết ngay; không bắt đầu thêm bài hay ép chọn khi nghỉ. |
+| `perfect-before-start` | Duỗi vai/cổ một phút, body | Gấp máy, thở năm hơi, rest | Scene có hồ sơ trên máy; nghỉ ngắn không đòi chờ hồi âm. |
+| `defend-old-choice` | Uống nước/thở chậm, body | Ngồi yên hai phút, rest | Nghỉ trước khi rà cách viết; không dựng người tranh luận. |
+| `changed-plan` | Nghỉ ba phút, rest | Đi vài bước rồi nghỉ, body | Hai việc đều hoãn xếp lại khi giờ mới chưa chốt, không cần đang ở nhà. |
+| `decision-fatigue` | Hoãn chọn năm phút/rửa mặt, body | Nhắm mắt một phút, rest | Cảnh chưa cần quyết ngay; không bắt đầu thêm bài hay ép chọn khi nghỉ. |
 
-Cả tám slot vẫn pending. Chỉ `.changed-plan.02` đổi chữ/digest trong lượt này. Slot đó chưa được duyệt
-ở head gốc; việc sửa không thay câu đã phục vụ. Không thêm, đảo thứ tự hay đổi nhóm hình catalog.
+Cả tám slot vẫn pending. `lighter.issue.changed-plan.02` đã đổi chữ/digest trong vòng 1 tại
+`0c6cebaf…`, gồm catalog `lighter_action.py`; vòng 2 không sửa slot hay catalog đó. Vì #699 chưa chốt,
+reviewer cần đối chiếu câu và pin với #699 trước khi duyệt mở, giữ thứ tự/nhóm hình.
+`EXTRA_LINE_SELECTION_ENABLED` vẫn False; không bật các lời Lá bổ sung pending.
 
-`EXTRA_LINE_SELECTION_ENABLED` vẫn False. Các câu Lá bổ sung pending nói gọi món, so giá, so hai tuần,
-làm ba tuần hoặc để nháp một tuần không được bật cho bốn bộ mới. Việc bật cần review ghép nghĩa riêng.
+Gate `evaluate_daily_rewrite` dùng neo nudge của giọng Thẳng. `voice.py` phục vụ thẻ Cà khịa viết sẵn,
+không ghép từng phần từ Luna. Test gọi gate cả hai giọng: Thẳng đạt ở bốn bộ; Cà khịa của changed-plan
+và defend-old-choice trả đúng `daily_companion_off_brief` vì chữ lời Lá khác neo Thẳng; hai bộ còn lại
+đạt. Không nới gate, không sửa lời Lá cũ và không gọi hai kết quả bị từ chối là đã đạt rewrite.
 
 ## Kiểm chứng cục bộ ngày 25.11.2026
 
-Dependency dùng môi trường Python đã cài sẵn. Các lệnh Python dưới đây chạy trực tiếp ngoại tuyến theo
-yêu cầu của người dùng, không gọi API trả phí, không tải gói hay sửa lockfile. Đây không phải receipt
-của test guard/author check. Không đổi vị trí khóa chung. Lệnh nặng cần khóa và lượt CI còn thiếu ở dưới.
+Dùng Python/dependency đã cài, chạy ngoại tuyến, không tải gói, sửa lockfile hay gọi API trả phí.
+Lệnh dưới chạy trực tiếp theo yêu cầu người dùng, không phải receipt test guard hoặc author check.
 
-Chạy từ `apps/api`:
+Từ `apps/api`:
 
 ```sh
 .venv/bin/python -m pytest \
@@ -105,12 +101,13 @@ Chạy từ `apps/api`:
   tests/readings/test_action_tags.py -o addopts='' -q --tb=short
 ```
 
-Kết quả cuối: **4.276 passed**, exit 0. File sinh viên có 107 ca, tăng 5 ca so với bản gốc.
-Lượt đầu phát hiện scene thiếu neo chọn và action mở đầu không thuộc động từ của gate; đã sửa câu,
-không nới gate. Fixture chu kỳ ban đầu bắt đầu giữa hai chu kỳ nên lặp; đã căn đầu chu kỳ 13 lượt
-đúng `axis_slot`, không thay thuật toán chọn trong sản phẩm.
+Kết quả cuối: **4.292 passed**, exit 0. File sinh viên có **123 ca**, thêm 16 so với vòng 1.
+Trước sửa cổng, chạy riêng `-k light_slot_changes_while_bundle_is_pending` cho **16 failed** với
+`DID NOT RAISE`; sau sửa cả 16 ca xanh trong bộ trên. Dữ liệu duyệt chỉ được dựng trong bộ nhớ.
+Một lượt gọt câu thiếu neo và một lượt bị luật khẳng định quá khứ từ chối; đã sửa câu rồi chạy lại
+đến xanh, không đổi chuẩn/gate hoặc bỏ test.
 
-Các lệnh sau đều đạt, exit 0, chạy từ `apps/api`:
+Các lệnh kiểm còn lại, chạy từ `apps/api`:
 
 ```sh
 .venv/bin/python -m scripts.grammar_build --check
@@ -118,77 +115,85 @@ Các lệnh sau đều đạt, exit 0, chạy từ `apps/api`:
 .venv/bin/python -m scripts.audit_content_matrix
 .venv/bin/python -m scripts.review_content_release
 .venv/bin/python -m scripts.persona_validate
-.venv/bin/ruff check app/domains/readings/lighter_action.py tests/content/test_student_daily_situations.py
-.venv/bin/ruff format --check app/domains/readings/lighter_action.py tests/content/test_student_daily_situations.py
+.venv/bin/ruff check tests/content/test_student_daily_situations.py
+.venv/bin/ruff format --check tests/content/test_student_daily_situations.py
 .venv/bin/python -m mypy tests/content/test_student_daily_situations.py
 ```
 
-Audit giữ 630 Daily variants, 23 relationship concepts, 8 Radar themes; clarity ratchet đạt.
-Review Direct và Roast: mỗi lượt 10 người giả/30 bài, không critical/high hoặc medium follow-up.
-Đây là kiểm cục bộ đang phục vụ, không phải bộ 100 người giả của #502 hay điểm tăng của #708.
-Mypy không có lỗi; có note cấu hình override `prometheus_client` không dùng.
+Tất cả đạt, exit 0. Audit giữ 630 Daily variants, 23 relationship concepts, 8 Radar themes.
+Mypy có note override `prometheus_client` không dùng, không có lỗi. Content review là kiểm nội dung
+đang phục vụ và clarity ratchet, không thay biên nhận duyệt chữ pending hoặc bộ 100 người giả.
 
-Từ root repo, ba lệnh sau đạt: `node scripts/verify-no-mock-runtime.mjs`,
-`node scripts/verify-privacy.mjs`, `node scripts/verify-mobile-config.mjs`.
-`git diff --check` đạt. Đối chiếu registry với HEAD gốc bằng Python: đúng 11 entry pending đổi chữ,
-không đổi tập ID, mọi entry approved giữ nguyên. Daily fingerprint trước/sau cùng `ac130cb3`.
+Từ root repo:
+
+```sh
+node scripts/verify-no-mock-runtime.mjs
+node scripts/verify-privacy.mjs
+node scripts/verify-mobile-config.mjs
+git diff --check
+```
+
+Cả bốn đạt, exit 0. Đối chiếu registry với HEAD đầu vòng 2: đúng 4 entry pending đổi chữ, tập ID và
+mọi entry approved giữ nguyên; 12 phần sinh viên và 8 slot vẫn pending. Hai digest normal thay đổi
+khớp chữ mới, nhóm hình giữ nguyên. Không đổi nhãn dựa trên nội dung người đọc.
 
 ## AC và ba cổng chất lượng
 
-| AC | Bằng chứng đã có | Phần chưa hoàn tất |
+| AC | Bằng chứng cục bộ | Phần chưa hoàn tất |
 |---|---|---|
-| AC1 | Bốn bộ cho hai nhóm; normal + hai light mỗi bộ; test inventory, mọi arena/hai giọng; test xoay cạnh 12 bộ cũ. | Phụ thuộc #699, duyệt đồng bộ 12 phần + 8 light; kiểm phục vụ thật sau duyệt. |
-| AC2 | Câu điều kiện, không gán thiếu tiền/thất nghiệp, không dự đoán trúng tuyển; không thêm input hoặc phân nhóm. | Review nghĩa độc lập trên bản sửa cuối. |
-| AC3 | Tất cả 20 câu liên quan còn pending; test trạng thái tường minh, clarity và gate; sửa bốn điểm câu chữ. | Biên nhận Codex duyệt chính chữ cuối cùng, cập nhật pin sau duyệt theo quy trình. Không tự duyệt trong lượt sửa. |
-| AC4 | Kiểm kê trường/ID/digest/cỡ/nhóm hình, ca âm và runtime, 4.276 test liên quan đạt. | CI và author check đúng commit chứa bản sửa này. |
+| AC1 | Bốn bộ cho hai nhóm; normal + hai light mỗi bộ; render mọi arena/hai giọng; selector xoay cùng 12 bộ cũ. | #699, duyệt đồng bộ 12 phần + 8 light; xác minh phục vụ sau duyệt/merge trên môi trường được phép. |
+| AC2 | Câu có điều kiện, không gán thiếu tiền/thất nghiệp hay dự đoán trúng tuyển; không thêm input hoặc phân nhóm người dùng. | Reviewer xác nhận nghĩa toàn thẻ trên diff cuối. |
+| AC3 | Tất cả 20 mục pending, metadata duyệt trống; clarity/gate xanh; mạch hồ sơ một việc, đổi ca rõ chủ thể. | Biên nhận Codex duyệt chính chữ cuối; cập nhật pin và thay test pre-approval trong PR có biên nhận. Không tự đổi sang approved trong lượt sửa. |
+| AC4 | Trường/ID/digest/cỡ/nhóm hình, ca âm/dương, 16 ca duyệt lệch đỏ rồi xanh; 4.292 test liên quan đạt. | CI và author check đúng commit chứa diff vòng 2. |
 
-- Tài liệu/hợp đồng: không đổi schema hay luật chọn; bảng trên nối đủ AC và nêu phần thiếu.
-- Bảo mật: diff chỉ kho câu, digest/tag, test và bàn giao. Không đổi authentication/session ownership,
-  authorization/CSRF, endpoint/input/rate limit, key/crypto/log, dependency/network/storage,
-  lỗi trả ra, share/invite/token hay đường xóa. Pending không phục vụ, approved pin và fingerprint giữ nguyên.
-  Hỏng digest thì không lấy slot, không mở dữ liệu hoặc gọi dịch vụ thay thế. Chưa thấy P0/P1 bảo mật mới.
-- Privacy: các trường ngày/giờ/nơi sinh, tọa độ, mood, quan hệ, định danh/token và profile suy ra không đổi.
-  Không thu, suy ra, lưu, cache, log, xuất, chia sẻ hay gửi SDK thêm trường nào. Nội dung note là dữ liệu
-  suy ra theo luồng có sẵn, chưa nhận các câu pending này; không suy ra nghề, thu nhập hoặc nhóm sinh viên.
-  Mục đích, consent, retention, encryption, quyền truy cập/rút/xóa và bên nhận không đổi trong diff.
-  Suy luận kỹ thuật từ phạm vi diff: chưa có delta cho data map hay khai báo store; chưa kiểm console/binary release.
+G1/G3 có bảng câu và AC; G2 thiếu ảnh; G4/G5 không đổi kiến trúc, API hoặc FE; G6 có test cục bộ,
+thiếu full check/CI; G7/G8 rà dưới đây; G9 chưa phát hành; G10 không thêm dịch vụ/chi phí/dependency.
+DoD và các cổng còn thiếu không được coi là đã hoàn tất vì test cục bộ xanh.
 
-## Nguồn chính thức đã đối chiếu ngày 25.11.2026
+- Tài liệu/hợp đồng: không đổi schema, luật chọn hoặc API; hai nhãn digest khớp runtime đọc kho câu.
+- Bảo mật: không đổi auth/session ownership, authorization/CSRF, endpoint/input/rate limit,
+  crypto/key/log, dependency/network/storage, lỗi trả ra, share/invite/token hoặc đường xóa.
+  Entry pending không phục vụ; hỏng digest không mở slot hoặc gọi dịch vụ dự phòng.
+  Không phát hiện P0/P1 mới trong diff. Không thay quyền nền tảng hoặc lưu trữ native.
+- Privacy: không thêm trường thu/suy ra/gửi/lưu/cache/log/chia sẻ/xuất/SDK. Ngày/giờ/nơi sinh,
+  tọa độ, mood, quan hệ, định danh/token và profile suy ra giữ nguyên luồng hiện có.
+  Các nhóm sinh viên chỉ là nhãn test/biên tập, không lưu hoặc gán cho người đọc.
+  Mục đích, consent, retention, encryption, access/rút/xóa và bên nhận không đổi trong diff.
+  Suy luận từ phạm vi mã: chưa có delta khai báo store/data map; chưa kiểm console hoặc binary release.
 
-| Nguồn | Phần thực sự kiểm | Đối chiếu với thay đổi |
+## Nguồn chính thức đối chiếu lại ngày 25.11.2026
+
+| Nguồn và đường dẫn | Phần thực sự kiểm trong vòng 2 | Đối chiếu |
 |---|---|---|
-| [Luật 91/2025/QH15](https://vanban.chinhphu.vn/?docid=214590&pageid=27160), [CSDL Bộ Công an](https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803) | Thuộc tính: ban hành 26.06.2025, hiệu lực 01.01.2026; Bộ Công an ghi còn hiệu lực. Đọc thêm định nghĩa khoản 1 Điều 2 được trích trong [bài hướng dẫn của Bộ Công an](https://bocongan.gov.vn/chinh-sach-phap-luat/bai-viet/canh-giac-nguy-co-vi-pham-phap-luat-trong-bao-ve-du-lieu-ca-nhan-khach-hang-1787901431): dữ liệu giúp xác định cá nhân thuộc phạm vi bảo vệ. | Không coi note suy ra hoặc định danh tổng hợp là dữ liệu vô danh mặc nhiên. Không thêm luồng xử lý; chưa kết luận tuân thủ toàn bộ sản phẩm. |
-| [Nghị định 356/2025/NĐ-CP](https://vanban.chinhphu.vn/?docid=216387&pageid=27160), [bản Công báo](https://congbaocdn.chinhphu.vn/180507251028987904/2026/1/17/356signed-1768638052103952849513.pdf) | Hiệu lực 01.01.2026. Đọc Điều 3–4, trang PDF 2–3, về danh mục cơ bản/nhạy cảm; Điều 6, trang 5–6, về đồng ý phải kiểm chứng được và không đặt mặc định đồng ý. Bản PDF ký số đầu tiên không trích được chữ, đã chuyển sang bản Công báo có chữ. | Ngày/nơi sinh, định danh, quan hệ và dữ liệu nhạy cảm vẫn thuộc kiểm kê G8; bản sửa không thêm chúng. Không tạo consent mặc định hay biến thao tác đọc thành đồng ý thu dữ liệu. |
-| [Apple App Review 5.1.1(i)–(iii), (v)](https://developer.apple.com/app-store/review/guidelines/#privacy) | Chính sách privacy, consent, tối thiểu hóa dữ liệu, không buộc nhập thông tin không cần thiết. | Bộ câu không đòi khai nghề hay hoàn cảnh; không thêm quyền/SDK/input. Không viết lại privacy/consent trong app. |
-| [Google Play User Data](https://support.google.com/googleplay/android-developer/answer/10144311?hl=en) | Full Policy; Personal and Sensitive User Data; Prominent Disclosure and Consent. | Không thêm thu/chia sẻ dữ liệu hoặc dùng AI/SDK mới; không coi câu tình huống là lời đồng ý của người đọc. |
-| [Google Play Data safety](https://support.google.com/googleplay/android-developer/answer/10787469?hl=en) | Overview: khai báo phải đầy đủ và đúng hành vi app, gồm SDK. | Không có delta thu/chia sẻ trong diff. Chưa kiểm hoặc sửa khai báo trên console; cần đối chiếu binary trước phát hành. |
+| [Luật 91/2025/QH15](https://vanban.chinhphu.vn/?docid=214590&pageid=27160) | Trang thuộc tính Chính phủ: ban hành 26.06.2025, hiệu lực 01.01.2026. PDF ký số không trích được chữ; không dùng nó để tuyên bố đã rà toàn văn luật. | Nhận diện văn bản nền; không coi thay câu là kiểm chứng tuân thủ toàn sản phẩm. |
+| [Nghị định 356/2025/NĐ-CP](https://vanban.chinhphu.vn/?docid=216387&pageid=27160), [bản Công báo](https://congbaocdn.chinhphu.vn/180507251028987904/2026/1/17/356signed-1768638052103952849513.pdf) | Trang thuộc tính hiệu lực 01.01.2026; đọc Điều 3–4 trang PDF 2–3 về dữ liệu cơ bản/nhạy cảm và Điều 6 trang 5–6 về đồng ý kiểm chứng được, không mặc định đồng ý. | Bản sửa không thêm các trường đó, không biến đọc câu thành đồng ý thu dữ liệu. |
+| [Apple App Review 5.1.1(i)–(v)](https://developer.apple.com/app-store/review/guidelines/#privacy) | Privacy policy, consent/rút, tối thiểu hóa dữ liệu, quyền truy cập và đăng nhập/thông tin bắt buộc. | Không thêm quyền/SDK/input hoặc yêu cầu khai nghề/hoàn cảnh. Không viết mới chữ privacy/consent trong app. |
+| [Google Play User Data](https://support.google.com/googleplay/android-developer/answer/10144311?hl=en) | Full Policy, Prominent Disclosure & Consent Requirement: disclosure trước consent/permission, hành động đồng ý rõ ràng. | Không thêm thu/chia sẻ hay SDK; hành động đọc không thành consent. |
+| [Google Play Data safety](https://support.google.com/googleplay/android-developer/answer/10787469?hl=en) | Overview: nhà phát triển chịu trách nhiệm khai đầy đủ/chính xác, gồm SDK. | Không có delta thu/chia sẻ trong diff; cần đối chiếu binary/console trước phát hành. |
 
-Các nguồn web chỉ nhận truy vấn công khai về luật/chính sách và repo công khai, không dữ liệu người dùng.
-Phần luật chỉ kiểm các mục đã ghi, chưa rà toàn bộ điều khoản hoặc lịch sử sửa đổi. Nếu bản phát hành
-bật luồng thu dữ liệu mới, cần rà pháp lý chi tiết lại và owner quyết theo R2, không dùng bảng này làm duyệt bật.
+Truy vấn chỉ dùng luật/chính sách và repo công khai. Đây là kiểm các mục ghi trên, chưa rà toàn bộ luật,
+lịch sử sửa đổi hoặc tuân thủ của sản phẩm. Không dùng bảng làm quyết định bật luồng dữ liệu/phát hành.
 
-## Việc còn thiếu và điều kiện tiếp tục
+## Việc còn thiếu và trách nhiệm tiếp tục
 
-- `pnpm check`: đã gọi, exit 127 do không có `pnpm`. Chưa chạy bộ web/e2e/full check; không tải gói để lấp thiếu.
-- `collab-test-guard.mjs --wait-min 0 -- true`: EPERM khi tạo khóa chung. Vì vậy chưa chạy mô phỏng 100
-  người giả trước/sau qua guard; không đổi thư mục khóa. Chưa có báo cáo, điểm hay mức tăng 0,2.
-  #502 yêu cầu đo sau mỗi PR; #708 còn là việc riêng cho bốn nhóm. `persona_validate` không thay hai việc đó.
-- Ảnh/preview 360 và 390 px: CUA trả danh sách browser rỗng, báo browser access host unavailable.
-  Chưa có ảnh của câu sửa cuối hoặc kết luận về tràn dòng/font ứng dụng. Fixture cũ không phải bằng chứng mới.
-- CI đúng head và `Author check: PASS @ <SHA>` chỉ có thể ghi sau khi phiên điều phối commit/push bản sửa
-  và chạy kiểm. CI trên `80029468` không chứng minh bản sửa chưa commit này.
-- Reviewer phải đọc trọn bốn thẻ, meaning/takeaway/câu hỏi và hai giọng/lựa chọn nhẹ, rồi có biên nhận Codex
-  duyệt 12 phần cùng 8 slot. Khi đó cập nhật pin và thay test pre-approval trong chính PR có biên nhận;
-  không chỉ đổi pending để test qua. Test mô phỏng mở khóa không phải biên nhận này.
-- Sau duyệt và merge cần xác minh phục vụ normal/light trên môi trường được phép, giữ thẻ đã mở ổn định.
-  Phát hành ra người dùng thật, merge main/deploy vẫn là khoảng trống cần owner theo R2/R12.
-- Chi phí/dịch vụ/quyền mới, chữ privacy/consent/crisis/safety và bật thu dữ liệu cá nhân mới không phát sinh
-  trong bản sửa. Nếu bước tiếp theo cần chúng thì ghi việc cần owner, không tự quyết hoặc bật. Không tạo
-  lời đồng ý, chữ nhạy cảm hay quyết định phát hành trong lượt này.
-- #923, #705–#708 và các phần chip/lưu chip không được giải quyết bởi PR nội dung này. Không đóng #704
-  với tuyên bố AC1/AC3 đã hoàn tất khi các điều kiện trên còn thiếu.
+- Phiên điều phối xuất bản diff vòng 2 khi được giao; cập nhật SHA mới, liên kết CI và biên nhận đúng
+  head vào bàn giao/Issue/PR. Chưa có SHA mới hoặc kết quả CI để điền trong lượt này.
+- Theo ghi chú điều phối, `pnpm check`, CI/author check, ảnh preview 360/390 và mô phỏng 100 người giả
+  trước/sau là việc của vòng tự động sau khi đẩy. Chưa chạy/quan sát chúng trên diff vòng 2, chưa có
+  receipt, ảnh, điểm trước/sau hay mức tăng 0,2. Lỗi pnpm/browser/khóa ghi ở vòng 1 là lịch sử,
+  không khẳng định đã thử lại các bước đó trong vòng 2. `persona_validate` không thay bộ 100 người.
+- #699 vẫn mở; đối chiếu slot `lighter.issue.changed-plan.02` và digest catalog đã sửa vòng 1 trước duyệt mở.
+  Codex cần đọc trọn bốn thẻ, meaning/takeaway/câu hỏi, hai giọng và tám slot rồi cấp biên nhận chữ cuối.
+  Khi duyệt, cập nhật pin/test pre-approval trong PR có biên nhận; mô phỏng duyệt trong test không thay việc này.
+- Sau duyệt/merge, xác minh normal/light trên môi trường được phép và thẻ cũ giữ nguyên. Đây là bước
+  sau merge/duyệt, chưa thực hiện ở checkout pending. AC1/AC3 và DoD chưa được xác nhận hoàn tất.
+- Khoảng trống cần owner theo R2/R12: phát hành ra người dùng thật, merge main hoặc deploy chưa được
+  cấp trong task này. Giữ chưa phát hành. Không phát sinh chi phí/dịch vụ/quyền mới, chữ
+  privacy/consent/crisis/safety hoặc bật thu dữ liệu mới; nếu bước sau cần chúng, ghi owner action,
+  giữ cờ tắt và không tự quyết. Không viết lời đồng ý hoặc chữ nhạy cảm trong lượt sửa này.
+- #923, #705–#708, chip/lưu chip và các mốc toàn hub không hoàn tất bằng PR nội dung này.
+  Không đóng #704 với tuyên bố AC1/AC3 đã xong khi điều kiện trên còn thiếu.
 
 ## Còn khác ý
 
-Không có P1 còn khác ý. Giới hạn của gate rewrite đối với Cà khịa và mức đọc nguồn luật đã nêu rõ,
-không dùng chúng để tuyên bố đã qua các bước chưa kiểm.
+không có.

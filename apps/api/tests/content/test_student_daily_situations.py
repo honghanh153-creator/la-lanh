@@ -138,6 +138,9 @@ def _assert_student_unlock(entries: dict[str, CopyEntry], monkeypatch: pytest.Mo
         )
         assert action_tags.tag_of(action_id, (_issue(bundle),)) == ActionTag("normal", shape)
         if not any(entries[key].servable for key in part_ids):
+            for key in _light_ids(bundle):
+                assert key in entries, f"{bundle}: missing light slot"
+                assert not entries[key].servable, f"{key}: light slot approved without bundle"
             continue
         assert all(entries[key].servable for key in part_ids), f"{bundle}: partial approval"
         slots = light_slots(_issue(bundle))
@@ -208,6 +211,8 @@ def test_unservable_student_parts_never_enter_runtime(monkeypatch: pytest.Monkey
         assert tuple(entry.text for entry in parts) not in approved_bundles(_issue(bundle))
         for entry in parts:
             assert copy_approval.approved_copy(entry.id) is None
+        for key in _light_ids(bundle):
+            assert copy_approval.approved_copy(key) is None
 
 
 def test_pending_student_bundles_do_not_block_older_served_bundles(
@@ -252,6 +257,25 @@ def test_gate_rejects_partial_bundle_approval(
     for part in parts:
         entries[f"{bundle}.{part}"] = _approved(entries[f"{bundle}.{part}"])
     with pytest.raises(AssertionError, match="partial approval"):
+        _assert_student_unlock(entries, monkeypatch)
+
+
+@pytest.mark.parametrize("bundle", STUDENT_BUNDLES)
+@pytest.mark.parametrize("slot", (0, 1))
+@pytest.mark.parametrize("failure", ("approved", "missing"))
+def test_gate_rejects_light_slot_changes_while_bundle_is_pending(
+    bundle: str,
+    slot: int,
+    failure: str,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    entries = _pending_registry()
+    key = _light_ids(bundle)[slot]
+    if failure == "approved":
+        entries[key] = _approved(entries[key])
+    else:
+        del entries[key]
+    with pytest.raises(AssertionError, match="light slot"):
         _assert_student_unlock(entries, monkeypatch)
 
 

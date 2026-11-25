@@ -12645,13 +12645,13 @@
   {
    "id": "daily.bundle.perfect-before-start.13.scene",
    "category": "reading",
-   "text": "Khi còn vài ngày trước hạn nộp, bạn vẫn sửa hồ sơ trên máy dù bản nháp đã đủ ý.",
+   "text": "Khi hồ sơ trên máy đã đủ ý, bạn vẫn sửa mãi dù định gửi bạn xem giúp trước hạn nộp.",
    "status": "pending"
   },
   {
    "id": "daily.bundle.perfect-before-start.13.action",
    "category": "reading",
-   "text": "Gửi bản nháp hồ sơ xin góp ý, đặt giờ tự rà lại trước hạn nộp.",
+   "text": "Gửi bản hồ sơ hiện có cho người bạn định nhờ xem giúp.",
    "status": "pending"
   },
   {
@@ -12669,7 +12669,7 @@
   {
    "id": "daily.bundle.defend-old-choice.13.action",
    "category": "reading",
-   "text": "Kiểm tra kết quả các lần gửi hồ sơ, chọn một chỗ thay đổi cho lần nộp tiếp theo.",
+   "text": "Kiểm tra cách viết hồ sơ, chọn một chỗ sửa lại cho lần nộp tiếp theo.",
    "status": "pending"
   },
   {
@@ -12681,7 +12681,7 @@
   {
    "id": "daily.bundle.changed-plan.13.scene",
    "category": "reading",
-   "text": "Khi được đề nghị đổi lịch ca trùng giờ học, bạn chưa biết hai bên sẽ chốt giờ nào.",
+   "text": "Khi được đề nghị đổi ca làm trùng lịch học, bạn chưa biết hai bên sẽ chốt giờ nào.",
    "status": "pending"
   },
   {
