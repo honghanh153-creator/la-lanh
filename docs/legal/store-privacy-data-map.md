@@ -2,6 +2,8 @@
 
 Last reviewed: 2026-10-29 (data export delta; earlier local engineering delta 2026-10-09). This is an engineering disclosure map, not legal advice. Final answers must be reconciled against the signed release binary, production data flow, every SDK and the store console wording at submission time.
 
+Design-only addition: 2026-11-25, money context (#709), inventoried below. This addition does not re-certify the runtime, earlier deltas or current legal/store sources.
+
 ## Runtime posture
 
 - Product target: Capacitor iOS/Android app; web is a companion and QA reference.
@@ -185,6 +187,87 @@ Stored revisions, share artifacts and saved snapshots stay direct. Tarot stores 
 in the existing coarse `voice` column of the encrypted session row; sensitive questions store the
 default voice. Roast Tarot readings are never enqueued for provider rewrite, so no new field or prose
 reaches a third party. No new personal-data category is collected.
+
+## Money context design delta — 2026-11-25, not implemented
+
+Source of the design: [decision #709](../decisions/2026-11-25-goc-tien-bac-kien-truc.md). This section describes the selected future flow, not data already collected by the current release. #709 changes two documents only. The API enum, flags, storage, consent and UI are not implemented here. Runtime work must default off; enabling new collection needs owner approval under R2. Existing birth-profile or external-AI consent does not authorize money context. All new user copy stays `status: pending` until approved; #709 writes no privacy/consent/crisis/safety sentences for the app.
+
+### Inventory, purpose and recipients
+
+The closed input is `background_lens = money` plus exactly one `money_situation`: `tuition_or_rent_shortfall`, `month_end_shortfall`, `family_remittance`, or `costly_social_invitation`. No amount, free text, debt, income, assets, family profile, new birth/location field or additional age document is requested or inferred. Sending money home or declining an expensive outing does not establish a shortfall. The choice changes framing and small actions only, with the same chart facts, evidence, precision and confidence. Scope is `DAILY_NOTE`; other reading purposes reject money at the shared application boundary.
+
+| Data | Purpose | Selected processing/storage and access | Retention / erasure |
+|---|---|---|---|
+| Lens and one money situation | Personalize this requested Daily reading | Private POST body and session/request memory; then only in existing owner-bound encrypted plan/revision envelopes. No URL, preference store, analytics or plaintext situation column | Choice is not reused by default on a later request. Encrypted revisions create a history of money circumstances while retained; lifecycle below |
+| Derived money prose, normal and lighter actions | Display/replay exactly the accepted reading | Deterministic builder on the `apps/api` server, no LLM/AI. Private encrypted revision, owned response and memory only | With source revision; no extra retention from viewing or changing lens |
+| Saved money reading | Explicit private save | Exact revision in the existing encrypted saved-note mechanism; no plaintext financial label or offline device queue of money save IDs | Profile/saved-note lifecycle; unsave, money withdrawal and applicable profile/account erasure remove it |
+| `lens_variant`, `scope_key`, `plan_key`, `revision_key`, with owner/profile/source/date linkage | Replay, deduplication, isolation and identity validation | HMAC-SHA-256 with domain and owner/profile/scope binding using existing server `guest_hash_key`, in existing identity columns. No new situation index/dedupe table. Scheme/key version inside encrypted payload; public renderer/content/schema versions cannot distinguish a situation | With the corresponding plan/revision/projection. Derived, linkable personal metadata, not anonymous; repetition remains observable. DB plus key compromise permits guessing. No log, export, analytics or AI |
+| Money consent receipt: owner, purpose `money_context`, approved version, `accepted_at`, `revoked_at` | Prove the current authorization and stop processing on withdrawal | Reuse `consents`; version resolves to immutable owner-approved disclosure. No situation, amount or revision in receipt. No new schema assumed; task not yet created | Minimal accepted/revoked state follows existing consent/profile lifecycle, guest deletion cascades it. Evidence of the actual deployed lifetime is required before enablement; no separate indefinite content ledger |
+| Money withdrawal erasure marker | Re-apply deletion after backup restore | Existing erasure journal mechanism with a keyed root digest, closed purpose and time, no situation/prose. Restricted operational access, not analytics | Existing journal policy: default 15 days, at least the oldest restorable backup; dumps/host copies follow their own lifecycle. Actual settings/restore must be verified before enablement |
+| Export attachment containing the owner's still-exportable choice/prose/saved readings and minimal consent data | The person's access/provision right | Fresh private export, no retained server copy. Exclude internal plans, identifiers, HMACs, tokens and others' data. Fixed filename; native app-private temporary cache, cleared after system sheet including cancel/failure | Temporary app copy follows export cleanup; a user-chosen file outside the app cannot be erased by withdrawal. Cleanup failure is not deletion success |
+
+Application encryption does not remove personal-data status or store collection. The chosen design retains both the choice and prose; it must not be described as "money circumstances are never stored". It adds no separate preference history, financial analytics or adaptation. The no-storage and prose-only alternatives and their costs are in the decision. If implementation needs a situation or derived identifier outside existing lens storage, it must stop that part under AC2/condition 5 and record the owner gap. The minimal consent receipt is a separately inventoried new flow, not a place to store the situation.
+
+The current map names Hetzner Germany and Supabase Frankfurt as infrastructure processors. The money design reuses the approved hosting flow, subject to confirming the release configuration and processor arrangements. Hosting outside Vietnam still requires cross-border review. No money input, prose, HMAC, queued job or derived context goes to AI/provider/third-party SDK, even with general AI consent on. No new processor, permission, dependency, IAM or secret is proposed.
+
+### Downstream boundaries and device copies
+
+| Path | Selected rule before enablement |
+|---|---|
+| Private POST, GET detail/history/saved, export and associated errors | Owner/source authorization and `Cache-Control: no-store`; CSRF/trusted Origin for mutations/export, abuse limits, redacted validation errors. Client cache disabled, no ETag/304 reuse |
+| Client, WebView, web/PWA and native storage | Session/request-scoped memory only; clear/fence on session change, withdrawal or leaving flow. No Web Storage, IndexedDB, service worker, Capacitor Preferences or HTTP cache for money data, including derived pending-save IDs. Native cache/backup/temp files require separate MASVS/MASTG verification |
+| Share link/image | Never share a money revision or its hook/manifestation/action. Rebuild the baseline from allowed source facts and preview it for explicit confirmation. Share row must not reference money; server checks actual revision provenance, including a forged non-money lens. Keep capability revoke/no-index/no-referrer/no-cache controls |
+| Held experiment | Display money actions, but never persist their text/action key/money revision in held experiments. To hold a baseline action the user must open and confirm that baseline; never silently substitute |
+| Resonance feedback | No feedback row for money, even with only a revision ID/digest; no feedback buttons on money, no reattribution to baseline. Baseline consent/TTL/reset/revoke remain as before |
+| Logging, traces, errors and analytics | No situation, private prose, body, HMAC or exception containing them. No financial telemetry, tracking or advertising |
+
+US-03 requires working feedback and held-action controls on Notes; US-05 requires sharing a truthful snapshot of what was seen. The baseline preview and disabled money feedback/hold paths are explicit contract gaps that block enablement until G1 resolves them. #709 does not silently waive these AC or assign #711 a new storage decision. Privacy guards must check content leakage as well as DTO fields; removing `money_situation` alone is insufficient.
+
+### Consent, withdrawal, retention and age
+
+The missing consent work item must cover owner-approved copy/version, API accept/status/withdraw, UI disclosure before the first situation POST, independent server checks, race protection, deletion and tests. Proposed implementer is Claude, reviewer Codex; confirm assignment when creating the issue. No issue number exists in this handoff. Receipt writes are also off until authorized. Refusal/cancel records zero rows and leaves the baseline usable. A receipt must prove which immutable approved version the person accepted; silence/client flags/birth-profile or AI consent are not enough.
+
+Money withdrawal stops new processing and denies reads immediately, fences pending reads/writes, and removes money plans/revisions, projections, saved money notes and dependent app copies. It leaves baseline/chart/account data intact. Retry cleanup failures without claiming completion; use the existing erasure journal so restore cannot resurrect removed money data. Reacceptance never revives deleted revisions. This erasure choice is a product policy requiring approved disclosure, not a claim that every legal withdrawal mandates immediate physical deletion. Technical flag-off alone stops collection but retains authorized read/export/delete, unlike withdrawal.
+
+Automatic Daily history remains visible at most 24 hours, eligible for cleanup from 18 hours once it is no longer today's note, on a six-hour job. Current notes and saved notes have existing profile-lifetime exceptions; this is not a proven 24-hour physical deletion bound. Hidden roots retained for unexpired children must be checked; money creates no new share/experiment/feedback child. Legacy profiles without a clear effective retention policy cannot write money; do not accept history consent on the person's behalf. Viewing/changing angle does not extend retention. Backup/provider lifetimes and restoration are separate; incomplete evidence blocks enablement, even though no AI is called.
+
+Keep the current product-wide 18+ restriction and server birth-date check at onboarding/correction. Tuition does not imply age. Test direct requests, legacy profiles and birth-date edits without adding age/guardian documents. Any expansion to minors requires separate owner-approved work. The distinction between children under 16 in Vietnamese law and the product's under-18 restriction needs verification against the official consolidated text.
+
+### Proposed Apple App Privacy and Google Data Safety answers
+
+These are explicit engineering classifications for the selected design when enabled, subject to current official wording and the signed binary. They do not modify the current release's store submission. Financial categories are a conservative project judgment about the four situations; neither store is asserted to name these codes specifically.
+
+| Data | Apple category | Google category |
+|---|---|---|
+| Selected money situation | Financial Info → Other Financial Info | Financial info → Other financial info |
+| Stored derived prose/reading and saved money content | Other User Content / Other Data Types, plus financial classification where the prose reveals circumstances | App activity → Other user-generated content, plus financial classification where it reveals circumstances |
+| Linked metadata, private save state, minimal consent receipt/withdrawal marker | User ID; Product Interaction according to actual fields, with financial context where linkable | Personal info → User IDs; App activity → App interactions according to actual fields, with financial context where linkable |
+
+| Property | Answer for the proposed enabled flow |
+|---|---|
+| Collected | Yes, after flag/consent/owner gates; off means no new money collection |
+| Linked to You | Yes, including pseudonymous guest ownership; HMAC/encryption do not make it anonymous |
+| Purpose | App Functionality and Product Personalization; receipt/erasure metadata supports consent and rights, not financial profiling |
+| Tracking / advertising | No |
+| Google Shared | No proposed store sharing; verify infrastructure recipients satisfy the service-provider exception. Hosting transfers still appear in privacy/cross-border records |
+| Required / optional | Optional; baseline reading does not need money data |
+| Ephemeral processing | No; the selected design keeps encrypted plans/revisions beyond the request |
+| Encryption in transit | Required HTTPS/TLS; confirm the release environment before answering Yes in the console |
+| Deletion | Existing profile/account paths plus money-specific withdrawal deletion; require implementation, concurrency and restore evidence before answering operationally complete |
+
+### Privacy copy and official-source gate
+
+`/privacy` needs an addition before enablement covering data types, purposes, processors/destinations, encrypted history, metadata, retention, withdrawal/erasure/export and downstream limits. This is an editorial requirement, not new privacy text. Owner approval and a verifiable separate consent flow are required. Store answers, manifests, disclosure and actual behavior must be reconciled before release.
+
+This offline change reread [the existing legal source record](2026-10-26-game-line-dpia.md#1-nguồn-pháp-luật-đã-kiểm-tra-26102026), not the current official publications. Sources carried forward for revalidation:
+
+- [Law 91/2025/QH15](https://congbao.cdnchinhphu.vn/CongBaoCP/VanBan/2025/6/45578/57730-1-2025971-97291-2025-qh15.pdf), Articles 9, 11, 20–22 and 24: consent, collection, processing/cross-border impact records and children.
+- [Decree 356/2025/NĐ-CP, signed official copy](https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/01/356-nd.signed.pdf), Articles 4 and 6: sensitive/private circumstances and provable consent; also verify impact-record and exemption provisions.
+- [Consolidated Law on Children](https://datafiles.chinhphu.vn/cpp/files/vbpq/2025/9/108-vbhn-vpqh.pdf), Article 1: age distinction.
+- [Apple App Privacy](https://developer.apple.com/app-store/app-privacy-details/): collection retained beyond serving a request, financial/content categories, linkage and purposes.
+- [Google Data Safety](https://support.google.com/googleplay/android-developer/answer/10787469) and [User Data policy](https://support.google.com/googleplay/android-developer/answer/10144311): collection/sharing, ephemeral handling, service-provider exception, disclosure/consent and deletion.
+
+These links were not fetched on 2026-11-25 because the task forbids network access. AC4's current official-source verification and G1 external research remain incomplete. Before enablement, determine whether processing and cross-border impact records must be created or updated, name the responsible entity and retain evidence. Do not assume a small-business exemption for potentially sensitive data. The decision lists RFC/OWASP/Pydantic technical sources and the full test handoff. Pending legal/store checks, consent task, G1 downstream resolution, backup/native/restore evidence and owner approvals keep collection off.
 
 ## Official sources
 
