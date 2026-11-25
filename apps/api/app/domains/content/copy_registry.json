@@ -12635,6 +12635,78 @@
    "category": "reading",
    "text": "Bạn dễ muốn nói thật kỹ nên cứ sửa mãi chưa gửi đi.",
    "status": "pending"
+  },
+  {
+   "id": "daily.bundle.perfect-before-start.13.headline",
+   "category": "reading",
+   "text": "Khi hồ sơ sắp hết hạn nộp.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.perfect-before-start.13.scene",
+   "category": "reading",
+   "text": "Khi sát hạn nộp hồ sơ, bạn vẫn sửa bản nháp đủ ý trên máy trước khi gửi xin góp ý.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.perfect-before-start.13.action",
+   "category": "reading",
+   "text": "Gửi bản nháp hồ sơ cho người góp ý, hỏi một chỗ cụ thể cần sửa.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.defend-old-choice.13.headline",
+   "category": "reading",
+   "text": "Khi nơi định nộp đã đóng hồ sơ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.defend-old-choice.13.scene",
+   "category": "reading",
+   "text": "Khi nơi tuyển dụng ngừng nhận hồ sơ, bạn vẫn giữ cách viết cũ vì tiếc công sửa.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.defend-old-choice.13.action",
+   "category": "reading",
+   "text": "Kiểm tra kết quả cách cũ, chọn một phần hồ sơ cần thay đổi cho nơi còn nhận.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.changed-plan.13.headline",
+   "category": "reading",
+   "text": "Khi đề nghị đổi ca trùng giờ học.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.changed-plan.13.scene",
+   "category": "reading",
+   "text": "Khi ở nhà, bạn nhận đề nghị đổi lịch ca trùng giờ học, giờ mới chưa chốt.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.changed-plan.13.action",
+   "category": "reading",
+   "text": "Nói rõ giờ học cần giữ và đề xuất giờ khác để hai bên chốt ca mới.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.decision-fatigue.13.headline",
+   "category": "reading",
+   "text": "Khi mệt sau ca, bài còn nhiều phần.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.decision-fatigue.13.scene",
+   "category": "reading",
+   "text": "Khi mệt sau ca làm, bạn chọn mãi giữa các phần bài, chưa cần chốt ngay.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.decision-fatigue.13.action",
+   "category": "reading",
+   "text": "Chọn hạn nộp làm tiêu chí, gạch bớt các phần bài chưa cần chọn lúc này.",
+   "status": "pending"
   }
  ],
  "version": "copy-registry/v1"
