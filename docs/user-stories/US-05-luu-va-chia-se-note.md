@@ -55,7 +55,7 @@ flowchart TD
   N -->|Bật tên nếu có| O
   O --> P{"Platform hỗ trợ native share?"}
   P -->|Có| Q["Native share sheet"]
-  P -->|Không| R["Download image / copy safe link"]
+  P -->|Không| R["Tải ảnh / chép link riêng"]
   Q --> S{"User hoàn tất hay hủy?"}
   S -->|Hoàn tất/unknown| T["Ghi share_result theo platform"]
   S -->|Hủy| U["Không tính completed"]
@@ -101,12 +101,12 @@ flowchart TD
 |---|---|---|
 | Back | Icon button | Quay lại đúng vị trí trong Note/Home. |
 | Preview | Card canvas | Cosmic Glass Signal, 9:16 mặc định, reading surface đủ đục và chữ rõ ở mobile. |
-| Format | Segmented control | `Story 9:16` mặc định; `Square 1:1` cho feed. |
+| Format | Segmented control | `Khung dọc` (9:16) mặc định; `Khung vuông` (1:1) cho feed. |
 | Privacy summary | Inline note | “Card không chứa ngày sinh/giờ/nơi sinh.” |
 | Display name toggle | Toggle | Chỉ hiện nếu có `display_name`; mặc định OFF. |
 | Watermark | Small brand | “Lá Lành” nhỏ, không che nội dung. |
-| Primary CTA | Button | “Chia sẻ card”; mở native share sheet. |
-| Secondary CTA | Button | “Tải ảnh” hoặc “Copy link” theo platform. |
+| Primary CTA | Button | “Chia sẻ thẻ”; mở native share sheet. |
+| Secondary CTA | Button | “Tải ảnh” hoặc “Chép link” theo platform. |
 
 #### Card content schema
 
@@ -175,8 +175,8 @@ flowchart TD
 - **AC07 — Format:** User đổi được 9:16/1:1; preview và export dùng cùng snapshot, không regenerate text khác.
 - **AC08 — Privacy default:** Share card/link mặc định không chứa tên, ngày/giờ/nơi sinh, tọa độ, id/token hoặc dữ liệu raw.
 - **AC09 — Name toggle:** Nếu có display name, toggle “Hiện tên” mặc định OFF; nếu không có tên thì ẩn toggle, không hỏi thêm trong flow này.
-- **AC10 — Native share:** Khi platform hỗ trợ, “Chia sẻ card” mở native share sheet; cancel không tính completed.
-- **AC11 — Fallback:** Nếu native share không hỗ trợ, user có “Tải ảnh” hoặc “Copy link” an toàn.
+- **AC10 — Native share:** Khi platform hỗ trợ, “Chia sẻ thẻ” mở native share sheet; cancel không tính completed.
+- **AC11 — Fallback:** Nếu native share không hỗ trợ, user có “Tải ảnh” hoặc “Chép link” an toàn.
 - **AC12 — Render failure:** Render/share lỗi không làm mất preview; có Retry và quay lại đúng Note.
 - **AC13 — Public link safety:** Link public chỉ hiển thị preview read-only đã sanitize; không lộ endpoint/profile id đoán được.
 - **AC14 — Analytics privacy:** Events chỉ ghi enum/result/channel an toàn; không ghi Note full text, DOB, token, share token.
