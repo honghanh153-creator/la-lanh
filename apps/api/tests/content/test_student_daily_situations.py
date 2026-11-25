@@ -8,11 +8,13 @@ from __future__ import annotations
 
 import json
 from dataclasses import replace
+from datetime import timedelta
 from itertools import combinations
 from uuid import UUID
 
 import pytest
 
+from app.domains.astro.models import TimePrecision
 from app.domains.content import copy_approval
 from app.domains.content.copy_approval import (
     BUNDLE_PARTS,
@@ -29,12 +31,34 @@ from app.domains.readings import action_tags, companion_pool, daily_psychology, 
 from app.domains.readings.action_tags import ActionTag
 from app.domains.readings.application import _companion_line
 from app.domains.readings.companion import COMPANION_ISSUE_LINES
-from app.domains.readings.daily_personalization import PLACEMENT_MEANINGS, SupportedSituation
+from app.domains.readings.daily_personalization import (
+    PLACEMENT_MEANINGS,
+    SupportedSituation,
+    eligible_daily_situations,
+)
 from app.domains.readings.daily_psychology import DAILY_ISSUES, lead_scene
-from app.domains.readings.lighter_action import ACTION_SHAPES, light_slots, lighter_action_for
-from app.domains.readings.models import BackgroundLens, ReadingPurpose, SemanticArena
+from app.domains.readings.gates import has_observable_action
+from app.domains.readings.lighter_action import (
+    ACTION_SHAPES,
+    light_slots,
+    lighter_action_for,
+    within_five_minutes,
+)
+from app.domains.readings.models import (
+    LIGHTER_ACTION_MAX_CHARS,
+    BackgroundLens,
+    DerivedFactor,
+    FactorConfidence,
+    FactorKind,
+    FactorRole,
+    PlanMode,
+    ReadingDomain,
+    ReadingPurpose,
+    SemanticArena,
+)
 from app.domains.readings.renderers import DeterministicVietnameseRenderer
 from app.domains.readings.voice import DailySections, ReadingVoice, apply_content_voice
+from scripts.persona_metrics import light_by_rule
 from tests.content.test_daily_variants import (
     _check_action,
     _check_clarity,
@@ -42,7 +66,7 @@ from tests.content.test_daily_variants import (
     _check_scene,
     _check_scene_anchor,
 )
-from tests.readings.test_daily_rotation import _date_only_plan
+from tests.readings.test_daily_rotation import OWNER_A, START, _date_only_plan, _variety
 from tests.readings.test_voice import _content
 
 # bundle id -> (editorial group, normal picture group, light picture groups in frozen order)
@@ -54,6 +78,17 @@ STUDENT_BUNDLES = {
 }
 ISSUES = {issue.key: issue for issue in DAILY_ISSUES}
 REVISIONS = tuple(UUID(int=n) for n in range(1, 65))
+
+
+def test_student_batch_is_pending_before_editorial_approval() -> None:
+    """Replace this pre-approval check only in the PR carrying the review receipt."""
+    entries = load_registry()
+    for bundle in STUDENT_BUNDLES:
+        for key in (*(f"{bundle}.{part}" for part in BUNDLE_PARTS), *_light_ids(bundle)):
+            entry = entries[key]
+            assert entry.status == "pending", key
+            assert entry.approver is entry.date is entry.digest is None, key
+            assert not entry.servable, key
 
 
 def _issue(bundle: str) -> str:
@@ -150,6 +185,11 @@ def test_student_inventory_required_fields_tags_and_light_slots() -> None:
         assert tuple(slot_shape for _key, _digest, slot_shape in slots) == light_shapes
         for key, digest, slot_shape in slots:
             assert entries[key].category == "reading"
+            text = entries[key].text
+            _check_clarity(key, text)
+            assert len(text) <= LIGHTER_ACTION_MAX_CHARS
+            assert has_observable_action(text), key
+            assert light_by_rule(text) and within_five_minutes(text), key
             assert copy_digest(entries[key].text) == digest
             assert slot_shape in ACTION_SHAPES
             assert action_tags.tag_of(key, (_issue(bundle),)) == ActionTag("light", slot_shape)
@@ -164,11 +204,10 @@ def test_unservable_student_parts_never_enter_runtime(monkeypatch: pytest.Monkey
     monkeypatch.setattr(copy_approval, "_runtime_registry", lambda: entries)
     for bundle in STUDENT_BUNDLES:
         parts = [entries[f"{bundle}.{part}"] for part in BUNDLE_PARTS]
-        if not all(entry.servable for entry in parts):
-            assert tuple(entry.text for entry in parts) not in approved_bundles(_issue(bundle))
+        assert all(entry.status == "pending" and not entry.servable for entry in parts)
+        assert tuple(entry.text for entry in parts) not in approved_bundles(_issue(bundle))
         for entry in parts:
-            if not entry.servable:
-                assert copy_approval.approved_copy(entry.id) is None
+            assert copy_approval.approved_copy(entry.id) is None
 
 
 def test_pending_student_bundles_do_not_block_older_served_bundles(
@@ -412,18 +451,82 @@ def test_student_card_renders_whole_in_each_arena_voice_and_light_slot(
     )
     assert shown.companion == getattr(COMPANION_ISSUE_LINES[issue].line, voice.value)
     assert shown.companion is not None
-    # Rewrite's direct companion budget differs from the authored roast budget.
-    if voice is ReadingVoice.DIRECT:
-        report = evaluate_daily_rewrite(
-            {
-                "title": shown.hook,
-                "scene": shown.manifestation,
-                "action": action,
-                "companion": shown.companion,
-            },
-            meaning_brief=blueprint.daily_meaning,
-            companion_brief=COMPANION_ISSUE_LINES[issue],
-        )
-        assert report.passed, report.failure_codes
+    report = evaluate_daily_rewrite(
+        {
+            "title": shown.hook,
+            "scene": shown.manifestation,
+            "action": action,
+            "companion": shown.companion,
+        },
+        meaning_brief=blueprint.daily_meaning,
+        companion_brief=COMPANION_ISSUE_LINES[issue],
+    )
+    # Luna's gate requires the direct nudge. These authored roast lines use other wording;
+    # voice.py serves the authored card without sending it through Luna.
+    expected_failures = (
+        ("daily_companion_off_brief",)
+        if voice is ReadingVoice.ROAST and issue in {"changed-plan", "defend-old-choice"}
+        else ()
+    )
+    assert report.failure_codes == expected_failures
+    assert report.passed is (not expected_failures)
     offered = {lighter_action_for(revision, blueprint.mechanism_key) for revision in REVISIONS}
     assert offered == {entries[key].text for key in _light_ids(bundle)}
+
+
+@pytest.mark.parametrize("bundle", STUDENT_BUNDLES)
+def test_student_bundle_rotates_with_all_twelve_older_bundles(
+    bundle: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    entries = load_registry()
+    issue = _issue(bundle)
+    for number in range(1, 14):
+        for part in BUNDLE_PARTS:
+            key = f"daily.bundle.{issue}.{number:02d}.{part}"
+            entries[key] = _approved(entries[key])
+    _approve(entries, bundle)
+    monkeypatch.setattr(copy_approval, "_runtime_registry", lambda: entries)
+    expected = {
+        tuple(entries[f"daily.bundle.{issue}.{number:02d}.{part}"].text for part in BUNDLE_PARTS)
+        for number in range(1, 14)
+    }
+    assert len(approved_bundles(issue)) == len(expected) == 13
+    body, sign, domain = {
+        "perfect-before-start": ("sun", "virgo", ReadingDomain.CORE),
+        "defend-old-choice": ("sun", "taurus", ReadingDomain.CORE),
+        "changed-plan": ("sun", "sagittarius", ReadingDomain.CORE),
+        "decision-fatigue": ("moon", "taurus", ReadingDomain.EMOTIONS),
+    }[issue]
+    template = _date_only_plan(None)
+    # Synthetic placement inputs exercise real eligibility, issue selection and rotation.
+    factor = DerivedFactor.model_validate(
+        {
+            **template.factors[0].model_dump(),
+            "id": f"natal:{body}:sign:{sign}",
+            "kind": FactorKind.PLANET_PLACEMENT,
+            "domain": domain,
+            "subjects": (body,),
+            "role": FactorRole.PRIMARY,
+            "confidence": FactorConfidence.HIGH,
+            "evidence_refs": (f"natal:{body}:longitude",),
+        }
+    )
+    observed = []
+    cycle_start = START - timedelta(days=_variety(OWNER_A, START).day_index % 13)
+    for day in range(13):
+        plan = template.model_copy(
+            update={
+                "factors": (factor,),
+                "hero_factor_refs": (factor.id,),
+                "mode": PlanMode.FULL_SYNTHESIS,
+                "precision": TimePrecision.EXACT,
+                "daily_variety": _variety(OWNER_A, cycle_start + timedelta(days=day)),
+            }
+        )
+        assert {s.issue_key for s in eligible_daily_situations(plan)} == {issue}
+        candidate = DeterministicVietnameseRenderer().render(plan)
+        observed.append((candidate.hook, candidate.manifestation, candidate.micro_action))
+        assert candidate.semantic_blueprint is not None
+        assert candidate.semantic_blueprint.mechanism_key == f"psychology:{issue}"
+    assert len(set(observed)) == 13
+    assert set(observed) == expected
