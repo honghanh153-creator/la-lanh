@@ -8,7 +8,14 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { ReadingContent as ReadingContentModel } from "../api/client";
 import ultravioletStyles from "../styles/ultraviolet.css?raw";
-import { FOLDED_ACTION_LABEL, READ_ONLY_TODAY, ReadingContent, SHOW_ACTION_AGAIN } from "./ReadingContent";
+import {
+  FOLDED_ACTION_LABEL,
+  READ_ONLY_TODAY,
+  ReadingContent,
+  SHOW_ACTION_AGAIN,
+  SHOW_ALONE_ACTION,
+  SHOW_PREVIOUS_ACTION,
+} from "./ReadingContent";
 
 const content = {
   revision_id: "00000000-0000-4000-8000-000000000010",
@@ -53,6 +60,44 @@ describe("ReadingContent", () => {
     expect(screen.getByRole("heading", { name: "Thử một việc nhỏ" })).toBeInTheDocument();
     expect(screen.getByText(content.sections.micro_action)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Giữ để thử hôm nay" })).not.toBeInTheDocument();
+  });
+
+  it("shows the alone action in place of the one on screen, with a way back (#703)", async () => {
+    const onSwitch = vi.fn();
+    const action = { action: "Ghi ra giấy một câu bạn muốn nói, giữ cho riêng mình.", replaces: ["card" as const], experiment: null };
+    const limited = { ...content, mode: "limited" as const, precision: "unknown" as const };
+    const { rerender } = render(<ReadingContent alone={{ shown: false, onSwitch, action }} content={limited} />);
+
+    expect(screen.getByText(content.sections.micro_action)).toBeInTheDocument();
+    expect(screen.queryByText(action.action)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: SHOW_ALONE_ACTION }));
+    expect(onSwitch).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <ReadingContent
+        alone={{ shown: true, onSwitch, action }}
+        content={{ ...limited, lighter_action: { action: "Uống một ly nước.", weight: "light" as const, experiment: null } }}
+        lighter={{ shown: false, onSwitch: vi.fn() }}
+      />,
+    );
+    expect(screen.getByText(action.action)).toBeInTheDocument();
+    expect(screen.queryByText(content.sections.micro_action)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: SHOW_PREVIOUS_ACTION })).toBeInTheDocument();
+    // Only the way back is offered while the alone action is on screen.
+    expect(screen.queryByRole("button", { name: "Xem việc nhẹ hơn" })).not.toBeInTheDocument();
+  });
+
+  it("offers no alone button when the page passes none", () => {
+    render(<ReadingContent content={content} />);
+    expect(screen.queryByRole("button", { name: SHOW_ALONE_ACTION })).not.toBeInTheDocument();
+  });
+
+  it("shows the common line only when the server sends one (#703)", () => {
+    const line = "Nhiều bạn cũng chần chừ trước khi nhắn lại.";
+    const { rerender } = render(<ReadingContent content={{ ...content, common_line: line }} />);
+    expect(screen.getByText(line)).toBeInTheDocument();
+    rerender(<ReadingContent content={{ ...content, common_line: null }} />);
+    expect(screen.queryByText(line)).not.toBeInTheDocument();
   });
 
   it("shows the lighter action in place of the card's own, with a way back (#627)", async () => {
@@ -154,6 +199,8 @@ describe("ReadingContent", () => {
       expect(text("web.action.read-only.hide")).toBe(READ_ONLY_TODAY);
       expect(text("web.action.read-only.show")).toBe(SHOW_ACTION_AGAIN);
       expect(text("web.action.read-only.folded")).toBe(FOLDED_ACTION_LABEL);
+      expect(text("web.action.alone.show")).toBe(SHOW_ALONE_ACTION);
+      expect(text("web.action.alone.back")).toBe(SHOW_PREVIOUS_ACTION);
     });
 
     it("gives the fold button a 44 px touch target on both pages", () => {
