@@ -1555,6 +1555,21 @@ export interface components {
             expected_revision_id: string;
         };
         /**
+         * AloneActionProjection
+         * @description An action that needs no contact with anyone, for a card that asks to reach someone (#703).
+         *
+         *     ``replaces`` names which of the card's offered actions ask the reader to contact someone:
+         *     the card's own ("card"), the lighter ("light"), the slow or the clear one. The reader's
+         *     device shows this action as another choice only next to one of those.
+         */
+        AloneActionProjection: {
+            /** Action */
+            action: string;
+            experiment?: components["schemas"]["ExperimentProjection"] | null;
+            /** Replaces */
+            replaces: ("card" | "light" | "slow" | "clear")[];
+        };
+        /**
          * ApproxWindow
          * @enum {string}
          */
@@ -3639,7 +3654,10 @@ export interface components {
          * @description The single private response contract shared by Daily and Insights.
          */
         ReadingContentProjection: {
+            alone_action?: components["schemas"]["AloneActionProjection"] | null;
             clear_action?: components["schemas"]["LighterActionProjection"] | null;
+            /** Common Line */
+            common_line?: string | null;
             /**
              * Created At
              * Format: date-time

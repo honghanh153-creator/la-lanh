@@ -19,7 +19,7 @@ import {
   writeCachedDailyNote,
 } from "../../shared/storage/noteCache";
 import { useReadingUpdateActivation } from "../../shared/hooks/useReadingUpdateActivation";
-import { dailyMoodKey, readDailyMood, useDailyActionView, useReadOnlyToday } from "../../shared/hooks/useDailyActionView";
+import { dailyMoodKey, offersMoodAlternative, readDailyMood, useDailyActionView, useReadOnlyToday } from "../../shared/hooks/useDailyActionView";
 import { useDailyExperiment } from "../../shared/hooks/useDailyExperiment";
 import { saveNoteLocally } from "../../shared/storage/savedNoteCache";
 import "../../shared/styles/signal-note.css";
@@ -87,19 +87,21 @@ export function NoteDetailPage() {
     onReflected: () => setMessage("Đã lưu phần nhìn lại riêng cho thử nghiệm này."),
   });
 
-  // The mood is read here only when this reading has a lighter action to offer (#627).
+  // The mood is read here only when this reading has a mood alternative to offer (#627, #701).
   const moodQuery = useQuery({
     queryKey: dailyMoodKey(note?.id),
     queryFn: ({ signal }) => readDailyMood(queryClient, note!.id, signal),
-    enabled: Boolean(note?.id && activeReading?.lighter_action),
+    enabled: Boolean(note?.id && offersMoodAlternative(activeReading)),
     retry: false,
   });
   const actionView = useDailyActionView(note?.id, activeReading, moodQuery.data?.mood);
   // "Hôm nay chỉ muốn đọc" (#700): shared with Home, in memory only.
   const readOnlyToday = useReadOnlyToday(note?.id);
-  const shownExperiment = actionView.lighterShown
-    ? activeReading?.lighter_action?.experiment
-    : activeReading?.experiment;
+  const shownExperiment = actionView.aloneShown
+    ? actionView.aloneAction?.experiment
+    : actionView.lighterShown
+      ? actionView.alternative?.experiment
+      : activeReading?.experiment;
 
   const chooseExperiment = () => {
     if (!note || !activeReading || !shownExperiment) return;
@@ -148,8 +150,9 @@ export function NoteDetailPage() {
             currentExperiment={dailyExperiment.experiment}
             experimentError={dailyExperiment.errorMessage}
             experimentStatus={dailyExperiment.status}
-            lighter={actionView.canSwitch ? { shown: actionView.lighterShown, onSwitch: actionView.switchAction } : null}
+            lighter={actionView.canSwitch ? { shown: actionView.lighterShown, onSwitch: actionView.switchAction, action: actionView.alternative, label: actionView.alternativeLabel } : null}
             readOnly={{ readOnly: readOnlyToday.readOnly, onToggle: readOnlyToday.toggle }}
+            alone={actionView.aloneAction ? { shown: actionView.aloneShown, onSwitch: actionView.switchAlone, action: actionView.aloneAction } : null}
             onChoose={chooseExperiment}
             onReflect={(outcome) => {
               const held = dailyExperiment.experiment;

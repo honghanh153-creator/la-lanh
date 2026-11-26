@@ -55,7 +55,7 @@ flowchart TD
   N -->|Bật tên nếu có| O
   O --> P{"Platform hỗ trợ native share?"}
   P -->|Có| Q["Native share sheet"]
-  P -->|Không| R["Download image / copy safe link"]
+  P -->|Không| R["Tải ảnh / chép link riêng"]
   Q --> S{"User hoàn tất hay hủy?"}
   S -->|Hoàn tất/unknown| T["Ghi share_result theo platform"]
   S -->|Hủy| U["Không tính completed"]
@@ -101,12 +101,12 @@ flowchart TD
 |---|---|---|
 | Back | Icon button | Quay lại đúng vị trí trong Note/Home. |
 | Preview | Card canvas | Cosmic Glass Signal, 9:16 mặc định, reading surface đủ đục và chữ rõ ở mobile. |
-| Format | Segmented control | `Story 9:16` mặc định; `Square 1:1` cho feed. |
+| Format | Segmented control | `Khung dọc` (9:16) mặc định; `Khung vuông` (1:1) cho feed. |
 | Privacy summary | Inline note | “Card không chứa ngày sinh/giờ/nơi sinh.” |
 | Display name toggle | Toggle | Chỉ hiện nếu có `display_name`; mặc định OFF. |
 | Watermark | Small brand | “Lá Lành” nhỏ, không che nội dung. |
-| Primary CTA | Button | “Chia sẻ card”; mở native share sheet. |
-| Secondary CTA | Button | “Tải ảnh” hoặc “Copy link” theo platform. |
+| Primary CTA | Button | “Chia sẻ thẻ”; mở native share sheet. |
+| Secondary CTA | Button | “Tải ảnh” hoặc “Chép link” theo platform. |
 
 #### Card content schema
 
@@ -175,8 +175,8 @@ flowchart TD
 - **AC07 — Format:** User đổi được 9:16/1:1; preview và export dùng cùng snapshot, không regenerate text khác.
 - **AC08 — Privacy default:** Share card/link mặc định không chứa tên, ngày/giờ/nơi sinh, tọa độ, id/token hoặc dữ liệu raw.
 - **AC09 — Name toggle:** Nếu có display name, toggle “Hiện tên” mặc định OFF; nếu không có tên thì ẩn toggle, không hỏi thêm trong flow này.
-- **AC10 — Native share:** Khi platform hỗ trợ, “Chia sẻ card” mở native share sheet; cancel không tính completed.
-- **AC11 — Fallback:** Nếu native share không hỗ trợ, user có “Tải ảnh” hoặc “Copy link” an toàn.
+- **AC10 — Native share:** Khi platform hỗ trợ, “Chia sẻ thẻ” mở native share sheet; cancel không tính completed.
+- **AC11 — Fallback:** Nếu native share không hỗ trợ, user có “Tải ảnh” hoặc “Chép link” an toàn.
 - **AC12 — Render failure:** Render/share lỗi không làm mất preview; có Retry và quay lại đúng Note.
 - **AC13 — Public link safety:** Link public chỉ hiển thị preview read-only đã sanitize; không lộ endpoint/profile id đoán được.
 - **AC14 — Analytics privacy:** Events chỉ ghi enum/result/channel an toàn; không ghi Note full text, DOB, token, share token.
@@ -340,3 +340,23 @@ Không ghi DOB, token, share token, note full text, display name raw, phone/emai
 ## 20. Cosmic Glass Signal screen contract
 
 S20–S23 dùng direction **02 — Cosmic Glass Signal**: collection/preview controls có smoky-lilac glass, còn card text và public preview dùng surface đủ đục để đọc/chụp ổn định. Light/dark giữ cùng hierarchy; chỉ dùng Be Vietnam Pro, 4.5:1 essential text, 44px controls, 200% text và 320/390/430px không overflow. Card có thể mang `Vibe ·`/`Aura ·` snapshot nhưng không factual birth placements hay dữ liệu sinh; provenance đầy đủ vẫn thuộc Note riêng tư.
+
+## 21. Delta Góc Tiền bạc (2026-11-25)
+
+Trạng thái: đề xuất hợp đồng để review trong #709/PR #932, chưa triển khai hoặc cho phép bật. Căn cứ: [quyết định #709 §3–6/9](../decisions/2026-11-25-goc-tien-bac-kien-truc.md), [US-03 §25](US-03-doc-note-hom-nay.md#25-delta-góc-tiền-bạc-2026-11-25). Ngoại lệ money dưới đây cần reviewer độc lập chốt; các Note khác giữ nguyên. Không coi tài liệu là tự cắt AC hoặc owner đã duyệt thu dữ liệu.
+
+- Không tạo ảnh/link/share record từ money revision, hook/manifestation/action hay snapshot tiền. Người dùng phải mở bản nền riêng, xem preview và xác nhận rồi mới chia sẻ đúng snapshot bản nền đó. Không tự thay nội dung trong preview và không ghi share row trỏ về money. API kiểm provenance revision, từ chối lens giả. Link nền vẫn đủ expiry/revoke/no-cache/no-index/no-referrer và AC-GWT-04–08.
+- Lưu riêng tiền là lưu đúng revision trong SavedNote mã hóa hiện có, server-only kể cả guest, không bản device-local hoặc ý định lưu offline. Đây là ngoại lệ cần review của AC-GWT-01/03 và storage_scope guest ở §16; offline phải từ chối ghi, không queue/sync lại. Không có đường server mã hóa được phép thì không bật lưu tiền, không tự chuyển sang kho khác.
+- SavedNoteRequest chỉ nhận revision ID, forbid extra; được lưu money sau kiểm chủ/source/provenance, đúng generation consent còn quyền và cờ cho phép. Không thuộc ba DTO downstream cấm money. Đọc lại/lưu bản cũ tra receipt đúng E trong envelope; nâng version không thay E hoặc làm mất quyền đọc của generation cũ còn hợp lệ, reaccept không hồi sinh bản đã rút.
+- Bản lưu có thể giữ revision và hidden root theo vòng đời hồ sơ lâu hơn Daily 18–24 giờ. Bỏ lưu dọn con/snapshot và root khi không còn con/Note hợp lệ; withdrawal và xóa hồ sơ/tài khoản xóa cả dữ liệu tiền phụ thuộc. Không lưu money/mã chuyện/prose/nhãn hoàn cảnh vào cột plaintext plan/revision/projection/saved-note.
+- Danh sách Lưu riêng dùng ngày và nhãn trung tính giống hệt bài nền đã duyệt; DTO không có lens, cờ money, nhãn riêng hay prose snippet. Đợt này không cung cấp lọc góc tiền. Mở chi tiết chỉ sau kiểm quyền. Cả endpoint list/detail, lỗi và client luôn no-store dù có/không có bài tiền, rỗng/chỉ nền hoặc cờ tắt; không dò dữ liệu để chọn header, không ETag/304; lọc bản không còn quyền trước phân trang/count, không placeholder tiết lộ.
+- Tắt kỹ thuật cho mở/reload/list/export/unsave/rút/xóa bản đã có khi còn quyền, chặn save mới. Save replay không tạo lại bản đã bỏ. Khi rút, fence cùng read/list/export/write, clear memory và hủy response/file tạm. UI reader/history/saved phải nằm trong SHA sàn rollback; client cũ được API lọc SQL bằng tập lens HMAC mọi key version/P/E còn sống, gồm generation version cũ còn hợp lệ, trước sort/cursor/phân trang/count theo ADR §9. Không trả số bài ẩn; hướng dẫn nâng cấp/web theo khả năng client, không theo sự tồn tại bài tiền, copy mới pending. Trước bật phải có đường web tương thích để xuất/rút/bỏ lưu không cần cập nhật app; xuất toàn bộ/xóa tài khoản từ client cũ vẫn bao phủ money ở server.
+
+| AC delta | Test bắt buộc trước bật |
+|---|---|
+| AC-MONEY-S01 | #711/#712: mở nền chủ động, cancel không tạo share, preview và ảnh/link đúng bản nền đã xác nhận; direct money ID/lens giả bị chặn; ảnh/metadata không chứa prose/mã/ID tiền |
+| AC-MONEY-S02 | #711/#712/#935: SavedNoteRequest cho phép money đúng chủ/provenance/consent/cờ, save idempotent khi bật; qua ngày/version vẫn đúng snapshot E1 còn quyền; reaccept E2 không bị marker/purge E1 xóa; giữ root khi saved còn, unsave/withdraw/delete dọn đúng; không plaintext money trong DB |
+| AC-MONEY-S03 | #711/#712: saved list/detail/lỗi luôn no-store ở user có/không có tiền, rỗng/chỉ nền/cờ tắt; DTO chỉ ngày/nhãn hệt nền, không lens/cờ/lọc tiền; khác chủ/không quyền không lộ count; không Web Storage/IndexedDB/service worker/native prefs/offline queue; rút giữa list/open/export không trả dữ liệu, state và file tạm được dọn |
+| AC-MONEY-S04 | #711/#712: flag-off vẫn read/export/unsave nhưng không save mới. Bấm Lưu riêng hoặc lưu lại sau bỏ trên bài tiền đang mở đúng lúc cờ vừa tắt: không tạo row/queue, hủy pending write, giữ bài; kiểm trạng thái/thông báo R15, copy mới status: pending không phục vụ trước duyệt. Client cũ: nhiều P/E/key version lọc trước SQL count/phân trang/cursor, ít bài/rỗng không lộ số ẩn, guidance theo khả năng client và đường thực hiện quyền dùng được không cần cập nhật app. UI sàn không crash; native cache/backup/sheet cleanup kiểm riêng iOS/Android |
+
+DoD delta: independent review của ngoại lệ share/guest-save, tests ma trận trên và quyết định §10, source/consent/retention/backup gates cùng owner actions đã hoàn tất trước bật. Chữ UI mới pending theo R15; không viết mới privacy/consent/crisis/safety trong #709.

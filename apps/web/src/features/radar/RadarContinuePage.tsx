@@ -186,11 +186,11 @@ function RadarResultFooter({ ownerView, mode }: { ownerView: boolean; mode?: Rad
   return <>
     <section className="radar-next-step">
       <p className="eyebrow">Tiếp theo</p>
-      <h2>Muốn check thêm một kết nối?</h2>
+      <h2>Muốn xem thêm một người?</h2>
       <p>Mỗi bản đọc là riêng cho đúng hai chart. {mode === "private_check" ? "Bản check kín nằm trong lịch sử tới giờ tự xoá ghi ở trên." : "Kết quả cũ vẫn nằm trong lịch sử cho tới khi bạn xóa hoặc hết hạn."}</p>
       <div>
-        <Link className="matching-primary" to="/radar/start">Check thêm một người <ArrowRight /></Link>
-        <Link className="matching-secondary" to={historyUrl}>Xem các lần check</Link>
+        <Link className="matching-primary" to="/radar/start">Xem thêm một người <ArrowRight /></Link>
+        <Link className="matching-secondary" to={historyUrl}>Xem lại kết quả cũ</Link>
       </div>
     </section>
     <AppNav />
