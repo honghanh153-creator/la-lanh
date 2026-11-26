@@ -246,7 +246,7 @@ test('#858: codex then finish records ok only when every sampled item has a vali
   assert.equal(rewritten[0].result, 'error');
 });
 
-test('L858: durable Codex outcomes survive the production reset and finish reports the same result', async t => {
+test('L84: durable Codex outcomes survive the production reset and finish reports the same result', async t => {
   const cases = [
     { day: '2026-12-10', outcome: 'failed', reset: true, expected: 'error' },
     { day: '2026-12-11', outcome: 'scored', reset: true, expected: 'error' },
