@@ -125,13 +125,13 @@
       "key_selectors": [
         { "role": "heading", "name": "Bạn sinh ngày nào?" },
         { "role": "textbox", "name": "Ngày" },
-        { "role": "button", "name": "Khớp tín hiệu" }
+        { "role": "button", "name": "Tiếp tục" }
       ],
       "states": {
         "default": {
           "fixture": "birth-pending",
           "walk": [{ "goto": "/birth" }],
-          "ready": { "role": "button", "name": "Khớp tín hiệu" }
+          "ready": { "role": "button", "name": "Tiếp tục" }
         },
         "from-welcome": {
           "fixture": "guest",
@@ -171,7 +171,7 @@
       "ac": ["US-02 AC09", "US-02 AC11", "US-02 AC12"],
       "routes": ["/reveal"],
       "source_files": ["apps/web/src/features/reveal/RevealPage.tsx", "apps/web/src/features/reveal/reveal-vitality.css"],
-      "user_path": ["Welcome", "Đồng ý", "Nhập ngày sinh", "Bấm Khớp tín hiệu"],
+      "user_path": ["Welcome", "Đồng ý", "Nhập ngày sinh", "Bấm Tiếp tục"],
       "owner_only": false,
       "key_selectors": [
         { "role": "button", "name": "Mở Note hôm nay" },
