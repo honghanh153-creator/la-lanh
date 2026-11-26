@@ -160,6 +160,66 @@ describe("mood alternatives for Căng and Lạc trôi (#701)", () => {
   });
 });
 
+describe("the alone action (#703)", () => {
+  const alone = (replaces: string[]) => ({
+    lighter_action: { action: "Uống một ly nước rồi ngồi yên hai phút.", weight: "light", experiment: null },
+    alone_action: { action: "Ghi ra giấy một câu bạn muốn nói, giữ cho riêng mình.", replaces, experiment: null },
+  }) as unknown as ReadingContent;
+
+  it("is offered only next to an action the server says it can replace", () => {
+    // No mood: the card's own action is on screen.
+    expect(setup(null, alone(["card"])).result.current.aloneAction?.action).toContain("Ghi ra giấy");
+    expect(setup(null, alone(["light"])).result.current.aloneAction).toBeNull();
+    // Đuối: the lighter action is on screen.
+    expect(setup("Đuối", alone(["light"])).result.current.aloneAction).not.toBeNull();
+    expect(setup("Đuối", alone(["card"])).result.current.aloneAction).toBeNull();
+    expect(setup(null, reading).result.current).toMatchObject({ aloneAction: null, aloneShown: false });
+  });
+
+  it("switches to the alone action and back, in memory only", async () => {
+    const { client, result } = setup(null, alone(["card"]));
+    expect(result.current.aloneShown).toBe(false);
+    act(() => result.current.switchAlone());
+    await waitFor(() => expect(result.current.aloneShown).toBe(true));
+    expect(client.getQueryData(dailyActionViewKey(NOTE_ID))).toEqual({ alone: true });
+    expect(JSON.stringify({ ...localStorage, ...sessionStorage })).not.toContain("Ghi ra giấy");
+    act(() => result.current.switchAlone());
+    await waitFor(() => expect(result.current.aloneShown).toBe(false));
+  });
+
+  it("does nothing when there is no alone action to show", async () => {
+    const { client, result } = setup(null, alone(["light"]));
+    act(() => result.current.switchAlone());
+    await act(async () => { await Promise.resolve(); });
+    expect(result.current.aloneShown).toBe(false);
+    expect(client.getQueryData(dailyActionViewKey(NOTE_ID))).toEqual({});
+  });
+
+  it("stops showing it when the action on screen changes to one it cannot replace", async () => {
+    const { result } = setup("Đuối", alone(["light"]));
+    act(() => result.current.switchAlone());
+    await waitFor(() => expect(result.current.aloneShown).toBe(true));
+    // Back to the card's own action: the alone action is not for that one.
+    act(() => result.current.switchAction());
+    await waitFor(() => expect(result.current).toMatchObject({ lighterShown: false, aloneAction: null, aloneShown: false }));
+    // And forward again: the mood switch started over without the alone action.
+    act(() => result.current.switchAction());
+    await waitFor(() => expect(result.current).toMatchObject({ lighterShown: true, aloneShown: false }));
+  });
+
+  it("starts a newly confirmed mood without it, and drops it with chart-derived data", async () => {
+    const { client, result } = setup(null, alone(["card"]));
+    act(() => result.current.switchAlone());
+    await waitFor(() => expect(result.current.aloneShown).toBe(true));
+    act(() => resetDailyActionChoice(client, NOTE_ID));
+    await waitFor(() => expect(result.current.aloneShown).toBe(false));
+    act(() => result.current.switchAlone());
+    await waitFor(() => expect(result.current.aloneShown).toBe(true));
+    await act(async () => { await clearChartDerivedData(client); });
+    await waitFor(() => expect(result.current.aloneShown).toBe(false));
+  });
+});
+
 describe("useReadOnlyToday (#700)", () => {
   const NEXT_NOTE_ID = "00000000-0000-4000-8000-000000000002";
 

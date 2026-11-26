@@ -382,6 +382,7 @@ export function runNightAudit({ gh = makeGh(), now = new Date(), window = auditW
     const outs = (() => { try { return outputs(); } catch (error) { outsError = error; return null; } })();
     let record = existing;
     let ran = false;
+    let codexFailed = false;
     if (!attempted || (final && !existing.final)) {
       const facts = collectFacts({ date, gh, now, outputs: () => { if (outsError) throw outsError; return outs; }, day: () => dayState, lessons: lessons ? () => lessons(date) : null, disagreements });
       facts.final = final;
@@ -402,6 +403,7 @@ export function runNightAudit({ gh = makeGh(), now = new Date(), window = auditW
           const result = codex(buildPrompt(evidence));
           if (result?.status === 'limit') return { status: 'limit', date };
           ran = true;
+          codexFailed = result?.status !== 'ok';
           const fresh = readJson(dayStatePath(countDay), counts);
           const tag = purpose === 'baseline' ? { baselineRuns: (fresh.baselineRuns ?? 0) + 1 } : countDay === date ? { auditRuns: (fresh.auditRuns ?? 0) + 1 } : {};
           writeJson(dayStatePath(countDay), { ...fresh, codexRuns: (fresh.codexRuns ?? 0) + 1, ...tag });
@@ -424,7 +426,8 @@ export function runNightAudit({ gh = makeGh(), now = new Date(), window = auditW
         record = saveRecord({ ...record, posted: { issue: target(), commentId, bodyDigest } }, dir);
       }
     }
-    return { status: ran ? 'judged' : 'updated', date, final: record.final };
+    // #858: the record is saved and posted either way, but a failed Codex run is not a good run.
+    return { status: ran ? 'judged' : 'updated', date, final: record.final, ...(codexFailed ? { codexError: true } : {}) };
   } catch (error) {
     return { status: 'error', date, reason: reason(error) };
   } finally { release(); }

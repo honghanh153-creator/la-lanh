@@ -27,7 +27,7 @@ function PublicRadarContent() {
       void navigate("/", { replace: true });
     },
   });
-  if (query.isLoading) return <main className="matching-page matching-page--loading"><Sparkle className="matching-pulse" /><p>Đang bắt link Radar…</p></main>;
+  if (query.isLoading) return <main className="matching-page matching-page--loading"><Sparkle className="matching-pulse" /><p>Đang mở lời mời…</p></main>;
   if (!query.data) return <UsedInvite token={token} />;
   const invite = query.data;
   const continueFlow = () => sessionStorage.setItem(RADAR_PENDING_REQUEST_KEY, invite.request_id);
