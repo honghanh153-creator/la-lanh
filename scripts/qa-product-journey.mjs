@@ -201,7 +201,8 @@ try {
   }, { minText: 10 });
   await step(page, "mood", async () => {
     await go(page, "/home");
-    await button(page, /Chọn mood/).click();
+    // #449 moved mood under the Note; the trigger is named "Chọn cảm giác hôm nay".
+    await button(page, /Chọn cảm giác hôm nay/).click();
     await button(page, /Chill/).click();
     await page.waitForTimeout(1500);
   }, { required: false });
