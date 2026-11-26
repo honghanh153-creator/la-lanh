@@ -4,7 +4,7 @@ import './collab-test-home.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { agentMarker } from './collab-trust.mjs';
-import { checkPrep, dayList, label7w, pickPlan, plannedEntry, prepRefs, workUnits } from './collab-quota.mjs';
+import { checkPrep, dayList, label7w, pickPlan, plannedEntry, prepRefs, serious, workUnits } from './collab-quota.mjs';
 import { renderProgress, workProgress } from './collab-work.mjs';
 
 // Turns arrive priority-sorted (ops → content → privacy → feature); 7-week work is feature.
@@ -63,6 +63,16 @@ test('7-week: a serious incident goes first, apart, and never takes a kept seat'
   // An ops-alert alone is not a serious incident.
   const alertOnly = workUnits({ turns: [turn(91)], prs: [prOf(91, ['ops-alert'])], issues: [] });
   assert.equal(alertOnly[0].incident, false);
+});
+
+// L60 (21.11.2026): hotfix #863 had `incident` alone and waited behind ordinary work while
+// collab/integration was red.
+test('L60: an incident PR without a severity goes first; only an explicit P2 or lower does not', () => {
+  const units = workUnits({ turns: [turn(92), turn(93), turn(94)], prs: [prOf(92, ['incident']), prOf(93, ['incident', 'severity:P2']), prOf(94, ['incident', 'severity:P0'])], issues: [] });
+  assert.deepEqual(units.map(u => [u.key, u.incident]), [['pr:92', true], ['pr:93', false], ['pr:94', true]]);
+  assert.equal(serious([{ name: 'incident' }, { name: 'severity:P1' }]), true);
+  assert.equal(serious([{ name: 'severity:P1' }]), false, 'a severity without incident is not an incident');
+  assert.equal(pickPlan(units).incidents.some(u => u.key === 'pr:92'), true, 'planned first');
 });
 
 const prepComment = (body, date = '2026-11-16', who = 'OWNER') => ({ authorAssociation: who, createdAt: `${date}T00:00:00Z`, body: `${body}\n\n${agentMarker} morning-prep date=${date} -->` });

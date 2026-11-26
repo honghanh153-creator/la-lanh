@@ -99,12 +99,12 @@
       "title": "So sánh bạn đồng hành (chỉ để QA)",
       "us": [],
       "ac": [],
-      "gap": "QA-only page, no user story. Reads and writes no personal data.",
+      "gap": "QA-only page, no user story. Reads and writes no personal data. Also hosts the Lá pixel (Mầm xanh) week-2 trial behind PIXEL_LA_ON_USER_SCREENS (#714, #715); its user story comes with week 5.",
       "routes": ["/companion-lab"],
-      "source_files": ["apps/web/src/features/companion-lab/CompanionLabPage.tsx", "apps/web/src/features/companion-lab/companion-lab.css"],
+      "source_files": ["apps/web/src/features/companion-lab/CompanionLabPage.tsx", "apps/web/src/features/companion-lab/companion-lab.css", "apps/web/src/shared/ui/companion/pixel/PixelLa.tsx", "apps/web/src/shared/ui/companion/pixel/pixelSprite.ts"],
       "user_path": ["Không có lối vào cho người dùng; mở trực tiếp /companion-lab"],
       "owner_only": false,
-      "key_selectors": [{ "role": "region", "name": "Bảng điều khiển" }],
+      "key_selectors": [{ "role": "region", "name": "Bảng điều khiển" }, { "role": "region", "name": "Lá pixel, bản thử" }],
       "states": {
         "default": {
           "fixture": "guest",
@@ -123,7 +123,7 @@
       "user_path": ["Welcome", "Bấm Đồng ý & bắt đầu", "Màn nhập ngày sinh"],
       "owner_only": false,
       "key_selectors": [
-        { "role": "heading", "name": "Bạn xuất hiện ngày nào?" },
+        { "role": "heading", "name": "Bạn sinh ngày nào?" },
         { "role": "textbox", "name": "Ngày" },
         { "role": "button", "name": "Khớp tín hiệu" }
       ],
@@ -136,7 +136,7 @@
         "from-welcome": {
           "fixture": "guest",
           "walk": [{ "goto": "/welcome" }, { "click": { "role": "button", "name": "Đồng ý & bắt đầu" } }],
-          "ready": { "role": "heading", "name": "Bạn xuất hiện ngày nào?" }
+          "ready": { "role": "heading", "name": "Bạn sinh ngày nào?" }
         },
         "error": { "manual": "Nhập ngày dưới 18 tuổi: có thông báo lỗi (tests/e2e/product-flow.spec.ts đã kiểm)." }
       }
@@ -331,20 +331,20 @@
       "owner_only": false,
       "share_sensitive": true,
       "key_selectors": [
-        { "role": "region", "name": "Định dạng card" },
-        { "role": "button", "name": "Chia sẻ card" },
-        { "role": "button", "name": "Tạo safe link" },
+        { "role": "region", "name": "Khung thẻ" },
+        { "role": "button", "name": "Chia sẻ thẻ" },
+        { "role": "button", "name": "Tạo link riêng" },
         { "role": "button", "name": "Tải ảnh PNG" }
       ],
       "states": {
         "default": {
           "fixture": "signed-in",
           "walk": [{ "goto": "/note/today" }, { "click": { "role": "link", "name": "Chia sẻ" } }],
-          "ready": { "role": "button", "name": "Tạo safe link" }
+          "ready": { "role": "button", "name": "Tạo link riêng" }
         },
         "safe-link": {
           "fixture": "signed-in",
-          "walk": [{ "goto": "/card" }, { "click": { "role": "button", "name": "Tạo safe link" } }],
+          "walk": [{ "goto": "/card" }, { "click": { "role": "button", "name": "Tạo link riêng" } }],
           "ready": { "role": "status" }
         }
       }
@@ -500,14 +500,15 @@
       "user_path": ["Home", "Thanh điều hướng: bấm Hợp gu"],
       "owner_only": false,
       "key_selectors": [
-        { "role": "link", "name": "Check kín một người" },
+        { "role": "link", "name": "Xem hợp gu với một người" },
+        { "role": "link", "name": "Người bạn đã xem" },
         { "role": "link", "name": "Kết quả bạn đã nhận" }
       ],
       "states": {
         "default": {
           "fixture": "signed-in",
           "walk": [{ "goto": "/home" }, { "click": { "role": "link", "name": "Hợp gu", "within": { "role": "navigation", "name": "Điều hướng chính" } } }],
-          "ready": { "role": "heading", "name": "Check thử hai bạn bắt sóng ở đâu." }
+          "ready": { "role": "heading", "name": "Xem hai bạn hợp nhau ở đâu." }
         }
       }
     },
@@ -518,7 +519,7 @@
       "ac": ["US-12 AC01", "US-12 AC02", "US-12 AC05", "US-12 AC09", "US-12 AC10"],
       "routes": ["/radar/start"],
       "source_files": ["apps/web/src/features/radar/RadarPrivateStartPage.tsx", "apps/web/src/features/radar/RadarFlowSteps.tsx", "apps/web/src/features/radar/radarOptions.ts"],
-      "user_path": ["Hợp gu", "Bấm Check kín một người"],
+      "user_path": ["Hợp gu", "Bấm Xem hợp gu với một người"],
       "owner_only": true,
       "owner_only_reason": "Attestation for another person's birth data: only the owner writes or changes that copy.",
       "key_selectors": [
@@ -528,7 +529,7 @@
       "states": {
         "needs-chart": {
           "fixture": "signed-in",
-          "walk": [{ "goto": "/radar" }, { "click": { "role": "link", "name": "Check kín một người", "exact": true } }],
+          "walk": [{ "goto": "/radar" }, { "click": { "role": "link", "name": "Xem hợp gu với một người", "exact": true } }],
           "ready": { "role": "heading", "name": "Chart của bạn cần có trước." }
         },
         "form": {
@@ -545,15 +546,15 @@
       "ac": ["US-12 AC10", "US-13 AC10"],
       "routes": ["/radar/invite", "/vong-la/setup"],
       "source_files": ["apps/web/src/features/radar/RadarStartPage.tsx"],
-      "user_path": ["Hợp gu", "Check kín một người", "Bấm Mời họ tự nhập"],
+      "user_path": ["Hợp gu", "Xem hợp gu với một người", "Bấm Mời họ tự nhập"],
       "owner_only": false,
       "share_sensitive": true,
-      "key_selectors": [{ "role": "button", "name": "Tạo link bật Radar" }],
+      "key_selectors": [{ "role": "button", "name": "Tạo link mời" }],
       "states": {
         "default": {
           "fixture": "signed-in-deep",
           "walk": [{ "goto": "/radar/invite" }],
-          "ready": { "role": "heading", "name": "Bạn muốn check ai?" }
+          "ready": { "role": "heading", "name": "Bạn muốn mời ai?" }
         }
       }
     },
@@ -648,7 +649,7 @@
       "ac": ["US-13 AC01", "US-13 AC02", "US-13 AC05", "US-13 AC06", "US-13 AC07"],
       "routes": ["/radar/result/:requestId"],
       "source_files": ["apps/web/src/features/radar/RadarOwnerResultPage.tsx", "apps/web/src/features/radar/useRadarHistory.ts", "apps/web/src/features/radar/useRadarOwnerBinding.ts", "apps/web/src/features/radar/useRadarEraseTarget.ts"],
-      "user_path": ["Hợp gu", "Check kín một người", "Nhập thông tin và bấm Check kín ngay", "Màn kết quả"],
+      "user_path": ["Hợp gu", "Xem hợp gu với một người", "Nhập thông tin và bấm Check kín ngay", "Màn kết quả"],
       "owner_only": false,
       "key_selectors": [{ "role": "button", "name": "Xóa kết quả này" }],
       "states": {

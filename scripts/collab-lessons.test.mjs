@@ -33,6 +33,44 @@ test('the real register is valid and every done lesson has its evidence in this 
   assert.ok(reg.lessons.length >= 12, 'the 12.11 agreement is carried over');
 });
 
+// lessons.lessonSource through the namespace, so the test fails on its assertions, not on a missing export.
+const lessonSource = l => lessons.lessonSource?.(l);
+test('L65: lessons in scripts/lessons/ and the old file form one register; a duplicate id or a misnamed file is a problem, and due dates and Codex-confirmed closes cover both', () => {
+  const base = fixture();
+  const old = join(base, 'scripts', 'collab-lessons.json');
+  const dir = join(base, 'scripts', 'lessons');
+  mkdirSync(dir);
+  writeFileSync(old, JSON.stringify({ lessons: [{ id: 'L02', title: 'cũ', who: 'claude', due: '2026-11-12', status: 'open' }] }));
+  writeFileSync(join(dir, 'L01.json'), JSON.stringify(done()));
+  writeFileSync(join(dir, 'L03.json'), JSON.stringify({ id: 'L03', title: 'mới', who: 'claude', due: '2026-11-13', status: 'open' }));
+  writeFileSync(join(dir, 'notes.txt'), 'not a lesson');
+  const reg = readRegister(old, dir);
+  assert.deepEqual(reg.lessons.map(l => l.id), ['L02', 'L01', 'L03'], 'the old file first, then the folder in name order');
+  assert.deepEqual(reg.lessons.map(lessonSource), ['collab-lessons.json', 'lessons/L01.json', 'lessons/L03.json']);
+  assert.deepEqual(problems(reg, { base, ciFiles: ci }), []);
+  // Due dates and the Codex-confirmed close run over both sources.
+  const cachePath = join(mkdtempSync(join(tmpdir(), 'lessons-cache-')), 'v.json');
+  const notYet = verify(reg, { view: () => ({ number: N, state: 'OPEN', baseRefName: 'collab/integration', headRefOid: sha, comments: [] }), cachePath });
+  const s = summarize(reg, { today: '2026-11-14', verified: notYet });
+  assert.deepEqual({ overdue: s.overdue, unconfirmed: s.unconfirmed, done: s.done }, { overdue: ['L02', 'L03'], unconfirmed: ['L01'], done: 0 },
+    'a folder lesson past its date is overdue like an old one; a folder lesson marked done without a merged, Codex-approved PR is not done');
+  const ok = verify(reg, { view: () => ({ number: N, state: 'MERGED', baseRefName: 'collab/integration', headRefOid: sha, comments: [approve] }), cachePath });
+  assert.equal(summarize(reg, { today: '2026-11-14', verified: ok }).done, 1);
+  // The same id in both places, or a file not named after its id, fails loudly.
+  writeFileSync(join(dir, 'L02.json'), JSON.stringify({ id: 'L02', title: 'trùng', who: 'claude', due: '2026-11-30', status: 'open' }));
+  writeFileSync(join(dir, 'L09.json'), JSON.stringify({ id: 'L04', title: 'sai tên', who: 'claude', due: '2026-11-30', status: 'open' }));
+  const bad = problems(readRegister(old, dir), { base, ciFiles: ci });
+  assert.ok(bad.includes('lesson L02: duplicate id (collab-lessons.json and lessons/L02.json)'), bad.join('; '));
+  assert.ok(bad.includes('lesson L04: lessons/L09.json must be named lessons/L04.json'), bad.join('; '));
+  writeFileSync(join(dir, 'L05.json'), '[]');
+  assert.throws(() => readRegister(old, dir), /lessons\/L05\.json: must hold one lesson object/);
+  writeFileSync(join(dir, 'L05.json'), '{');
+  assert.throws(() => readRegister(old, dir), /lessons\/L05\.json:/);
+  rmSync(base, { recursive: true, force: true });
+  // The real checkout reads the folder too.
+  assert.ok(readRegister().lessons.some(l => lessonSource(l) === 'lessons/L65.json'));
+});
+
 test('a lesson cannot be closed by editing the register', () => {
   const base = fixture();
   assert.deepEqual(problems({ lessons: [done()] }, { base, ciFiles: ci }), []);
@@ -64,6 +102,17 @@ test('only a PR merged into integration with a trusted Codex APPROVE confirms a 
   assert.equal(confirmClosed({ number: N, state: 'MERGED', baseRefName: 'collab/integration', headRefOid: other, comments: [approve] }), false, 'APPROVE of another head');
   const later = sealed('REQUEST_CHANGES', '2026-11-14T02:00:00Z');
   assert.equal(confirmClosed({ number: N, state: 'MERGED', baseRefName: 'collab/integration', headRefOid: sha, comments: [approve, later] }), false, 'the last verdict counts');
+});
+
+// L55 (#828): #456 and #496 merged before signed receipts existed, so L11 and L13 stayed
+// "unconfirmed" and overdue every night although Codex had approved the merged head.
+test('L55: a lesson PR merged before signed receipts is confirmed by the automatic APPROVE of its time', () => {
+  const legacy = (verdict, createdAt) => ({ authorAssociation: 'OWNER', createdAt, body: `Review verdict: ${verdict} @ ${sha}\nReviewer: Codex (auto, scripts/codex-review.mjs)\n<!-- la-lanh-agent codex-auto-review sha=${sha} p2=0 -->` });
+  const merged = mergedAt => ({ number: N, state: 'MERGED', baseRefName: 'collab/integration', headRefOid: sha, mergedAt });
+  assert.equal(confirmClosed({ ...merged('2026-11-14T21:04:30Z'), comments: [legacy('APPROVE', '2026-11-14T21:04:00Z')] }), true, '#496 merged at 21:04Z on 14.11');
+  assert.equal(confirmClosed({ ...merged('2026-11-14T21:04:30Z'), comments: [legacy('APPROVE', '2026-11-14T21:04:00Z'), legacy('REQUEST_CHANGES', '2026-11-14T21:04:10Z')] }), false, 'the last verdict at the merge decides');
+  assert.equal(confirmClosed({ ...merged('2026-11-14T21:04:30Z'), comments: [{ ...legacy('APPROVE', '2026-11-14T21:04:00Z'), body: `Review verdict: APPROVE @ ${sha}` }] }), false, 'a hand-written verdict is not the Codex review');
+  assert.equal(confirmClosed({ ...merged('2026-11-16T00:00:00Z'), comments: [legacy('APPROVE', '2026-11-15T23:59:00Z')] }), false, 'after #456 an unsigned APPROVE does not confirm');
 });
 
 test('overdue and unconfirmed lessons are reported, not hidden', () => {

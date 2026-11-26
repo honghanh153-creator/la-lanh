@@ -51,7 +51,7 @@ const gitEnv = { ...process.env, GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: '/
 const git = (cwd, ...args) => execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@example.invalid', ...args], { cwd, env: gitEnv, encoding: 'utf8' }).trim();
 
 // Builds base -> head in a fresh repo and returns the level the scope step writes.
-function classify(change) {
+function classify(change, setup = () => {}) {
   const dir = mkdtempSync(join(tmpdir(), 'pr-check-scope-'));
   git(dir, 'init', '-q');
   mkdirSync(join(dir, 'scripts'));
@@ -60,6 +60,7 @@ function classify(change) {
   writeFileSync(join(dir, 'scripts/qa-server.mjs'), content);
   writeFileSync(join(dir, 'scripts/collab-x.mjs'), content.replace('line0', 'x0'));
   writeFileSync(join(dir, 'docs/a.md'), '# a\n');
+  setup(dir);
   git(dir, 'add', '-A');
   git(dir, 'commit', '-qm', 'base');
   const base = git(dir, 'rev-parse', 'HEAD');
@@ -197,4 +198,20 @@ test('the check job annotates the tested base from the merge commit, also in a s
   assert.doesNotMatch(run(shallow, 'f'.repeat(40)), /::notice/, 'another head: nothing recorded');
   git(dir, 'checkout', '-q', 'pr');
   assert.doesNotMatch(run(dir, head), /::notice/, 'not a merge commit: nothing recorded');
+});
+
+// L59 (21.11.2026): #747 changed only docs/operations/luat-dang-hieu-luc.md, the scope step said
+// "docs", no test ran, and the merged sheet broke four rules-hook tests on collab/integration.
+test('L59: a doc that a script reads runs the loop tests; other docs stay docs-only', () => {
+  const sheet = 'docs/operations/luat-dang-hieu-luc.md';
+  const withReader = dir => {
+    mkdirSync(join(dir, 'docs/operations'), { recursive: true });
+    writeFileSync(join(dir, 'scripts/collab-rules.mjs'), `export const sheetRel = '${sheet}';\n`);
+  };
+  // The reader is already in the base: the PR changes the sheet alone, as #747 did.
+  assert.equal(classify(dir => writeFileSync(join(dir, sheet), '# luật mới\n'), dir => { withReader(dir); writeFileSync(join(dir, sheet), '# luật\n'); }), 'loop', 'the rules sheet is loop input');
+  const prompt = dir => { mkdirSync(join(dir, 'docs/operations'), { recursive: true }); writeFileSync(join(dir, 'scripts/codex-review.mjs'), "export const p = join('docs', 'operations', 'codex-review-prompt.md');\n"); writeFileSync(join(dir, 'docs/operations/codex-review-prompt.md'), '# p\n'); };
+  assert.equal(classify(dir => writeFileSync(join(dir, 'docs/operations/codex-review-prompt.md'), '# p2\n'), prompt), 'loop', 'a path built from parts still counts');
+  assert.equal(classify(dir => writeFileSync(join(dir, 'docs/a.md'), '# c\n')), 'docs', 'prose nobody reads stays docs-only');
+  assert.equal(classify(dir => { writeFileSync(join(dir, 'docs/a.md'), '# d\n'); writeFileSync(join(dir, 'apps.txt'), 'x\n'); }), 'full', 'a doc never lowers a full level');
 });

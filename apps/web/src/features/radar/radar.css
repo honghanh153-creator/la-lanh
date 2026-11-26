@@ -165,7 +165,12 @@
 .radar-flow-steps li.is-current strong { color: #f8f5ff; }
 .radar-flow-steps li.is-current span > span { border-color: #dfff42; color: #111224; background: #dfff42; box-shadow: 0 0 1rem rgb(223 255 66 / 30%); }
 .radar-flow-steps li.is-complete a > span { border-color: rgb(223 255 66 / 65%); color: #dfff42; }
-.radar-history-link { color: #cdb8ff; font-size: 0.72rem; font-weight: 800; text-align: center; text-underline-offset: 0.25rem; }
+/* Two clearly different ways back to old results, each a 44 px tap target (journey review 20.11: 306×15 links). */
+.radar-landing-history { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; }
+.radar-history-link { display: grid; min-height: 2.75rem; padding: 0.5rem 0.65rem; align-content: center; gap: 0.15rem; border: 1px solid rgb(255 255 255 / 28%); border-radius: 0.9rem; color: #cdb8ff; font-size: 0.78rem; font-weight: 800; line-height: 1.25; text-align: center; text-decoration: none; }
+.radar-history-link span { font-size: 0.68rem; font-weight: 600; opacity: 0.85; }
+.radar-history-link:hover, .radar-history-link:focus-visible { border-color: rgb(255 255 255 / 60%); }
+@media (max-width: 340px) { .radar-landing-history { grid-template-columns: 1fr; } }
 .radar-history { scroll-margin-top: 1rem; }
 .radar-history__empty { padding: 1rem; border: 1px dashed rgb(185 150 255 / 24%); border-radius: 1rem; background: rgb(20 18 52 / 45%); }
 .radar-owner-refresh { display: flex; min-height: 8rem; padding: 1rem; align-items: center; justify-content: center; gap: 0.6rem; color: #d8caff; font-size: 0.75rem; }

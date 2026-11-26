@@ -179,6 +179,8 @@ export function scanSurfaces(surfaces, marks) {
         findings.push({ surface: name, kind: "request-left-the-app", index });
         return;
       }
+      // S57: a share image may only hold the chunks on the allowed list, mark or no mark.
+      if (name === "image-metadata" && notAllowedPngChunks(entry).length) findings.push({ surface: name, kind: PNG_CHUNK_NOT_ALLOWED, index });
       for (const kind of findMarks(entry, marks, { logLine: name === "server-log" })) findings.push({ surface: name, kind, index });
     });
   }
@@ -237,6 +239,24 @@ const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
 // Chunks that only describe pixels and colour. Every other chunk can carry text or a date.
 // sPLT is not in this list: it starts with a free-text palette name.
 const PNG_PIXEL_CHUNKS = new Set(["IHDR", "PLTE", "IDAT", "IEND", "tRNS", "gAMA", "cHRM", "sRGB", "sBIT", "bKGD", "pHYs", "hIST", "acTL", "fcTL", "fdAT"]);
+
+// S57 (#691 AC3): the image the app hands out may only hold chunks from this list. It is the
+// pixel list above, checked on 24.11.2026 against the chunk list of the W3C PNG specification
+// (editor's draft, section 4.7.2, https://w3c.github.io/png/). Left out on purpose: the chunks
+// that carry text, a name, a date or embedded data (tEXt, zTXt, iTXt, eXIf, tIME, sPLT, iCCP),
+// chunks added by newer editions (cICP, mDCV) until the app is known to write them, and every
+// private or unknown chunk. Searching for marks only finds what the marks describe; a chunk
+// that is not on the list is red even when no mark is found in it.
+export const PNG_CHUNK_NOT_ALLOWED = "png-chunk-not-allowed";
+export const PNG_ALLOWED_CHUNKS = Object.freeze([...PNG_PIXEL_CHUNKS]);
+
+// Chunk types of one "chunks A B C" line (as leak-canary writes it) that are not allowed, once
+// each. Any other line gives [].
+export function notAllowedPngChunks(line) {
+  const text = String(line);
+  if (!text.startsWith("chunks ")) return [];
+  return [...new Set(text.slice(7).split(" ").filter((type) => type !== "" && !PNG_PIXEL_CHUNKS.has(type)))];
+}
 
 function inflated(data) {
   try {
@@ -370,8 +390,12 @@ export function reportLines({ surfaces, findings, missing, missingFiles: noFiles
   for (const name of SURFACES) {
     const hits = findings.filter((finding) => finding.surface === name);
     const count = (surfaces[name] ?? []).length;
-    const kinds = [...new Set(hits.map((hit) => hit.kind))].join(", ");
-    lines.push(`${hits.length ? "ĐỎ  " : "đạt "} ${SURFACE_NAMES[name]}: ${count} mục${hits.length ? `, thấy dấu: ${kinds}` : ""}`);
+    const kinds = [...new Set(hits.map((hit) => hit.kind))];
+    const marks = kinds.filter((kind) => kind !== PNG_CHUNK_NOT_ALLOWED).join(", ");
+    // Chunk type names (four letters) are printed; their content never is.
+    const odd = [...new Set(hits.filter((hit) => hit.kind === PNG_CHUNK_NOT_ALLOWED).flatMap((hit) => notAllowedPngChunks((surfaces[name] ?? [])[hit.index]).map((type) => type.replace(/[^A-Za-z]/g, "?"))))].join(", ");
+    const why = [marks && `thấy dấu: ${marks}`, odd && `ảnh có phần không nằm trong danh sách được phép: ${odd}`].filter(Boolean).join("; ");
+    lines.push(`${hits.length ? "ĐỎ  " : "đạt "} ${SURFACE_NAMES[name]}: ${count} mục${why ? `, ${why}` : ""}`);
   }
   for (const kind of missing) lines.push(`ĐỎ   lượt chạy chưa gửi dấu "${kind}" tới API, nên chưa kiểm được gì cho dấu này`);
   for (const kind of noFiles) lines.push(`ĐỎ   lượt chạy chưa lấy được "${kind}" từ app, nên chưa kiểm được gì cho file này`);

@@ -451,6 +451,7 @@ Phần này thay CTA `Mình thử việc này` và cách hiển thị available 
 - `Giữ để thử hôm nay` tạo một experiment `chosen` owner-scoped gắn note/revision/lens/action key. Home và Note Detail dùng cùng server state; `Bỏ giữ` xóa ngay và không tạo streak/guilt copy.
 - **Home hiện gì khi có việc đang giữ (#741, 19.11.2026):** card Note trên Home dùng đúng bộ nút của Note Detail (một component, một server state): `Giữ để thử hôm nay`, `Bỏ giữ việc này`, `Thay việc đang giữ` có xác nhận, `Mở phần nhìn lại` và kết quả đã ghi. Home không lặp lại hai dòng "Để ý" và quyền dừng của việc đang hiện (đọc ở Note Detail); khối "Việc đang giữ" (khi việc đang giữ khác việc đang hiện) vẫn hiện đủ. Home chỉ đọc experiment khi reading hôm nay có việc giữ được.
 - **Mất mạng (#741):** giữ, bỏ giữ và ghi kết quả được gửi ngay, không xếp hàng chờ có mạng. Request lỗi thì màn hình quay về đúng trạng thái server đang có và hiện câu "Bạn đang ngoại tuyến. Ý định chưa được thay đổi; thử lại khi có mạng nhé." Không có request nào tự gửi sau khi có mạng lại.
+- **"Hôm nay chỉ muốn đọc" (#700, 21.11.2026):** ô việc nhỏ trên Home và Note Detail có nút `Hôm nay chỉ muốn đọc`. Bấm thì ô thu lại còn một dòng với nút `Hiện lại việc nhỏ`; bấm lại thì mở như cũ. Nút chỉ đổi phần đang hiện: không gửi request, không ghi localStorage hay sessionStorage, không chuyển màn, không hỏi đăng nhập, không tính là bỏ giữ (việc đang giữ vẫn giữ nguyên trên server). Trạng thái nằm trong bộ nhớ của trang đang mở, theo ID của Note hôm nay, Home và Note Detail dùng chung; tải lại trang hoặc sang Note ngày mới thì ô mở lại (US-04 AC12); xoá lịch sử/dữ liệu lá số thì trạng thái này mất cùng. Ba nhãn nằm trong kho câu chữ (`web.action.read-only.*`).
 - Mỗi guest chỉ có một experiment chưa đóng. Giữ action khác cần xác nhận và CAS theo experiment ID/version; conflict phải refetch trước khi hỏi lại.
 - Người dùng tự mở card đang giữ để nhìn lại; app không tự bật outcome prompt. Outcome `not_tried/helpful/no_difference/not_for_now` đóng experiment, tách hoàn toàn khỏi Resonance.
 - Payload không chứa user/client-authored text; mutation bắt buộc owner + trusted Origin + CSRF, private no-store, encrypted bounded payload và purge vật lý ≤30 ngày.
@@ -530,3 +531,22 @@ Lá Lành là nơi tìm được những giây phút thư giãn bình yên, vui 
 - Ảnh chụp 390×844 trước/sau chứng minh AC40.
 - Gói `note-voice` có đủ 90 câu direct hiện hành; test CI phát hiện câu mở mới thiếu audio (cảnh báo, không chặn); e2e chứng minh chạm Mầm không tạo request và bản `generated`/roast/fallback không phát.
 - Chủ sản phẩm duyệt chất giọng trên ít nhất 10 câu mở trước khi bật.
+
+## 25. Delta Góc Tiền bạc (2026-11-25)
+
+Trạng thái: đề xuất hợp đồng cho #709/PR #932, chờ review độc lập trước bật. Chưa triển khai; không thu dữ liệu mới. Căn cứ: [quyết định kiến trúc #709](../decisions/2026-11-25-goc-tien-bac-kien-truc.md), AC1–AC5. Đây là chỗ review ngoại lệ đối với §21–23 và AC25/29/33–35; các góc khác giữ nguyên hợp đồng. Nếu delta không được duyệt, giữ tắt và giải quyết lại thiết kế, không tự bỏ AC.
+
+- Money chỉ cho Daily với một trong bốn chuyện ở quyết định §2, không số tiền/free text/chọn sẵn/suy luận từ mood hay lịch sử. Mã và prose chỉ trong POST/memory hoặc envelope mã hóa; không ghi preference và không tự điền khi reload/sang ngày mới.
+- Note tiền hiển thị việc nhẹ/thường để đọc. Chưa tạo held experiment hay resonance feedback từ revision đó; không hiện nút ghi trực tiếp, API từ chối cả lens money và ID revision tiền kèm lens giả. Không gán feedback/việc tiền cho bản nền.
+- Muốn giữ việc/gửi feedback, người dùng chủ động mở bản nền riêng và xác nhận hành động đang thấy; không âm thầm chuyển bài hoặc thay nội dung khi bấm. Bản nền áp dụng đủ AC25/27–29/33–35, gồm consent/TTL hiện có. Chia sẻ/lưu riêng theo [US-05 §21](US-05-luu-va-chia-se-note.md#21-delta-góc-tiền-bạc-2026-11-25).
+- Money chỉ nhận voice vắng/direct, dùng renderer xác định sẵn. Khi voice vắng, server luôn dùng direct, không đọc preference/setting cũ kể cả roast; roast tường minh từ chối 422 trước tạo plan/enqueue/AI. Consent AI chung không mở rewrite cho money.
+- Tắt kỹ thuật giữ nguyên bài đã nhận, cho đọc/reload/list/export/unsave/rút/xóa khi quyền còn hiệu lực; chặn consent/generate/regenerate/save mới. Withdrawal chặn mọi read/list/export/write đang chạy bằng fence quyền chung và xóa cả saved/hidden root. Không tự đổi bài tiền đang mở sang nền.
+
+| AC delta | Kiểm chứng bắt buộc trước bật |
+|---|---|
+| AC-MONEY-01 | #711: bốn enum, thiếu/sai/extra/mảng/số tiền/free text bị từ chối, HTTP JSON không phản chiếu input/body/context; direct không AI, voice vắng vẫn direct dù setting cũ roast, roast tường minh 422; facts/evidence/precision/confidence như AC22 |
+| AC-MONEY-02 | #711/#712: không tạo held/feedback tiền, kể cả giả lens/revision; mở nền cần chủ động và xác nhận; cancel không đổi bài/không ghi, chức năng nền vẫn đủ AC hiện có |
+| AC-MONEY-03 | #712: reload/ngày mới không điền chuyện; nhãn/thông báo R15, không giả định thiếu tiền, status pending chưa được phục vụ; flag-off không đổi bài, read tiếp nhưng save mới bị chặn; stale response/phiên/rút không hiện dữ liệu cũ |
+| AC-MONEY-04 | #711: một active cho bốn chuyện trong scope qua rotation; replay không giành active lại. #712: reader/history/saved hiểu contract mới ở SHA sàn rollback, client cũ không nhận enum mới; 360/390 px và AC30 |
+
+DoD delta: reviewer độc lập chốt ngoại lệ hợp đồng này; #710/#711/#712 và đầu việc consent có test API/UI/downstream/canary/native đúng ma trận quyết định §10; owner duyệt chữ nhạy cảm và bật dữ liệu theo R2. Tài liệu không thay biên nhận triển khai, store hay phát hành.
