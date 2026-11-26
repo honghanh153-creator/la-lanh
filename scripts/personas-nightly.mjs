@@ -272,20 +272,23 @@ function writeSkip(date, reason, extra = {}, receipt = writeRunReceipt) {
   return { status: 'skipped', reason, report: join(out, 'report.md') };
 }
 
-const pastStart = (date, now = vnNow()) => date === now.date && now.hour * 60 + now.minute >= lastStartAt;
+const pastStart = (date, now = vnNow()) => date < now.date || (date === now.date && now.hour * 60 + now.minute >= lastStartAt);
 const refusedLate = { status: 'refused', reason: `quá ${hhmmOf(lastStartAt)}, không bắt đầu việc mới` };
+
+function withNightLock(date, fn, { anyTime = false, now = vnNow, ...lockOptions } = {}) {
+  return withHeavyLock(() => (!anyTime && pastStart(date, now()) ? refusedLate : fn()), lockOptions);
+}
 
 // The date folder is shared by every step of a night. It is reset only by the holder of the
 // heavy-job lock, so a second prepare for the same date waits instead of deleting a running
 // night's files (#565).
-export function startRun(date, fn, { anyTime = false, now = vnNow, ...lockOptions } = {}) {
-  return withHeavyLock(async () => {
-    if (!anyTime && pastStart(date, now())) return refusedLate;
+export function startRun(date, fn, options) {
+  return withNightLock(date, async () => {
     const dir = dayDir(date);
     rmSync(dir, { recursive: true, force: true });
     mkdirSync(dir, { recursive: true });
     return fn(dir);
-  }, lockOptions);
+  }, options);
 }
 
 // Research item 3, Codex r5/r6 on #858: a night that stops after its integration commit was chosen
@@ -311,7 +314,7 @@ export async function prepare({ date = vnNow().date, anyTime = false, now = vnNo
   const changed = start === end ? [] : git(['-C', work, 'diff', '--name-only', `${start}..${end}`]).split('\n').filter(Boolean);
   const kinds = classifyChanges(changed);
   const base = { date, start, end, appChanges: kinds.app, unknownChanges: kinds.unknown };
-  if (!kinds.run) return writeSkip(date, start === end ? 'hôm nay không có commit mới trên nhánh chung' : 'hôm nay không có thay đổi chạm tới app', base, receipt);
+  if (!kinds.run) return withNightLock(date, () => writeSkip(date, start === end ? 'hôm nay không có commit mới trên nhánh chung' : 'hôm nay không có thay đổi chạm tới app', base, receipt), { anyTime, now });
 
   return withFailureReceipt(end, () => startRun(date, async dir => {
     const limitMs = () => (anyTime ? 30 * 60000 : Math.min(30 * 60000, cutoffMs(date) - Date.now()));

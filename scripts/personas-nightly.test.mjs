@@ -163,7 +163,7 @@ test('#858: a simulation that times out or exits non-zero leaves an error receip
   const path = receiptFile();
   const receipt = r => writeRunReceipt({ ...r, path });
   // The same throw prepare() makes at the simulation step, inside the real night lock.
-  const night = () => startRun('2026-11-22', async () => { throw new Error('persona_sim end exit null: killed after the time limit'); }, { waitMs: 0, stepMs: 1 });
+  const night = () => startRun('2026-11-22', async () => { throw new Error('persona_sim end exit null: killed after the time limit'); }, { anyTime: true, waitMs: 0, stepMs: 1 });
   // On a machine that is running another heavy job the night never starts; throw the same error then.
   const failing = async () => { const r = await night(); if (r?.status === 'busy') throw new Error('persona_sim end exit 1: x'); return r; };
   await assert.rejects(withFailureReceipt(measured, failing, receipt), /persona_sim end exit/, 'the failure still reaches the caller');
@@ -273,6 +273,65 @@ test('#858: prepare checks the admission time inside the lock before deleting a 
   assert.equal(readFileSync(join(dayDir(day), 'state.json'), 'utf8'), oldState);
   assert.deepEqual(readJson(join(dayDir(day), 'codex-scores.json'), null), goodScores);
   assert.deepEqual(written, [], 'a refused retry has not run a new simulation');
+});
+
+test('#858: waiting past midnight refuses preparation before reset, while explicit historical replay remains possible', async t => {
+  const day = '2026-12-29';
+  seedFinish(day);
+  writeFileSync(join(dayDir(day), 'codex-scores.json'), JSON.stringify(goodScores));
+  const before = readFileSync(join(dayDir(day), 'state.json'), 'utf8');
+  let reads = 0;
+  const now = () => reads++ === 0 ? { date: day, hour: 23, minute: 34 } : { date: nextDay(day), hour: 0, minute: 1 };
+  const written = [];
+  const result = await withIdleOS(t, () => prepare({ date: day, now, receipt: r => written.push(r) }), args => {
+    if (args[0] === 'clone' || args.includes('fetch')) return '';
+    if (args.includes('rev-list')) return 'a'.repeat(40);
+    if (args.includes('rev-parse')) return measured;
+    if (args.includes('diff')) return 'apps/web/src/x.ts';
+    assert.fail(`unexpected git command after midnight: ${args.join(' ')}`);
+  });
+  assert.equal(result.status, 'refused');
+  assert.equal(readFileSync(join(dayDir(day), 'state.json'), 'utf8'), before);
+  assert.deepEqual(readJson(join(dayDir(day), 'codex-scores.json'), null), goodScores);
+  assert.deepEqual(written, []);
+  assert.equal((await prepare({ date: day, now: () => ({ date: nextDay(day), hour: 0, minute: 1 }) })).status, 'refused', 'an old date is refused before Git IO too');
+  const replay = await withIdleOS(t, () => startRun(day, () => ({ status: 'replayed' }), { anyTime: true, now: () => ({ date: nextDay(day), hour: 0, minute: 1 }), waitMs: 0 }));
+  assert.equal(replay.status, 'replayed');
+});
+
+test('#858: a no-diff retry waits for the night lock before reading history or writing reports and receipts', async t => {
+  const day = '2026-12-30';
+  seedFinish(day);
+  assert.equal(codex(day, { run: () => { throw new Error('synthetic timeout'); }, now: () => ({ date: day }), nowMs: () => Date.parse(`${day}T23:10:00+07:00`) }).status, 'failed');
+  const out = join(process.env.LA_LANH_REPORT_DIR, nextDay(day), 'personas');
+  mkdirSync(out, { recursive: true });
+  writeFileSync(join(out, 'report.md'), 'report held by the running night');
+  const release = acquireLock(join(stateDir, 'check.lock'), { staleMs: 60000 });
+  assert.ok(release);
+  const realTimeout = globalThis.setTimeout;
+  const timer = t.mock.method(globalThis, 'setTimeout', (fn, ms, ...args) => realTimeout(fn, Math.min(ms, 5), ...args));
+  const written = [];
+  let unlocked = false;
+  try {
+    const result = await withIdleOS(t, async () => {
+      let settled = false;
+      const pending = prepare({ date: day, anyTime: true, receipt: r => written.push(r) }).then(r => { settled = true; return r; });
+      await new Promise(resolve => realTimeout(resolve, 15));
+      assert.equal(settled, false, 'skip must wait for the same real lock as a running night');
+      assert.deepEqual(written, []);
+      assert.equal(readFileSync(join(out, 'report.md'), 'utf8'), 'report held by the running night');
+      release();
+      unlocked = true;
+      return pending;
+    }, args => {
+      if (args[0] === 'clone' || args.includes('fetch')) return '';
+      if (args.includes('rev-list') || args.includes('rev-parse')) return measured;
+      assert.fail(`unexpected git command: ${args.join(' ')}`);
+    });
+    assert.equal(result.status, 'skipped');
+    assert.deepEqual(written, [{ kind: 'personas', result: 'error', sha: measured, counts: {} }]);
+    assert.match(readFileSync(result.report, 'utf8'), /Codex đã được gọi nhưng không có kết quả hợp lệ/);
+  } finally { if (!unlocked) release(); timer.mock.restore(); }
 });
 
 test('#858: prepare with no remaining app diff reports a previous Codex failure against its original commit', async t => {
@@ -390,7 +449,7 @@ test('L84: finish and reports retain Codex failures after the production reset w
             assert.equal(existsSync(join(dir, 'codex-scores.json')), false, 'the production reset removes scores');
             seedFinish(day, entry.noNewItems || (!outcome && !entry.firstCallAfterReset) ? { codexItems: [] } : {});
             return { status: 'prepared' };
-          }, { waitMs: 0, stepMs: 1 }));
+          }, { now: at.now, waitMs: 0, stepMs: 1 }));
         assert.equal(resetResult.status, 'prepared', 'exercise the real reset, never skip a busy result');
         assert.equal(readJson(join(dayDir(day), 'state.json'), {}).codexAttempt, undefined);
         const run = entry.firstCallAfterReset
@@ -431,12 +490,12 @@ test('a second prepare for the same date waits for the lock and leaves a running
   const release = acquireLock(join(stateDir, 'check.lock'), { staleMs: 60000 });
   let ran = false;
   try {
-    const second = await startRun(day, async () => { ran = true; }, { waitMs: 0, stepMs: 1 });
+    const second = await startRun(day, async () => { ran = true; }, { anyTime: true, waitMs: 0, stepMs: 1 });
     assert.equal(second.status, 'busy');
     assert.equal(ran, false);
     assert.ok(existsSync(join(dayDir(day), 'personas-200.json')), 'the running night keeps its files');
   } finally { release(); }
   let seen = null;
-  const fresh = await startRun(day, async dir => { seen = existsSync(join(dir, 'personas-200.json')); return { status: 'ok' }; }, { waitMs: 0, stepMs: 1 });
+  const fresh = await startRun(day, async dir => { seen = existsSync(join(dir, 'personas-200.json')); return { status: 'ok' }; }, { anyTime: true, waitMs: 0, stepMs: 1 });
   if (fresh.status === 'ok') assert.equal(seen, false, 'the lock holder starts from an empty folder');
 });
