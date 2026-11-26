@@ -1,5 +1,6 @@
 // Same-file holds, observed with a trial merge (S29, retro 17.11; 3+3 review 21.11, owner approved
-// research item 2 on 21.11.2026). Observe only: nothing here changes a turn, a hold or a merge.
+// research item 2 on 21.11.2026). Step 1 observes; step 2 (L63, 22.11.2026) releases a hold whose
+// trial merge is clean when every shared file is on `releaseOnCleanFiles` (probeView below).
 // fileBlocker (collab-turn.mjs) holds a PR while an earlier PR changes one of the same files. A shared
 // file does not mean a conflict, and a conflict can happen without one. Once an hour the tick takes
 // every PR held as "chờ PR #N cùng file", fetches both heads into the ops clone and runs
@@ -54,6 +55,28 @@ export function trialMerge(a, b, { dir = opsDir(), run = execFileSync } = {}) {
   }
 }
 
+// Step 2 (L63, 22.11.2026). On 22.11 one PR on the shared copy registry (#877) held about 18 content
+// PRs, and the step-1 data showed 15 of 24 same-file holds would merge cleanly; all 9 conflicts were
+// on the registry. A hold is released only when the trial merge of exactly the PR head and the
+// blocker head was clean and every shared file is on this list. A conflict, an unknown result, a
+// newer head on either side or any other shared file keeps the hold. After the earlier PR merges,
+// the later one still needs an Author check on the new base before review or merge (P1-A), so a
+// clean text merge that breaks the file is caught by the tests before it lands.
+export const releaseOnCleanFiles = ['apps/api/app/domains/content/copy_registry.json'];
+export const probeKey = (pr, blocker) => `${pr.number}@${pr.headRefOid}|${blocker.number}@${blocker.headRefOid}`;
+// The last trial result per exact pair of heads. A read error means no results, so every hold stays.
+export function probeView(path = probeLogPath()) {
+  const view = new Map();
+  try { for (const e of readLog(path)) view.set(`${e.pr}@${e.head}|${e.blocker}@${e.blockerHead}`, e.result); } catch { return new Map(); }
+  return view;
+}
+export function cleanRelease(pr, blocker, probes = new Map()) {
+  if (probes.get(probeKey(pr, blocker)) !== 'clean') return false;
+  const theirs = new Set(prFiles(blocker));
+  const shared = prFiles(pr).filter(f => theirs.has(f));
+  return shared.length > 0 && shared.every(f => releaseOnCleanFiles.includes(f));
+}
+
 // Called by the tick entry. Runs at most once an hour; returns the new entries.
 export function probeHolds({ list, trial = trialMerge, nowMs = Date.now(), path = probeLogPath(), statePath = probeStatePath(), log = () => {} } = {}) {
   const state = readJson(statePath, {});
@@ -63,7 +86,7 @@ export function probeHolds({ list, trial = trialMerge, nowMs = Date.now(), path 
   const seen = new Set(readLog(path).map(e => `${e.pr}@${e.head}|${e.blocker}@${e.blockerHead}`));
   const added = [];
   for (const { pr, blocker } of sameFileHolds(prs, turns)) {
-    const key = `${pr.number}@${pr.headRefOid}|${blocker.number}@${blocker.headRefOid}`;
+    const key = probeKey(pr, blocker);
     if (seen.has(key)) continue;
     seen.add(key);
     const shared = prFiles(pr).filter(f => prFiles(blocker).includes(f));
@@ -91,7 +114,7 @@ export function probeReport(entries, { nowMs = Date.now(), days = 7 } = {}) {
 
 export function renderReport(r) {
   return [
-    `Thử merge các PR bị giữ vì cùng file, ${r.days} ngày qua (chỉ quan sát, không đổi luật):`,
+    `Thử merge các PR bị giữ vì cùng file, ${r.days} ngày qua (sạch và chỉ chung sổ câu chữ thì được bỏ giữ):`,
     `- Lần thử: ${r.observed} trên ${r.pairs} cặp PR.`,
     `- Sạch: ${r.clean}; xung đột: ${r.conflict}; không kiểm được: ${r.unknown}.`,
     r.cleanShare === null ? '- Tỉ lệ sạch: chưa đo được (chưa có lần thử nào kiểm được).' : `- Tỉ lệ sạch trong các lần kiểm được: ${r.cleanShare}%.`,
