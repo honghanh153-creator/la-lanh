@@ -7,11 +7,11 @@
  "status": "done",
  "test": {
   "file": "scripts/personas-nightly.test.mjs",
-  "name": "L84: durable Codex outcomes survive the production reset and finish reports the same result"
+  "name": "L84: finish and reports retain Codex failures after the production reset without spending another call"
  },
  "caller": {
   "file": "scripts/personas-nightly.mjs",
-  "contains": "state.codexAttempt = readJson(attemptsPath(), {})[date] ?? state.codexAttempt ?? null;"
+  "contains": "state.codexAttempt = readAttempt(date, state.codexAttempt);"
  },
  "closedBy": {
   "pr": 858

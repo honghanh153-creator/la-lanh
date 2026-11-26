@@ -245,16 +245,30 @@ const writeState = (date, state) => writeJson(join(dayDir(date), 'state.json'), 
 const attemptsPath = () => join(nightlyDir(), 'codex-attempts.json');
 export const codexAttempted = date => Boolean(readJson(attemptsPath(), {})[date]);
 const recordAttempt = (date, entry) => writeJson(attemptsPath(), { ...readJson(attemptsPath(), {}), [date]: entry });
+function readAttempt(date, local = null) {
+  const durable = readJson(attemptsPath(), {})[date];
+  return durable ? { ...local, ...durable, error: durable.error ?? local?.error } : local;
+}
 const readState = date => {
   const state = readJson(join(dayDir(date), 'state.json'), null);
   if (!state) throw new Error(`no prepared run for ${date}; run prepare first`);
   return state;
 };
-function writeSkip(date, reason, extra = {}) {
+function writeSkip(date, reason, extra = {}, receipt = writeRunReceipt) {
   const out = join(reportRoot(), nextDay(date), 'personas');
   mkdirSync(out, { recursive: true });
-  writeFileSync(join(out, 'report.md'), `# Người giả hằng đêm, ngày ${date}\n\nKhông chạy: ${reason}\n`);
-  writeFileSync(join(out, 'metrics.json'), `${JSON.stringify({ date, skipped: true, reason, ...extra }, null, 1)}\n`);
+  const previous = readJson(join(dayDir(date), 'state.json'), null);
+  const attempt = readAttempt(date, previous?.codexAttempt);
+  const outcome = attempt ? codexOutcome(date, attempt) : null;
+  const previousCodex = outcome ? { result: outcome.result, sha: attempt.sha ?? previous?.end ?? null, comparison: outcome.comparison } : null;
+  const text = previousCodex
+    ? `Lần chuẩn bị lại không chạy: ${reason}\n\nCodex đã chạy trước đó trên code \`${previousCodex.sha?.slice(0, 12) ?? 'không đọc được'}\`.\n${renderCodex(previousCodex.comparison)}\n`
+    : `Không chạy: ${reason}\n`;
+  writeFileSync(join(out, 'report.md'), `# Người giả hằng đêm, ngày ${date}\n\n${text}`);
+  writeFileSync(join(out, 'metrics.json'), `${JSON.stringify({ date, skipped: true, reason, ...extra, ...(previousCodex ? { previousCodex } : {}) }, null, 1)}\n`);
+  if (previousCodex?.result === 'error') {
+    try { receipt({ kind: 'personas', result: 'error', sha: previousCodex.sha, counts: {} }); } catch {}
+  }
   return { status: 'skipped', reason, report: join(out, 'report.md') };
 }
 
@@ -264,8 +278,9 @@ const refusedLate = { status: 'refused', reason: `quá ${hhmmOf(lastStartAt)}, k
 // The date folder is shared by every step of a night. It is reset only by the holder of the
 // heavy-job lock, so a second prepare for the same date waits instead of deleting a running
 // night's files (#565).
-export function startRun(date, fn, lockOptions) {
+export function startRun(date, fn, { anyTime = false, now = vnNow, ...lockOptions } = {}) {
   return withHeavyLock(async () => {
+    if (!anyTime && pastStart(date, now())) return refusedLate;
     const dir = dayDir(date);
     rmSync(dir, { recursive: true, force: true });
     mkdirSync(dir, { recursive: true });
@@ -284,8 +299,8 @@ export async function withFailureReceipt(sha, fn, receipt = writeRunReceipt, cou
   }
 }
 
-export async function prepare({ date = vnNow().date, anyTime = false, alerting = {}, receipt = writeRunReceipt } = {}) {
-  if (!anyTime && pastStart(date)) return refusedLate;
+export async function prepare({ date = vnNow().date, anyTime = false, now = vnNow, alerting = {}, receipt = writeRunReceipt } = {}) {
+  if (!anyTime && pastStart(date, now())) return refusedLate;
   const work = join(nightlyDir(), 'clone-end');
   mkdirSync(nightlyDir(), { recursive: true });
   if (!existsSync(join(work, '.git'))) git(['clone', '--quiet', '--no-checkout', `https://github.com/${repo}.git`, work]);
@@ -296,10 +311,9 @@ export async function prepare({ date = vnNow().date, anyTime = false, alerting =
   const changed = start === end ? [] : git(['-C', work, 'diff', '--name-only', `${start}..${end}`]).split('\n').filter(Boolean);
   const kinds = classifyChanges(changed);
   const base = { date, start, end, appChanges: kinds.app, unknownChanges: kinds.unknown };
-  if (!kinds.run) return writeSkip(date, start === end ? 'hôm nay không có commit mới trên nhánh chung' : 'hôm nay không có thay đổi chạm tới app', base);
+  if (!kinds.run) return writeSkip(date, start === end ? 'hôm nay không có commit mới trên nhánh chung' : 'hôm nay không có thay đổi chạm tới app', base, receipt);
 
   return withFailureReceipt(end, () => startRun(date, async dir => {
-    if (!anyTime && pastStart(date)) return refusedLate;
     const limitMs = () => (anyTime ? 30 * 60000 : Math.min(30 * 60000, cutoffMs(date) - Date.now()));
     const endClone = prepareClone('end', end, end);
     const startClone = prepareClone('start', start, end);
@@ -343,7 +357,7 @@ export async function prepare({ date = vnNow().date, anyTime = false, alerting =
     const raised = raiseNew(date, state, safety.reasons, alerting);
     writeState(date, state);
     return { status: 'prepared', dir, chunks, labelPackets: labels.size, codexItems: codexItems.length, alert: raised.raised.length > 0, reasons: raised.raised };
-  }), receipt);
+  }, { anyTime, now }), receipt);
 }
 
 export function check(date, chunk) {
@@ -386,7 +400,7 @@ export function codex(date, { run = execFileSync, now = vnNow, nowMs = Date.now 
     if ((day.codexRuns ?? 0) >= dayCap(day) - auditReserve) return { status: 'skipped', reason: 'hết lượt Codex trong ngày' };
     // Count the call before it starts: a timeout or crash still spent it.
     writeJson(dayPath, { ...day, codexRuns: (day.codexRuns ?? 0) + 1, personasNightlyRuns: (day.personasNightlyRuns ?? 0) + 1 });
-    state.codexAttempt = { startedAt: new Date(nowMs()).toISOString() };
+    state.codexAttempt = { startedAt: new Date(nowMs()).toISOString(), sha: state.end };
     recordAttempt(date, state.codexAttempt);
     writeState(date, state);
     const outPath = join(dir, 'codex-out.txt');
@@ -430,6 +444,22 @@ function codexComparison(date) {
 }
 
 const fmt2 = v => (typeof v === 'number' ? v.toFixed(2).replace('.', ',') : '—');
+function codexOutcome(date, attempt) {
+  const problems = codexScoreProblems(date);
+  const invalid = (problems?.length ?? 0) > 0;
+  const failed = Boolean(attempt?.error) || Boolean(attempt && problems === null);
+  return {
+    comparison: failed ? { failed: true } : invalid ? { invalid: problems.length } : codexComparison(date),
+    result: personasReceiptResult({ codexAttempt: attempt, codexScored: problems !== null && !invalid, codexInvalid: invalid }),
+  };
+}
+function renderCodex(cmp) {
+  if (cmp?.failed) return '- Codex đã được gọi nhưng không có kết quả hợp lệ. Đêm này ghi là lỗi.';
+  if (!cmp) return '- Không chạy (không có nội dung mới, hoặc hết lượt Codex trong ngày).';
+  if (cmp.invalid) return `- Codex trả lời thiếu hoặc sai (${cmp.invalid} lỗi): không dùng điểm này, đêm này ghi là lỗi.`;
+  if (!cmp.items) return '- Codex đã chấm nhưng chưa có điểm Claude để so.';
+  return `- ${cmp.items} mục chọn trước theo hạt: Codex ${fmt2(cmp.codexMean)}, Claude ${fmt2(cmp.claudeMean)}, lệch trung bình ${fmt2(cmp.meanAbsDiff)}; lệch từ 2 điểm: ${cmp.farApart}.`;
+}
 export function renderNightly({ state, cmp, leaks, codexCmp, judged, endMetrics }) {
   const lines = [
     `# Người giả hằng đêm, ngày ${state.date}`,
@@ -452,11 +482,7 @@ export function renderNightly({ state, cmp, leaks, codexCmp, judged, endMetrics 
   const word = ok => (ok === null ? 'chưa đo' : ok ? 'ĐẠT' : 'TRƯỢT');
   for (const r of cmp.rows) lines.push(`| ${r.group} | ${r.threshold} | ${r.start} (${word(r.startOk)}) | ${r.end} (${word(r.endOk)}) |`);
   lines.push('', '## Codex chấm đối chiếu', '');
-  if (codexCmp?.failed) lines.push('- Codex đã được gọi nhưng không có kết quả hợp lệ. Đêm này ghi là lỗi.');
-  else if (!codexCmp) lines.push('- Không chạy (không có nội dung mới, hoặc hết lượt Codex trong ngày).');
-  else if (codexCmp.invalid) lines.push(`- Codex trả lời thiếu hoặc sai (${codexCmp.invalid} lỗi): không dùng điểm này, đêm này ghi là lỗi.`);
-  else if (!codexCmp.items) lines.push('- Codex đã chấm nhưng chưa có điểm Claude để so.');
-  else lines.push(`- ${codexCmp.items} mục chọn trước theo hạt: Codex ${fmt2(codexCmp.codexMean)}, Claude ${fmt2(codexCmp.claudeMean)}, lệch trung bình ${fmt2(codexCmp.meanAbsDiff)}; lệch từ 2 điểm: ${codexCmp.farApart}.`);
+  lines.push(renderCodex(codexCmp));
   const load = state.runs ?? {};
   lines.push('', '## Máy', '');
   for (const role of ['start', 'end']) {
@@ -483,8 +509,15 @@ export function raiseNew(date, state, reasons, { alert = opsAlert, gh = () => ma
 const transcriptRows = (dir, role) => readFileSync(join(dir, role, 'transcript.jsonl'), 'utf8').split('\n').filter(Boolean).map(l => JSON.parse(l));
 
 export function finish(date, { alert = opsAlert, gh = () => makeGh(), receipt = writeRunReceipt, report: runReport = report } = {}) {
-  const state = readState(date);
-  state.codexAttempt = readJson(attemptsPath(), {})[date] ?? state.codexAttempt ?? null;
+  let state;
+  try { state = readState(date); } catch (error) {
+    const attempt = readAttempt(date);
+    if (attempt) {
+      try { receipt({ kind: 'personas', result: 'error', sha: attempt.sha ?? null, counts: {} }); } catch {}
+    }
+    throw error;
+  }
+  state.codexAttempt = readAttempt(date, state.codexAttempt);
   const counts = { personas: (state.ids ?? []).length };
   try { return finishRun(date, state, { alert, gh, receipt, report: runReport, counts }); } catch (error) {
     try { receipt({ kind: 'personas', result: personasReceiptResult({ failed: true }), sha: state.end, counts }); } catch {}
@@ -500,11 +533,7 @@ function finishRun(date, state, { alert, gh, receipt, report, counts }) {
   const end = report(clone, join(dir, 'end'), personasPath, `end ${date}`);
   const { cmp, leaks, reasons } = safetyReasons(start, end, transcriptRows(dir, 'end'));
   const judged = { needed: end.understood.items_needed + start.understood.items_needed, scored: end.understood.items_scored + start.understood.items_scored };
-  const scoreProblems = codexScoreProblems(date);
-  const codexInvalid = (scoreProblems?.length ?? 0) > 0;
-  // Scores that fail the check are not compared: the report and the receipt both say so.
-  const codexFailed = Boolean(state.codexAttempt?.error) || Boolean(state.codexAttempt && scoreProblems === null);
-  const codexCmp = codexFailed ? { failed: true } : codexInvalid ? { invalid: scoreProblems.length } : codexComparison(date);
+  const { comparison: codexCmp, result } = codexOutcome(date, state.codexAttempt);
   const out = join(reportRoot(), nextDay(date), 'personas');
   mkdirSync(out, { recursive: true });
   writeFileSync(join(out, 'report.md'), renderNightly({ state, cmp, leaks, codexCmp, judged, endMetrics: end }));
@@ -516,7 +545,6 @@ function finishRun(date, state, { alert, gh, receipt, report, counts }) {
   // Research item 3 (owner 21.11): the run's receipt names the integration commit it measured. A
   // Codex cross-check that was started and left no scores, or left scores that do not cover every
   // sampled item with a valid score, makes the night an error, not ok.
-  const result = personasReceiptResult({ codexAttempt: state.codexAttempt ?? null, codexScored: scoreProblems !== null && !codexInvalid, codexInvalid });
   try { receipt({ kind: 'personas', result, sha: state.end, counts: { ...counts, safetyReasons: reasons.length } }); } catch {}
   return { status: 'finished', report: join(out, 'report.md'), alert: raised.raised.length > 0, reasons: raised.raised, allReasons: reasons, issue: raised.issue };
 }

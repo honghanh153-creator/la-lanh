@@ -11,7 +11,7 @@ import { join } from 'node:path';
 import { acquireLock } from './collab-lock.mjs';
 import { personasReceiptResult, readReceipts, receiptSummary, writeRunReceipt } from './collab-run-receipt.mjs';
 import { dayCap, dayStatePath, readJson, stateDir, writeJson } from './collab-trust.mjs';
-import { checkJudgeOutput, checkLabelOutput, classifyChanges, codex, compareRuns, crossLeaks, dayDir, finish, nextDay, pickCodexItems, pickIds, raiseNew, renderNightly, safetyReasons, seedOf, startRun, unionLabels, withFailureReceipt } from './personas-nightly.mjs';
+import { checkJudgeOutput, checkLabelOutput, classifyChanges, codex, compareRuns, crossLeaks, dayDir, finish, nextDay, nightlyDir, pickCodexItems, pickIds, prepare, raiseNew, renderNightly, safetyReasons, seedOf, startRun, unionLabels, withFailureReceipt } from './personas-nightly.mjs';
 
 test('only app-facing or unknown changes trigger a run', () => {
   assert.equal(classifyChanges(['docs/a.md', 'scripts/x.mjs', 'qa/personas/r.md', 'apps/api/tests/t.py']).run, false);
@@ -202,21 +202,137 @@ test('#858: a Codex timeout followed by finish is an error receipt; a clean nigh
   assert.equal(finish(day, finishDeps(written)).status, 'finished', 'the report is still written');
   assert.deepEqual(written, [{ kind: 'personas', result: 'error', sha: measured, counts: { personas: 2, safetyReasons: 0 } }]);
 
-  // Codex answered with something unreadable: the attempt is on record and no scores exist.
-  seedFinish(day, { codexAttempt: { startedAt: '2026-11-23T16:10:00.000Z' } });
-  const unreadable = [];
-  finish(day, finishDeps(unreadable));
-  assert.equal(unreadable[0].result, 'error');
-
   // Copied scores cannot erase the durable failure, even when the rebuilt state lost the error.
+  seedFinish(day);
   writeFileSync(join(dayDir(day), 'codex-scores.json'), JSON.stringify(goodScores));
   const scored = [];
-  finish(day, finishDeps(scored));
+  const copied = finish(day, finishDeps(scored));
   assert.equal(scored[0].result, 'error');
+  assert.match(readFileSync(copied.report, 'utf8'), /Codex đã được gọi nhưng không có kết quả hợp lệ/);
   seedFinish('2026-11-24');
   const clean = [];
   finish('2026-11-24', finishDeps(clean));
   assert.deepEqual(clean, [{ kind: 'personas', result: 'ok', sha: measured, counts: { personas: 2, safetyReasons: 0 } }]);
+});
+
+test('#858: unreadable Codex output leaves a started attempt without an error field and finish records error', () => {
+  const day = '2026-12-20';
+  seedFinish(day);
+  assert.throws(() => codex(day, { run: (_bin, args) => writeFileSync(args[args.indexOf('-o') + 1], 'not JSON'), now: () => ({ date: day }), nowMs: () => Date.parse(`${day}T23:10:00+07:00`) }), SyntaxError);
+  const attempt = readJson(join(nightlyDir(), 'codex-attempts.json'), {})[day];
+  assert.ok(attempt.startedAt);
+  assert.equal(attempt.error, undefined, 'this case does not borrow a previous timeout error');
+  const written = [];
+  const done = finish(day, finishDeps(written));
+  assert.equal(written[0].result, 'error');
+  assert.match(readFileSync(done.report, 'utf8'), /Codex đã được gọi nhưng không có kết quả hợp lệ/);
+});
+
+test('#858: finish preserves an error in either attempt record even when valid scores remain', () => {
+  const day = '2026-12-21';
+  seedFinish(day);
+  assert.equal(codex(day, { run: (_bin, args) => writeFileSync(args[args.indexOf('-o') + 1], JSON.stringify(goodScores)), now: () => ({ date: day }), nowMs: () => Date.parse(`${day}T23:10:00+07:00`) }).status, 'scored');
+  const statePath = join(dayDir(day), 'state.json');
+  const state = readJson(statePath, {});
+  writeJson(statePath, { ...state, codexAttempt: { ...state.codexAttempt, error: 'recorded failure' } });
+  const written = [];
+  const done = finish(day, finishDeps(written));
+  assert.equal(written[0].result, 'error');
+  assert.match(readFileSync(done.report, 'utf8'), /Codex đã được gọi nhưng không có kết quả hợp lệ/);
+  assert.equal(readJson(statePath, {}).codexAttempt.error, 'recorded failure');
+});
+
+// Only the OS boundary is faked. The real lock, reset, preparation and finish code still run.
+async function withIdleOS(t, fn, gitReply) {
+  const exec = childProcess.execFileSync;
+  const mocked = t.mock.method(childProcess, 'execFileSync', (file, ...args) => {
+    if (file === 'ps') return '';
+    if (gitReply && file === '/usr/bin/git') return gitReply(args[0]);
+    return exec(file, ...args);
+  });
+  syncBuiltinESMExports();
+  try { return await fn(); } finally { mocked.mock.restore(); syncBuiltinESMExports(); }
+}
+
+test('#858: prepare checks the admission time inside the lock before deleting a previous night', async t => {
+  const day = '2026-12-22';
+  seedFinish(day);
+  writeFileSync(join(dayDir(day), 'codex-scores.json'), JSON.stringify(goodScores));
+  const oldState = readFileSync(join(dayDir(day), 'state.json'), 'utf8');
+  let clockReads = 0;
+  const now = () => ({ date: day, hour: 23, minute: clockReads++ === 0 ? 34 : 35 });
+  const written = [];
+  const result = await withIdleOS(t, () => prepare({ date: day, now, receipt: r => written.push(r) }), args => {
+    if (args[0] === 'clone' || args.includes('fetch')) return '';
+    if (args.includes('rev-list')) return 'a'.repeat(40);
+    if (args.includes('rev-parse')) return measured;
+    if (args.includes('diff')) return 'apps/web/src/x.ts';
+    assert.fail(`unexpected git command: ${args.join(' ')}`);
+  });
+  assert.equal(result.status, 'refused');
+  assert.equal(readFileSync(join(dayDir(day), 'state.json'), 'utf8'), oldState);
+  assert.deepEqual(readJson(join(dayDir(day), 'codex-scores.json'), null), goodScores);
+  assert.deepEqual(written, [], 'a refused retry has not run a new simulation');
+});
+
+test('#858: prepare with no remaining app diff reports a previous Codex failure against its original commit', async t => {
+  const day = '2026-12-23';
+  seedFinish(day);
+  assert.equal(codex(day, { run: () => { throw new Error('synthetic timeout'); }, now: () => ({ date: day }), nowMs: () => Date.parse(`${day}T23:10:00+07:00`) }).status, 'failed');
+  const newEnd = 'c'.repeat(40);
+  const written = [];
+  const result = await withIdleOS(t, () => prepare({ date: day, anyTime: true, receipt: r => written.push(r) }), args => {
+    if (args[0] === 'clone' || args.includes('fetch')) return '';
+    if (args.includes('rev-list')) return 'a'.repeat(40);
+    if (args.includes('rev-parse')) return newEnd;
+    if (args.includes('diff')) return 'docs/changed.md';
+    assert.fail(`unexpected git command: ${args.join(' ')}`);
+  });
+  assert.equal(result.status, 'skipped');
+  assert.deepEqual(written, [{ kind: 'personas', result: 'error', sha: measured, counts: {} }]);
+  const text = readFileSync(result.report, 'utf8');
+  assert.match(text, /Lần chuẩn bị lại không chạy/);
+  assert.match(text, /Codex đã được gọi nhưng không có kết quả hợp lệ/);
+  assert.match(text, new RegExp(measured.slice(0, 12)));
+  const stored = readJson(join(result.report, '..', 'metrics.json'), {});
+  assert.deepEqual(stored.previousCodex, { result: 'error', sha: measured, comparison: { failed: true } });
+  assert.equal(stored.end, newEnd, 'the skipped comparison names the current ref separately');
+  assert.equal(readJson(dayStatePath(day), {}).codexRuns, 1);
+});
+
+test('#858: no-change preparation does not certify a new night or mislabel an earlier valid Codex score', async t => {
+  for (const [day, called] of [['2026-12-24', true], ['2026-12-25', false]]) {
+    seedFinish(day);
+    if (called) assert.equal(codex(day, { run: (_bin, args) => writeFileSync(args[args.indexOf('-o') + 1], JSON.stringify(goodScores)), now: () => ({ date: day }), nowMs: () => Date.parse(`${day}T23:10:00+07:00`) }).status, 'scored');
+    const written = [];
+    const result = await withIdleOS(t, () => prepare({ date: day, anyTime: true, receipt: r => written.push(r) }), args => {
+      if (args[0] === 'clone' || args.includes('fetch')) return '';
+      if (args.includes('rev-list') || args.includes('rev-parse')) return measured;
+      assert.fail(`unexpected git command: ${args.join(' ')}`);
+    });
+    assert.equal(result.status, 'skipped');
+    assert.deepEqual(written, [], 'a skipped prepare cannot certify that finish ran');
+    const text = readFileSync(result.report, 'utf8');
+    assert.equal(text.includes('Lần chuẩn bị lại không chạy'), called);
+    assert.equal(text.includes('Không chạy: hôm nay không có commit mới'), !called);
+    assert.equal(text.includes('Đêm này ghi là lỗi'), false);
+    const stored = readJson(join(result.report, '..', 'metrics.json'), {});
+    assert.equal(stored.previousCodex?.result ?? null, called ? 'ok' : null);
+    assert.equal(readJson(dayStatePath(day), {}).codexRuns ?? 0, called ? 1 : 0);
+  }
+});
+
+test('#858: finish with missing prepared state records a known attempt failure without inventing its commit', () => {
+  for (const [day, sha] of [['2026-12-26', measured], ['2026-12-27', null]]) {
+    const path = join(nightlyDir(), 'codex-attempts.json');
+    writeJson(path, { ...readJson(path, {}), [day]: { startedAt: `${day}T16:10:00.000Z`, ...(sha ? { sha } : {}) } });
+    const written = [];
+    assert.throws(() => finish(day, finishDeps(written)), /no prepared run/);
+    assert.deepEqual(written, [{ kind: 'personas', result: 'error', sha, counts: {} }]);
+  }
+  const neverStarted = [];
+  assert.throws(() => finish('2026-12-28', finishDeps(neverStarted)), /no prepared run/);
+  assert.deepEqual(neverStarted, [], 'a missing night without an attempt did not run');
 });
 
 // Codex r7 on #858: an answer that does not score every sampled item is not a good night.
@@ -246,7 +362,7 @@ test('#858: codex then finish records ok only when every sampled item has a vali
   assert.equal(rewritten[0].result, 'error');
 });
 
-test('L84: durable Codex outcomes survive the production reset and finish reports the same result', async t => {
+test('L84: finish and reports retain Codex failures after the production reset without spending another call', async t => {
   const cases = [
     { day: '2026-12-10', outcome: 'failed', reset: true, expected: 'error' },
     { day: '2026-12-11', outcome: 'scored', reset: true, expected: 'error' },
@@ -254,6 +370,7 @@ test('L84: durable Codex outcomes survive the production reset and finish report
     { day: '2026-12-13', outcome: 'scored', reset: false, expected: 'ok' },
     { day: '2026-12-14', outcome: null, reset: true, expected: 'ok' },
     { day: '2026-12-15', outcome: 'failed', reset: true, noNewItems: true, expected: 'error' },
+    { day: '2026-12-16', outcome: null, reset: true, firstCallAfterReset: true, expected: 'ok' },
   ];
   for (const entry of cases) {
     await t.test(`${entry.day}: ${entry.outcome ?? 'not called'}, reset=${entry.reset}`, async subtest => {
@@ -268,34 +385,32 @@ test('L84: durable Codex outcomes survive the production reset and finish report
         assert.equal(codex(day, { run, ...at }).status, outcome);
       }
       if (reset) {
-        // Model an idle OS process table: the CI wrapper itself matches the heavy-job pattern.
-        const exec = childProcess.execFileSync;
-        const processTable = subtest.mock.method(childProcess, 'execFileSync', (file, ...args) =>
-          file === 'ps' && args[0]?.[0] === '-Ao' ? '' : exec(file, ...args));
-        syncBuiltinESMExports();
-        let resetResult;
-        try {
-          resetResult = await startRun(day, async dir => {
+        const resetResult = await withIdleOS(subtest, () => startRun(day, async dir => {
             assert.equal(existsSync(join(dir, 'state.json')), false, 'the production reset removes the old state');
             assert.equal(existsSync(join(dir, 'codex-scores.json')), false, 'the production reset removes scores');
-            seedFinish(day, entry.noNewItems || !outcome ? { codexItems: [] } : {});
+            seedFinish(day, entry.noNewItems || (!outcome && !entry.firstCallAfterReset) ? { codexItems: [] } : {});
             return { status: 'prepared' };
-          }, { waitMs: 0, stepMs: 1 });
-        } finally {
-          processTable.mock.restore();
-          syncBuiltinESMExports();
-        }
+          }, { waitMs: 0, stepMs: 1 }));
         assert.equal(resetResult.status, 'prepared', 'exercise the real reset, never skip a busy result');
         assert.equal(readJson(join(dayDir(day), 'state.json'), {}).codexAttempt, undefined);
-        assert.equal(codex(day, { run: () => assert.fail('a prepare retry must not call Codex again'), ...at }).status, 'skipped');
+        const run = entry.firstCallAfterReset
+          ? (_bin, args) => writeFileSync(args[args.indexOf('-o') + 1], JSON.stringify(goodScores))
+          : () => assert.fail('a prepare retry must not call Codex again');
+        assert.equal(codex(day, { run, ...at }).status, entry.firstCallAfterReset ? 'scored' : 'skipped');
       }
+      mkdirSync(join(nightlyDir(), 'labels'), { recursive: true });
+      writeJson(join(nightlyDir(), 'labels', 'judge-scores.json'), { scores: { a: { score: 2 }, b: { score: 3 } } });
       const written = [];
       const done = finish(day, finishDeps(written));
       assert.deepEqual(written, [{ kind: 'personas', result: expected, sha: measured, counts: { personas: 2, safetyReasons: 0 } }]);
       const reportText = readFileSync(done.report, 'utf8');
       assert.equal(reportText.includes('Codex đã được gọi nhưng không có kết quả hợp lệ.'), expected === 'error');
-      assert.equal(reportText.includes('- Không chạy ('), outcome === null);
-      assert.equal(readJson(dayStatePath(day), {}).codexRuns ?? 0, outcome ? 1 : 0);
+      assert.equal(reportText.includes('- Không chạy ('), outcome === null && !entry.firstCallAfterReset);
+      if (expected === 'ok' && (outcome || entry.firstCallAfterReset)) {
+        assert.match(reportText, /2 mục chọn trước theo hạt: Codex 3,50, Claude 2,50, lệch trung bình 1,00; lệch từ 2 điểm: 1/);
+        assert.deepEqual(readJson(join(done.report, '..', 'metrics.json'), {}).codex, { items: 2, codexMean: 3.5, claudeMean: 2.5, meanAbsDiff: 1, farApart: 1 });
+      }
+      assert.equal(readJson(dayStatePath(day), {}).codexRuns ?? 0, outcome || entry.firstCallAfterReset ? 1 : 0);
     });
   }
 });
