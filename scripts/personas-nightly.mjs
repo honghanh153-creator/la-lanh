@@ -452,7 +452,8 @@ export function renderNightly({ state, cmp, leaks, codexCmp, judged, endMetrics 
   const word = ok => (ok === null ? 'chưa đo' : ok ? 'ĐẠT' : 'TRƯỢT');
   for (const r of cmp.rows) lines.push(`| ${r.group} | ${r.threshold} | ${r.start} (${word(r.startOk)}) | ${r.end} (${word(r.endOk)}) |`);
   lines.push('', '## Codex chấm đối chiếu', '');
-  if (!codexCmp) lines.push('- Không chạy (không có nội dung mới, hoặc hết lượt Codex trong ngày).');
+  if (codexCmp?.failed) lines.push('- Codex đã được gọi nhưng không có kết quả hợp lệ. Đêm này ghi là lỗi.');
+  else if (!codexCmp) lines.push('- Không chạy (không có nội dung mới, hoặc hết lượt Codex trong ngày).');
   else if (codexCmp.invalid) lines.push(`- Codex trả lời thiếu hoặc sai (${codexCmp.invalid} lỗi): không dùng điểm này, đêm này ghi là lỗi.`);
   else if (!codexCmp.items) lines.push('- Codex đã chấm nhưng chưa có điểm Claude để so.');
   else lines.push(`- ${codexCmp.items} mục chọn trước theo hạt: Codex ${fmt2(codexCmp.codexMean)}, Claude ${fmt2(codexCmp.claudeMean)}, lệch trung bình ${fmt2(codexCmp.meanAbsDiff)}; lệch từ 2 điểm: ${codexCmp.farApart}.`);
@@ -483,6 +484,7 @@ const transcriptRows = (dir, role) => readFileSync(join(dir, role, 'transcript.j
 
 export function finish(date, { alert = opsAlert, gh = () => makeGh(), receipt = writeRunReceipt, report: runReport = report } = {}) {
   const state = readState(date);
+  state.codexAttempt = readJson(attemptsPath(), {})[date] ?? state.codexAttempt ?? null;
   const counts = { personas: (state.ids ?? []).length };
   try { return finishRun(date, state, { alert, gh, receipt, report: runReport, counts }); } catch (error) {
     try { receipt({ kind: 'personas', result: personasReceiptResult({ failed: true }), sha: state.end, counts }); } catch {}
@@ -501,7 +503,8 @@ function finishRun(date, state, { alert, gh, receipt, report, counts }) {
   const scoreProblems = codexScoreProblems(date);
   const codexInvalid = (scoreProblems?.length ?? 0) > 0;
   // Scores that fail the check are not compared: the report and the receipt both say so.
-  const codexCmp = codexInvalid ? { invalid: scoreProblems.length } : codexComparison(date);
+  const codexFailed = Boolean(state.codexAttempt?.error) || Boolean(state.codexAttempt && scoreProblems === null);
+  const codexCmp = codexFailed ? { failed: true } : codexInvalid ? { invalid: scoreProblems.length } : codexComparison(date);
   const out = join(reportRoot(), nextDay(date), 'personas');
   mkdirSync(out, { recursive: true });
   writeFileSync(join(out, 'report.md'), renderNightly({ state, cmp, leaks, codexCmp, judged, endMetrics: end }));

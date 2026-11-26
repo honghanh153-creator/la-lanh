@@ -206,11 +206,11 @@ test('#858: a Codex timeout followed by finish is an error receipt; a clean nigh
   finish(day, finishDeps(unreadable));
   assert.equal(unreadable[0].result, 'error');
 
-  // Scores exist, or Codex was never called: a good night.
+  // Copied scores cannot erase the durable failure, even when the rebuilt state lost the error.
   writeFileSync(join(dayDir(day), 'codex-scores.json'), JSON.stringify(goodScores));
   const scored = [];
   finish(day, finishDeps(scored));
-  assert.equal(scored[0].result, 'ok');
+  assert.equal(scored[0].result, 'error');
   seedFinish('2026-11-24');
   const clean = [];
   finish('2026-11-24', finishDeps(clean));
@@ -236,12 +236,55 @@ test('#858: codex then finish records ok only when every sampled item has a vali
     const text = readFileSync(done.report, 'utf8');
     assert.equal(/Codex trả lời thiếu hoặc sai/.test(text), result === 'error', `${day}: the report says the scores were not used`);
   }
-  // A re-run of prepare drops the attempt marker from state; bad stored scores are still an error.
+  // Invalid stored scores are an error even without an attempt marker.
   seedFinish('2026-12-05');
   writeFileSync(join(dayDir('2026-12-05'), 'codex-scores.json'), '[]');
   const rewritten = [];
   finish('2026-12-05', finishDeps(rewritten));
   assert.equal(rewritten[0].result, 'error');
+});
+
+test('L858: durable Codex outcomes survive the production reset and finish reports the same result', async t => {
+  const cases = [
+    { day: '2026-12-10', outcome: 'failed', reset: true, expected: 'error' },
+    { day: '2026-12-11', outcome: 'scored', reset: true, expected: 'error' },
+    { day: '2026-12-12', outcome: 'incomplete', reset: true, expected: 'error' },
+    { day: '2026-12-13', outcome: 'scored', reset: false, expected: 'ok' },
+    { day: '2026-12-14', outcome: null, reset: true, expected: 'ok' },
+    { day: '2026-12-15', outcome: 'failed', reset: true, noNewItems: true, expected: 'error' },
+  ];
+  for (const entry of cases) {
+    await t.test(`${entry.day}: ${entry.outcome ?? 'not called'}, reset=${entry.reset}`, async () => {
+      const { day, outcome, reset, expected } = entry;
+      const at = { now: () => ({ date: day, hour: 23, minute: 10 }), nowMs: () => Date.parse(`${day}T23:10:00+07:00`) };
+      seedFinish(day);
+      if (outcome) {
+        const run = (_bin, args) => {
+          if (outcome === 'failed') throw new Error('synthetic Codex timeout');
+          writeFileSync(args[args.indexOf('-o') + 1], JSON.stringify(outcome === 'scored' ? goodScores : []));
+        };
+        assert.equal(codex(day, { run, ...at }).status, outcome);
+      }
+      if (reset) {
+        const resetResult = await startRun(day, async dir => {
+          assert.equal(existsSync(join(dir, 'state.json')), false, 'the production reset removes the old state');
+          assert.equal(existsSync(join(dir, 'codex-scores.json')), false, 'the production reset removes scores');
+          seedFinish(day, entry.noNewItems || !outcome ? { codexItems: [] } : {});
+          return { status: 'prepared' };
+        }, { waitMs: 0, stepMs: 1 });
+        assert.equal(resetResult.status, 'prepared', 'exercise the real reset, never skip a busy result');
+        assert.equal(readJson(join(dayDir(day), 'state.json'), {}).codexAttempt, undefined);
+        assert.equal(codex(day, { run: () => assert.fail('a prepare retry must not call Codex again'), ...at }).status, 'skipped');
+      }
+      const written = [];
+      const done = finish(day, finishDeps(written));
+      assert.deepEqual(written, [{ kind: 'personas', result: expected, sha: measured, counts: { personas: 2, safetyReasons: 0 } }]);
+      const reportText = readFileSync(done.report, 'utf8');
+      assert.equal(reportText.includes('Codex đã được gọi nhưng không có kết quả hợp lệ.'), expected === 'error');
+      assert.equal(reportText.includes('- Không chạy ('), outcome === null);
+      assert.equal(readJson(dayStatePath(day), {}).codexRuns ?? 0, outcome ? 1 : 0);
+    });
+  }
 });
 
 test('#858: a finish that stops part-way leaves an error receipt and still throws', () => {
