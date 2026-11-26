@@ -149,7 +149,7 @@ function BirthDateOnboarding() {
 
   return (
     <SignalStationFrame act={1} actions={actions} loading={pending} titleId="birth-title">
-      <h1 id="birth-title">Bạn xuất hiện ngày nào?</h1>
+      <h1 id="birth-title">Bạn sinh ngày nào?</h1>
       <p className="signal-station__lead">Chỉ cần ngày sinh để bắt đầu. Biết giờ và nơi sinh thì thêm luôn, chưa biết cứ để sau.</p>
       <form autoComplete="off" className="signal-date-form" id="birth-date-form" onSubmit={(event) => void submit(event)} noValidate>
         <fieldset className="signal-date-fields" disabled={pending || profileCreated}>

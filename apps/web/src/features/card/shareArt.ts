@@ -486,7 +486,7 @@ export function buildShareArtSvg(input: ShareArtSpec, format: ShareFormat, fontC
 
 /** Human description of the image for alt text / aria-label. */
 export function shareArtAlt(spec: ShareArtSpec, format: ShareFormat): string {
-  const label = format === "square_1_1" ? "vuông 1:1" : "Story 9:16";
+  const label = format === "square_1_1" ? "vuông" : "dọc";
   const stickers = [spec.badge, spec.tag].map((value) => sanitize(value ?? "")).filter(Boolean).join(", ");
   const support = spec.support ? ` ${sanitize(spec.support)}` : "";
   const hook = sanitize(spec.hook);

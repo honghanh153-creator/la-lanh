@@ -6,6 +6,7 @@ import pytest
 from app.domains.astro.models import TimePrecision, Tradition
 from app.domains.daily.models import DailyNoteRecord, PersonaLabel, PersonaMode, SourceLevel
 from app.domains.readings.models import (
+    AloneActionProjection,
     LighterActionProjection,
     PlanMode,
     ReadingContentProjection,
@@ -134,7 +135,19 @@ async def test_saved_copy_leaves_out_the_live_lighter_action() -> None:
     service = SavedNoteService(MemorySavedRepository(), OwnedDailyNotes(note))
     plain = _reading(uuid4(), hook="Bản đang đọc.")
     offered = plain.model_copy(
-        update={"lighter_action": LighterActionProjection(action="Uống một cốc nước.")}
+        update={
+            "lighter_action": LighterActionProjection(action="Uống một cốc nước."),
+            # #701: the slow and clear actions are live offers too.
+            "slow_action": LighterActionProjection(
+                action="Đợi năm phút rồi mới gửi.", weight="slow"
+            ),
+            "clear_action": LighterActionProjection(action="Viết ra một việc.", weight="clear"),
+            # #703: so are the alone action and the "others meet this too" line.
+            "alone_action": AloneActionProjection(
+                action="Viết ra giấy một câu mình muốn nói.", replaces=("card",)
+            ),
+            "common_line": "Nhiều bạn cũng gặp chuyện này.",
+        }
     )
 
     saved = await service.save(

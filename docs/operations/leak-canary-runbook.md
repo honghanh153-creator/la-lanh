@@ -1,6 +1,6 @@
 # Máy kiểm không lộ dữ liệu (leak canary)
 
-Việc #690, kế hoạch 7 tuần, tuần 1. Điều kiện bắt đầu số 8: trước khi bật một tính năng mới, máy tự kiểm rằng dữ liệu riêng không lọt ra những chỗ không được phép.
+Việc #690 và #691, kế hoạch 7 tuần, tuần 1. Điều kiện bắt đầu số 8: trước khi bật một tính năng mới, máy tự kiểm rằng dữ liệu riêng không lọt ra những chỗ không được phép.
 
 Yêu cầu gốc: US-03 AC12 và mục 21 (DoD delta: network, URL, history, log, cache không chứa ngày sinh, token, chữ riêng); US-04 AC09.
 
@@ -32,8 +32,26 @@ Yêu cầu gốc: US-03 AC12 và mục 21 (DoD delta: network, URL, history, log
 | Lịch sử trình duyệt | mọi lần đổi địa chỉ của trang |
 | URL hiện tại | sau mỗi bước |
 | Bộ nhớ trình duyệt | localStorage, sessionStorage, mọi mục trong Cache (địa chỉ, header và nội dung câu trả lời đã lưu), tiêu đề trang |
+| Tên file | tên file khi tải ảnh note, tải Lá Khai Sinh, tải dữ liệu của tôi; tên file app đưa vào bảng chia sẻ; header `Content-Disposition` của mọi câu trả lời |
+| Ảnh chia sẻ | bản SVG mà ảnh được vẽ từ đó, chữ mô tả ảnh (alt), tiêu đề màn, tiêu đề và chữ app đưa vào bảng chia sẻ |
+| Thông tin kèm trong ảnh PNG | mọi phần của file PNG tải về không phải điểm ảnh: chữ (tEXt, zTXt, iTXt), EXIF (cả chữ ghi hai byte mỗi ký tự, hai chiều byte, và các trường ngày), tên bảng màu gợi ý (sPLT), giờ sửa file, hồ sơ màu, phần lạ |
+
+Về file và ảnh (#691):
+
+- App dựng một bản SVG, hiện nó lên màn và vẽ ảnh PNG từ chính bản đó. Máy kiểm đọc bản SVG này. Phần font nhúng trong SVG được bỏ ra trước khi tìm, vì đó không phải chữ.
+- Trình duyệt chạy thử không có bảng chia sẻ. Máy kiểm đặt một bảng chia sẻ giả để ghi lại app đưa gì vào đó (tên file, tiêu đề, chữ, link).
+- File "dữ liệu của tôi" chứa dữ liệu của chính người dùng theo đúng mục đích, nên chỉ tên file bị tìm, nội dung thì không.
+- Lượt chạy phải lấy được đủ 5 thứ: ảnh note (tải, chia sẻ), Lá Khai Sinh (tải, chia sẻ), file dữ liệu. Thiếu một thứ thì lượt chạy đỏ.
 
 Thân request gửi tới API là đường được phép, nên không bị tìm. Nó chỉ được dùng để chứng minh mỗi dấu đã thật sự tới API. Dấu nào chưa tới API thì lượt chạy đỏ, vì khi đó chưa kiểm được gì.
+
+Ngày sinh được tìm theo từng phần (ngày, tháng, năm), không theo một danh sách cách viết cố định:
+
+- ba thứ tự: năm-tháng-ngày, ngày-tháng-năm, tháng-ngày-năm;
+- giữa các phần là một ký tự bất kỳ không phải chữ hay số (`-`, `/`, `.`, `:`, dấu cách, `_`…), có hoặc không có số 0 đứng đầu; viết liền thì phải đủ số 0;
+- tháng viết bằng chữ, tiếng Anh ("13 Feb 1994", "February 13th, 1994") hoặc tiếng Việt ("13 tháng 2 năm 1994", "13 thg 2, 1994").
+
+Nếu ngay trước hoặc ngay sau có thêm một chữ số thì đó là một số dài hơn, không tính là ngày sinh.
 
 Giờ sinh được tìm ở mọi chỗ, cả khi viết kèm giây. Chỉ một thứ được bỏ qua: giờ ghi ở đầu dòng nhật ký máy chủ khi ngay sau nó là mức của dòng viết hoa (`INFO`, `WARNING`, `ERROR`…), vì đó là giờ của dòng nhật ký chứ không phải dữ liệu. Dòng nhật ký mở đầu bằng một giờ mà không có mức theo sau thì vẫn bị tìm, vì đó có thể chính là giờ sinh. Còn một trường hợp chưa phân biệt được: app in giờ sinh ở đầu dòng rồi viết ngay một chữ mức viết hoa sau nó. Nếu lượt chạy rơi đúng phút trùng giờ sinh giả và app ghi giờ hiện tại vào một chỗ tìm khác, lượt chạy có thể đỏ nhầm; khi đó xem chỗ tìm trong báo cáo rồi mới kết luận.
 
@@ -65,22 +83,48 @@ Cố ý chèn một dấu vào một chỗ tìm. Lượt chạy phải đỏ (m�
 node scripts/leak-canary.mjs --plant server-log
 ```
 
-Tên chỗ tìm dùng được: `server-log`, `request-url`, `request-referer`, `external-request`, `error-report`, `error-response`, `browser-history`, `current-url`, `web-storage`.
+Tên chỗ tìm dùng được: `server-log`, `request-url`, `request-referer`, `external-request`, `error-report`, `error-response`, `browser-history`, `current-url`, `web-storage`, `file-name`, `share-image`, `image-metadata`.
 
 Với `web-storage`, dấu được ghi vào Cache thật của trang (trong nội dung một câu trả lời đã lưu), nên lượt chạy chỉ đỏ khi phần đọc bộ nhớ thật sự đọc được nó. Với các chỗ tìm còn lại, dấu được thêm vào danh sách đã thu, nên chỉ thử được phần tìm dấu.
+
+Riêng thông tin kèm trong ảnh PNG có test dựng một file PNG có chèn dấu ở từng loại phần (chữ, chữ nén, EXIF chữ thường và EXIF hai byte mỗi ký tự, tên bảng màu, giờ sửa file, phần lạ) và chờ máy kiểm báo đỏ. Các file thử có mã kiểm (CRC) đúng như file PNG thật.
+
+Bảng ca thử cho thông tin kèm trong ảnh PNG (#691 AC3). Khi thêm một loại phần hoặc một kiểu ghi mới, thêm một dòng ở đây và một ca trong test, trong cùng PR:
+
+| Phần của file PNG | Kiểu ghi được thử | Dấu dùng để thử |
+|---|---|---|
+| tEXt | chữ Latin-1; chữ UTF-8; "Creation Time" kiểu `13 Feb 1994` | ngày sinh, nơi sinh |
+| zTXt, iTXt | chữ nén; ngày kiểu XMP `1994-02-13T…` | chữ an toàn, câu hỏi Tarot, ngày sinh |
+| eXIf, chữ một byte | ImageDescription | ngày sinh |
+| eXIf, trường ngày | DateTime, DateTimeOriginal, DateTimeDigitized, GPSDateStamp (kiểu `1994:02:13`), ở IFD0 và Exif IFD, cả hai chiều byte | ngày sinh |
+| eXIf, chữ hai byte | XPComment, UserComment; hai chiều byte; vị trí chẵn và lẻ | câu hỏi Tarot, chữ an toàn, mood, nơi sinh |
+| sPLT | tên bảng màu | ngày sinh |
+| tIME | giờ sửa file | ngày sinh |
+| Phần lạ | chữ UTF-8 | mood |
+| Thông tin kèm không có dấu | EXIF có ngày khác, chữ thường, tên bảng màu thường | không báo dấu nào; vẫn đỏ vì phần đó không nằm trong danh sách được phép |
+| Phần không nằm trong danh sách được phép | tEXt, eXIf, sPLT, iCCP, tIME, phần riêng, phần mới của chuẩn (cICP), tất cả không có dấu | đỏ, báo tên loại phần |
+
+**Danh sách phần được phép (từ 24.11.2026).** Ảnh app đưa ra chỉ được chứa các phần mô tả điểm ảnh và màu: IHDR, PLTE, IDAT, IEND, tRNS, gAMA, cHRM, sRGB, sBIT, bKGD, pHYs, hIST, acTL, fcTL, fdAT. Phần nào khác là đỏ, kể cả khi không tìm thấy dấu trong đó. Lý do: tìm dấu chỉ thấy những kiểu ghi đã nghĩ tới; danh sách được phép chặn cả kiểu ghi chưa nghĩ tới. Báo cáo chỉ in tên loại phần (bốn chữ cái), không in nội dung.
+
+Danh sách đã được so với bảng loại phần trong chuẩn PNG của W3C (bản nháp của nhóm soạn, mục 4.7.2, https://w3c.github.io/png/, đọc ngày 24.11.2026). Bản đã phát hành trên w3.org không đọc được bằng máy (trả lỗi 403), nên chưa so với bản đó. Các phần mang chữ, tên, ngày hoặc dữ liệu nhúng (tEXt, zTXt, iTXt, eXIf, tIME, sPLT, iCCP) cố ý không có trong danh sách. Hai phần mới của chuẩn (cICP, mDCV) cũng chưa cho vào. Nếu sau này app cần ghi một phần mới vào ảnh, thêm nó vào danh sách trong `scripts/leak-canary-lib.mjs` cùng một ca test, trong cùng PR, và ghi lý do ở đây.
+
+Ghi lại để lần rà sau không sót: vòng review đầu của #768 đã tìm ra chỗ đọc EXIF còn thiếu (chữ hai byte, tên bảng màu) nhưng chưa thử cách EXIF viết ngày (`YYYY:MM:DD`). Vòng sau mới thấy. Từ đó ngày sinh được tìm theo từng phần như mô tả ở trên, và bảng này liệt kê đủ các trường ngày để rà cả nhóm một lần.
 
 Phần tìm dấu có test riêng, không cần trình duyệt: `node --test scripts/leak-canary-lib.test.mjs` (chạy trong `pnpm collab:test`).
 
 ## Khi lượt chạy đỏ
 
 - Thấy dấu: đây là lỗi lộ dữ liệu, không sửa máy kiểm cho xanh. Tìm chỗ ghi ra (báo cáo cho biết chỗ tìm và loại dấu), sửa code, thêm test cho đúng chỗ đó.
-- "chưa gửi dấu": giao diện đã đổi nên kịch bản không còn đi tới bước đó. Sửa bước trong `scripts/leak-canary.mjs`.
+- "chưa gửi dấu" hoặc "chưa lấy được": giao diện đã đổi nên kịch bản không còn đi tới bước đó. Sửa bước trong `scripts/leak-canary.mjs`.
 - Mã thoát 2: xem dòng "bước xong" cuối cùng để biết hỏng ở bước nào.
 
 ## Chưa kiểm (không tính là đạt)
 
 - Che nhanh, và màn tự che khi chuyền máy: app chưa có hai chức năng này.
-- Tên file tải về và ảnh chia sẻ: việc #691.
+- Chữ đã vẽ thành điểm ảnh trong ảnh PNG: máy không đọc chữ trong ảnh. Nó kiểm bản SVG mà ảnh được vẽ từ đó.
+- File và ảnh chia sẻ trong app di động: lượt chạy dùng trình duyệt với bảng chia sẻ giả. Đường ghi file tạm của app di động chưa được chạy.
+- Ảnh và link của trang chia sẻ công khai (safe link), và ảnh các màn khác ngoài note và Lá Khai Sinh.
+- Tên hoặc biệt danh trong tên file: hành trình này chưa gõ tên nào.
 - Nhật ký ở mức DEBUG, và nhật ký của máy chủ thật (staging, production): lượt chạy dùng mức nhật ký mặc định trên máy cục bộ với SQLite.
 - Tên, biệt danh gõ ở Ghép đôi, Radar, Lá Chung (cũng đi qua lớp an toàn): lượt chạy mới gõ vào lớp an toàn qua màn Tarot.
 - Trình duyệt WebKit và app di động.

@@ -258,7 +258,31 @@ const screens: Array<{ name: string; scenario: Scenario; path: string; ready: (p
     name: "12-card-share-link", path: "/card", scenario: signedIn,
     ready: (page) => page.getByRole("status"),
     before: async (page) => {
-      await page.getByRole("button", { name: /safe link/i }).click();
+      await page.getByRole("button", { name: /Tạo link riêng/i }).click();
+    },
+  },
+  {
+    // Journey 21.11 (Codex): the share button on Mình read white on lime. Its own dark text must win in both themes.
+    name: "13-profile", path: "/profile", scenario: signedIn,
+    ready: (page) => page.getByRole("link", { name: /Tạo thẻ chia sẻ/ }),
+    before: async (page) => {
+      const share = page.getByRole("link", { name: /Tạo thẻ chia sẻ/ });
+      await share.waitFor();
+      for (const theme of ["light", "dark"]) {
+        await page.evaluate((t) => { document.documentElement.dataset.theme = t; }, theme);
+        const ratio = await share.evaluate((el) => {
+          const rgb = (v: string) => (v.match(/\d+(\.\d+)?/g) ?? []).slice(0, 3).map(Number);
+          const lum = (v: string) => {
+            const [r, g, b] = rgb(v).map((c) => { const x = c / 255; return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; });
+            return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+          };
+          const style = getComputedStyle(el);
+          const [hi, lo] = [lum(style.color), lum(style.backgroundColor)].sort((a, b) => b - a);
+          return (hi + 0.05) / (lo + 0.05);
+        });
+        expect(ratio, `share button contrast in ${theme} theme`).toBeGreaterThanOrEqual(4.5);
+      }
+      await page.evaluate(() => { document.documentElement.dataset.theme = "light"; });
     },
   },
 ];

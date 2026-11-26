@@ -1,7 +1,10 @@
 // Leak canary (#690): pure parts. A synthetic profile carries easy-to-find values ("marks") in
 // its birth date, birth time, birthplace, mood, Tarot question and the text that reaches the
 // safety layer. After a real run of the app, every surface that must never carry them is searched.
+// #691 adds what leaves the app as a file: the names of downloaded and shared files, the input the
+// share image is drawn from, and the metadata inside the PNG.
 // No browser and no server here, so this file runs in the collab test suite.
+import { inflateSync } from "node:zlib";
 
 // Synthetic values only, not derived from any real person. The date and the place must be valid
 // for the app, so they are ordinary values chosen to be rare in logs; the two free-text marks are
@@ -35,20 +38,52 @@ export const SURFACES = Object.freeze([
   "browser-history",
   "current-url",
   "web-storage",
+  "file-name",
+  "share-image",
+  "image-metadata",
 ]);
 
 // Cases the app cannot exercise yet. They are printed as "chưa kiểm" and never count as passed.
 export const NOT_CHECKED = Object.freeze([
   ["Che nhanh", "chưa có chức năng"],
   ["Màn tự che khi chuyền máy", "chưa có chức năng"],
-  ["Tên file tải về và ảnh chia sẻ", "việc #691"],
+  ["Chữ đã vẽ thành điểm ảnh trong ảnh PNG", "máy không đọc chữ trong ảnh; nó kiểm bản SVG mà ảnh được vẽ từ đó"],
+  ["File và ảnh chia sẻ trong app di động", "lượt chạy dùng trình duyệt, bảng chia sẻ là bản giả"],
   ["Nhật ký ở mức DEBUG và nhật ký của máy chủ thật", "lượt chạy dùng mức nhật ký mặc định trên máy cục bộ"],
 ]);
 
 const stripAccents = (text) => text.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D");
 const fold = (text) => String(text).normalize("NFC").toLowerCase();
 
-// Every spelling of a mark that would still identify the value: {kind, forms, clock}.
+const MONTH_WORDS = ["jan(?:uary)?", "feb(?:ruary)?", "mar(?:ch)?", "apr(?:il)?", "may", "june?", "july?", "aug(?:ust)?", "sep(?:t(?:ember)?)?", "oct(?:ober)?", "nov(?:ember)?", "dec(?:ember)?"];
+
+// The birth date as other writers spell it (Codex #768 r2: EXIF writes "YYYY:MM:DD"). A list of
+// fixed spellings always misses one, so the date is matched by its parts: the three part orders
+// (year-month-day, day-month-year, month-day-year) with any one character that is not a letter or
+// a digit between the parts, with or without leading zeros; and the month as a word, in English
+// ("13 Feb 1994", "February 13th, 1994") or Vietnamese ("13 tháng 2 năm 1994", "13 thg 2, 1994").
+// A digit just before or after the date means a longer number, not this date. The patterns run on
+// folded text (lower case), with and without accents.
+function datePatterns({ day, month, year }) {
+  const part = (value) => (Number(value) < 10 ? `0?${Number(value)}` : String(Number(value)));
+  const [d, m, y] = [part(day), part(month), String(year)];
+  const sep = "[^0-9a-z]";
+  const gap = "[^0-9a-z]{0,2}";
+  const word = MONTH_WORDS[Number(month) - 1];
+  const ordinal = "(?:st|nd|rd|th)?";
+  const vietnamese = `th(?:áng|ang|g)\\.?\\s?${m}(?![0-9])${gap}(?:n[aă]m)?`;
+  return [
+    `${y}${sep}${m}${sep}${d}`,
+    `${d}${sep}${m}${sep}${y}`,
+    `${m}${sep}${d}${sep}${y}`,
+    `${d}${ordinal}${gap}${word}${gap}${y}`,
+    `${word}${gap}${d}${ordinal}${gap}${y}`,
+    `${y}${gap}${word}${gap}${d}`,
+    `${d}${gap}${vietnamese}${gap}${y}`,
+  ].map((body) => new RegExp(`(?<![0-9])${body}(?![0-9])`));
+}
+
+// Every spelling of a mark that would still identify the value: {kind, forms, clock, patterns}.
 // In a log line, `clock` marks are searched after the line's own timestamp is masked (see maskLogTime).
 export function buildMarks({ canary = CANARY, placeId = null, secrets = [] } = {}) {
   const { day, month, year, hour, minute } = canary;
@@ -59,8 +94,9 @@ export function buildMarks({ canary = CANARY, placeId = null, secrets = [] } = {
       forms: [
         `${year}-${month}-${day}`, `${day}/${month}/${year}`, `${day}-${month}-${year}`,
         `${day}.${month}.${year}`, `${year}${month}${day}`, `${day}${month}${year}`,
-        `${Number(day)}/${Number(month)}/${year}`, `${year}/${month}/${day}`,
+        `${Number(day)}/${Number(month)}/${year}`, `${year}/${month}/${day}`, `${month}${day}${year}`,
       ],
+      patterns: datePatterns(canary),
     },
     { kind: "birth-time", clock: true, forms: [`${hour}:${minute}`, `${hour}h${minute}`] },
     {
@@ -125,7 +161,9 @@ export function findMarks(text, marks, { logLine = false } = {}) {
   for (const mark of marks) {
     const haystacks = mark.clock ? masked : plain;
     const forms = [...mark.forms, ...mark.forms.map((form) => fold(stripAccents(form)))];
-    if (forms.some((form) => haystacks.some((view) => view.includes(form)))) kinds.push(mark.kind);
+    const spelled = forms.some((form) => haystacks.some((view) => view.includes(form)));
+    const matched = (mark.patterns ?? []).some((pattern) => haystacks.some((view) => pattern.test(view)));
+    if (spelled || matched) kinds.push(mark.kind);
   }
   return kinds;
 }
@@ -141,6 +179,8 @@ export function scanSurfaces(surfaces, marks) {
         findings.push({ surface: name, kind: "request-left-the-app", index });
         return;
       }
+      // S57: a share image may only hold the chunks on the allowed list, mark or no mark.
+      if (name === "image-metadata" && notAllowedPngChunks(entry).length) findings.push({ surface: name, kind: PNG_CHUNK_NOT_ALLOWED, index });
       for (const kind of findMarks(entry, marks, { logLine: name === "server-log" })) findings.push({ surface: name, kind, index });
     });
   }
@@ -173,6 +213,114 @@ export async function dumpWebStorage(env = globalThis) {
   }
   if (env.document) entries.push(`title ${env.document.title}`);
   return entries;
+}
+
+// The text a share image is drawn from. The app builds one SVG, shows it and draws the PNG from
+// that same string, so the SVG is the whole input of the picture. Takes the SVG or its data URL.
+// Embedded base64 payloads (the fonts) are cut out: they are not text, and a long random string
+// can contain a short mark by accident. Numeric character references are turned back into letters.
+export function svgTextOf(source) {
+  let svg = String(source ?? "");
+  if (svg.startsWith("data:")) {
+    const body = svg.slice(svg.indexOf(",") + 1);
+    try {
+      svg = decodeURIComponent(body);
+    } catch {
+      svg = body;
+    }
+  }
+  return svg
+    .replace(/(data:[a-z0-9.+/-]+(?:;[a-z0-9=-]+)*;base64,)[A-Za-z0-9+/=\s]+/gi, "$1<payload>")
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCodePoint(Number.parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCodePoint(Number(dec)));
+}
+
+const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+// Chunks that only describe pixels and colour. Every other chunk can carry text or a date.
+// sPLT is not in this list: it starts with a free-text palette name.
+const PNG_PIXEL_CHUNKS = new Set(["IHDR", "PLTE", "IDAT", "IEND", "tRNS", "gAMA", "cHRM", "sRGB", "sBIT", "bKGD", "pHYs", "hIST", "acTL", "fcTL", "fdAT"]);
+
+// S57 (#691 AC3): the image the app hands out may only hold chunks from this list. It is the
+// pixel list above, checked on 24.11.2026 against the chunk list of the W3C PNG specification
+// (editor's draft, section 4.7.2, https://w3c.github.io/png/). Left out on purpose: the chunks
+// that carry text, a name, a date or embedded data (tEXt, zTXt, iTXt, eXIf, tIME, sPLT, iCCP),
+// chunks added by newer editions (cICP, mDCV) until the app is known to write them, and every
+// private or unknown chunk. Searching for marks only finds what the marks describe; a chunk
+// that is not on the list is red even when no mark is found in it.
+export const PNG_CHUNK_NOT_ALLOWED = "png-chunk-not-allowed";
+export const PNG_ALLOWED_CHUNKS = Object.freeze([...PNG_PIXEL_CHUNKS]);
+
+// Chunk types of one "chunks A B C" line (as leak-canary writes it) that are not allowed, once
+// each. Any other line gives [].
+export function notAllowedPngChunks(line) {
+  const text = String(line);
+  if (!text.startsWith("chunks ")) return [];
+  return [...new Set(text.slice(7).split(" ").filter((type) => type !== "" && !PNG_PIXEL_CHUNKS.has(type)))];
+}
+
+function inflated(data) {
+  try {
+    return inflateSync(data);
+  } catch {
+    return null;
+  }
+}
+
+// Every way the bytes of a metadata field can be read as text. EXIF writes some fields with two
+// bytes per letter (XPComment, UserComment "UNICODE"), in either byte order and starting at any
+// offset, so the bytes are read as UTF-16 in both byte orders, from offset 0 and from offset 1.
+function wideViews(bytes) {
+  const even = Buffer.concat([bytes, Buffer.alloc(bytes.length % 2)]);
+  return [even.toString("utf16le"), Buffer.from(even).swap16().toString("utf16le")];
+}
+function textViews(bytes) {
+  return [bytes.toString("latin1"), bytes.toString("utf8"), ...wideViews(bytes), ...wideViews(bytes.subarray(1))];
+}
+
+// What a PNG says besides its pixels (AC3 of #691): {chunks, texts}. `chunks` lists every chunk
+// type in order; `texts` has one entry for each chunk that is not pure pixel data: text chunks
+// (tEXt, zTXt, iTXt, with compressed parts unpacked), EXIF (eXIf), the modification time (tIME),
+// suggested palettes (sPLT, for their name), colour profiles and chunks this list does not know.
+// Each is given in every reading of textViews, so two-byte EXIF text is found too. Throws when the bytes are not a PNG.
+export function pngMetadata(bytes) {
+  const data = Buffer.from(bytes);
+  if (data.length < 8 || PNG_SIGNATURE.some((byte, index) => data[index] !== byte)) throw new Error("không phải file PNG");
+  const chunks = [];
+  const texts = [];
+  let offset = 8;
+  while (offset + 12 <= data.length) {
+    const length = data.readUInt32BE(offset);
+    const type = data.toString("latin1", offset + 4, offset + 8);
+    const body = data.subarray(offset + 8, offset + 8 + length);
+    if (body.length < length) throw new Error("file PNG bị cụt");
+    chunks.push(type);
+    if (type === "tIME" && length === 7) {
+      const two = (value) => String(value).padStart(2, "0");
+      texts.push(`tIME ${body.readUInt16BE(0)}-${two(body[2])}-${two(body[3])} ${two(body[4])}:${two(body[5])}:${two(body[6])}`);
+    } else if (!PNG_PIXEL_CHUNKS.has(type)) {
+      // Compressed parts start after a keyword and a few flag bytes; trying each zero byte as the
+      // start covers zTXt, iTXt and iCCP without a parser for each.
+      const unpacked = [];
+      for (let at = body.indexOf(0); at !== -1 && unpacked.length < 4; at = body.indexOf(0, at + 1)) {
+        for (const skip of [1, 2, 3]) {
+          const plain = inflated(body.subarray(at + skip));
+          if (plain?.length) unpacked.push(plain);
+        }
+      }
+      texts.push([type, ...[body, ...unpacked].flatMap(textViews)].join("\n"));
+    }
+    offset += 12 + length;
+  }
+  if (chunks.at(-1) !== "IEND") throw new Error("file PNG bị cụt");
+  return { chunks, texts };
+}
+
+// Files the run must have taken out of the app. Without them the three file surfaces would pass
+// without looking at anything.
+export const REQUIRED_FILES = Object.freeze(["note-card-png", "note-card-share", "birth-card-png", "birth-card-share", "data-export-file"]);
+
+export function missingFiles(collected) {
+  return REQUIRED_FILES.filter((kind) => !collected.has(kind));
 }
 
 // Environment of the QA launcher for one run. The launcher takes its database from
@@ -231,21 +379,29 @@ const SURFACE_NAMES = Object.freeze({
   "browser-history": "lịch sử trình duyệt",
   "current-url": "URL hiện tại",
   "web-storage": "bộ nhớ trình duyệt (localStorage, sessionStorage, nội dung Cache)",
+  "file-name": "tên file tải về và file đưa vào bảng chia sẻ",
+  "share-image": "ảnh chia sẻ (bản SVG ảnh được vẽ từ đó, chữ mô tả ảnh, tiêu đề chia sẻ)",
+  "image-metadata": "thông tin kèm trong file ảnh PNG",
 });
 
 // Plain report lines. No value of a mark, no URL and no log line is printed.
-export function reportLines({ surfaces, findings, missing, planted = null }) {
+export function reportLines({ surfaces, findings, missing, missingFiles: noFiles = [], planted = null }) {
   const lines = [];
   for (const name of SURFACES) {
     const hits = findings.filter((finding) => finding.surface === name);
     const count = (surfaces[name] ?? []).length;
-    const kinds = [...new Set(hits.map((hit) => hit.kind))].join(", ");
-    lines.push(`${hits.length ? "ĐỎ  " : "đạt "} ${SURFACE_NAMES[name]}: ${count} mục${hits.length ? `, thấy dấu: ${kinds}` : ""}`);
+    const kinds = [...new Set(hits.map((hit) => hit.kind))];
+    const marks = kinds.filter((kind) => kind !== PNG_CHUNK_NOT_ALLOWED).join(", ");
+    // Chunk type names (four letters) are printed; their content never is.
+    const odd = [...new Set(hits.filter((hit) => hit.kind === PNG_CHUNK_NOT_ALLOWED).flatMap((hit) => notAllowedPngChunks((surfaces[name] ?? [])[hit.index]).map((type) => type.replace(/[^A-Za-z]/g, "?"))))].join(", ");
+    const why = [marks && `thấy dấu: ${marks}`, odd && `ảnh có phần không nằm trong danh sách được phép: ${odd}`].filter(Boolean).join("; ");
+    lines.push(`${hits.length ? "ĐỎ  " : "đạt "} ${SURFACE_NAMES[name]}: ${count} mục${why ? `, ${why}` : ""}`);
   }
   for (const kind of missing) lines.push(`ĐỎ   lượt chạy chưa gửi dấu "${kind}" tới API, nên chưa kiểm được gì cho dấu này`);
+  for (const kind of noFiles) lines.push(`ĐỎ   lượt chạy chưa lấy được "${kind}" từ app, nên chưa kiểm được gì cho file này`);
   for (const [name, reason] of NOT_CHECKED) lines.push(`chưa kiểm ${name} (${reason})`);
   if (planted) lines.push(`(đã cố ý chèn dấu vào "${planted}" để thử máy kiểm)`);
-  const red = findings.length > 0 || missing.length > 0;
+  const red = findings.length > 0 || missing.length > 0 || noFiles.length > 0;
   lines.push(red ? "Kết quả: ĐỎ" : "Kết quả: đạt (các ca \"chưa kiểm\" không tính là đạt)");
   return lines;
 }
