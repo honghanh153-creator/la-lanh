@@ -2,9 +2,11 @@
 // judge-output check, the start/end comparison and the cross-user leak check. Fictional ids only.
 import './collab-test-home.mjs';
 import assert from 'node:assert/strict';
+import childProcess from 'node:child_process';
 import test from 'node:test';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
+import { syncBuiltinESMExports } from 'node:module';
 import { join } from 'node:path';
 import { acquireLock } from './collab-lock.mjs';
 import { personasReceiptResult, readReceipts, receiptSummary, writeRunReceipt } from './collab-run-receipt.mjs';
@@ -254,7 +256,7 @@ test('L858: durable Codex outcomes survive the production reset and finish repor
     { day: '2026-12-15', outcome: 'failed', reset: true, noNewItems: true, expected: 'error' },
   ];
   for (const entry of cases) {
-    await t.test(`${entry.day}: ${entry.outcome ?? 'not called'}, reset=${entry.reset}`, async () => {
+    await t.test(`${entry.day}: ${entry.outcome ?? 'not called'}, reset=${entry.reset}`, async subtest => {
       const { day, outcome, reset, expected } = entry;
       const at = { now: () => ({ date: day, hour: 23, minute: 10 }), nowMs: () => Date.parse(`${day}T23:10:00+07:00`) };
       seedFinish(day);
@@ -266,12 +268,23 @@ test('L858: durable Codex outcomes survive the production reset and finish repor
         assert.equal(codex(day, { run, ...at }).status, outcome);
       }
       if (reset) {
-        const resetResult = await startRun(day, async dir => {
-          assert.equal(existsSync(join(dir, 'state.json')), false, 'the production reset removes the old state');
-          assert.equal(existsSync(join(dir, 'codex-scores.json')), false, 'the production reset removes scores');
-          seedFinish(day, entry.noNewItems || !outcome ? { codexItems: [] } : {});
-          return { status: 'prepared' };
-        }, { waitMs: 0, stepMs: 1 });
+        // Model an idle OS process table: the CI wrapper itself matches the heavy-job pattern.
+        const exec = childProcess.execFileSync;
+        const processTable = subtest.mock.method(childProcess, 'execFileSync', (file, ...args) =>
+          file === 'ps' && args[0]?.[0] === '-Ao' ? '' : exec(file, ...args));
+        syncBuiltinESMExports();
+        let resetResult;
+        try {
+          resetResult = await startRun(day, async dir => {
+            assert.equal(existsSync(join(dir, 'state.json')), false, 'the production reset removes the old state');
+            assert.equal(existsSync(join(dir, 'codex-scores.json')), false, 'the production reset removes scores');
+            seedFinish(day, entry.noNewItems || !outcome ? { codexItems: [] } : {});
+            return { status: 'prepared' };
+          }, { waitMs: 0, stepMs: 1 });
+        } finally {
+          processTable.mock.restore();
+          syncBuiltinESMExports();
+        }
         assert.equal(resetResult.status, 'prepared', 'exercise the real reset, never skip a busy result');
         assert.equal(readJson(join(dayDir(day), 'state.json'), {}).codexAttempt, undefined);
         assert.equal(codex(day, { run: () => assert.fail('a prepare retry must not call Codex again'), ...at }).status, 'skipped');
