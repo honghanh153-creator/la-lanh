@@ -1,0 +1,19 @@
+{
+ "id": "L84",
+ "title": "Kết quả Codex bền vững phải còn hiệu lực sau khi prepare xóa thư mục ngày: finish không được báo đạt hoặc không chạy khi lượt trước đã lỗi hay mất điểm",
+ "from": "PR #858: 14 lần review còn lỗi tạo lại state làm mất codexAttempt; owner giao Codex sửa ngày 26.11",
+ "who": "codex",
+ "due": "2026-11-26",
+ "status": "done",
+ "test": {
+  "file": "scripts/personas-nightly.test.mjs",
+  "name": "L84: finish and reports retain Codex failures after the production reset without spending another call"
+ },
+ "caller": {
+  "file": "scripts/personas-nightly.mjs",
+  "contains": "state.codexAttempt = readAttempt(date, state.codexAttempt);"
+ },
+ "closedBy": {
+  "pr": 858
+ }
+}
