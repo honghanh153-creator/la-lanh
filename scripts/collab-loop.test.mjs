@@ -15,8 +15,9 @@ const { renderBoard } = await import('./collab-status.mjs');
 const { committedTurns, copyReview, planMax, planMin, planState, renderPlan } = await import('./collab-plan.mjs');
 const review = await import('./codex-review.mjs');
 const { mergeGate, runMerge } = await import('./collab-merge.mjs');
-const { ciCheck, clonePreflight, checkSource, heavyJobFree, checkBudgetMs, guardHits, guardTerms, prePushRanges, privateHits, readGuardTerms, isHeavy, machineBusy, withSystemPath, prepareAuthorClone, renderCheck, runCheck, runCheckInClone, runGroup, withCheckLock } = await import('./collab-check.mjs');
+const { ciCheck, clonePreflight, checkSource, heavyJobFree, checkBudgetMs, guardHits, guardTerms, prePushRanges, privateHits, readGuardTerms, isHeavy, machineBusy, withSystemPath, prepareAuthorClone, renderCheck, runCheck: rawRunCheck, runCheckInClone, runGroup, withCheckLock } = await import('./collab-check.mjs');
 
+const runCheck = (number, options = {}) => rawRunCheck(number, { source: 'local', ...options });
 const A = 'a'.repeat(40);
 const B = 'b'.repeat(40);
 const C = 'c'.repeat(40);
@@ -987,7 +988,7 @@ test('r5 (#137 r2 P1): clone preparation is bounded by the nightly deadline', ()
   assert.ok(calls.every(c => c.ms <= c.left), 'no step may run past the deadline');
   assert.ok(!calls.some(c => c.cmd === 'make'), 'make never starts after the deadline');
   assert.ok(fake <= 26 * minute);
-  const result = runCheckInClone(7, { gh: fakeGh({ pr: pr() }), run, auto: true, clock: () => ({ date: 'd', hour: 23, minute: 29 }), nowMs: () => fake, group, busy: () => null, spawn: () => { throw new Error('pnpm check must not start'); } });
+  const result = runCheckInClone(7, { gh: fakeGh({ pr: pr() }), run, source: 'local', auto: true, clock: () => ({ date: 'd', hour: 23, minute: 29 }), nowMs: () => fake, group, busy: () => null, spawn: () => { throw new Error('pnpm check must not start'); } });
   assert.equal(result.status, 'refused');
 });
 
@@ -1295,7 +1296,8 @@ test('12.11 trial: ciCheck passes only a completed success of the pr-check check
     assert.equal(ciCheck(at(runs, { 6: [j({ run_id: 6 })], 7: [j({ run_id: 7, conclusion: 'failure' })] }), A).state, 'FAIL', `#719: run 7 decides (listed ${order})`);
   }
   assert.equal(checkSource({ LA_LANH_CHECK_SOURCE: 'ci' }), 'ci');
-  assert.equal(checkSource({}), 'local');
+  assert.equal(checkSource({}), 'ci');
+  assert.equal(checkSource({ LA_LANH_CHECK_SOURCE: 'local' }), 'local');
 });
 
 test('Codex #443 r1: a check job of another workflow never passes a head whose pr-check failed', () => {
@@ -2418,4 +2420,24 @@ test('L53: a PR ready to merge is never held by an earlier PR on a shared file; 
   // Not yet approved: the earlier group still goes first, as before.
   const checkedOnly = { ...p729, comments: [check(head(729))] };
   assert.equal(fileBlocker(checkedOnly, [p753, checkedOnly]), 753);
+});
+
+
+test('P1 #899: Codex-fixed PRs use CI even when a caller explicitly requests local checks', () => {
+  const never = () => { throw new Error('PR code must not execute on the Mac'); };
+  const marked = pr({ comments: [owner(`${trust.agentMarker} fallback pr=7 head=${A} -->`)] });
+  const gh = { ...fakeGh({ pr: marked }), comment: () => 'https://github.com/x/y/issues/7#issuecomment-89901' };
+  const run = (_cmd, args) => args[0] === 'rev-parse' ? A : '';
+  const result = runCheckInClone(7, { gh, run, group: never, spawn: never, busy: never, terms: () => [], preflight: () => null, source: 'local', ci: () => ({ state: 'pending' }) });
+  assert.equal(result.status, 'ci-pending');
+});
+
+
+test('P1 #899: a manual author check without source settings waits for CI instead of executing PR code', () => {
+  const never = () => { throw new Error('manual author check must not run PR code'); };
+  const old = process.env.LA_LANH_CHECK_SOURCE; delete process.env.LA_LANH_CHECK_SOURCE;
+  try {
+    const result = rawRunCheck(7, { gh: fakeGh({ pr: pr() }), git: args => args[0] === 'rev-parse' ? args[1] === 'HEAD' ? A : BASE : '', busy: never, spawn: never, terms: () => [], ci: () => ({ state: 'pending' }) });
+    assert.equal(result.status, 'ci-pending');
+  } finally { if (old === undefined) delete process.env.LA_LANH_CHECK_SOURCE; else process.env.LA_LANH_CHECK_SOURCE = old; }
 });

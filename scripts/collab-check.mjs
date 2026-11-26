@@ -3,6 +3,7 @@
 //        node scripts/collab-check.mjs --pr N --clone   (dedicated clone ~/.cache/la-lanh-collab/author)
 //        node scripts/collab-check.mjs --guard          (private-data scan of this branch, for pre-push)
 // One check on the machine at a time: two checks share the API and e2e ports and give false receipts.
+import { codexFixed } from './collab-fallback-provenance.mjs';
 import { guardListState } from './collab-hooks.mjs';
 import { spawnSync, execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
@@ -148,8 +149,8 @@ export function guardHits(terms, { diff = '', texts = {} } = {}) {
 
 // Where the author check comes from (owner 12.11.2026, trial): `ci` reads the `check` job of the
 // pr-check workflow at the exact head instead of running the PR's install/build/check on the Mac.
-// Anything else keeps the local `pnpm check`. Rollback: drop LA_LANH_CHECK_SOURCE from collab-cron.sh.
-export const checkSource = (env = process.env) => (env.LA_LANH_CHECK_SOURCE === 'ci' ? 'ci' : 'local');
+// CI is the default too. Local checks require an explicit local setting; Codex-fixed PRs always use CI.
+export const checkSource = (env = process.env) => (env.LA_LANH_CHECK_SOURCE === 'local' ? 'local' : 'ci');
 
 // The `check` job of the newest pr-check workflow run on this exact head. Only `success` passes; a
 // run or job that has not finished is pending; any other conclusion (failure, cancelled, skipped,
@@ -235,8 +236,8 @@ export function heldPreflight(pr, { records = readPreflight, quick = p => runPre
   return { status: 'preflight', reasons: pre.reasons, ...(pre.bodyHash ? { bodyHash: pre.bodyHash } : {}) };
 }
 
-export function runCheck(number, { gh = makeGh(), cwd = process.cwd(), git = args => String(execFileSync('/usr/bin/git', args, { cwd, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })).trim(), spawn = spawnSync, now = () => Date.now(), busy = machineBusy, terms = readGuardTerms, waitGuard = waitForGuard, budget = () => 90 * 60000 } = {}) {
-  return withCheckLock(() => checkOnce(number, { gh, cwd, git, spawn, now, busy, terms, waitGuard, budget }));
+export function runCheck(number, { gh = makeGh(), cwd = process.cwd(), git = args => String(execFileSync('/usr/bin/git', args, { cwd, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })).trim(), spawn = spawnSync, now = () => Date.now(), busy = machineBusy, terms = readGuardTerms, waitGuard = waitForGuard, budget = () => 90 * 60000, source = checkSource(), ci = ciCheck } = {}) {
+  return withCheckLock(() => checkOnce(number, { gh, cwd, git, spawn, now, busy, terms, waitGuard, budget, source, ci }));
 }
 
 // Git's pre-push input: `<local ref> <local sha> <remote ref> <remote sha>` per pushed ref. Each
@@ -270,6 +271,7 @@ export function privateHits(pr, git, terms, ranges = [[`origin/${integration}..H
 
 function checkOnce(number, { gh, cwd, git, spawn, now, busy, budget, terms = readGuardTerms, preflight = null, waitGuard = waitForGuard, source = 'local', ci = ciCheck, waiting = false }) {
   const pr = gh.pr(number);
+  if (codexFixed(pr)) source = 'ci';
   if (!isOwnPr(pr)) return { status: 'refused', reason: 'PR không phải của owner hoặc từ fork: không chạy code của nó' };
   const head = git(['rev-parse', 'HEAD']);
   if (!isSha(pr.headRefOid) || head !== pr.headRefOid) return { status: 'refused', reason: `HEAD ${head.slice(0, 12)} không phải head của PR ${String(pr.headRefOid).slice(0, 12)}` };
@@ -405,7 +407,7 @@ export function runCheckInClone(number, { gh = makeGh(), run = execFileSync, aut
   if (checkBudgetMs({ auto, clock }) <= 0) return { status: 'refused', reason: `ngoài giờ chạy tự động (sau ${hhmmOf(lastStartAt)})` };
   const held = heldPreflight({ ...pr, number: pr.number ?? number }, rest.held);
   if (held) return held;
-  const source = rest.source ?? checkSource();
+  const source = codexFixed(pr) ? 'ci' : rest.source ?? checkSource();
   // Refuse before touching the clone when another check owns the machine (local mode only).
   const other = source === 'ci' ? null : (rest.busy ?? machineBusy)();
   if (other) return { status: 'busy', reason: `máy đang chạy check khác: ${clean(other, 120)}` };

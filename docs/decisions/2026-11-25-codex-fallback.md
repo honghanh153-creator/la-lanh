@@ -1,54 +1,37 @@
-# Codex sửa thay Claude khi Claude gần hết hạn mức tuần (#894)
+# Codex sinh bản vá, CI chạy mã nhánh (#894, #899)
 
-Ngày: 25.11.2026. Người viết: Claude. Người review: Codex (vòng tự động), phản biện thứ hai theo §4.4 của `docs/operations/collab-auto-loop-plan.md`. Mức: L (vòng tự động ghi code và push thay một agent; chạy code của nhánh trên máy owner).
+Ngày 25–26.11.2026. Mức L. Bản sửa do Codex làm, cần Codex review và Anti phản biện đúng head trước merge.
 
-## Bối cảnh
+## Vấn đề đã kiểm chứng
 
-Owner 22.11: "chuyển qua codex khi claude gần hết. giữ 5% claude để duy trì nếu cần" và "tôi cần có phản biện nên ko muốn codex làm 1 mình". Owner 23.11 cho phép sửa R1 theo hướng này (L82). Từ 95% giới hạn tuần Claude, lượt "Claude sửa" phải có người làm, nếu không cả hàng việc đứng.
+Owner yêu cầu chuyển việc sang Codex khi Claude gần hết hạn mức và phải có phản biện độc lập. Bản đầu chạy test nhánh trong `sandbox-exec` trên Mac. Canary native gọi `sysctl(CTL_KERN, KERN_PROCARGS2, PID)` đã đọc được env của một PID giả ngoài sandbox cùng UID. `deny default`, `process-info` chỉ self và danh sách sysctl hẹp không chặn đường này. Test dùng `/bin/ps` trước đó tạo cảm giác an toàn sai vì binary setuid không chạy được trong sandbox.
 
-Rủi ro chính: lượt sửa chạy test của nhánh trên máy owner. Code trong nhánh là dữ liệu chưa tin (một PR có thể thêm test đọc file riêng, gọi mạng, sửa hook Git), và Codex có thể đổi chính luật cho phép việc của mình merge.
-
-## Lựa chọn đã cân nhắc
-
-1. **Giữ mọi PR chờ Claude** cho tới tuần sau.
-   - Ưu: không chạy code nào của nhánh, không cần hộp cát.
-   - Nhược: hàng việc đứng tới 3–4 ngày mỗi tuần; trái lời owner "chuyển qua codex".
-2. **Codex sửa, test chạy thẳng trên máy** như phiên Claude.
-   - Ưu: đơn giản, giống author check.
-   - Nhược: test của nhánh đọc được thư mục nhà, token trong env, mạng; một PR độc hại lấy được dữ liệu riêng mà không ai đọc diff trước (Codex review r1 và auto-7, P1).
-3. **Codex sửa trong hộp cát, test của nhánh trong hộp cát macOS, file cổng và việc của owner bị giữ trước khi tốn lượt, phản biện thứ hai trước merge.**
-   - Ưu: dùng công cụ có sẵn trên máy (không cài thêm, không tốn phí, R13); cùng cơ chế Seatbelt mà Codex CLI dùng cho chế độ `workspace-write` trên macOS.
-   - Nhược: `sandbox-exec` được Apple ghi là đã cũ (deprecated) dù vẫn chạy; test web/API không chạy trong hộp cát mà để author check làm sau, nên một bản sửa app hỏng tốn thêm một vòng.
-4. **Test trong container** (Docker hoặc máy ảo).
-   - Ưu: cách ly mạnh hơn, chạy cả test web/API.
-   - Nhược: phải cài và chạy dịch vụ mới trên máy owner (cần owner duyệt, R2 loại 1), tốn RAM khi đang có 2 việc nặng (R10). Để sau, nếu cách 3 không đủ.
+Không dùng dữ liệu hay env thật của owner cho phép thử. Không mở syscall rộng, không bỏ qua test để tuyên bố đã gỡ. Hướng giữ fallback trước lượt là an toàn nhưng chưa khôi phục chức năng, nên cần đổi cách thực thi.
 
 ## Quyết định
 
-Chọn cách 3:
+1. **Codex chỉ sinh dữ liệu JSON.** Chạy CLI trong cwd tạm trống, read-only, `--ignore-user-config`, tắt shell, apps, MCP cấu hình riêng, plugin, hook, browser, computer use và agent con. Catalog từ binary đã kiểm được thu hẹp: shell disabled, apply_patch null, tool mode direct, không tool bổ sung. Giữ đăng nhập hiện có, không sao chép token hoặc thay cấu hình toàn máy. Phiên bản CLI khác bản đã kiểm thì giữ trước lượt, chờ kiểm chứng lại.
+2. **Context chỉ có mã công khai.** Host đọc file thường trong clone mới, public diff và phát hiện review. Không theo symlink hoặc đọc `.git`, env, cấu hình riêng. Context vượt giới hạn bị giữ trước quota, không cắt âm thầm.
+3. **Host áp JSON đã kiểm.** Mỗi edit có path, hash nội dung cũ và nội dung mới hoặc null để xóa. Kiểm toàn bộ trước khi ghi: đường tương đối trong clone, không traversal, symlink, trùng/đè đường dẫn, file cổng hoặc env; hash phải khớp bản đã gửi. Model không có công cụ đọc/ghi file hay thực thi lệnh.
+4. **Kiểm tĩnh trước push, test trong CI.** Host kiểm Git metadata, file cổng, dấu xung đột, nội dung/mode và dữ liệu riêng tư. Chỉ code tin cậy của ops chạy; không chạy script/test/config nhánh trên Mac. Sau push PR nhánh, thông báo rõ test còn chờ CI, không phát biên nhận PASS sớm.
+5. **Dùng CI đã có.** `collab-cron.sh` đã đặt `LA_LANH_CHECK_SOURCE=ci`. Author check đọc job `pr-check / check` đúng head và base đã thử từ merge commit. Mặc định Author check là CI ngay khi thiếu env; local phải được chọn rõ. PR có dấu Codex sửa luôn dùng CI kể cả caller xin local. CI là `pull_request`, token chỉ đọc, không secrets, checkout không giữ credential. Merge vẫn đòi CI/Author check, Codex review và phản biện thứ hai đúng head.
 
-- Codex chạy `codex exec -s workspace-write`, tắt mạng, `--ephemeral`, trong clone riêng `~/.cache/la-lanh-collab/fallback`.
-- Test của nhánh chỉ là `node --test <file test>` (lệnh khác bị từ chối), chạy qua `collab-test-guard.mjs` của integration, `env -i`, trong `sandbox-exec`:
-  - không mạng ngoài socket cục bộ;
-  - chỉ ghi được trong clone và một thư mục tạm, `.git` của clone chỉ đọc;
-  - không đọc được nội dung file trong `/Users`, `/Volumes`, thư mục tạm chung, `/opt`, `/usr/local`, trừ clone, thư mục tạm của lượt và thư mục Node (Codex auto-7 trên #894, P1 privacy). Tên và kích thước file vẫn đọc được để Node tìm đường dẫn.
-- PR mang việc của owner (`owner-release-check`) hoặc đụng file cổng của vòng (luật, `.claude/`, `.github/`, lockfile, script và test của vòng, prompt và schema Codex review) được gắn `cho-claude` **trước** khi giữ lượt Codex, và hàng việc đi tiếp sang PR sau (Codex auto-7, P1). Xung đột merge nằm ở file cổng cũng bị giữ như vậy.
-- Trước push: quét dữ liệu riêng tư, ghi dấu Codex đã sửa trên máy. Sau push: Author check, Codex review read-only, phản biện thứ hai (Antigravity, Claude hoặc Gemini) đúng head.
+## Chốt bảo vệ giữ lại
 
-## Hệ quả
+- PR/file thực từ Git được đối chiếu trước lượt; file env và cổng giữ sớm, cả xung đột và thay đổi staged từ merge. Không chỉ tin danh sách API có thể thiếu trang.
+- Clone mới riêng từng lượt, ngoài thư mục state; dọn khi kết thúc. Git không chạy hook/fsmonitor; chuẩn bị và kiểm tra không dùng config global/system, push chỉ dùng cấu hình xác thực tin cậy của owner.
+- Khóa quota trước model call; giới hạn ngày và giờ không đổi. Không chuẩn bị được writer thì không gọi model, không giữ quota, không gắn lỗi runtime thành việc của owner/Claude.
+- Ghi provenance cục bộ trước push. Comment lỗi vẫn bắt buộc phản biện thứ hai; không force push, không đổi `main` hoặc deploy.
 
-- Lượt sửa không tốn lượt Claude; mỗi lượt tốn một lượt Codex trong trần ngày (R8) và trần riêng của chế độ này.
-- PR đụng vòng tự động chờ Claude cho tới khi hết chế độ này.
-- Test của nhánh cần đọc file ngoài clone (ví dụ `node_modules` dùng chung) sẽ hỏng trong hộp cát; khi đó lượt sửa bị từ chối, không push.
+## Kiểm chứng và giới hạn
 
-## Rủi ro và đường hỏng
+Probe trên CLI 0.171.0-alpha.13 đã xác nhận catalog nhận shell disabled/apply_patch null. Model bị yêu cầu đọc file canary và tạo file bằng tool đã trả `NO_TOOLS`; không có command/MCP event, file không được tạo. Đây là phép thử capability, chưa thay kiểm chứng bản sửa cuối qua CI và Anti.
 
-- Hộp cát hỏng hoặc bị bỏ trên bản macOS mới: `sandbox-exec` không chạy thì test không chạy và lượt sửa bị từ chối (không có đường chạy không hộp cát). Có test chạy thật trên macOS: đọc trong clone được, đọc file ngoài clone bị `EPERM`.
-- Quy tắc Seatbelt: luật khớp sau cùng thắng, nên lệnh cho phép clone đứng sau lệnh chặn thư mục nhà (có test thứ tự).
-- Lùi bản: tắt chế độ bằng file chế độ (`collab-usage.mjs`), nhãn `cho-claude` tự gỡ ở tick sau.
+CI chỉ bắt đầu sau push nhánh PR. Bản push có thể chưa xanh, nhưng không thể merge khi thiếu các cổng. Chất lượng bản vá còn phụ thuộc context đủ và review; giới hạn context/phiên bản hoặc JSON sai phải báo giữ rõ lý do, không lặp tốn lượt để giả có tiến triển.
 
 ## Nguồn đã đọc
 
-- `man sandbox-exec` trên máy owner (macOS 26): cách chạy với profile, ghi chú DEPRECATED.
-- Codex CLI, chế độ sandbox trên macOS dùng Seatbelt: https://github.com/openai/codex (thư mục `docs/`, mục sandbox).
-- Review Codex trên #894: r1 (23.11), auto-3, auto-7 (25.11).
+- Apple XNU `sysctl_procargsx`: https://github.com/apple-oss-distributions/xnu/blob/main/bsd/kern/kern_sysctl.c — đối chiếu bằng canary thật trên PID giả.
+- OpenAI Codex registry `add_shell_tools` và `ApplyPatchHandler`: https://github.com/openai/codex/blob/main/codex-rs/core/src/tools/spec_plan.rs — đối chiếu với CLI đang cài và probe thật.
+- OpenAI `ModelInfo`: https://github.com/openai/codex/blob/main/codex-rs/protocol/src/openai_models.rs — các trường shell, apply_patch và tool mode.
+- Nguồn CI và kiểm head/base trong repo: `.github/workflows/pr-check.yml`, `scripts/collab-check.mjs`, `scripts/collab-cron.sh`.
