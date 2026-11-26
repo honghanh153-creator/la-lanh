@@ -46,7 +46,7 @@ thêm, gửi câu hỏi cho AI ngoài.
 | AC11 | Tính năng chỉ hiện khi mọi câu chữ đã được duyệt (`/v1/month/status.available`); chưa duyệt thì trả "chưa sẵn sàng", không trả nửa câu. | `test_api.py::test_status_*`, `test_pending_copy_answers_unavailable_not_half` |
 | AC12 | Lưu chủ động, mục riêng, xóa được; máy chủ tự tính lại câu trả lời, không nhận chữ từ máy khách; có trong xuất dữ liệu; xóa có nhật ký; xóa giờ/nơi sinh thì xóa theo. | `test_saved.py` |
 | AC13 | Nút trên Trang chủ cạnh "Rút Tarot"; nút ngày thu gọn sẵn; không nhắc, không đếm; không hiện câu trả lời trên Trang chủ; lời nhắc đầu tuần tắt sẵn. Màn hỏi có 6 mảng và danh sách câu hỏi làm sẵn theo mảng, không có ô gõ; câu trả lời có "Câu hỏi khác về chuyện này". Nhãn giao diện `month.ui.*` cũng chờ duyệt; màn chỉ hiện khi duyệt đủ. | `apps/web/src/features/month/MonthAskPage.test.tsx`, `HomePage.test.tsx`, `monthCopy.test.ts` |
-| AC14 | 1000 người giả: mọi mảng và câu làm sẵn đều trả lời, không lẫn dữ liệu giữa người. | PR 4 |
+| AC14 | 1000 người giả: mọi mảng và câu làm sẵn đều trả lời, không lẫn dữ liệu giữa người. | `scripts/persona_month_check.py`, `qa/personas/runs/month-2026-11-21/` |
 
 ## Cách tính (tóm tắt)
 
@@ -71,4 +71,3 @@ Xem `docs/legal/store-privacy-data-map.md`, mục "Hỏi Lá bằng lá số del
 
 - Codex duyệt câu chữ `month.*` (164 câu: 126 câu trả lời, 2 dòng, 36 câu làm sẵn; đang chờ). Chưa
   duyệt thì tính năng ẩn.
-- PR 2–4.
