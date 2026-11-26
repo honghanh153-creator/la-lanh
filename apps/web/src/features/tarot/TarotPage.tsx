@@ -415,7 +415,7 @@ export function TarotPage() {
           to={() => document.querySelector<HTMLElement>(`[data-slot-art="${activeFlight.slotIndex}"]`)}
         /> : null}
         {select.isError ? <p className="tarot-error" role="alert">Kết nối vừa hụt một nhịp. Lá đã chọn vẫn được giữ; mình đang đồng bộ lại.</p> : null}
-        <p className="tarot-private"><LockKey aria-hidden="true" /> Chỉ trình duyệt này mở lại được phiên. Không có chế độ bốc offline.</p>
+        <p className="tarot-private"><LockKey aria-hidden="true" /> Chỉ trình duyệt này mở lại được phiên.</p>
       </TarotFrame>
     );
   }
@@ -503,7 +503,7 @@ export function TarotPage() {
           type="button"
         ><Sparkle aria-hidden="true" />{start.isPending ? "Đang khóa bộ bài…" : `Xòe ${spread === "one_card" ? "1" : spread === "three_card" ? "3" : "5"} lá`}<ArrowRight aria-hidden="true" /></button>
         {questionTooShort && !start.isPending ? <p className="tarot-start-hint" id="tarot-start-hint" role={shortRejected ? "alert" : undefined}>Nhập câu hỏi từ 8 ký tự trở lên, hoặc chọn một gợi ý ở “Mình chưa biết hỏi gì”.</p> : null}
-        <p><LockKey aria-hidden="true" /> Không cần đăng nhập · chỉ gửi khi bạn bấm Xòe bài · mã hóa tối đa 30 ngày · không vào analytics.</p>
+        <p><LockKey aria-hidden="true" /> Không cần đăng nhập · chỉ gửi khi bạn bấm Xòe bài · mã hóa tối đa 30 ngày · không dùng để thống kê.</p>
       </footer>
       <button
         aria-expanded={showStarters}
