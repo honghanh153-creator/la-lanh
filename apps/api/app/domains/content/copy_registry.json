@@ -11253,7 +11253,7 @@
   {
    "id": "lighter.issue.changed-plan.02",
    "category": "reading",
-   "text": "Đi bộ một vòng quanh nhà rồi mới tính tới lịch mới.",
+   "text": "Đi vài bước rồi nghỉ, chưa cần tính tới lịch mới.",
    "status": "pending"
   },
   {
@@ -12634,6 +12634,78 @@
    "id": "situation.pair.mercury-pluto.tense",
    "category": "reading",
    "text": "Bạn dễ muốn nói thật kỹ nên cứ sửa mãi chưa gửi đi.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.perfect-before-start.13.headline",
+   "category": "reading",
+   "text": "Khi gần hạn nộp mà bạn vẫn sửa hồ sơ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.perfect-before-start.13.scene",
+   "category": "reading",
+   "text": "Khi hồ sơ trên máy đã đủ ý, bạn vẫn sửa mãi dù định gửi bạn xem giúp trước hạn nộp.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.perfect-before-start.13.action",
+   "category": "reading",
+   "text": "Gửi bản hồ sơ hiện có cho người bạn định nhờ xem giúp.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.defend-old-choice.13.headline",
+   "category": "reading",
+   "text": "Khi hồ sơ gửi đi chưa có hồi âm.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.defend-old-choice.13.scene",
+   "category": "reading",
+   "text": "Khi hồ sơ gửi vài nơi chưa có hồi âm, bạn vẫn giữ cách viết cũ vì tiếc công sửa.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.defend-old-choice.13.action",
+   "category": "reading",
+   "text": "Kiểm tra cách viết hồ sơ, chọn một chỗ sửa lại cho lần nộp tiếp theo.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.changed-plan.13.headline",
+   "category": "reading",
+   "text": "Khi được đề nghị đổi ca trùng giờ học.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.changed-plan.13.scene",
+   "category": "reading",
+   "text": "Khi được đề nghị đổi ca làm trùng lịch học, bạn chưa biết hai bên sẽ chốt giờ nào.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.changed-plan.13.action",
+   "category": "reading",
+   "text": "Nói rõ giờ học cần giữ và đề xuất giờ khác để hai bên chốt ca mới.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.decision-fatigue.13.headline",
+   "category": "reading",
+   "text": "Khi mệt sau ca, bài còn nhiều phần.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.decision-fatigue.13.scene",
+   "category": "reading",
+   "text": "Khi mệt sau ca làm, bạn phân vân chưa chọn được phần bài nào dù chưa cần quyết ngay.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.decision-fatigue.13.action",
+   "category": "reading",
+   "text": "Chọn phần bài gần hạn nộp nhất để làm trước, gác lại các phần chưa gấp.",
    "status": "pending"
   }
  ],
