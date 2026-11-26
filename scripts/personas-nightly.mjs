@@ -275,20 +275,19 @@ function writeSkip(date, reason, extra = {}, receipt = writeRunReceipt) {
 const pastStart = (date, now = vnNow()) => date < now.date || (date === now.date && now.hour * 60 + now.minute >= lastStartAt);
 const refusedLate = { status: 'refused', reason: `quá ${hhmmOf(lastStartAt)}, không bắt đầu việc mới` };
 
-function withNightLock(date, fn, { anyTime = false, now = vnNow, ...lockOptions } = {}) {
-  return withHeavyLock(() => (!anyTime && pastStart(date, now()) ? refusedLate : fn()), lockOptions);
-}
-
 // The date folder is shared by every step of a night. It is reset only by the holder of the
 // heavy-job lock, so a second prepare for the same date waits instead of deleting a running
 // night's files (#565).
-export function startRun(date, fn, options) {
-  return withNightLock(date, async () => {
-    const dir = dayDir(date);
-    rmSync(dir, { recursive: true, force: true });
-    mkdirSync(dir, { recursive: true });
-    return fn(dir);
-  }, options);
+export function startRun(date, fn, { anyTime = false, now = vnNow, ...lockOptions } = {}) {
+  return withHeavyLock(() => {
+    if (!anyTime && pastStart(date, now())) return refusedLate;
+    return fn(() => {
+      const dir = dayDir(date);
+      rmSync(dir, { recursive: true, force: true });
+      mkdirSync(dir, { recursive: true });
+      return dir;
+    });
+  }, lockOptions);
 }
 
 // Research item 3, Codex r5/r6 on #858: a night that stops after its integration commit was chosen
@@ -304,63 +303,67 @@ export async function withFailureReceipt(sha, fn, receipt = writeRunReceipt, cou
 
 export async function prepare({ date = vnNow().date, anyTime = false, now = vnNow, alerting = {}, receipt = writeRunReceipt } = {}) {
   if (!anyTime && pastStart(date, now())) return refusedLate;
-  const work = join(nightlyDir(), 'clone-end');
-  mkdirSync(nightlyDir(), { recursive: true });
-  if (!existsSync(join(work, '.git'))) git(['clone', '--quiet', '--no-checkout', `https://github.com/${repo}.git`, work]);
-  git(['-C', work, 'fetch', '--quiet', 'origin', `+refs/heads/${integration}:refs/remotes/origin/${integration}`]);
-  const ref = `origin/${integration}`;
-  const start = git(['-C', work, 'rev-list', '-1', '--first-parent', `--before=${date} 00:00 +0700`, ref]);
-  const end = git(['-C', work, 'rev-parse', ref]);
-  const changed = start === end ? [] : git(['-C', work, 'diff', '--name-only', `${start}..${end}`]).split('\n').filter(Boolean);
-  const kinds = classifyChanges(changed);
-  const base = { date, start, end, appChanges: kinds.app, unknownChanges: kinds.unknown };
-  if (!kinds.run) return withNightLock(date, () => writeSkip(date, start === end ? 'hôm nay không có commit mới trên nhánh chung' : 'hôm nay không có thay đổi chạm tới app', base, receipt), { anyTime, now });
+  return startRun(date, async reset => {
+    const work = join(nightlyDir(), 'clone-end');
+    mkdirSync(nightlyDir(), { recursive: true });
+    if (!existsSync(join(work, '.git'))) git(['clone', '--quiet', '--no-checkout', `https://github.com/${repo}.git`, work]);
+    git(['-C', work, 'fetch', '--quiet', 'origin', `+refs/heads/${integration}:refs/remotes/origin/${integration}`]);
+    const ref = `origin/${integration}`;
+    const start = git(['-C', work, 'rev-list', '-1', '--first-parent', `--before=${date} 00:00 +0700`, ref]);
+    const end = git(['-C', work, 'rev-parse', ref]);
+    const changed = start === end ? [] : git(['-C', work, 'diff', '--name-only', `${start}..${end}`]).split('\n').filter(Boolean);
+    const kinds = classifyChanges(changed);
+    const base = { date, start, end, appChanges: kinds.app, unknownChanges: kinds.unknown };
+    if (!anyTime && pastStart(date, now())) return refusedLate;
+    if (!kinds.run) return writeSkip(date, start === end ? 'hôm nay không có commit mới trên nhánh chung' : 'hôm nay không có thay đổi chạm tới app', base, receipt);
 
-  return withFailureReceipt(end, () => startRun(date, async dir => {
-    const limitMs = () => (anyTime ? 30 * 60000 : Math.min(30 * 60000, cutoffMs(date) - Date.now()));
-    const endClone = prepareClone('end', end, end);
-    const startClone = prepareClone('start', start, end);
-    // Both simulations read the same cached action labels (the sim uses them to decide keeps).
-    pushLabels(endClone);
-    pushLabels(startClone);
-    const all = JSON.parse(readFileSync(join(endClone, 'qa', 'personas', 'personas-1000.json'), 'utf8')).personas;
-    const ids = pickIds(date, all.map(p => p.id));
-    const personasPath = join(dir, 'personas-200.json');
-    writeFileSync(personasPath, `${JSON.stringify({ seed: seedOf(date), personas: all.filter(p => ids.includes(p.id)) }, null, 1)}\n`);
-    const runs = {};
-    const metrics = {};
-    for (const [role, clone] of [['start', startClone], ['end', endClone]]) {
-      const out = join(dir, role);
-      if (limitMs() <= 0) throw new Error('hết giờ trong ngày trước khi chạy xong');
-      runs[role] = await runSim(clone, personasPath, out, { limitMs: limitMs() });
-      if (runs[role].code !== 0) throw new Error(`persona_sim ${role} exit ${runs[role].code}: ${runs[role].tail}`);
-      metrics[role] = report(endClone, out, personasPath, `${role} ${date}`);
-    }
-    const packets = new Map();
-    const labels = new Set();
-    for (const role of ['start', 'end']) {
-      for (const line of readFileSync(join(dir, role, 'judge-packets.jsonl'), 'utf8').split('\n').filter(Boolean)) packets.set(JSON.parse(line).item_id, line);
-      for (const line of readFileSync(join(dir, role, 'label-packets.jsonl'), 'utf8').split('\n').filter(Boolean)) labels.add(line);
-    }
-    const lines = [...packets.values()];
-    const chunks = [];
-    for (let i = 0; i < lines.length; i += chunkSize) {
-      const name = `judge-${String(chunks.length + 1).padStart(2, '0')}`;
-      writeFileSync(join(dir, `${name}.jsonl`), `${lines.slice(i, i + chunkSize).join('\n')}\n`);
-      chunks.push(name);
-    }
-    if (labels.size) writeFileSync(join(dir, 'label-01.jsonl'), `${[...labels].join('\n')}\n`);
-    writeFileSync(join(dir, 'judge-rubric.md'), readFileSync(join(endClone, 'qa', 'personas', 'judge-rubric.md')));
-    const codexItems = pickCodexItems(date, [...packets.keys()]);
-    writeFileSync(join(dir, 'codex-sample.jsonl'), codexItems.map(id => packets.get(id)).join('\n') + (codexItems.length ? '\n' : ''));
-    mkdirSync(join(dir, 'out'), { recursive: true });
-    const state = { ...base, seed: seedOf(date), ids, runs, chunks, labelPackets: labels.size, codexItems, preparedAt: new Date().toISOString(), alerted: [] };
-    const safety = safetyReasons(metrics.start, metrics.end, transcriptRows(dir, 'end'));
-    writeState(date, state);
-    const raised = raiseNew(date, state, safety.reasons, alerting);
-    writeState(date, state);
-    return { status: 'prepared', dir, chunks, labelPackets: labels.size, codexItems: codexItems.length, alert: raised.raised.length > 0, reasons: raised.raised };
-  }, { anyTime, now }), receipt);
+    return withFailureReceipt(end, async () => {
+      const dir = reset();
+      const limitMs = () => (anyTime ? 30 * 60000 : Math.min(30 * 60000, cutoffMs(date) - Date.now()));
+      const endClone = prepareClone('end', end, end);
+      const startClone = prepareClone('start', start, end);
+      // Both simulations read the same cached action labels (the sim uses them to decide keeps).
+      pushLabels(endClone);
+      pushLabels(startClone);
+      const all = JSON.parse(readFileSync(join(endClone, 'qa', 'personas', 'personas-1000.json'), 'utf8')).personas;
+      const ids = pickIds(date, all.map(p => p.id));
+      const personasPath = join(dir, 'personas-200.json');
+      writeFileSync(personasPath, `${JSON.stringify({ seed: seedOf(date), personas: all.filter(p => ids.includes(p.id)) }, null, 1)}\n`);
+      const runs = {};
+      const metrics = {};
+      for (const [role, clone] of [['start', startClone], ['end', endClone]]) {
+        const out = join(dir, role);
+        if (limitMs() <= 0) throw new Error('hết giờ trong ngày trước khi chạy xong');
+        runs[role] = await runSim(clone, personasPath, out, { limitMs: limitMs() });
+        if (runs[role].code !== 0) throw new Error(`persona_sim ${role} exit ${runs[role].code}: ${runs[role].tail}`);
+        metrics[role] = report(endClone, out, personasPath, `${role} ${date}`);
+      }
+      const packets = new Map();
+      const labels = new Set();
+      for (const role of ['start', 'end']) {
+        for (const line of readFileSync(join(dir, role, 'judge-packets.jsonl'), 'utf8').split('\n').filter(Boolean)) packets.set(JSON.parse(line).item_id, line);
+        for (const line of readFileSync(join(dir, role, 'label-packets.jsonl'), 'utf8').split('\n').filter(Boolean)) labels.add(line);
+      }
+      const lines = [...packets.values()];
+      const chunks = [];
+      for (let i = 0; i < lines.length; i += chunkSize) {
+        const name = `judge-${String(chunks.length + 1).padStart(2, '0')}`;
+        writeFileSync(join(dir, `${name}.jsonl`), `${lines.slice(i, i + chunkSize).join('\n')}\n`);
+        chunks.push(name);
+      }
+      if (labels.size) writeFileSync(join(dir, 'label-01.jsonl'), `${[...labels].join('\n')}\n`);
+      writeFileSync(join(dir, 'judge-rubric.md'), readFileSync(join(endClone, 'qa', 'personas', 'judge-rubric.md')));
+      const codexItems = pickCodexItems(date, [...packets.keys()]);
+      writeFileSync(join(dir, 'codex-sample.jsonl'), codexItems.map(id => packets.get(id)).join('\n') + (codexItems.length ? '\n' : ''));
+      mkdirSync(join(dir, 'out'), { recursive: true });
+      const state = { ...base, seed: seedOf(date), ids, runs, chunks, labelPackets: labels.size, codexItems, preparedAt: new Date().toISOString(), alerted: [] };
+      const safety = safetyReasons(metrics.start, metrics.end, transcriptRows(dir, 'end'));
+      writeState(date, state);
+      const raised = raiseNew(date, state, safety.reasons, alerting);
+      writeState(date, state);
+      return { status: 'prepared', dir, chunks, labelPackets: labels.size, codexItems: codexItems.length, alert: raised.raised.length > 0, reasons: raised.raised };
+    }, receipt);
+  }, { anyTime, now });
 }
 
 export function check(date, chunk) {
