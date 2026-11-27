@@ -1,0 +1,19 @@
+{
+  "id": "L86",
+  "title": "Phiên Anti lỗi hoặc hết hạn phải nhường hàng; mỗi head tối đa hai lần thử và có thời gian chờ.",
+  "from": "Owner yêu cầu sửa ba lỗi Anti đã tái hiện 27.11.2026.",
+  "who": "codex",
+  "due": "2026-11-27",
+  "status": "open",
+  "test": {
+    "file": "scripts/collab-antigravity.test.mjs",
+    "name": "L83 Anti: an expired or unreadable conversation cannot keep the next PR waiting"
+  },
+  "caller": {
+    "file": "scripts/collab-antigravity.mjs",
+    "contains": "nowMs - job.at > answerLimitMs"
+  },
+  "closedBy": {
+    "pr": 894
+  }
+}

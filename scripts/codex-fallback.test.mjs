@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -168,6 +169,51 @@ function fake({ status = ' M scripts/a.mjs\0', log = '', onPush = () => {}, onTe
   return { calls, run, gh, comments, home, opts, pushed: () => calls.some(c => c.line.includes(' push ')) };
 }
 const turn = { number: 901, head: SHA, reason: 'Author check FAIL @ head' };
+
+test('L83 Anti: conflict repair accepts unchanged integration gates but refuses writer or test changes to them', () => {
+  for (const tamper of [null, 'writer', 'mode', 'test', 'untracked']) {
+    const base = mkdtempSync(join(tmpdir(), 'fb-merge-regression-'));
+    const seed = join(base, 'seed'); mkdirSync(seed);
+    const env = { ...process.env, GIT_CONFIG_GLOBAL: '/dev/null', GIT_CONFIG_NOSYSTEM: '1' };
+    const git = (...args) => execFileSync('/usr/bin/git', [...hostGit, '-c', 'user.name=synthetic', '-c', 'user.email=synthetic@example.invalid', ...args], { cwd: seed, env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+    try {
+      git('init', '-q', '-b', trust.integration);
+      writeFileSync(join(seed, 'package.json'), '{}\n'); writeFileSync(join(seed, 'app.txt'), 'base\n');
+      git('add', '.'); git('commit', '-qm', 'base'); git('branch', 'agent/claude/x');
+      writeFileSync(join(seed, 'package.json'), '{"integration":true}\n'); writeFileSync(join(seed, 'app.txt'), 'integration\n');
+      git('commit', '-qam', 'integration'); git('checkout', '-q', 'agent/claude/x');
+      writeFileSync(join(seed, 'app.txt'), 'feature\n'); git('commit', '-qam', 'feature');
+      const head = git('rev-parse', 'HEAD'); let pushed = false; let wrote = false;
+      const run = (cmd, raw, opts) => {
+        const args = plain(raw);
+        if (args[0] === 'clone') args[3] = seed;
+        if (args[0] === 'push') { pushed = true; return ''; }
+        return execFileSync(cmd, [...hostGit, ...args], { ...opts, stdio: ['ignore', 'pipe', 'pipe'] });
+      };
+      const result = runFallbackFix({ number: 901, head, reason: 'xung đột' }, {
+        gh: { pr: () => pr({ headRefOid: head, files: [{ path: 'app.txt' }], mergeable: 'CONFLICTING' }), raw: () => '', comment: () => '' }, run,
+        home: join(base, 'state-home'), terms: () => [], now: { date: '2026-11-22', hour: 15, minute: 0 }, nowMs: () => at('15:00'),
+        prepareWriter: ({ dir }) => ({ run: () => {
+          wrote = true; writeFileSync(join(dir, 'app.txt'), 'feature and integration\n');
+          if (tamper === 'writer') writeFileSync(join(dir, 'package.json'), '{"tampered":true}\n');
+          if (tamper === 'mode') chmodSync(join(dir, 'package.json'), 0o755);
+          if (tamper === 'untracked') { mkdirSync(join(dir, '.github')); writeFileSync(join(dir, '.github/new.yml'), 'tampered'); }
+        }, cleanup: () => {} }),
+        ...(tamper === 'test' ? { test: dir => writeFileSync(join(dir, 'package.json'), '{"tampered":true}\n') } : {}),
+      });
+      assert.equal(wrote, true, 'clean package.json received from integration must not prevent repairing the app');
+      assert.equal(pushed, tamper === null, String(tamper));
+      assert.equal(result.status, tamper === null ? 'pushed' : 'refused', JSON.stringify(result));
+    } finally { rmSync(base, { recursive: true, force: true }); }
+  }
+});
+
+test('L83 Anti: every Node gate directly invoked by the CI workflow is protected', () => {
+  const workflow = readFileSync(new URL('../.github/workflows/pr-check.yml', import.meta.url), 'utf8');
+  const paths = [...workflow.matchAll(/\bnode\s+(scripts\/[\w.-]+\.mjs)\b/g)].map(match => match[1]);
+  assert.ok(paths.includes('scripts/research-sources.mjs'));
+  for (const path of paths) assert.equal(isGateFile(path), true, path);
+});
 
 test('Codex r1 on #894 (P1): porcelain is read NUL-separated and untrimmed, so a protected first path is caught', () => {
   const f = fake({ status: ' M .github/workflows/pr-check.yml\0?? scripts/a.test.mjs\0' });

@@ -1,0 +1,19 @@
+{
+  "id": "L87",
+  "title": "Mọi bộ kiểm Node được workflow CI gọi trực tiếp đều phải là file cổng được bảo vệ.",
+  "from": "Owner yêu cầu sửa ba lỗi Anti đã tái hiện 27.11.2026.",
+  "who": "codex",
+  "due": "2026-11-27",
+  "status": "open",
+  "test": {
+    "file": "scripts/codex-fallback.test.mjs",
+    "name": "L83 Anti: every Node gate directly invoked by the CI workflow is protected"
+  },
+  "caller": {
+    "file": "scripts/codex-fallback.mjs",
+    "contains": "'collab-size', 'research-sources'"
+  },
+  "closedBy": {
+    "pr": 894
+  }
+}

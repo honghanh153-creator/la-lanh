@@ -61,7 +61,7 @@ const gatePaths = /^(docs\/operations\/luat-dang-hieu-luc\.md$|docs\/operations\
 const forbiddenPath = path => /^(docs\/operations\/luat-dang-hieu-luc\.md|\.claude\/|\.github\/)|(^|\/)\.env/i.test(path);
 export const gateRoots = ['codex-review', 'codex-fallback', 'codex-copy-review', 'collab-tick', 'collab-turn', 'collab-merge', 'collab-check', 'collab-preflight',
   'collab-second-review', 'collab-antigravity', 'collab-hooks', 'collab-rules', 'collab-rules-hook', 'collab-test-guard', 'collab-agent-gate', 'collab-owner-answer',
-  'collab-ops-wrapper', 'collab-pr-claim', 'collab-heavy-slots', 'collab-reservation', 'collab-usage', 'guard-dangerous-commands', 'verify-privacy', 'leak-canary', 'leak-canary-lib', 'collab-test-home'];
+  'collab-ops-wrapper', 'collab-pr-claim', 'collab-heavy-slots', 'collab-reservation', 'collab-usage', 'collab-size', 'research-sources', 'guard-dangerous-commands', 'verify-privacy', 'leak-canary', 'leak-canary-lib', 'collab-test-home'];
 const importsOf = text => [...String(text).matchAll(/(?:\bfrom|\bimport\s*\(|^import)\s*['"]\.\/([\w.-]+)\.mjs['"]/gm)].map(m => m[1]);
 const closures = new Map();
 // Module names (no extension) the loop runs, from the trusted scripts directory.
@@ -210,6 +210,16 @@ export function changedFiles(dir, run, left = () => Infinity) {
   return out.split('\0').filter(Boolean).map(entry => entry.slice(3));
 }
 
+// A merge stages clean integration changes relative to the PR's old HEAD too. Only gates whose
+// contents and executable mode match integration may be carried through; new untracked gates fail.
+function integrationGateFiles(dir, files, run, left) {
+  const gates = files.filter(path => isGateFile(path) || forbiddenPath(path));
+  if (!gates.length) return [];
+  const different = new Set(gitRaw(['-c', 'core.filemode=true', 'diff', '--no-ext-diff', '--no-textconv', '--no-renames', '--name-only', '-z', `origin/${integration}`, '--'], dir, run, left).split('\0').filter(Boolean));
+  const tracked = new Set(gitRaw(['ls-files', '-z'], dir, run, left).split('\0').filter(Boolean));
+  return gates.filter(path => !different.has(path) && (tracked.has(path) || !existsSync(join(dir, path))));
+}
+
 // The writer receives public text only; branch tests run in the existing CI workflow.
 // Codex r1 on #894 (P1): the budget was read before the clone and written after it, outside the
 // review lock, so a review could take the same last run. Now the check and the count happen together
@@ -334,7 +344,10 @@ export function runFallbackFix(turn, { gh: ghIn, run = execFileSync, prepareWrit
     // A conflict inside a gate file (the integration side changed .github/, the rule sheet…) is held too.
     const gateConflict = conflicts.find(p => isGateFile(p) || forbiddenPath(p));
     if (gateConflict) return holdBeforeCodex(gh, number, `xung đột ở file cổng hoặc bị cấm (${gateConflict}): chờ Claude`, left, log);
-    const stagedGate = pr.mergeable === 'CONFLICTING' ? changedFiles(dir, run, left).find(p => isGateFile(p) || forbiddenPath(p)) : null;
+    const stagedFiles = changedFiles(dir, run, left);
+    const inheritedGates = pr.mergeable === 'CONFLICTING' ? integrationGateFiles(dir, stagedFiles, run, left) : [];
+    const inheritedSnapshot = contentSnapshot(dir, inheritedGates);
+    const stagedGate = pr.mergeable === 'CONFLICTING' ? stagedFiles.find(p => (isGateFile(p) || forbiddenPath(p)) && !inheritedGates.includes(p)) : null;
     if (stagedGate) return holdBeforeCodex(gh, number, `chuẩn bị merge đụng file cổng hoặc bị cấm (${stagedGate}): chờ Claude`, left, log);
     const meta = gitMeta(dir);
     let checkTail = '';
@@ -373,7 +386,8 @@ export function runFallbackFix(turn, { gh: ghIn, run = execFileSync, prepareWrit
     const inspect = () => {
       const files = changedFiles(dir, run, left);
       const changed = [...new Set([...files, ...conflicts])];
-      const markers = []; const problems = changeProblems(files, markers);
+      const markers = []; const problems = changeProblems(files.filter(path => !inheritedGates.includes(path)), markers);
+      if (contentSnapshot(dir, inheritedGates) !== inheritedSnapshot) problems.push('writer hoặc kiểm tra đổi file cổng nhận nguyên từ integration');
       for (const path of [...new Set([...files, ...conflicts])]) {
         const full = join(dir, path);
         let stat;

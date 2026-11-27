@@ -23,6 +23,13 @@ Không dùng dữ liệu hay env thật của owner cho phép thử. Không mở
 - Khóa quota trước model call; giới hạn ngày và giờ không đổi. Không chuẩn bị được writer thì không gọi model, không giữ quota, không gắn lỗi runtime thành việc của owner/Claude.
 - Ghi provenance cục bộ trước push. Comment lỗi vẫn bắt buộc phản biện thứ hai; không force push, không đổi `main` hoặc deploy.
 
+## Sửa sau phản biện Anti ngày 27.11
+
+- Khi giải xung đột, file cổng nhận nguyên nội dung và mode từ integration được giữ trong merge. Đối chiếu với integration trước writer và giữ snapshot để writer hay bước kiểm không thể sửa chúng. File cổng do PR đổi, xung đột ở cổng và cổng mới không được miễn kiểm.
+- Phiên Anti hết hạn được xử lý trước khi đọc API. Lỗi đọc, mở phiên, trả sai mẫu, dùng công cụ hoặc đăng review đều giữ PR và nhường hàng. Mỗi head thử tối đa hai lần, cách ít nhất 10 phút; hết lượt thì chờ người phản biện khác hoặc head mới. Chọn PR chưa thử trước PR thử lại. Không hạ tiêu chuẩn nội dung hay biên nhận để mở cổng.
+- Daemon khởi động lại được chọn theo hub hợp lệ mới nhất. `modifiedResponse` rỗng dùng nội dung `response`, không vứt một câu trả lời hợp lệ.
+- `research-sources` và `collab-size` là gate root tường minh. Test đối chiếu mọi lệnh Node trực tiếp trong workflow CI với danh sách bảo vệ để không bỏ sót lại.
+
 ## Kiểm chứng và giới hạn
 
 Probe trên CLI 0.171.0-alpha.13 đã xác nhận catalog nhận shell disabled/apply_patch null. Model bị yêu cầu đọc file canary và tạo file bằng tool đã trả `NO_TOOLS`; không có command/MCP event, file không được tạo. Đây là phép thử capability, chưa thay kiểm chứng bản sửa cuối qua CI và Anti.
