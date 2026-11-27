@@ -1,0 +1,19 @@
+{
+  "id": "L83",
+  "title": "Sau khi canary native chứng minh sandbox cùng UID lộ env, bỏ thực thi mã nhánh trên Mac: Codex chỉ sinh JSON, host kiểm hash/path, Author check mặc định CI và merge vẫn đòi review đúng head.",
+  "from": "Owner yêu cầu gỡ kẹt và Anti phản biện bản sửa 26.11; Anti phát hiện parent runtime rộng và Data-volume alias.",
+  "who": "codex",
+  "due": "2026-11-26",
+  "status": "open",
+  "test": {
+    "file": "scripts/codex-fallback.test.mjs",
+    "name": "L79: text-only fallback never runs branch tests on the host and records pending CI"
+  },
+  "caller": {
+    "file": "scripts/codex-fallback.mjs",
+    "contains": "const tested = test ?? (() => g(['diff', '--check'], dir));"
+  },
+  "closedBy": {
+    "pr": 894
+  }
+}

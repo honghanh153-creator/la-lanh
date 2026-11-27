@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -57,6 +57,43 @@ test('L70: one step per tick: start, wait, then post a signed second review that
   assert.equal(secondReviewProblem(pr(state)), null, 'the signed Antigravity APPROVE lets the gate through');
   assert.deepEqual(JSON.parse(readFileSync(statePath(home), 'utf8')), {});
   assert.equal(run(4000), null, 'nothing waits any more');
+});
+
+test('L83 Anti: an expired or unreadable conversation cannot keep the next PR waiting', () => {
+  for (const expired of [true, false]) {
+    const s = setup(); s.run(0);
+    const next = { ...pr(s.state), number: 902 };
+    let reads = 0; const started = [];
+    const opts = { gh: s.gh, prs: [pr(s.state), next], home: s.home,
+      start: (_brief, title) => { started.push(title); return 'next-conversation'; },
+      steps: () => { reads += 1; throw new Error('synthetic HTTP404'); } };
+    assert.equal(antigravityStep({ ...opts, nowMs: expired ? 21 * 60000 : 1000 }).status, 'dropped');
+    assert.equal(reads, expired ? 0 : 1, 'timeout is checked before fetching the missing conversation');
+    assert.deepEqual(antigravityStep({ ...opts, nowMs: expired ? 21 * 60000 + 1 : 1001 }), { status: 'started', pr: 902 });
+    assert.deepEqual(started, ['Phản biện PR #902']);
+  }
+});
+
+test('L83 Anti: invalid replies have a cooldown and at most two starts for the same head', () => {
+  const s = setup(); s.state.answers = [user, reply('Wrong format')];
+  assert.equal(s.run(0).status, 'started'); assert.equal(s.run(1).status, 'dropped');
+  assert.equal(s.run(2), null, 'the same PR is not restarted on the next tick');
+  assert.equal(s.run(60 * 60000).status, 'started'); assert.equal(s.run(60 * 60000 + 1).status, 'dropped');
+  assert.equal(s.run(24 * 60 * 60000), null, 'exhausted heads await another critic or a changed head');
+  assert.equal(s.state.started.length, 2);
+  const out = antigravityStep({ gh: s.gh, prs: [pr(s.state, 'd'.repeat(40))], home: s.home, nowMs: 24 * 60 * 60000,
+    start: () => 'new-head', steps: () => assert.fail('exhausted conversation must not be fetched') });
+  assert.deepEqual(out, { status: 'started', pr: 901 });
+});
+
+test('L83 Anti: an empty modified response uses the actual reply and a failed start does not starve another PR', () => {
+  const response = reply('Kết luận: APPROVE'); response.plannerResponse.modifiedResponse = '';
+  assert.equal(readAnswer([user, response]).text, 'Kết luận: APPROVE');
+  const s = setup(); const opts = { gh: s.gh, prs: [pr(s.state), { ...pr(s.state), number: 902 }], home: s.home, nowMs: 0,
+    start: () => { throw new Error('synthetic offline'); }, steps: () => [] };
+  assert.equal(antigravityStep(opts).status, 'dropped');
+  const out = antigravityStep({ ...opts, nowMs: 1, start: () => 'next-conversation' });
+  assert.deepEqual(out, { status: 'started', pr: 902 });
 });
 
 test('L70: a REQUEST_CHANGES goes back to a fix; tool use, a bad format, a slow answer or a new head drop the job', () => {
@@ -126,6 +163,17 @@ test('the app token goes to the child env only, never into the command line', ()
   const args = readFileSync(argsFile, 'utf8');
   assert.match(args, /^new-conversation\n--model=pro\n--title=Phản biện PR #901\nbrief\n$/);
   assert.doesNotMatch(args, /tok-secret/);
+});
+
+test('L83 Anti: a daemon restart selects the newest valid hub instead of an old sorted filename', () => {
+  const user = mkdtempSync(join(tmpdir(), 'ag-restart-'));
+  const daemon = join(user, '.gemini', 'antigravity', 'daemon'); mkdirSync(daemon, { recursive: true });
+  for (const [file, at, hub] of [
+    ['hub_1.json', 1000, { httpPort: 4321, csrfToken: 'synthetic-old' }],
+    ['hub_2.json', 2000, { httpPort: 5432, csrfToken: 'synthetic-new' }],
+    ['hub_3.json', 3000, { httpPort: 70000, csrfToken: 'synthetic-invalid' }],
+  ]) { const path = join(daemon, file); writeFileSync(path, JSON.stringify(hub)); utimesSync(path, at, at); }
+  assert.deepEqual(appEnv(user), { ANTIGRAVITY_LS_ADDRESS: '127.0.0.1:5432', ANTIGRAVITY_CSRF_TOKEN: 'synthetic-new' });
 });
 
 test('L70 (Codex r1 on #894): the production tick runs Antigravity, then the Codex fix, both bounded by one deadline; from 23:35 no fix starts', async () => {
@@ -206,7 +254,21 @@ test('Codex auto-3 on #899 (P1): with two ready PRs, the one not yet critiqued i
 
   // An app that was never reached (start fails) holds no queued PR.
   const cold = mkdtempSync(join(tmpdir(), 'ag-cold-'));
-  assert.throws(() => antigravityStep({ gh, prs: [a, b], turns, home: cold, nowMs: at, start: () => { throw new Error('Antigravity chưa chạy'); }, steps: () => [] }), /chưa chạy/);
+  assert.deepEqual(antigravityStep({ gh, prs: [a, b], turns, home: cold, nowMs: at, start: () => { throw new Error('Antigravity chưa chạy'); }, steps: () => [] }), {
+    status: 'dropped', pr: 902, reason: 'không mở được phiên Antigravity; PR vẫn chờ phản biện',
+  });
   assert.equal(criticPending(a, { home: cold, nowMs: at + 1000 }), null);
   assert.equal(criticPending(b, { home: cold, nowMs: at + 1000 }), null);
+});
+
+test('L86: a failed queued critique releases its optional merge hold and the next ready PR proceeds', async () => {
+  const { criticPending } = await import('./collab-antigravity.mjs');
+  const ready = number => ({ number, title: 'ops: synthetic', headRefOid: SHA, comments: [], labels: [], author: { login: ownerLogin }, isCrossRepository: false });
+  const prs = [ready(902), ready(904)], turns = prs.map(p => ({ number: p.number, turn: 'codex-review' }));
+  const home = mkdtempSync(join(tmpdir(), 'ag-queue-failure-'));
+  const opts = { gh: { raw: () => 'diff --git a/x b/x\n+y' }, prs, turns, home, start: () => 'synthetic-conversation', steps: () => { throw new Error('synthetic HTTP404'); } };
+  assert.deepEqual(antigravityStep({ ...opts, nowMs: 0 }), { status: 'started', pr: 902 });
+  assert.equal(antigravityStep({ ...opts, nowMs: 1 }).status, 'dropped');
+  assert.equal(criticPending(prs[0], { home, nowMs: 2 }), null, 'a retry record with no id is not an in-flight critique');
+  assert.deepEqual(antigravityStep({ ...opts, nowMs: 2 }), { status: 'started', pr: 904 });
 });

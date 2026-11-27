@@ -1295,18 +1295,18 @@
   },
   {
    "id": "L79",
-   "title": "Codex fallback fixes stay inside hard bounds: NUL-safe file list, sandboxed tests via the trusted guard, private-data scan and a local provenance record before the push, budget reserved under review.lock, one absolute deadline, no APPROVE on a cut brief, an allowlist for fallback merges",
+   "title": "Fallback giữ ranh giới bằng writer chỉ sinh JSON, áp bản vá kiểm hash/path và kiểm bằng CI; không chạy mã nhánh trên Mac. Thay sandbox-exec sau canary native26.11 chứng minh PROCARGS lộ env.",
    "from": "Codex auto review on #894 (23.11.2026): REQUEST_CHANGES, 8 P1 + 1 P2 security/privacy in the fallback path",
    "who": "claude",
    "due": "2026-11-23",
-   "status": "done",
+   "status": "open",
    "test": {
     "file": "scripts/codex-fallback.test.mjs",
-    "name": "Codex auto-3 on #894 (P1): L79 through the runFallbackFix test path: branch tests run only under sandbox-exec, with Git metadata read-only"
+    "name": "L79: text-only fallback never runs branch tests on the host and records pending CI"
    },
    "caller": {
     "file": "scripts/codex-fallback.mjs",
-    "contains": "const tested = test ?? (d => sandboxedTest(d, { run: run === execFileSync ? groupExec : run, left, base: home }));"
+    "contains": "const tested = test ?? (() => g(['diff', '--check'], dir));"
    },
    "closedBy": {
     "pr": 894
