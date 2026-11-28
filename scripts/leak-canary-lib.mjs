@@ -19,6 +19,7 @@ export const CANARY = Object.freeze({
   mood: "Đuối",
   tarotMark: "zqcanary690tarot",
   safetyMark: "zqcanary690safety",
+  nicknameMark: "zqcanary691nick",
 });
 
 export const TAROT_QUESTION = `Tuần này mình nên tập trung vào việc gì ${CANARY.tarotMark}?`;
@@ -110,6 +111,7 @@ export function buildMarks({ canary = CANARY, placeId = null, secrets = [] } = {
     { kind: "mood", forms: [canary.mood, canary.mood.normalize("NFD")] },
     { kind: "tarot-question", forms: [canary.tarotMark] },
     { kind: "safety-text", forms: [canary.safetyMark] },
+    { kind: "nickname", forms: [canary.nicknameMark] },
   ];
   // Session secrets (cookie values, CSRF token) read at run time. Short values are skipped: they
   // would match by accident.
@@ -348,7 +350,7 @@ export function isLocalUrl(url, origin) {
 
 // What the journey must have sent to the API for the check to mean anything. A run that never
 // sent a mark would pass without looking at anything.
-export const REQUIRED_SENDS = Object.freeze(["birth-date", "birth-time", "birthplace", "mood", "tarot-question", "safety-text"]);
+export const REQUIRED_SENDS = Object.freeze(["birth-date", "birth-time", "birthplace", "mood", "tarot-question", "safety-text", "nickname"]);
 
 export function missingSends(sent) {
   return REQUIRED_SENDS.filter((kind) => !sent.has(kind));
@@ -366,6 +368,7 @@ export function sendsIn(method, path, body, { canary = CANARY } = {}) {
   if (/\/mood$/.test(path) && text.includes(fold(canary.mood))) sent.push("mood");
   if (text.includes(canary.tarotMark)) sent.push("tarot-question");
   if (text.includes(canary.safetyMark)) sent.push("safety-text");
+  if (text.includes(canary.nicknameMark)) sent.push("nickname");
   return sent;
 }
 
