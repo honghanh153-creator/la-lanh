@@ -8,7 +8,8 @@ process.env.LA_LANH_COLLAB_HOME = mkdtempSync(join(tmpdir(), 'collab-check-log-'
 const home = process.env.LA_LANH_COLLAB_HOME;
 const trust = await import('./collab-trust.mjs');
 const log = await import('./collab-check-log.mjs');
-const { runCheck } = await import('./collab-check.mjs');
+const { runCheck: rawRunCheck } = await import('./collab-check.mjs');
+const runCheck = (number, options = {}) => rawRunCheck(number, { source: 'local', ...options });
 const { runGuarded, refusedCode } = await import('./collab-test-guard.mjs');
 
 const A = 'a'.repeat(40);

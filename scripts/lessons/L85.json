@@ -1,0 +1,19 @@
+{
+  "id": "L85",
+  "title": "Giải xung đột không chặn file cổng nhận sạch từ integration; giữ snapshot để writer không thể sửa chúng.",
+  "from": "Owner yêu cầu sửa ba lỗi Anti đã tái hiện 27.11.2026.",
+  "who": "codex",
+  "due": "2026-11-27",
+  "status": "open",
+  "test": {
+    "file": "scripts/codex-fallback.test.mjs",
+    "name": "L83 Anti: conflict repair accepts unchanged integration gates but refuses writer or test changes to them"
+  },
+  "caller": {
+    "file": "scripts/codex-fallback.mjs",
+    "contains": "const inheritedSnapshot = contentSnapshot(dir, inheritedGates);"
+  },
+  "closedBy": {
+    "pr": 894
+  }
+}

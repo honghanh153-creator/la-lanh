@@ -13,7 +13,8 @@ const trust = await import('./collab-trust.mjs');
 const { asPosted, freshUrl } = await import('./collab-test-post.mjs');
 const { auditMerges, dailyReceiptAudit, mergeGate, runMerge } = await import('./collab-merge.mjs');
 const { prTurn } = await import('./collab-turn.mjs');
-const { ciCheck, renderCheck, runCheck, runCheckInClone } = await import('./collab-check.mjs');
+const { ciCheck, renderCheck, runCheck: rawRunCheck, runCheckInClone } = await import('./collab-check.mjs');
+const runCheck = (number, options = {}) => rawRunCheck(number, { source: 'local', ...options });
 const preflightMod = await import('./collab-preflight.mjs');
 
 const H = 'a'.repeat(40);

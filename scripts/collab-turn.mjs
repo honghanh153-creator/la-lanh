@@ -16,6 +16,7 @@ import { withFileLock } from './collab-lock.mjs';
 import { bufferStatus, dailyLaneLabel, queueTopUp, wipCount } from './collab-buffer.mjs';
 import { afterDecision, disputeView, settleDisputes } from './collab-disagree.mjs';
 import { isMain } from './is-main.mjs';
+import { secondReviewProblem } from './codex-fallback.mjs';
 import { activeReservation, followHead, releaseReservation, reserve } from './collab-reservation.mjs';
 import { cleanRelease, probeView } from './collab-merge-probe.mjs';
 
@@ -84,6 +85,8 @@ export function prTurn(pr, { dropped = [], open = [], preflight = {}, baseFiles,
   if (pr.baseRefName === 'main') return out('hold', 'base là main: chỉ owner');
   if (pr.isDraft) return out('hold', 'draft');
   if (labels.includes('needs-owner')) return out('hold', 'needs-owner');
+  // L68: held during Codex fallback; the tick removes the label when Claude is back.
+  if (labels.includes('cho-claude')) return out('hold', 'chờ Claude quay lại (chế độ chuyển sang Codex)');
   const deletion = deletionProblem(pr);
   if (deletion) return out('hold', deletion);
   // L25: an open dispute holds the PR; after a decision only a newer check and review count.
@@ -112,6 +115,9 @@ export function prTurn(pr, { dropped = [], open = [], preflight = {}, baseFiles,
   if (!last || last.sha !== head) return out('codex-review', last ? `verdict cuối cho ${last.sha.slice(0, 7)}` : 'chưa có verdict');
   if (last.verdict === 'REQUEST_CHANGES') return out('claude-fix', 'REQUEST_CHANGES @ head');
   if (state.stale) return out('codex-review', `review lại: ${clean(state.stale, 200)}`);
+  // L69: a PR Codex fixed needs a second critic that is not Codex before it merges.
+  const second = secondReviewProblem(pr);
+  if (second) return out(second.turn, second.reason);
   return out('merge', 'APPROVE @ head');
 }
 
@@ -346,7 +352,7 @@ const defaultReservations = {
   release: (pr, why) => releaseReservation(pr, why),
 };
 
-export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], prPreflight: preflight = () => ({ status: 'PASS' }), heavyFree = () => true, nowMs = Date.now, check = () => ({ status: 'skipped' }), review, merge, alert, board = () => {}, log = () => {}, watchdog = () => {}, health = () => [], copyPending = () => 0, copyBatch = null, copySaved = () => false, notify = () => {}, metrics = () => null, audit = null, incidents = null, ciStatus = null, settle = defaultSettle, mergeAudit = null, reservations = defaultReservations } = {}) {
+export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], prPreflight: preflight = () => ({ status: 'PASS' }), heavyFree = () => true, nowMs = Date.now, check = () => ({ status: 'skipped' }), review, merge, alert, board = () => {}, log = () => {}, watchdog = () => {}, health = () => [], copyPending = () => 0, copyBatch = null, copySaved = () => false, notify = () => {}, metrics = () => null, audit = null, incidents = null, ciStatus = null, settle = defaultSettle, mergeAudit = null, reservations = defaultReservations, fallback = null, critic = null } = {}) {
   // The clock is read again before each action, so a long review cannot push the next one past lastStartAt.
   const time = clock ?? (now ? () => now : () => vnNow());
   now = time();
@@ -475,6 +481,13 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       area = work.find(t => machineTurns.has(t.turn))?.area ?? area;
       const done = [];
       const late = () => { const t = time(); return t.hour * 60 + t.minute >= lastStartAt; };
+      // Codex r1 on #899 (P1): the second critic's step runs before merges are chosen. Its answer for a
+      // PR is read and posted while that PR is still open, and a PR whose critique is under way is held
+      // by the merge gate (criticPending), so a ready PR is never merged past its critic.
+      if (critic && !late()) {
+        try { const r = critic({ turns: live, prs }); if (r) log(`critic: ${JSON.stringify(r)}`); }
+        catch (error) { log(`critic failed: ${clean(error.message, 200)}`); }
+      }
       // 17.11.2026 (#633): a PR ready to merge is merged whatever its area. Merging costs no Codex run
       // or heavy job, while waiting lets another area's merge move integration and void its check and
       // review (#633 waited 45 minutes behind content work, then needed a new check and review).
@@ -652,6 +665,11 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
         topUpLanes: late() ? [] : buffer.topUpLanes ?? [], lanes: buffer.lanes ?? null,
         idleRuns,
       });
+      // L68: in Codex fallback one claude-fix turn goes to Codex; outside it the hold labels come off.
+      if (fallback && !late()) {
+        try { const r = fallback({ turns: leftTurns, prs: left, late }); if (r) log(`fallback: ${JSON.stringify(r)}`); }
+        catch (error) { log(`fallback failed: ${clean(error.message, 200)}`); }
+      }
       if (idleRuns >= idleAlertRuns && !idleAlerted && alert) {
         try {
           alert(`collab tick chạy không ${idleRuns} lượt liền (${now.date} ${now.hour}:${String(now.minute).padStart(2, '0')}): plan không còn PR nào để làm, cần bổ sung việc từ backlog`);

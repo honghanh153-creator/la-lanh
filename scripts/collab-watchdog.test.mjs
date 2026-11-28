@@ -295,7 +295,7 @@ test('self-heal 1 r2 (P2): a legacy body record is re-evaluated; the clone path 
   assert.equal(preflightMod.preflightFailure(preflightMod.readPreflight(), pr), null, 'legacy body record without hash is stale');
   const { runCheckInClone } = await import('./collab-check.mjs');
   const fakePr = { number: 504, author: { login: 'honghanh153-creator' }, isCrossRepository: false, headRefName: 'feat/x', headRefOid: SHA, body: 'b', comments: [] };
-  const result = runCheckInClone(504, { gh: { pr: () => fakePr, comment: () => {} }, run: (c, a) => a[0] === 'rev-parse' ? SHA : '', group: () => ({ status: 0 }), busy: () => null, terms: () => [],
+  const result = runCheckInClone(504, { source: 'local', gh: { pr: () => fakePr, comment: () => {} }, run: (c, a) => a[0] === 'rev-parse' ? SHA : '', group: () => ({ status: 0 }), busy: () => null, terms: () => [],
     preflight: p => preflightMod.runPreflight(p), spawn: () => { throw new Error('no pnpm'); } });
   assert.equal(result.status, 'preflight');
   assert.equal(result.bodyHash, heal.bodyHash('b'), 'body hash carried through the clone check');
@@ -367,7 +367,7 @@ test('deadline: git after the author clone follows the same deadline', async () 
   // Each git call takes 2 minutes of the fake clock.
   const run = (cmd, args, opts) => { seen.push({ args: args.join(' '), timeout: opts.timeout, left: deadline - cleanupReserveMs - clock }); clock += 2 * 60000; return args[0] === "rev-parse" ? SHA : ''; };
   const fakePr = { number: 505, author: { login: 'honghanh153-creator' }, isCrossRepository: false, headRefName: 'feat/x', headRefOid: SHA, body: VALID_BODY, comments: [], files: [] };
-  runCheckInClone(505, { gh: { pr: () => fakePr, comment: () => {} }, run, auto: true, clock: () => ({ date: 'd', hour: 23, minute: 33 }), nowMs: () => clock, group: () => ({ status: 0 }), busy: () => null, terms: () => [], preflight: () => ({ status: 'PASS' }), spawn: () => ({ status: 0 }) });
+  runCheckInClone(505, { source: 'local', gh: { pr: () => fakePr, comment: () => {} }, run, auto: true, clock: () => ({ date: 'd', hour: 23, minute: 33 }), nowMs: () => clock, group: () => ({ status: 0 }), busy: () => null, terms: () => [], preflight: () => ({ status: 'PASS' }), spawn: () => ({ status: 0 }) });
   const after = seen.slice(seen.findIndex(s => s.args === 'rev-parse HEAD') + 1);
   assert.ok(after.length >= 1, 'git ran after the clone');
   assert.ok(after.every(s => s.timeout <= s.left), `post-clone git past the deadline: ${JSON.stringify(after)}`);
@@ -384,7 +384,7 @@ test('#243: a check that uses its whole pnpm budget still posts its receipt', as
     const fakePr = { number: 507, author: { login: 'honghanh153-creator' }, isCrossRepository: false, headRefName: 'feat/x', headRefOid: SHA, body: VALID_BODY, comments: [], files: [] };
     // pnpm runs until its own timeout (args[2] of the group runner).
     const spawn = (exe, args) => { clock += Number(args[2]); return { status: 0 }; };
-    const result = runCheckInClone(507, { gh, run, auto, clock: () => ({ date: 'd', hour: 23, minute: 29 }), nowMs: () => clock, group: () => ({ status: 0 }), busy: () => null, terms: () => [], preflight: () => ({ status: 'PASS' }), spawn });
+    const result = runCheckInClone(507, { source: 'local', gh, run, auto, clock: () => ({ date: 'd', hour: 23, minute: 29 }), nowMs: () => clock, group: () => ({ status: 0 }), busy: () => null, terms: () => [], preflight: () => ({ status: 'PASS' }), spawn });
     assert.equal(result.status, 'PASS', `auto=${auto}: ${JSON.stringify(result)}`);
     assert.equal(comments.length, 1, 'receipt posted');
     assert.equal(comments[0].timeout, 60000, 'gh comment had its full 60 s');

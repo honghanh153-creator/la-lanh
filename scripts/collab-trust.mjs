@@ -14,6 +14,8 @@ export const stateDir = process.env.LA_LANH_COLLAB_HOME || join(homedir(), '.cac
 // Automatic Codex runs per day, one constant for the tick, the review script and the board.
 // Owner 03.11.2026: 32; owner 14.11.2026: 60; owner 15–16.11.2026 (5-fix package item 3): a fixed 80.
 export const codexDailyCap = 80;
+// Owner 22.11.2026 (Codex fallback, L68): runs where Codex fixes a PR in Claude's place, inside the day cap.
+export const codexFallbackCap = 20;
 // The day's cap: a grant raises it from the base it was given against (day state `ownerExtraCodex`:
 // `granted` and `base`). A grant without `base` was written against the old 60 cap (owner 15.11
 // "thêm 20 lượt nữa cho codex nhé", 16.11 "nâng trần codex lên 80"): it counts from 60, so 60 + 20 is
@@ -114,7 +116,7 @@ const isReceiptId = value => /^[0-9a-f]{32}$/.test(String(value ?? ''));
 // owner-answer (#611, 17.11.2026): a recorded owner answer for some of the owner's four kinds on a PR;
 // its result is the sorted, comma-joined kind list, so the kinds are under the MAC too.
 export const answerKindsRe = /^(?:cost_access|release|sensitive_copy|data_collection)(?:,(?:cost_access|release|sensitive_copy|data_collection)){0,3}$/;
-const receiptKinds = { verdict: ['APPROVE', 'REQUEST_CHANGES'], check: ['PASS', 'FAIL'], 'owner-answer': { includes: r => answerKindsRe.test(String(r ?? '')) && String(r).split(',').join(',') === [...new Set(String(r).split(','))].sort().join(',') } };
+const receiptKinds = { verdict: ['APPROVE', 'REQUEST_CHANGES'], check: ['PASS', 'FAIL'], second: ['APPROVE', 'REQUEST_CHANGES'], 'owner-answer': { includes: r => answerKindsRe.test(String(r ?? '')) && String(r).split(',').join(',') === [...new Set(String(r).split(','))].sort().join(',') } };
 
 function readKey({ create = false } = {}) {
   const path = verdictKeyPath();

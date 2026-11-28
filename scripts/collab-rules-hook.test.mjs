@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { changedIds, fitContext, handle, inScope, installRulesHook, metrics, projectRoots, r3Reason, recordRepeat, rulesHooks, verifyRulesHook } from './collab-rules-hook.mjs';
+import { changedIds, fitContext, handle, maxContext, inScope, installRulesHook, metrics, projectRoots, r3Reason, recordRepeat, rulesHooks, verifyRulesHook } from './collab-rules-hook.mjs';
 import { rulesVersion, sheetPath } from './collab-rules.mjs';
 
 const script = join(dirname(fileURLToPath(import.meta.url)), 'collab-rules-hook.mjs');
@@ -241,4 +241,19 @@ test('rules hook: the context stays under the 10,000-character hook limit as the
   assert.match(out, /Bản rút gọn/);
   assert.match(out, /- R3 \(Mọi phiên Claude\): Không hỏi owner trong chat/);
   assert.equal(fitContext(sheet), sheet, 'today\'s sheet goes whole');
+});
+
+test('L81: a sheet just under the compact limit goes whole with the longest head line and stays under 10,000', () => {
+  const { home, repo, publish } = fixture();
+  run(home, { hook_event_name: 'SessionStart', source: 'startup', session_id: 's1', cwd: repo });
+  // Every row changed (the longest head line) and the sheet padded to exactly maxContext characters.
+  const rows = sheet.split('\n').filter(l => /^\| R\d+ \|/.test(l));
+  let next = rows.reduce((t, r) => t.replace(r, r.replace(/^(\| R\d+ \| )/, '$1đổi ')), sheet);
+  next = next.replace(/(\n## Số máy đọc)/, `\n${'x'.repeat(Math.max(0, maxContext - next.length - 1))}$1`);
+  assert.equal(next.length, maxContext);
+  publish(next);
+  const out = ctx(run(home, { hook_event_name: 'UserPromptSubmit', session_id: 's1', cwd: repo, prompt: 'x' }));
+  assert.match(out, /Luật owner vừa đổi/);
+  assert.match(out, /\| R3 \|/, 'the table goes whole, not compact');
+  assert.ok(out.length < 10000, String(out.length));
 });
