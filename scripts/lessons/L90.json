@@ -1,0 +1,19 @@
+{
+ "id": "L90",
+ "title": "Máy áp patch của Anti chỉ bằng git tin cậy (không chạy fsmonitor/hook của repo), chỉ trong worktree việc do máy tạo, từ chối file cổng, .env, tên khác hoa/thường, và trả mọi file về như cũ khi ghi hỏng giữa chừng",
+ "from": "PR #955: Codex r1 REQUEST_CHANGES (thiếu chỗ gọi thật; fsmonitor, đường dẫn bí danh, ảnh chụp do Anti tự chọn, ghi dở dang)",
+ "who": "claude",
+ "due": "2026-11-28",
+ "status": "done",
+ "test": {
+  "file": "scripts/collab-anti-patch.test.mjs",
+  "name": "anti: trusted git never runs a repo fsmonitor or hook, and ignores an inherited GIT_DIR"
+ },
+ "caller": {
+  "file": "scripts/collab-anti-job.mjs",
+  "contains": "const applied = applyPatch({ root: job.dir, patch: checked.patch, scope: job.scope, home"
+ },
+ "closedBy": {
+  "pr": 955
+ }
+}

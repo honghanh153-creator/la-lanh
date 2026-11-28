@@ -1,12 +1,13 @@
 // Three-agent dispatch 28.11.2026, part F (#948 AC6): Anti is review-only; a text patch is applied
-// by the trusted host only inside an isolated fixture.
+// by the trusted host only inside an isolated fixture or a job worktree it made (Codex r1 on #955).
 import './collab-test-home.mjs';
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { antiRole, antiWrites, applyPatch, inScope, isFixtureRoot, parseEvents, parsePatch, pathReasons, publicPayload } from './collab-anti-patch.mjs';
+import { antiRole, applyPatch, buildSnapshot, fsIo, inScope, isFixtureRoot, parseEvents, parsePatch, pathReasons, publicPayload, trackedFiles, trustedGit } from './collab-anti-patch.mjs';
 
 const ev = list => list.map(e => JSON.stringify(e)).join('\n');
 const block = (find, replace) => `<<<<<<< FIND\n${find}\n=======\n${replace}\n>>>>>>> REPLACE`;
@@ -17,8 +18,7 @@ const fixture = files => {
 };
 const read = (root, p) => readFileSync(join(root, p), 'utf8');
 
-test('anti: review-only until its own PR turns writes on', () => {
-  assert.equal(antiWrites, false);
+test('anti: review-only; the host writes only in a temp fixture or an Anti job worktree', () => {
   assert.equal(antiRole, 'review');
   const before = readFileSync('package.json', 'utf8');
   const r = applyPatch({ root: process.cwd(), patch: `*** Edit: package.json\n${block('"name"', '"nam"')}`, scope: ['package.json'] });
@@ -67,10 +67,14 @@ test('anti: a bundle with an unknown event, tool or field is refused whole', () 
 });
 
 test('anti: paths outside the repo, in protected places or outside the scope are refused', () => {
-  for (const p of ['/abs', '~/.claude/x', 'C:/x', 'a/../b', './a', 'a//b', 'a\\b', 'a\u0000b', '.git/config', 'x/.git/HEAD', '.github/workflows/ci.yml', '.claude/settings.json', '.env', 'apps/api/.env.local', 'node_modules/x/index.js', 'docs/operations/luat-dang-hieu-luc.md', '', 'a'.repeat(301)]) {
+  for (const p of ['/abs', '~/.claude/x', 'C:/x', 'a/../b', './a', 'a//b', 'a\\b', 'a\u0000b', '.git/config', 'x/.git/HEAD', '.github/workflows/ci.yml', '.claude/settings.json', '.env', 'apps/api/.env.local', 'node_modules/x/index.js', 'docs/operations/luat-dang-hieu-luc.md', '', 'a'.repeat(301),
+    // Codex r1 on #955: case and Unicode aliases, protected ancestors, tool config and gate files.
+    '.GitHub/workflows/ci.yml', 'X/.GIT/config', 'apps/.ENV', 'apps/.env.d/x.txt', '.Claude/settings.json', 'apps/.vscode/settings.json', 'package.json', 'apps/web/package.json', 'AGENTS.md', 'apps/CLAUDE.md',
+    'scripts/collab-anti-patch.mjs', 'Scripts/Collab-trust.mjs', 'scripts/codex-review.mjs', 'scripts/lessons/L90.json', 'scripts/private-guard.mjs', 'docs/operations/x.md', 'DOCS/Operations/x.md', 'docs/ca\u0301.md']) {
     assert.ok(pathReasons(p).length, `refused: ${JSON.stringify(p)}`);
   }
-  for (const p of ['scripts/collab-anti-patch.mjs', 'docs/operations/x.md', 'apps/web/src/a.ts']) assert.deepEqual(pathReasons(p), []);
+  for (const p of ['apps/web/src/a.ts', 'docs/product/x.md', 'scripts/check-copy.mjs', 'docs/c\u00e1.md']) assert.deepEqual(pathReasons(p), [], p);
+  assert.equal(inScope('Docs/A.md', ['docs/']), true, 'scope is matched on the folded key');
   assert.equal(inScope('scripts/a.mjs', ['scripts/']), true);
   assert.equal(inScope('scripts-x/a.mjs', ['scripts/']), false);
   assert.equal(inScope('scripts/a.mjs', ['scripts/a.mj']), false);
@@ -85,6 +89,8 @@ test('anti: a malformed patch is refused', () => {
     ['*** Edit: a.txt\n<<<<<<< FIND\na\n=======\nb\n', /chưa đóng/],
     ['*** Edit: a.txt\nrm -rf /\n', /dòng lạ/],
     [`*** Edit: a.txt\n${block('a', 'b')}\n*** Edit: a.txt\n${block('c', 'd')}`, /lặp lại/],
+    [`*** Edit: docs/A.txt\n${block('a', 'b')}\n*** Edit: docs/a.txt\n${block('c', 'd')}`, /lặp lại/],
+    [`*** Edit: docs/c\u00e1.md\n${block('a', 'b')}\n*** Edit: docs/ca\u0301.md\n${block('c', 'd')}`, /lặp lại/],
     [`*** Edit: a.txt\n<<<<<<< FIND\n=======\nb\n>>>>>>> REPLACE`, /FIND rỗng/],
     [`*** Edit: a.txt\n<<<<<<< FIND\na\n<<<<<<< FIND\n=======\nb\n>>>>>>> REPLACE`, /FIND hỏng/],
   ];
@@ -124,6 +130,8 @@ test('anti fixture: an ambiguous FIND, a missing file, a symlink or a path outsi
     [`*** Edit: scripts/file-link.txt\n${block('giữ', 'đổi')}`, /symlink/],
     [`*** Edit: other/ok.mjs\n${block('y', 'z')}`, /ngoài phạm vi/],
     [`*** Edit: .github/x.yml\n${block('y', 'z')}`, /thư mục bị cấm/],
+    [`*** Edit: Scripts/A.mjs\n${block('x', 'z')}`, /chữ hoa\/thường/],
+    [`*** Edit: Scripts/OK.mjs\n${block('y', 'z')}`, /lặp lại/],
   ];
   for (const [patch, why] of cases) {
     const r = applyPatch({ root, patch: `*** Edit: scripts/ok.mjs\n${block('y', 'changed')}\n${patch}`, scope: ['scripts/', 'linked/', '.github/'] });
@@ -156,4 +164,125 @@ test('anti: only public tracked repo text goes to Anti; a refusal never echoes t
     assert.doesNotMatch(r.reasons.join(' | '), /gmail|ghp_|OPENSSH|someone/, 'the matched text is not repeated');
   }
   assert.equal(publicPayload([], { tracked }).ok, false);
+});
+
+// Codex r1 on #955, P2: a failure part way must leave no file half written.
+const failingIo = ({ renameAt = -1, restoreFails = false, changeAfterStage = null } = {}) => {
+  let renames = 0;
+  let staged = false;
+  return {
+    ...fsIo,
+    writeFileSync(p, data, opts) {
+      if (restoreFails && String(p).endsWith('.back')) throw new Error('disk full');
+      fsIo.writeFileSync(p, data, opts);
+      if (changeAfterStage && !staged && String(p).endsWith('.tmp')) { staged = true; fsIo.writeFileSync(changeAfterStage, 'đổi bởi người khác\n'); }
+    },
+    renameSync(a, b) {
+      if (!String(a).endsWith('.back') && renames++ === renameAt) throw new Error('rename failed');
+      fsIo.renameSync(a, b);
+    },
+  };
+};
+const noTemps = root => readdirSync(join(root, 'scripts')).filter(n => n.startsWith('.anti-'));
+
+test('anti fixture: a rename failing part way puts every file back', () => {
+  const root = fixture({ 'scripts/a.mjs': 'a\n', 'scripts/b.mjs': 'b\n', 'scripts/c.mjs': 'c\n' });
+  const patch = ['a', 'b', 'c'].map(x => `*** Edit: scripts/${x}.mjs\n${block(x, `${x}2`)}`).join('\n');
+  const r = applyPatch({ root, patch, scope: ['scripts/'], io: failingIo({ renameAt: 1 }) });
+  assert.equal(r.ok, false);
+  assert.equal(r.rolledBack, true);
+  assert.deepEqual(['a', 'b', 'c'].map(x => read(root, `scripts/${x}.mjs`)), ['a\n', 'b\n', 'c\n']);
+  assert.deepEqual(noTemps(root), [], 'no staged or backup file is left');
+});
+
+test('anti fixture: a failed restore marks the checkout invalid', () => {
+  const root = fixture({ 'scripts/a.mjs': 'a\n', 'scripts/b.mjs': 'b\n' });
+  const patch = ['a', 'b'].map(x => `*** Edit: scripts/${x}.mjs\n${block(x, `${x}2`)}`).join('\n');
+  const r = applyPatch({ root, patch, scope: ['scripts/'], io: failingIo({ renameAt: 1, restoreFails: true }) });
+  assert.equal(r.ok, false);
+  assert.equal(r.invalid, true);
+  assert.match(r.reasons.join(' '), /không được dùng nữa/);
+});
+
+test('anti fixture: a file changed after the check is not overwritten', () => {
+  const root = fixture({ 'scripts/a.mjs': 'a\n', 'scripts/b.mjs': 'b\n' });
+  const patch = ['a', 'b'].map(x => `*** Edit: scripts/${x}.mjs\n${block(x, `${x}2`)}`).join('\n');
+  const r = applyPatch({ root, patch, scope: ['scripts/'], io: failingIo({ changeAfterStage: join(root, 'scripts/b.mjs') }) });
+  assert.equal(r.ok, false);
+  assert.match(r.reasons.join(' '), /đổi trong lúc áp/);
+  assert.equal(read(root, 'scripts/a.mjs'), 'a\n');
+  assert.equal(read(root, 'scripts/b.mjs'), 'đổi bởi người khác\n');
+  assert.deepEqual(noTemps(root), []);
+});
+
+test('anti fixture: a file with invalid UTF-8 is refused', () => {
+  const root = fixture({ 'scripts/ok.mjs': 'y\n' });
+  writeFileSync(join(root, 'scripts/bin.mjs'), Buffer.from([0x79, 0xff, 0x0a]));
+  const r = applyPatch({ root, patch: `*** Edit: scripts/bin.mjs\n${block('y', 'z')}`, scope: ['scripts/'] });
+  assert.equal(r.ok, false);
+  assert.match(r.reasons.join(' '), /UTF-8/);
+});
+
+// A synthetic repo whose own config tries to run code: fsmonitor and hooks write a marker file.
+const plainGit = (cwd, args, env = {}) => execFileSync('/usr/bin/git', args, { cwd, env: { PATH: '/usr/bin:/bin', HOME: cwd, GIT_CONFIG_NOSYSTEM: '1', ...env }, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+const synthRepo = files => {
+  const root = mkdtempSync(join(tmpdir(), 'anti-repo-'));
+  const g = args => plainGit(root, ['-c', 'user.name=t', '-c', 'user.email=t@example.com', '-c', 'commit.gpgsign=false', ...args]);
+  g(['init', '-q', '-b', 'main']);
+  for (const [p, text] of Object.entries(files)) { mkdirSync(join(root, p, '..'), { recursive: true }); writeFileSync(join(root, p), text); }
+  g(['add', '-A']);
+  g(['commit', '-q', '-m', 'base']);
+  return root;
+};
+
+test('anti: trusted git never runs a repo fsmonitor or hook, and ignores an inherited GIT_DIR', () => {
+  const root = synthRepo({ 'docs/a.md': 'a\n' });
+  const marker = join(root, '..', `${root.split('/').pop()}-ran`);
+  const hook = join(root, 'evil.sh');
+  writeFileSync(hook, `#!/bin/sh\necho ran >> "${marker}"\nexit 1\n`, { mode: 0o755 });
+  mkdirSync(join(root, 'hooks'));
+  writeFileSync(join(root, 'hooks', 'pre-commit'), `#!/bin/sh\necho ran >> "${marker}"\nexit 1\n`, { mode: 0o755 });
+  plainGit(root, ['config', 'core.fsmonitor', hook]);
+  plainGit(root, ['config', 'core.hooksPath', join(root, 'hooks')]);
+  // Control: plain git does run the repo fsmonitor.
+  try { plainGit(root, ['status', '--porcelain']); } catch { /* the hook exits 1 */ }
+  assert.ok(existsSync(marker), 'control: the repo fsmonitor runs under plain git');
+  fsIo.unlinkSync(marker);
+  const other = synthRepo({ 'x.md': 'x\n' });
+  const saved = process.env.GIT_DIR;
+  process.env.GIT_DIR = join(other, '.git');
+  try {
+    trustedGit(['status', '--porcelain'], { cwd: root });
+    assert.deepEqual([...trackedFiles(root)], ['docs/a.md'], 'the index of this repo, not GIT_DIR');
+    trustedGit(['-c', 'user.name=t', '-c', 'user.email=t@example.com', 'commit', '-q', '--allow-empty', '-m', 'x'], { cwd: root });
+  } finally { if (saved === undefined) delete process.env.GIT_DIR; else process.env.GIT_DIR = saved; }
+  assert.equal(existsSync(marker), false, 'no fsmonitor or hook ran under trusted git');
+});
+
+test('anti: the host builds the snapshot from its own index; anything odd refuses all', () => {
+  const root = synthRepo({ 'docs/a.md': 'xin chào\n', 'docs/b.md': 'b\n', 'apps/web/x.ts': 'export {};\n', 'docs/operations/r.md': 'r\n' });
+  const ok = buildSnapshot({ root, allow: ['docs/a.md', 'apps/'] });
+  assert.equal(ok.ok, true, ok.reasons.join(' | '));
+  assert.deepEqual(ok.items.map(i => i.path).sort(), ['apps/web/x.ts', 'docs/a.md']);
+  const g = args => plainGit(root, ['-c', 'user.name=t', '-c', 'user.email=t@example.com', ...args]);
+  const cases = [
+    [() => writeFileSync(join(root, 'docs/b.md'), 'sửa chưa add\n'), ['docs/b.md'], /khác bản trong git index/],
+    [() => { writeFileSync(join(root, 'docs/c.md'), 'liên hệ ai.do@gmail.com\n'); g(['add', 'docs/c.md']); }, ['docs/c.md'], /email/],
+    [() => { writeFileSync(join(root, 'docs/n.md'), Buffer.from('a\0b\n')); g(['add', 'docs/n.md']); }, ['docs/n.md'], /nhị phân/],
+    [() => { writeFileSync(join(root, 'docs/u.md'), Buffer.from([0x61, 0xff, 0x0a])); g(['add', 'docs/u.md']); }, ['docs/u.md'], /UTF-8/],
+    [() => { writeFileSync(join(root, 'docs/big.md'), 'x'.repeat(70000)); g(['add', 'docs/big.md']); }, ['docs/big.md'], /quá 60000 byte/],
+    [() => { symlinkSync('a.md', join(root, 'docs/l.md')); g(['add', 'docs/l.md']); }, ['docs/l.md'], /symlink/],
+    [() => {}, ['docs/operations/'], /luật và quy trình/],
+    [() => {}, ['nothing/'], /không có file đã track/],
+    [() => {}, [], /chưa có phạm vi/],
+  ];
+  for (const [setup, allow, why] of cases) {
+    setup();
+    const r = buildSnapshot({ root, allow });
+    assert.equal(r.ok, false, String(allow));
+    assert.deepEqual(r.items, []);
+    assert.match(r.reasons.join(' | '), why);
+    assert.doesNotMatch(r.reasons.join(' '), /gmail/, 'a refusal never echoes the match');
+  }
+  assert.equal(buildSnapshot({ root: join(root, 'docs'), allow: ['docs/'] }).ok, false, 'only the checkout root');
 });
