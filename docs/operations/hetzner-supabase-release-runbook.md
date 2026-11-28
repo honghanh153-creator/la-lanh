@@ -5,7 +5,16 @@ operator or Codex session should be able to use it without relying on chat histo
 status checklist is
 `docs/plans/2026-09-26-hetzner-supabase-public-beta-deployment-plan.md`.
 
-## Current production — 2026-11-21 (hotfix)
+## Current production — 2026-11-28
+
+Release `5518cca34786` is live (`main` = `5518cca3478649ed2b8cedf1e7c6f37ec8cd24ce`, #953: `collab/integration`
+`a3a12222` merged with `main`; tree identical to `a3a12222`; image `sha256:7517a74c5638…`; Alembic head unchanged at
+`20261111_0042`). Weekly release approved by the owner ("BK phát hành", 28.11). Owner switch AE1 is set:
+`LA_LANH_KEEP_ACTION_ALL_PROFILES=true` in the production `app.env` (staging leaves it off). Staging runs the same
+image. Rollback anchor: `la-lanh:42b678c13a93` (same schema; to undo only AE1, set the switch to `false`). Receipt:
+[production-release-2026-11-28](../reviews/production-release-2026-11-28/receipt.md).
+
+## Previous production — 2026-11-21 (hotfix)
 
 Release `42b678c13a93` is live (`main` = `42b678c13a9333c68840e5ac65b2ae06dff4be81`, #824: only the #808 crisis-guard
 fix on top of `577a5d0b7a98`; image `sha256:807bdcbcff52…`; Alembic head unchanged at `20261111_0042`). Farewells such
@@ -30,15 +39,14 @@ the offered reading for every profile type. Staging runs the same image. Rollbac
 (same schema; restores the bug). Receipt:
 [production-release-2026-11-15](../reviews/production-release-2026-11-15/receipt.md).
 
-## Next release — switches the owner has decided
+## Owner switches in force
 
-- `LA_LANH_KEEP_ACTION_ALL_PROFILES=true` on production, from the Friday release that ships #740
+- `LA_LANH_KEEP_ACTION_ALL_PROFILES=true` on production since the 28.11 release `5518cca34786`, which ships #740
   (owner answer AE1, 19.11.2026, recorded on #740:
   https://github.com/honghanh153-creator/la-lanh/pull/740#issuecomment-7010305279 and the
   answer record above it). It lets date-only and approximate-time profiles keep the Daily note's
-  action. Code keeps the switch **off** by default, so set it in the production environment file
-  (`infra/hetzner/app.env.example` documents it) and confirm it in the release receipt. Only when
-  #740 is in the release; without #740 the setting does nothing.
+  action. Code keeps the switch **off** by default, so every new release directory must copy the production
+  `app.env` that sets it (`infra/hetzner/app.env.example` documents it) and the receipt confirms it in the container.
 - Rollback of the switch alone: set it back to `false`. New keeps for those profiles stop at
   once; actions already kept stay until the person closes them or they expire (≤30 days), as
   `docs/legal/privacy-security-flow-notes.md` describes.
@@ -741,6 +749,10 @@ Append or update the “Known-good deployed release” table in the deployment p
 - smoke/browser results;
 - current and previous image tags;
 - unresolved checklist items and exact next action.
+
+Then add the release to the top of [lich-su-phat-hanh.md](lich-su-phat-hanh.md) (release history, newest first) and
+move its PRs out of that file's "Chưa phát hành" section. Since 28.11.2026 every release and hotfix runs in the single
+release thread, which keeps that file current.
 
 ## Optional-account release gate — 2026-10-10 local change only
 
