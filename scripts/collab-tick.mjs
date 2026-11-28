@@ -5,7 +5,7 @@ import { runReview } from './codex-review.mjs';
 import { dailyReceiptAudit, runMerge } from './collab-merge.mjs';
 import { ciCheck, heavyJobFree, runCheckInClone } from './collab-check.mjs';
 import { incidentPreflightAlert, incidentPreflightSubject, runPreflight } from './collab-preflight.mjs';
-import { clean, cutoffMs, makeGh, vnNow } from './collab-trust.mjs';
+import { clean, cutoffMs, makeGh, readJson, vnNow } from './collab-trust.mjs';
 import { opsAlert, planTurns, resolveOpsAlert, tick } from './collab-turn.mjs';
 import { postOwnerNotes, renderBoard, upsertBoard } from './collab-status.mjs';
 import { collectMetrics, renderMetrics } from './collab-metrics.mjs';
@@ -27,6 +27,8 @@ import { currentMode, fallbackStep } from './codex-fallback.mjs';
 import { runAntigravity } from './collab-antigravity.mjs';
 import { probeHolds } from './collab-merge-probe.mjs';
 import { auditReceiptResult, readReceipts, receiptSummary, renderReceipts, tickReceiptResult, writeRunReceipt } from './collab-run-receipt.mjs';
+import { nightlyProofs, proofSummary, proofsPath, renderProofs } from './collab-lesson-proof.mjs';
+import { readRegister } from './collab-lessons.mjs';
 
 const auditDeps = await loadAuditDeps();
 // The tick's night audit, with the promise register and the disagreement log (L22) wired in.
@@ -52,7 +54,8 @@ const receiptSubject = 'merge thiếu biên nhận';
 
 // Time to the tick's absolute deadline (23:59 minus 15 s), read again at each call.
 export const tickLeft = (clockMs = Date.now) => { const end = cutoffMs(vnNow().date) - 15000; return () => end - clockMs(); };
-export function runTick(gh = makeGh(), preflight = () => missingTools(), { run = tick, log = tickLog, gateWatch = agentGateWatch, rulesWatch = rulesHookWatch, gapNote = noteTickGap, areaNote = areaWatch, incidentAlert = incidentPreflightAlert, usageNote = usageTick, probe = probeHolds, antigravity = runAntigravity, fallbackFix = fallbackStep, clockMs = Date.now, receipt = writeRunReceipt, receipts = () => renderReceipts(receiptSummary(readReceipts())) } = {}) {
+export function runTick(gh = makeGh(), preflight = () => missingTools(), { run = tick, log = tickLog, gateWatch = agentGateWatch, rulesWatch = rulesHookWatch, gapNote = noteTickGap, areaNote = areaWatch, incidentAlert = incidentPreflightAlert, usageNote = usageTick, probe = probeHolds, antigravity = runAntigravity, fallbackFix = fallbackStep, clockMs = Date.now, receipt = writeRunReceipt, receipts = () => renderReceipts(receiptSummary(readReceipts())), proofs = nightlyProofs,
+  proofLine = () => renderProofs(proofSummary(readRegister(), readJson(proofsPath(), {}))) } = {}) {
   // L67: Claude usage is read once per tick, only when the board or the health block asks for it;
   // the pace alert goes out from the same read. A failed read leaves the board without the line.
   let usage;
@@ -82,7 +85,7 @@ export function runTick(gh = makeGh(), preflight = () => missingTools(), { run =
       // L37: the owner-rules hook (re-load of the rules sheet, R3 deny) is installed and passes its selftest.
       try { rulesWatch({ alert: text => opsAlert(gh, text, rulesHookAlertSubject), resolve: text => resolveOpsAlert(gh, text, rulesHookAlertSubject), today: vnNow().date }); } catch {}
       return watch({ alert: text => opsAlert(gh, text, watchdogSubject), resolve: text => resolveOpsAlert(gh, text, watchdogSubject) });
-    }, health: () => [...healthLines(readBeats()), ...(() => { try { return [receipts()]; } catch { return []; } })(), ...hookHealth(), ...wrapperHealth(), ...skillRuleHealth(), ...rulesSheetHealth(), ...rulesHookHealth(), ...(usageNow()?.health ?? [])], copyPending: () => pendingCount(), copyBatch: () => runCopyBatch(), copySaved: () => Boolean(readSaved(savedPath, vnNow().date)),
+    }, health: () => [...healthLines(readBeats()), ...(() => { try { return [receipts()]; } catch { return []; } })(), ...(() => { try { return [proofLine()]; } catch { return []; } })(), ...hookHealth(), ...wrapperHealth(), ...skillRuleHealth(), ...rulesSheetHealth(), ...rulesHookHealth(), ...(usageNow()?.health ?? [])], copyPending: () => pendingCount(), copyBatch: () => runCopyBatch(), copySaved: () => Boolean(readSaved(savedPath, vnNow().date)),
     notify: (notes, comments) => postOwnerNotes(gh, planIssue(gh), notes, comments),
     metrics: ({ prs, turns }) => renderMetrics(collectMetrics({ gh, prs, turns })),
     // Research item 3: a night audit that read or judged anything leaves a receipt.
@@ -108,6 +111,8 @@ export function runTick(gh = makeGh(), preflight = () => missingTools(), { run =
   // Research item 2 (owner 21.11): once an hour, a trial merge of every pair held only for a shared
   // file, recorded next to the hold. Observe only; it never changes a turn.
   try { probe({ list: () => planTurns(gh, vnNow()), log }); } catch (error) { log(`merge probe failed: ${clean(error.message, 200)}`); }
+  // Research item 4 (owner 21.11): while the loop is closed at night, prove one lesson red → green.
+  try { proofs({ status: result?.status, log }); } catch (error) { log(`lesson proof failed: ${clean(error.message, 200)}`); }
   // Research item 3 (owner 21.11): the tick's own receipt, with the commit of the code that ran.
   try {
     receipt({ kind: 'tick', result: tickReceiptResult(result?.status), counts: { done: Array.isArray(result?.done) ? result.done.length : 0 } });
