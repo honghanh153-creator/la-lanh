@@ -468,7 +468,7 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       // Codex r5 on #544: a serious incident opened after the plan also goes first; the day's
       // selections and drops stay as they are. A failed read keeps the planned incidents only.
       let liveIncidents = [];
-      try { liveIncidents = workUnits({ turns, prs, issues: quotaIssues(gh) }).filter(u => u.ready && u.incident).map(u => u.key); }
+      try { liveIncidents = workUnits({ turns, prs, issues: quotaIssues(gh, { readMerged: false }) }).filter(u => u.ready && u.incident).map(u => u.key); }
       catch (error) { log(`incident refresh failed, planned incidents only: ${clean(error.message, 200)}`); }
       const incidentKeys = new Set([...(dayNow.incidentKeys ?? []), ...liveIncidents]);
       const kept = new Set(dayNow.planned7wKeys ?? []);
