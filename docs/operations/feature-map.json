@@ -514,7 +514,7 @@
     },
     {
       "id": "radar-start",
-      "title": "Radar — check kín một người",
+      "title": "Hợp gu — xem riêng một người",
       "us": ["US-12"],
       "ac": ["US-12 AC01", "US-12 AC02", "US-12 AC05", "US-12 AC09", "US-12 AC10"],
       "routes": ["/radar/start"],
@@ -524,7 +524,7 @@
       "owner_only_reason": "Attestation for another person's birth data: only the owner writes or changes that copy.",
       "key_selectors": [
         { "role": "navigation", "name": "Tiến độ Radar" },
-        { "role": "button", "name": "Check kín ngay" }
+        { "role": "button", "name": "Xem hợp gu" }
       ],
       "states": {
         "needs-chart": {
@@ -535,7 +535,7 @@
         "form": {
           "fixture": "signed-in-deep",
           "walk": [{ "goto": "/radar/start" }],
-          "ready": { "role": "button", "name": "Check kín ngay" }
+          "ready": { "role": "button", "name": "Xem hợp gu" }
         }
       }
     },
@@ -649,7 +649,7 @@
       "ac": ["US-13 AC01", "US-13 AC02", "US-13 AC05", "US-13 AC06", "US-13 AC07"],
       "routes": ["/radar/result/:requestId"],
       "source_files": ["apps/web/src/features/radar/RadarOwnerResultPage.tsx", "apps/web/src/features/radar/useRadarHistory.ts", "apps/web/src/features/radar/useRadarOwnerBinding.ts", "apps/web/src/features/radar/useRadarEraseTarget.ts"],
-      "user_path": ["Hợp gu", "Xem hợp gu với một người", "Nhập thông tin và bấm Check kín ngay", "Màn kết quả"],
+      "user_path": ["Hợp gu", "Xem hợp gu với một người", "Nhập thông tin và bấm Xem hợp gu", "Màn kết quả"],
       "owner_only": false,
       "key_selectors": [{ "role": "button", "name": "Xóa kết quả này" }],
       "states": {

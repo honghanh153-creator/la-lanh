@@ -26,10 +26,24 @@ describe("RadarLandingPage", () => {
     render(<MemoryRouter><RadarLandingPage /></MemoryRouter>);
 
     expect(document.body.textContent).not.toMatch(/Check|chart|Radar|bắt sóng|rung động|lệch sóng|vào gu/);
-    // The privacy copy keeps its approved wording until the owner approves a rewrite.
-    expect(screen.getByText("“Kín” không có nghĩa là dùng lén dữ liệu")).toBeInTheDocument();
+    // Owner approved AM1 (20.11.2026): the privacy copy uses the approved wording verbatim.
+    expect(screen.queryByText(/pool tìm kiếm|dùng lén dữ liệu/)).not.toBeInTheDocument();
+    expect(screen.getByText(/không đưa họ vào danh sách tìm người\./)).toBeInTheDocument();
+    expect(screen.getByText("Không báo cho người ấy, nhưng vẫn cần họ cho phép")).toBeInTheDocument();
     expect(screen.getByText(/Ngày, giờ và nơi sinh chỉ dùng trong lúc tính/)).toBeInTheDocument();
     expect(screen.getByText(/mà không cần nhắn hay báo cho người ấy/)).toBeInTheDocument();
+  });
+
+  it("shows the owner-approved privacy lines word for word (AM1, 20.11.2026)", () => {
+    render(<MemoryRouter><RadarLandingPage /></MemoryRouter>);
+    const registry = JSON.parse(readFileSync(join(process.cwd(), "../api/app/domains/content/copy_registry.json"), "utf8")) as {
+      entries: { id: string; category: string; text: string; status: string; approver?: string; date?: string }[];
+    };
+    for (const id of ["privacy.radar.landing-no-notify", "privacy.radar.landing-permission-heading"]) {
+      const entry = registry.entries.find((item) => item.id === id);
+      expect(entry).toMatchObject({ category: "privacy", status: "approved", approver: "owner", date: "2026-11-20" });
+      expect(screen.getByText(entry!.text)).toBeInTheDocument();
+    }
   });
 
   it("offers two clearly different ways back to old results", () => {

@@ -12707,6 +12707,51 @@
    "category": "reading",
    "text": "Chọn phần bài gần hạn nộp nhất để làm trước, gác lại các phần chưa gấp.",
    "status": "pending"
+  },
+  {
+   "id": "privacy.radar.landing-no-notify",
+   "category": "privacy",
+   "text": "Không gửi link, không tạo hồ sơ cho người ấy, không đưa họ vào danh sách tìm người.",
+   "status": "approved",
+   "approver": "owner",
+   "date": "2026-11-20",
+   "digest": "d1dd7038eda02a1204f71ca407a9aaf1866c479010f28590b8a6572b42f1301b"
+  },
+  {
+   "id": "privacy.radar.landing-permission-heading",
+   "category": "privacy",
+   "text": "Không báo cho người ấy, nhưng vẫn cần họ cho phép",
+   "status": "approved",
+   "approver": "owner",
+   "date": "2026-11-20",
+   "digest": "f54b5c580cfd63ca172a9db0c330eb625e589b1e54bc1fd3e84350672eb3a300"
+  },
+  {
+   "id": "privacy.radar.consent-private-summary",
+   "category": "privacy",
+   "text": "Radar xem riêng",
+   "status": "approved",
+   "approver": "owner",
+   "date": "2026-11-20",
+   "digest": "7a0a46ee78981de3ffa67f4ccbac428f8832a8f2f4844bb2178b57a232afb79d"
+  },
+  {
+   "id": "privacy.radar.consent-invite",
+   "category": "privacy",
+   "text": "Kết quả dùng link mời chỉ mở khi người nhận tự nhập dữ liệu và đồng ý. Link là quyền truy cập riêng, hãy gửi đúng người. Người nhận có thể rút đồng ý; người tạo có thể xoá kết quả. Xem riêng không có link công khai. Mỗi hồ sơ giữ tối đa 100 lần Radar, kể cả lời mời đã thu hồi; xoá một lần để tạo thêm.",
+   "status": "approved",
+   "approver": "owner",
+   "date": "2026-11-20",
+   "digest": "54a4d95d3563fd7f4ada2df00bcae944916a8003ed07e20c8a000c394d0f64cf"
+  },
+  {
+   "id": "privacy.radar.consent-recipient",
+   "category": "privacy",
+   "text": "Nếu bạn đã đồng ý một lời mời Hợp gu, bạn xem hoặc rút chart khỏi kết quả trong mục Kết quả bạn đã nhận, trên thiết bị bạn đã đồng ý. Nếu chỉ còn link mời, mở lại link để rút chart; trang đó không mở lại bản đọc vì người gửi cũng giữ link. Lá không bao giờ hỏi lại ngày, giờ hay nơi sinh của bạn để xác minh, và không đưa dữ liệu sinh của bạn cho người mời. Nếu ai đó xem riêng với thông tin của bạn, chỉ người đó xoá được kết quả; bạn có thể nhờ họ xoá, hoặc chờ kết quả tự hết hạn (24 giờ với lần check mới).",
+   "status": "approved",
+   "approver": "owner",
+   "date": "2026-11-20",
+   "digest": "6dc5147648cfcd160ad621f9adb355a9729c9ed19830f00cb14e2a6fa79f654d"
   }
  ],
  "version": "copy-registry/v1"

@@ -100,14 +100,19 @@ describe("RadarPrivateStartPage", () => {
       </QueryClientProvider>,
     );
 
-    expect(await screen.findByRole("heading", { name: "Check kín một người bạn đã biết." })).toBeInTheDocument();
-    expect(await screen.findByRole("button", { name: /Check kín ngay/ })).toBeDisabled();
+    expect(await screen.findByRole("heading", { name: "Xem hợp gu với một người bạn đã biết." })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /^Xem hợp gu$/ })).toBeDisabled();
     expect(screen.getByText(/Ngày, giờ và nơi sinh không được lưu/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Mời họ tự nhập" })).toHaveAttribute("href", "/radar/invite");
     expect(screen.getByRole("navigation", { name: "Tiến độ Radar" })).toBeInTheDocument();
     expect(screen.getByText("Thông tin").closest('[aria-current="step"]')).toBeInTheDocument();
     expect(document.querySelector("#radar-history")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Không rõ giờ" })).toBeInTheDocument();
+    // Owner approved AM1 (20.11.2026): the form speaks plain Vietnamese, verbatim.
+    expect(screen.getByText("Hợp gu 1:1 · không gửi thông báo")).toBeInTheDocument();
+    expect(screen.getByText("Có giờ sinh chính xác thì bản đọc đủ hơn. Không rõ giờ vẫn xem được; Lá sẽ bỏ các phần cần giờ sinh.")).toBeInTheDocument();
+    expect(screen.getByText("Những người bạn đã xem gần đây")).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/[Cc]heck kín|Moon|Rising|House|bắt hai tín hiệu|Radar 1:1|lần check gần đây/);
   });
 
   it("submits a privacy-limited Radar check when the other birth time is unknown", async () => {
@@ -143,7 +148,7 @@ describe("RadarPrivateStartPage", () => {
     await user.type(screen.getByLabelText("Thành phố / tỉnh nơi sinh"), "Hà");
     await user.click(await screen.findByRole("button", { name: /Hà Nội/ }));
     await user.click(screen.getByLabelText("Xác nhận đã được phép dùng thông tin sinh"));
-    await user.click(screen.getByRole("button", { name: /Check kín ngay/ }));
+    await user.click(screen.getByRole("button", { name: /^Xem hợp gu$/ }));
 
     await waitFor(() => expect(createPrivateRadarCheck).toHaveBeenCalledWith(expect.objectContaining({
       birth_time_mode: "unknown",
@@ -178,9 +183,9 @@ describe("RadarPrivateStartPage", () => {
     await user.click(await screen.findByRole("button", { name: /Hà Nội/ }));
     await user.click(screen.getByLabelText("Xác nhận đã được phép dùng thông tin sinh"));
     await user.selectOptions(screen.getByLabelText("Giờ (0–23)"), "07");
-    expect(screen.getByRole("button", { name: /Check kín ngay/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /^Xem hợp gu$/ })).toBeDisabled();
     await user.selectOptions(screen.getByLabelText("Phút (0–59)"), "30");
-    expect(screen.getByRole("button", { name: /Check kín ngay/ })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /^Xem hợp gu$/ })).toBeEnabled();
   });
 
   it("opens all 34 current birthplace units without calling an external geocoder", async () => {
@@ -217,7 +222,7 @@ describe("RadarPrivateStartPage", () => {
     );
 
     expect(screen.queryByText("Old private result")).not.toBeInTheDocument();
-    expect(screen.getByText("Đang nối Radar với phiên chart hiện tại…")).toBeInTheDocument();
+    expect(screen.getByText("Đang mở hồ sơ của bạn…")).toBeInTheDocument();
   });
   it("shows the add-birth-time gate instead of the form to a date-only user", async () => {
     const user = userEvent.setup();
@@ -229,7 +234,7 @@ describe("RadarPrivateStartPage", () => {
     expect(screen.getByRole("heading", { name: "Radar cần chart đủ giờ và nơi sinh của bạn trước." })).toBeInTheDocument();
     expect(screen.queryByLabelText("Tên gọi để bạn dễ nhớ")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Ngày sinh — ngày")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Check kín ngay/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Xem hợp gu$/ })).not.toBeInTheDocument();
     await user.click(cta);
     expect(sessionStorage.getItem("la-lanh-radar-owner-start")).toBe("private");
   });
@@ -248,11 +253,11 @@ describe("RadarPrivateStartPage", () => {
     renderPage();
 
     await waitFor(() => expect(resolve).not.toBeNull());
-    expect(screen.getByText("Đang nối Radar với phiên chart hiện tại…")).toBeInTheDocument();
+    expect(screen.getByText("Đang mở hồ sơ của bạn…")).toBeInTheDocument();
     expect(screen.queryByLabelText("Tên gọi để bạn dễ nhớ")).not.toBeInTheDocument();
     resolve!(supplement(3));
     expect(await screen.findByLabelText("Tên gọi để bạn dễ nhớ")).toBeInTheDocument();
-    expect(screen.queryByText("Đang nối Radar với phiên chart hiện tại…")).not.toBeInTheDocument();
+    expect(screen.queryByText("Đang mở hồ sơ của bạn…")).not.toBeInTheDocument();
   });
 
   it("falls back to the form when the precision check fails or times out", async () => {
@@ -260,7 +265,7 @@ describe("RadarPrivateStartPage", () => {
     renderPage();
 
     expect(await screen.findByLabelText("Tên gọi để bạn dễ nhớ")).toBeInTheDocument();
-    expect(screen.queryByText("Đang nối Radar với phiên chart hiện tại…")).not.toBeInTheDocument();
+    expect(screen.queryByText("Đang mở hồ sơ của bạn…")).not.toBeInTheDocument();
   });
 
   it("keeps the server 409 as a fallback and stores no draft of the other person", async () => {
@@ -281,7 +286,7 @@ describe("RadarPrivateStartPage", () => {
     await user.type(screen.getByLabelText("Thành phố / tỉnh nơi sinh"), "Hà");
     await user.click(await screen.findByRole("button", { name: /Hà Nội/ }));
     await user.click(screen.getByLabelText("Xác nhận đã được phép dùng thông tin sinh"));
-    await user.click(screen.getByRole("button", { name: /Check kín ngay/ }));
+    await user.click(screen.getByRole("button", { name: /^Xem hợp gu$/ }));
 
     expect(await screen.findByRole("link", { name: "Thêm giờ & nơi sinh của mình" })).toHaveAttribute("href", "/birth-time");
     expect(screen.getByRole("alert")).toHaveTextContent("Chart của bạn còn thiếu giờ hoặc nơi sinh.");

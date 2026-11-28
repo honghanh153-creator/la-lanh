@@ -32,7 +32,7 @@ export function RadarLandingPage() {
       <div className="radar-proof__grid">
         <article><Sparkle /><strong>Chỗ dễ hợp</strong><p>Hai bạn dễ nói chuyện, dễ hiểu nhau ở những chuyện nào.</p></article>
         <article><Waveform /><strong>Chỗ dễ vướng</strong><p>Chuyện gì dễ làm hai bạn khó chịu, kèm một câu hỏi nhẹ để nói rõ với nhau.</p></article>
-        <article><EyeSlash /><strong>Không ai bị báo</strong><p>Không gửi link, không tạo hồ sơ cho người ấy, không đưa họ vào pool tìm kiếm.</p></article>
+        <article><EyeSlash /><strong>Không ai bị báo</strong><p>Không gửi link, không tạo hồ sơ cho người ấy, không đưa họ vào danh sách tìm người.</p></article>
       </div>
     </section>
 
@@ -45,7 +45,7 @@ export function RadarLandingPage() {
       </ol>
     </section>
 
-    <section className="matching-landing__privacy radar-privacy"><LockKey /><div><strong>“Kín” không có nghĩa là dùng lén dữ liệu</strong><p>Không gửi thông báo, nhưng Lá vẫn hỏi bạn xác nhận đã được phép dùng thông tin sinh. Nếu chưa, người ấy có thể tự nhập qua lời mời riêng.</p></div></section>
+    <section className="matching-landing__privacy radar-privacy"><LockKey /><div><strong>Không báo cho người ấy, nhưng vẫn cần họ cho phép</strong><p>Không gửi thông báo, nhưng Lá vẫn hỏi bạn xác nhận đã được phép dùng thông tin sinh. Nếu chưa, người ấy có thể tự nhập qua lời mời riêng.</p></div></section>
     <section className="matching-landing__cta"><Link className="matching-primary" to="/radar/start">Bắt đầu xem <ArrowRight /></Link><Link className="matching-secondary" to="/home">Để mình xem Note trước</Link></section>
     <AppNav />
   </main>;
