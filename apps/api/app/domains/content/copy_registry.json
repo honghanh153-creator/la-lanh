@@ -12745,39 +12745,39 @@
    "status": "pending"
   },
   {
-   "id": "daily.bundle.avoid-small-conflict.13.headline",
+   "id": "daily.bundle.capacity-before-agreement.13.headline",
    "category": "reading",
-   "text": "Khi gia đình muốn bạn học thêm, bạn ngại từ chối.",
+   "text": "Khi gia đình muốn bạn học thêm, bạn đã nhận lời.",
    "status": "pending"
   },
   {
-   "id": "daily.bundle.avoid-small-conflict.13.scene",
+   "id": "daily.bundle.capacity-before-agreement.13.scene",
    "category": "reading",
-   "text": "Khi gia đình muốn bạn học thêm mỗi tối, bạn định nhận lời cho êm dù lịch đã kín.",
+   "text": "Khi gia đình muốn bạn học thêm mỗi tối, bạn đã nhận lời cho êm dù lịch đã kín.",
    "status": "pending"
   },
   {
-   "id": "daily.bundle.avoid-small-conflict.13.action",
+   "id": "daily.bundle.capacity-before-agreement.13.action",
    "category": "reading",
-   "text": "Ghi riêng cho mình phần bạn làm được và phần không tiện, chưa cần hứa gì với gia đình lúc này.",
+   "text": "Kiểm tra lịch tuần này xem tối nào đã kín, chưa cần hứa thêm gì với gia đình lúc này.",
    "status": "pending"
   },
   {
-   "id": "daily.bundle.automatic-caretaking.13.headline",
+   "id": "daily.bundle.capacity-before-agreement.14.headline",
    "category": "reading",
    "text": "Khi gia đình nhờ kèm em học giữa tuần thi.",
    "status": "pending"
   },
   {
-   "id": "daily.bundle.automatic-caretaking.13.scene",
+   "id": "daily.bundle.capacity-before-agreement.14.scene",
    "category": "reading",
-   "text": "Khi gia đình nhờ bạn kèm em học mỗi tối tuần thi, bạn định gật đầu dù bài mình còn dồn.",
+   "text": "Khi gia đình nhờ bạn kèm em học mỗi tối tuần thi, bạn đã gật đầu dù bài mình còn dồn.",
    "status": "pending"
   },
   {
-   "id": "daily.bundle.automatic-caretaking.13.action",
+   "id": "daily.bundle.capacity-before-agreement.14.action",
    "category": "reading",
-   "text": "Đặt lịch ôn của mình trước rồi mới ghi tối nào còn sức kèm em, chưa cần hứa với gia đình ngay.",
+   "text": "Ghi vào lịch tối nào bạn còn thời gian kèm em, chưa cần hứa thêm với gia đình.",
    "status": "pending"
   }
  ],

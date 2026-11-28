@@ -301,7 +301,8 @@ def test_capacity_recipient_lines_live_only_in_whole_bundles() -> None:
         if key.startswith(prefix):
             number, part = key[len(prefix) :].split(".")
             bundles.setdefault(number, {})[part] = entry.text
-    assert len(bundles) == 12 and all(set(found) == set(PARTS) for found in bundles.values())
+    # 01-12 from #404; 13-14 are the student family stories of #705.
+    assert len(bundles) == 14 and all(set(found) == set(PARTS) for found in bundles.values())
     for number, found in bundles.items():
         assert not _PRE_AGREEMENT.search(found["action"].lower()), number
         # An action that names a person names one the same bundle's scene names.

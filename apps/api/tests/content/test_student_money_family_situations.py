@@ -7,6 +7,13 @@ together, the same gate #704 set for its four bundles.
 AC2 is checked as text rules: money copy never names an amount and never says who is short;
 family copy never treats the family as a support and every family action keeps a way out
 (it can be done alone, and it says nothing has to be promised yet).
+
+Both family stories live in capacity-before-agreement (#952 review, finding
+952-family-companion-exit). Each issue has one companion line per voice and no per-bundle
+companion exists, so a family card shows its issue's line. The avoid-small-conflict and
+automatic-caretaking lines push the reader to refuse or to speak up, which cancels the way out.
+The capacity lines only ask the reader to look at the calendar first. The whole-card test below
+fails if a family story moves to an issue whose companion, action or light slot pushes contact.
 """
 
 from __future__ import annotations
@@ -81,13 +88,18 @@ from tests.readings.test_voice import _content
 BUNDLES = {
     "daily.bundle.comparison-loop.13": ("money_tight", "study_work", ("boundary", "study_work")),
     "daily.bundle.group-pressure.13": ("money_tight", "money", ("rest", "boundary")),
-    "daily.bundle.avoid-small-conflict.13": (
+    "daily.bundle.capacity-before-agreement.13": (
         "family_pressure",
         "boundary",
-        ("body", "study_work"),
+        ("boundary", "rest"),
     ),
-    "daily.bundle.automatic-caretaking.13": ("family_pressure", "study_work", ("body", "rest")),
+    "daily.bundle.capacity-before-agreement.14": (
+        "family_pressure",
+        "study_work",
+        ("boundary", "rest"),
+    ),
 }
+FAMILY_ISSUE = "capacity-before-agreement"
 MONEY = tuple(bundle for bundle, value in BUNDLES.items() if value[0] == "money_tight")
 FAMILY = tuple(bundle for bundle, value in BUNDLES.items() if value[0] == "family_pressure")
 ISSUES = {issue.key: issue for issue in DAILY_ISSUES}
@@ -110,6 +122,12 @@ _FAMILY_AS_SUPPORT = re.compile(
 )
 # The way out ("lối lui"): nothing has to be promised to the family yet.
 _WAY_OUT = re.compile(r"chưa cần hứa")
+# Lines that push the reader to refuse or to speak up; on a family card they cancel the way out.
+_PUSH_TO_SPEAK = re.compile(r"từ chối|nói thật|nói thẳng|nói rõ|nói bấy nhiêu|nói không")
+
+
+def _keeps_way_out(text: str) -> bool:
+    return not needs_contact(text) and not _PUSH_TO_SPEAK.search(text.lower())
 
 
 def _issue(bundle: str) -> str:
@@ -165,6 +183,13 @@ def _approve(entries: dict[str, CopyEntry], bundle: str) -> None:
 def _assert_unlock(entries: dict[str, CopyEntry], monkeypatch: pytest.MonkeyPatch) -> None:
     assert registry_problems(entries) == []
     monkeypatch.setattr(copy_approval, "_runtime_registry", lambda: entries)
+    # Light slots belong to the issue; an approved sibling bundle may already have unlocked them.
+    lit = {
+        _issue(bundle)
+        for bundle in BUNDLES
+        for part in BUNDLE_PARTS
+        if (entry := entries.get(f"{bundle}.{part}")) is not None and entry.servable
+    }
     for bundle, (_group, shape, light_shapes) in BUNDLES.items():
         part_ids = tuple(f"{bundle}.{part}" for part in BUNDLE_PARTS)
         assert all(key in entries for key in part_ids), f"{bundle}: missing part"
@@ -177,7 +202,8 @@ def _assert_unlock(entries: dict[str, CopyEntry], monkeypatch: pytest.MonkeyPatc
         if not any(entries[key].servable for key in part_ids):
             for key in _light_ids(bundle):
                 assert key in entries, f"{bundle}: missing light slot"
-                assert not entries[key].servable, f"{key}: light slot approved without bundle"
+                if _issue(bundle) not in lit:
+                    assert not entries[key].servable, f"{key}: light slot approved without bundle"
             continue
         assert all(entries[key].servable for key in part_ids), f"{bundle}: partial approval"
         slots = light_slots(_issue(bundle))
@@ -213,7 +239,8 @@ def test_inventory_required_fields_tags_and_light_slots() -> None:
     entries = parse_registry(raw)  # Also rejects duplicate IDs and missing/non-string fields.
     assert registry_problems(entries) == []
     assert len(MONEY) == len(FAMILY) == 2
-    assert len({_issue(bundle) for bundle in BUNDLES}) == len(BUNDLES)
+    assert len({_issue(bundle) for bundle in MONEY}) == len(MONEY)
+    assert {_issue(bundle) for bundle in FAMILY} == {FAMILY_ISSUE}
     for bundle, (_group, shape, light_shapes) in BUNDLES.items():
         for part in BUNDLE_PARTS:
             key = f"{bundle}.{part}"
@@ -269,6 +296,35 @@ def test_family_copy_keeps_a_way_out_and_never_assumes_support(bundle: str) -> N
     assert _WAY_OUT.search(texts["action"]), bundle
     # Doable without reaching anyone, so the reader is never pushed to talk to the family.
     assert not needs_contact(texts["action"]), bundle
+
+
+@pytest.mark.parametrize("voice", ReadingVoice)
+@pytest.mark.parametrize("bundle", FAMILY)
+def test_family_card_keeps_the_way_out_in_every_line(bundle: str, voice: ReadingVoice) -> None:
+    """#952 review: the companion and the light slots must not cancel the action's way out."""
+    entries = load_registry()
+    issue = _issue(bundle)
+    lines = {
+        "action": entries[f"{bundle}.action"].text,
+        "companion": getattr(COMPANION_ISSUE_LINES[issue].line, voice.value),
+        **{key: entries[key].text for key in _light_ids(bundle)},
+    }
+    for name, text in lines.items():
+        assert _keeps_way_out(text), (bundle, voice.value, name, text)
+
+
+@pytest.mark.parametrize(
+    "text",
+    (
+        # The companions this batch first used (avoid-small-conflict, automatic-caretaking).
+        "Từ chối nhẹ nhàng vẫn là từ chối. Bạn làm được.",
+        "Chữ được bật ra nhanh ghê. Lần này thử nói thật xem.",
+        "Giúp được bao nhiêu thì nói bấy nhiêu, vậy là đủ.",
+        "Nói thẳng với gia đình là tối nay bạn bận.",
+    ),
+)
+def test_way_out_rule_rejects_lines_that_push_refusal_or_contact(text: str) -> None:
+    assert not _keeps_way_out(text)
 
 
 @pytest.mark.parametrize(
@@ -456,10 +512,10 @@ def test_gate_rejects_invalid_normal_action_tag(
 @pytest.mark.parametrize("failure", ("missing", "shape", "weight"))
 def test_gate_rejects_broken_light_catalog(failure: str, monkeypatch: pytest.MonkeyPatch) -> None:
     entries = _pending_registry()
-    bundle = "daily.bundle.avoid-small-conflict.13"
+    bundle = "daily.bundle.capacity-before-agreement.13"
     _approve(entries, bundle)
     catalog = dict(lighter_action.ISSUE_LIGHT_CATALOG)
-    slots = catalog["avoid-small-conflict"]
+    slots = catalog[FAMILY_ISSUE]
     if failure == "weight":
         original = action_tags.tag_of
         key = _light_ids(bundle)[0]
@@ -471,7 +527,7 @@ def test_gate_rejects_broken_light_catalog(failure: str, monkeypatch: pytest.Mon
             ),
         )
     else:
-        catalog["avoid-small-conflict"] = (
+        catalog[FAMILY_ISSUE] = (
             slots[:1]
             if failure == "missing"
             else ((slots[0][0], slots[0][1], "connection"), slots[1])
@@ -563,6 +619,10 @@ def test_card_renders_whole_in_each_arena_voice_and_light_slot(
     assert report.passed is (not report.failure_codes)
     offered = {lighter_action_for(revision, blueprint.mechanism_key) for revision in REVISIONS}
     assert offered == {entries[key].text for key in _light_ids(bundle)}
+    if bundle in FAMILY:
+        # #952 review: the card as shown, companion included, keeps the way out in this voice.
+        for text in (action, shown.companion, *(entries[key].text for key in _light_ids(bundle))):
+            assert _keeps_way_out(text), (bundle, voice.value, text)
 
 
 # Luna's gate requires the direct nudge; these authored roast lines use other wording and
@@ -573,18 +633,24 @@ ROAST_OFF_BRIEF: dict[tuple[str, ReadingVoice], tuple[str, ...]] = {}
 # Synthetic Sun placements that select each issue through real eligibility.
 PLACEMENTS = {
     "group-pressure": ("sun", "aquarius", ReadingDomain.CORE),
-    "avoid-small-conflict": ("sun", "libra", ReadingDomain.CORE),
-    "automatic-caretaking": ("sun", "cancer", ReadingDomain.CORE),
+    FAMILY_ISSUE: ("sun", "capricorn", ReadingDomain.CORE),
 }
 
 
 @pytest.mark.parametrize("bundle", BUNDLES)
-def test_bundle_rotates_with_all_twelve_older_bundles(
+def test_bundle_rotates_with_every_bundle_of_its_issue(
     bundle: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     entries = load_registry()
     issue = _issue(bundle)
-    for number in range(1, 13):
+    numbers = sorted(
+        int(key.split(".")[3])
+        for key in entries
+        if key.startswith(f"daily.bundle.{issue}.") and key.endswith(".headline")
+    )
+    # 12 older bundles, plus this batch's one (money) or two (family) bundles.
+    assert numbers == list(range(1, 15 if issue == FAMILY_ISSUE else 14))
+    for number in numbers:
         for part in BUNDLE_PARTS:
             key = f"daily.bundle.{issue}.{number:02d}.{part}"
             entries[key] = _approved(entries[key])
@@ -592,9 +658,10 @@ def test_bundle_rotates_with_all_twelve_older_bundles(
     monkeypatch.setattr(copy_approval, "_runtime_registry", lambda: entries)
     expected = {
         tuple(entries[f"daily.bundle.{issue}.{number:02d}.{part}"].text for part in BUNDLE_PARTS)
-        for number in range(1, 14)
+        for number in numbers
     }
-    assert len(approved_bundles(issue)) == len(expected) == 13
+    cycle = len(numbers)
+    assert len(approved_bundles(issue)) == len(expected) == cycle
     template = _date_only_plan(None)
     body, sign, domain = PLACEMENTS.get(issue, ("sun", "virgo", ReadingDomain.CORE))
     factor = DerivedFactor.model_validate(
@@ -622,8 +689,8 @@ def test_bundle_rotates_with_all_twelve_older_bundles(
             daily_psychology, "eligible_daily_situations", lambda _plan: (supported,)
         )
     observed = []
-    cycle_start = START - timedelta(days=_variety(OWNER_A, START).day_index % 13)
-    for day in range(13):
+    cycle_start = START - timedelta(days=_variety(OWNER_A, START).day_index % cycle)
+    for day in range(cycle):
         plan = template.model_copy(
             update={
                 "factors": (factor,),
@@ -639,5 +706,5 @@ def test_bundle_rotates_with_all_twelve_older_bundles(
         observed.append((candidate.hook, candidate.manifestation, candidate.micro_action))
         assert candidate.semantic_blueprint is not None
         assert candidate.semantic_blueprint.mechanism_key == f"psychology:{issue}"
-    assert len(set(observed)) == 13
+    assert len(set(observed)) == cycle
     assert set(observed) == expected
