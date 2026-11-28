@@ -7,7 +7,7 @@ import { agentMarker } from './collab-trust.mjs';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { checkPrep, dayList, label7w, mergedItems, pickPlan, plannedEntry, prepRefs, quotaIssues, serious, startBlock, uiHold, workUnits } from './collab-quota.mjs';
+import { checkPrep, claimedIds, dayList, label7w, mergedItems, pickPlan, plannedEntry, prepRefs, quotaIssues, serious, startBlock, uiHold, workUnits } from './collab-quota.mjs';
 import { writeJson } from './collab-trust.mjs';
 import { renderProgress, workProgress } from './collab-work.mjs';
 
@@ -193,4 +193,13 @@ test('planner: a failed merged-PR read blocks fresh starts, never incidents; the
   assert.equal(uiHold({ path }), true);
   writeJson(path, { status: 'approved' });
   assert.equal(uiHold({ path }), false);
+});
+
+test('planner reads claimed criteria with the work gate parser (#948 d)', () => {
+  const ids = body => [...claimedIds(body)].sort();
+  assert.deepEqual(ids('Tiêu chí đạt: #714 AC1–AC5'), ['AC1', 'AC2', 'AC3', 'AC4', 'AC5']);
+  assert.deepEqual(ids('Tiêu chí đạt: TC2 — TC3, AC7'), ['AC7', 'TC2', 'TC3']);
+  // A plain hyphen without a second prefix is one id, as in the work gate; too wide claims nothing.
+  assert.deepEqual(ids('Tiêu chí đạt: AC1-5'), ['AC1-5']);
+  assert.deepEqual(ids('Tiêu chí đạt: AC1–AC40'), []);
 });

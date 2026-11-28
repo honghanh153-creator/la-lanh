@@ -44,16 +44,9 @@ export function uiHold({ path = uiApprovalPath() } = {}) {
   return !/^approved/i.test(String(s.status ?? ''));
 }
 export const mergedBase = 'collab/integration';
-// The criteria a PR claims, ranges included ("#714 AC1–AC5" names AC1 to AC5).
-export function claimedIds(body) {
-  const ids = new Set(claimedCriteria(body));
-  const line = /Tiêu chí đạt\s*:\**\s*(.*)$/mu.exec(String(body ?? '').normalize('NFC'))?.[1] ?? '';
-  for (const m of line.matchAll(/\b(AC|TC)(\d+)\s*[–—-]\s*(?:AC|TC)?(\d+)\b/gu)) {
-    const [lo, hi] = [Number(m[2]), Number(m[3])];
-    if (hi >= lo && hi - lo < 50) for (let k = lo; k <= hi; k += 1) ids.add(`${m[1]}${k}`);
-  }
-  return ids;
-}
+// The criteria a PR claims, ranges included ("#714 AC1–AC5" names AC1 to AC5). One parser for the
+// planner and the work gate (#948 d): collab-work.claimedCriteria owns the range rules.
+export const claimedIds = body => claimedCriteria(body);
 // Item number → { pr: the first merged PR that names it, claimed: every criterion those PRs claim }.
 export function mergedItems(prs) {
   const out = new Map();
