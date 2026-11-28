@@ -193,13 +193,30 @@ Người dùng sẽ thấy:
 Kiểm: `pnpm check` đạt; `smoke.sh` đạt; trang riêng tư không tràn ngang ở 390 px. `qa-public-smoke`: chưa rõ. Journey
 và ảnh 360 px: chưa có.
 
+### 19.10.2026 — bật cờ, cùng image `4111f03cee3c`
+
+| Mục | Giá trị |
+|---|---|
+| main / image | `4f595a35dd6851b154f5a61e1bd2f6e28615ebc3` / không build lại, vẫn chạy `la-lanh:4111f03cee3c` (thay đổi duy nhất trong `apps/` là một dòng test) |
+| Schema | `20261018_0037`, không có migration |
+| Cờ đổi | Bật xoay vòng Daily: `LA_LANH_DAILY_VARIETY_FROM=2026-10-19` trên production và staging |
+| PR | #32 |
+| Quay lại | Xóa dòng cờ (hoặc dùng lại file env cũ `app.env.pre-daily-variety`) rồi chạy lại `deploy.sh`. Note đã lưu giữ nguyên |
+| Biên nhận | [production-release-2026-10-18, phần bổ sung 19.10](../reviews/production-release-2026-10-18/receipt.md#addendum--19102026-b3-1a-daily-rotation-enabled) |
+
+Người dùng sẽ thấy:
+- Từ ngày 19.10, Note Daily xoay vòng theo từng người. Note đã mở trước lúc bật cờ giữ nguyên.
+
+Kiểm: `smoke.sh` đạt trên production và staging; `qa-public-smoke` đạt (Note Daily người chỉ có ngày sinh, Tarot 1/3/5,
+Radar, xóa khách thử). Journey và ảnh 360 px: chưa có.
+
 ### 18.10.2026 — `4111f03cee3c`
 
 | Mục | Giá trị |
 |---|---|
 | main / image | `4111f03cee3c7a3b3e886530f536236e30fc3526` / `la-lanh:4111f03cee3c` (`sha256:3194d73b9762…`) |
 | Schema | `20261011_0036` → `20261018_0037` (thêm `tarot_variant_cursors`) |
-| Cờ đổi | Không bật. Xoay vòng Daily có trong code nhưng để tắt (`LA_LANH_DAILY_VARIETY_FROM` để trống) |
+| Cờ đổi | Không bật. Xoay vòng Daily có trong code nhưng để tắt (`LA_LANH_DAILY_VARIETY_FROM` để trống); bật ngày 19.10, xem mục 19.10 |
 | PR | #20–#31 |
 | Quay lại | Không có bản quay lại đã kiểm chứng: `la-lanh:836222282dfc` khởi động được nhưng không mở được bài Tarot B2 lưu sau khi phát hành |
 | Biên nhận | [production-release-2026-10-18](../reviews/production-release-2026-10-18/receipt.md) |
