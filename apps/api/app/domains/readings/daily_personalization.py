@@ -90,6 +90,44 @@ SIGN_ELEMENTS = {
     "scorpio": 3,
     "pisces": 3,
 }
+# Date-only pool widening (#841 follow-up): a birth date alone gives 2-3 situations (sign, element,
+# modality), so a date-only reader met the same topic within three days on 58% of days. Each sign
+# gets one or two more angles of its own, chosen from groups the sign lacks, so every pool holds 4.
+# Each sentence waits in the copy registry as ``situation.sun.<sign>.<issue>``; pending = not used.
+SUN_EXTRA_ISSUES: dict[str, tuple[str, ...]] = {
+    "aries": (
+        "comparison-loop",
+        "too-many-open-loops",
+    ),
+    "taurus": (
+        "capacity-before-agreement",
+        "decision-fatigue",
+    ),
+    "gemini": (
+        "quick-reply",
+        "missing-context",
+    ),
+    "cancer": (
+        "name-the-need",
+        "avoid-small-conflict",
+    ),
+    "leo": ("comparison-loop",),
+    "virgo": ("decision-fatigue",),
+    "libra": ("decision-fatigue",),
+    "scorpio": (
+        "defend-old-choice",
+        "missing-context",
+    ),
+    "sagittarius": ("repair-reply",),
+    "capricorn": ("comparison-loop",),
+    "aquarius": (
+        "changed-plan",
+        "specific-feedback",
+    ),
+    "pisces": ("avoid-small-conflict",),
+}
+
+
 BODY_DOMAINS = {
     "sun": ReadingDomain.CORE,
     "moon": ReadingDomain.EMOTIONS,
@@ -326,6 +364,22 @@ def _registry_pair(bodies: frozenset[str], kind: str) -> tuple[str, str] | None:
     return None
 
 
+def _sky_situation(bodies: frozenset[str], kind: str) -> tuple[str, str] | None:
+    """(issue, tendency sentence) of a pair rule for a date-only sky contact, if one applies:
+    an existing ``PAIR_RULES`` entry (its approved sentences) or an approved registry rule."""
+
+    rule = next((rule for rule in PAIR_RULES if rule.bodies == bodies), None)
+    if rule is None:
+        return _registry_pair(bodies, kind)
+    if kind == "tense":
+        return rule.tension_issue, rule.tension_meaning
+    if kind == "coop":
+        return rule.cooperative_issue, rule.cooperative_meaning
+    if rule.conjunction_issue and rule.conjunction_meaning:
+        return rule.conjunction_issue, rule.conjunction_meaning
+    return None
+
+
 # Which Daily scene a house door may open (plan 1.1, N-4 under the source rule). Only doors a
 # classical source stands behind and that are not ⚠ are tagged, so a modern-only door (love in
 # house 5) or a ⚠ door (children) never picks the scene. A door with no everyday scene is absent.
@@ -481,6 +535,36 @@ def eligible_daily_situations(plan: ReadingPlan) -> tuple[SupportedSituation, ..
                         (role_priority, 0, int(factor.strength * 4) - 2),
                     )
                 )
+            # More angles of the sign, once their sentence is approved, ranked below the modality.
+            shown = {key, element_key, modality_key}
+            for step, extra_key in enumerate(SUN_EXTRA_ISSUES.get(sign, ()), start=3):
+                sentence = approved_copy(f"situation.sun.{sign}.{extra_key}")
+                if sentence and extra_key not in shown:
+                    shown.add(extra_key)
+                    situations.append(
+                        SupportedSituation(
+                            extra_key,
+                            sentence,
+                            (factor.id,),
+                            f"extra-sun-{sign}-{extra_key}",
+                            (role_priority, 0, int(factor.strength * 4) - step),
+                        )
+                    )
+            # Today's sky against the Sun sign (date-only sky, switched on by the caller).
+            for code in plan.daily_variety.sky_contacts or ():
+                sky_body, sky_kind = code.split(":")
+                found = _sky_situation(frozenset({sky_body, "sun"}), sky_kind)
+                if found and found[0] not in shown:
+                    shown.add(found[0])
+                    situations.append(
+                        SupportedSituation(
+                            found[0],
+                            found[1],
+                            (factor.id,),
+                            f"sky-{sky_body}-{sky_kind}-sun-{sign}",
+                            (role_priority, 0, int(factor.strength * 4) - 6),
+                        )
+                    )
 
     for factor in plan.factors:
         if factor.kind not in {FactorKind.NATAL_ASPECT, FactorKind.TRANSIT_CONTACT}:

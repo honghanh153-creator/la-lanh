@@ -30,6 +30,7 @@ from app.domains.readings.daily_rotation import (
     day_index,
 )
 from app.domains.readings.daily_topics import TOPIC_WINDOW_DAYS, block_start
+from app.domains.readings.date_only_sky import sky_contacts
 from app.domains.readings.gates import evaluate_candidate
 from app.domains.readings.lighter_action import lighter_action_projection, mood_action_projection
 from app.domains.readings.models import (
@@ -121,6 +122,7 @@ class ReadingApplicationService:
         daily_variety_key: bytes | None = None,
         daily_variety_from: date | None = None,
         daily_topic_schedule_from: date | None = None,
+        daily_date_only_sky_from: date | None = None,
         keep_action_all_profiles: bool = False,
     ) -> None:
         self._repository = repository
@@ -139,6 +141,10 @@ class ReadingApplicationService:
         # Topic anti-repeat (plan 2026-11-21): first Daily date that chooses its situation against
         # the recomputed 7-day block instead of the top-3 rotation. Unset keeps the old rotation.
         self._daily_topic_schedule_from = daily_topic_schedule_from
+        # Date-only sky (#841 follow-up, US-21 AC07): first date on which a birth-date-only Daily
+        # also reads today's whole-sign contacts to the Sun sign. Needs the topic schedule (its
+        # pool then changes by day). Unset keeps the fixed date-only pool.
+        self._daily_date_only_sky_from = daily_date_only_sky_from
         # #716: off until the owner turns it on (R2 kind 4, new personal-data collection). Off,
         # only an exact-time full synthesis offers the Daily action to keep, as before.
         self._keep_action_all_profiles = keep_action_all_profiles
@@ -513,6 +519,32 @@ class ReadingApplicationService:
                 else await self._guard_issue_keys(profile_id, chart, local_date, background_lens)
             ),
             topic_history=await self._topic_history(profile_id, chart, local_date, background_lens),
+            sky_contacts=self._sky_contacts(chart, local_date),
+        )
+
+    def _sky_contacts(
+        self, chart: DateOnlySunResult | NatalChart, local_date: date
+    ) -> tuple[str, ...] | None:
+        """Today's whole-sign contacts to a certain date-only Sun sign, from public positions at
+        the start and the end of the local day; ``None`` when the date-only sky does not apply."""
+
+        if (
+            self._daily_date_only_sky_from is None
+            or local_date < self._daily_date_only_sky_from
+            or not self._topic_schedule_applies(local_date)
+            or self._engine is None
+            or not isinstance(chart, DateOnlySunResult)
+            or chart.status != "certain"
+            or chart.sign is None
+        ):
+            return None
+        zone = ZoneInfo(MVP_TIMEZONE)
+        start = datetime.combine(local_date, time(0, 0), tzinfo=zone)
+        end = datetime.combine(local_date, time(23, 59, 59), tzinfo=zone)
+        return sky_contacts(
+            chart.sign.value,
+            self._engine.transiting_positions(start),
+            self._engine.transiting_positions(end),
         )
 
     def _topic_schedule_applies(self, local_date: date) -> bool:
@@ -542,7 +574,7 @@ class ReadingApplicationService:
         if not self._topic_schedule_applies(local_date):
             return None
         if (
-            isinstance(chart, DateOnlySunResult)
+            (isinstance(chart, DateOnlySunResult) and self._sky_contacts(chart, local_date) is None)
             or self._daily_variety_key is None
             or self._daily_topic_schedule_from is None
         ):
@@ -671,6 +703,7 @@ class ReadingApplicationService:
             day_index=day_index(day),
             recent_issue_keys=recent,
             topic_history=topic_history,
+            sky_contacts=self._sky_contacts(chart, day),
         )
         observed_at = datetime.combine(day, time(hour=DAILY_OBSERVED_HOUR_UTC), tzinfo=UTC)
         transits = await self._optional_transits(chart, ReadingPurpose.DAILY_NOTE, observed_at)

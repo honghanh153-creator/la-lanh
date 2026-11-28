@@ -97,6 +97,11 @@ def _client(db_url: str) -> Any:
                 if os.environ.get("PERSONA_SIM_TOPIC_SCHEDULE_FROM")
                 else None
             ),
+            daily_date_only_sky_from=(
+                date.fromisoformat(os.environ["PERSONA_SIM_DATE_ONLY_SKY_FROM"])
+                if os.environ.get("PERSONA_SIM_DATE_ONLY_SKY_FROM")
+                else None
+            ),
         )
     )
     client = TestClient(app, base_url=ORIGIN)

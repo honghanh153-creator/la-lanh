@@ -12749,6 +12749,114 @@
    "category": "reading",
    "text": "Bạn dễ nhường cho êm chuyện dù trong lòng chưa thật đồng ý.",
    "status": "pending"
+  },
+  {
+   "id": "situation.sun.aries.comparison-loop",
+   "category": "reading",
+   "text": "Bạn dễ muốn về nhất nên hay so mình với người đi nhanh hơn.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.sun.aries.too-many-open-loops",
+   "category": "reading",
+   "text": "Bạn dễ hăng hái mở việc mới trước khi xong việc cũ.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.sun.taurus.capacity-before-agreement",
+   "category": "reading",
+   "text": "Bạn dễ nhận lời vì ngại từ chối, rồi cố giữ lời đến mệt.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.sun.taurus.decision-fatigue",
+   "category": "reading",
+   "text": "Bạn dễ cân nhắc rất lâu trước khi chọn một hướng mới.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.sun.gemini.quick-reply",
+   "category": "reading",
+   "text": "Bạn dễ trả lời ngay khi vừa nghĩ ra, chưa kịp nghĩ hết.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.sun.gemini.missing-context",
+   "category": "reading",
+   "text": "Bạn dễ đoán nhanh ý người khác khi tin nhắn còn thiếu.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.sun.cancer.name-the-need",
+   "category": "reading",
+   "text": "Bạn dễ lo cho người khác trước rồi mới nhớ mình cần gì.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.sun.cancer.avoid-small-conflict",
+   "category": "reading",
+   "text": "Bạn dễ im lặng cho êm dù trong lòng chưa thoải mái.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.sun.leo.comparison-loop",
+   "category": "reading",
+   "text": "Bạn dễ muốn được ghi nhận nên để ý ai được khen hơn mình.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.sun.virgo.decision-fatigue",
+   "category": "reading",
+   "text": "Bạn dễ mệt vì cân nhắc từng chi tiết trước khi chọn.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.sun.libra.decision-fatigue",
+   "category": "reading",
+   "text": "Bạn dễ phân vân lâu vì thấy lựa chọn nào cũng có lý.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.sun.scorpio.defend-old-choice",
+   "category": "reading",
+   "text": "Bạn dễ giữ chặt điều mình đã quyết, khó đổi dù có thông tin mới.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.sun.scorpio.missing-context",
+   "category": "reading",
+   "text": "Bạn dễ đoán ý người khác hơn là hỏi thẳng.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.sun.sagittarius.repair-reply",
+   "category": "reading",
+   "text": "Bạn dễ nói thẳng cho nhanh rồi mới thấy câu đó hơi mạnh.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.sun.capricorn.comparison-loop",
+   "category": "reading",
+   "text": "Bạn dễ tự đặt chuẩn cao rồi thấy mình chưa đủ.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.sun.aquarius.changed-plan",
+   "category": "reading",
+   "text": "Bạn dễ muốn thử cách làm riêng dù cả nhóm đã có kế hoạch.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.sun.aquarius.specific-feedback",
+   "category": "reading",
+   "text": "Bạn dễ muốn góp ý thẳng nhưng còn nói khá chung.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.sun.pisces.avoid-small-conflict",
+   "category": "reading",
+   "text": "Bạn dễ chiều theo người khác để không làm ai buồn.",
+   "status": "pending"
   }
  ],
  "version": "copy-registry/v1"

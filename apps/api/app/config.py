@@ -104,6 +104,9 @@ class Settings(BaseSettings):
     # the last 7 days (recomputed, nothing stored). Unset keeps the top-3 rotation. A note already
     # opened for its scope is replayed unchanged; prefer a day after the release.
     daily_topic_schedule_from: date | None = Field(default=None, ge=date(2026, 1, 1))
+    # #841 follow-up (US-21 AC07): first date on which a birth-date-only Daily also reads today's
+    # whole-sign contacts to the Sun sign (public sky positions only). Needs the topic schedule.
+    daily_date_only_sky_from: date | None = Field(default=None, ge=date(2026, 1, 1))
     # #716: let date-only and approximate-time profiles keep the Daily note's action. It stores
     # kept actions and outcomes for people whose profile had none before, so it stays off until
     # the owner turns it on (R2 kind 4: new personal-data collection ships switched off). Off,

@@ -263,13 +263,18 @@ class DailyVariety(BaseModel):
     # recomputed from the chart, never stored apart from this plan. ``None`` = the top-3 rotation
     # with the AC05 guard pair (plans before the switch, and dates before it).
     topic_history: tuple[str, ...] | None = Field(default=None, max_length=6)
+    # Date-only sky (#841 follow-up, US-21 AC07): today's whole-sign contacts to the reader's Sun
+    # sign as "<body>:<kind>" codes from public positions. ``None`` = not switched on.
+    sky_contacts: tuple[str, ...] | None = Field(default=None, max_length=12)
 
     @model_serializer(mode="wrap")
     def _drop_absent_topic_history(self, handler: SerializerFunctionWrapHandler) -> Any:
         # Plans made before the topic schedule keep their plan hash and identity unchanged.
         data = handler(self)
-        if isinstance(data, dict) and data.get("topic_history") is None:
-            data.pop("topic_history", None)
+        if isinstance(data, dict):
+            for field in ("topic_history", "sky_contacts"):
+                if data.get(field) is None:
+                    data.pop(field, None)
         return data
 
 
