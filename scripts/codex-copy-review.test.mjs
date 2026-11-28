@@ -348,3 +348,15 @@ test('item 7: the judge prompt carries the owner\'s labelled examples; the batch
   const agentEdit = agreement([{ id: 'x.0', digest: digest('bản cũ'), decision: 'approve' }], { entries: [{ ...many[0], approver: 'codex' }] });
   assert.equal(agentEdit.labels, 0, 'an agent edit after Codex is not the owner\'s label');
 });
+
+// #949 r1 (C4): a Codex limit kept until a later reset: the copy batch calls nothing.
+test('a kept Codex limit stops the copy batch before Codex', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'copy-limit-'));
+  const agentsFile = join(dir, 'agents.json');
+  writeFileSync(agentsFile, JSON.stringify({ codex: { status: 'limited', untilMs: Date.now() + 3600000 } }));
+  writeFileSync(join(dir, 'reg.json'), JSON.stringify(registry));
+  const calls = [];
+  const result = main([], { run: (...args) => { calls.push(args); return ''; }, out: { write() {} }, registryPath: join(dir, 'reg.json'), agentsFile });
+  assert.equal(result.status, 'limited');
+  assert.equal(calls.filter(c => c[0] === codexBin).length, 0);
+});

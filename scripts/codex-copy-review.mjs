@@ -15,6 +15,8 @@ import { acquireLock } from './collab-lock.mjs';
 import { dispatch } from './collab-dispatch.mjs';
 import { agentMarker, assertAgentBody, clean, integration, repo, stateDir, vnNow } from './collab-trust.mjs';
 import { isMain } from './is-main.mjs';
+import { agentsPath, noteCallResult, reserveCall } from './collab-agents.mjs';
+import { isLimit } from './codex-review.mjs';
 import { calibrationExamples, judgeLogPath, recordJudgements, renderExamples } from './codex-copy-calibration.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -236,7 +238,7 @@ function writeBatch(registry, body, date, branch, work, dir, run) {
 }
 
 export function main(argv, { run = execFileSync, out = process.stdout, registryPath = null, rejectedFile = registryPath ? null : rejectedPath,
-  savedFile = registryPath ? null : savedPath, judgeLog = registryPath ? null : judgeLogPath(), progress = {}, at = vnNow(), gate = {} } = {}) {
+  savedFile = registryPath ? null : savedPath, judgeLog = registryPath ? null : judgeLogPath(), progress = {}, at = vnNow(), gate = {}, agentsFile = agentsPath() } = {}) {
   const dryRun = argv.includes('--dry-run');
   const fakeAt = argv.indexOf('--fake-codex');
   // Review a pinned integration snapshot unless a test passes its own registry file.
@@ -261,10 +263,22 @@ export function main(argv, { run = execFileSync, out = process.stdout, registryP
     const pending = batchFor(registry, rejectedFile ? readRejected(rejectedFile) : {});
     if (!pending.length) { out.write('no pending copy\n'); return { status: 'empty' }; }
     date = at.date;
-    if (fakeAt < 0) progress.codexRan = true;
-    const result = fakeAt >= 0
-      ? JSON.parse(readFileSync(argv[fakeAt + 1], 'utf8'))
-      : runCodex(buildPrompt(pending, calibrationExamples(registry)), join(mkdtempSync(join(tmpdir(), 'copy-codex-')), 'out.json'), run);
+    // #949 r1 (C4): the slot is reserved under the agents lock; a kept limit calls nothing.
+    if (fakeAt < 0) {
+      const slot = reserveCall('codex', { path: agentsFile });
+      if (!slot.ok) { out.write(`codex limited: ${slot.reason}\n`); return { status: 'limited', reason: slot.reason }; }
+      progress.codexRan = true;
+    }
+    let result;
+    try {
+      result = fakeAt >= 0
+        ? JSON.parse(readFileSync(argv[fakeAt + 1], 'utf8'))
+        : runCodex(buildPrompt(pending, calibrationExamples(registry)), join(mkdtempSync(join(tmpdir(), 'copy-codex-')), 'out.json'), run);
+    } catch (error) {
+      if (fakeAt < 0) noteCallResult('codex', { limited: isLimit(`${error?.stdout ?? ''}\n${error?.stderr ?? ''}\n${error?.message ?? ''}`), reason: String(error?.message ?? '').slice(0, 200), path: agentsFile });
+      throw error;
+    }
+    if (fakeAt < 0) noteCallResult('codex', { path: agentsFile });
     decisions = validateDecisions(result, pending);
     reviewed = new Map(pending.map(e => [e.id, digest(e.text)]));
     if (!dryRun && savedFile) writeSaved(savedFile, { date, decisions, reviewed: [...reviewed] });

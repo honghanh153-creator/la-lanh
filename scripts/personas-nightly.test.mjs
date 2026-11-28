@@ -530,3 +530,17 @@ test('a second prepare for the same date waits for the lock and leaves a running
   assert.equal(fresh.status, 'ok');
   assert.equal(seen, false, 'the lock holder starts from an empty folder');
 });
+
+// #949 r1 (C4): a Codex limit kept until a later reset: the night calls nothing and counts nothing.
+test('a kept Codex limit stops the nightly Codex call before it is counted', () => {
+  const agentsFile = join(mkdtempSync(join(tmpdir(), 'agents-')), 'agents.json');
+  const date = '2026-11-17';
+  writeJson(agentsFile, { codex: { status: 'limited', untilMs: Date.parse(`${date}T23:10:00+07:00`) + 3600000 } });
+  mkdirSync(dayDir(date), { recursive: true });
+  writeJson(join(dayDir(date), 'state.json'), { date, start: 'a'.repeat(40), end: 'b'.repeat(40), codexItems: ['x'] });
+  writeJson(dayStatePath(date), { codexRuns: 3, failures: 0 });
+  const at = { now: () => ({ date, hour: 23, minute: 10 }), nowMs: () => Date.parse(`${date}T23:10:00+07:00`) };
+  const result = codex(date, { run: () => { throw new Error('should not run'); }, ...at, agentsFile });
+  assert.equal(result.status, 'limited');
+  assert.equal(readJson(dayStatePath(date), {}).codexRuns, 3, 'nothing counted');
+});

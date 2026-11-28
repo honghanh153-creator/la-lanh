@@ -21,7 +21,9 @@ import { join } from 'node:path';
 import { acquireLock } from './collab-lock.mjs';
 import { machineBusy } from './collab-check.mjs';
 import { auditReserve } from './collab-audit.mjs';
-import { codexBin, codexModel } from './codex-review.mjs';
+import { codexBin, codexModel, isLimit } from './codex-review.mjs';
+import { agentsPath, noteCallResult, reserveCall } from './collab-agents.mjs';
+import { applyOnce } from './collab-writer.mjs';
 import { opsAlert } from './collab-turn.mjs';
 import { cutoffMs, dayCap, dayStatePath, hhmmOf, integration, lastStartAt, makeGh, readJson, repo, stateDir, vnNow, writeJson } from './collab-trust.mjs';
 import { isMain } from './is-main.mjs';
@@ -387,7 +389,7 @@ Tệp \`codex-sample.jsonl\` có mỗi dòng một mục JSON: \`profile\` là m
 Chấm từng mục độc lập, từ góc nhìn người đó, theo thang 1–5 của rubric. Không đọc file nào khác.
 Trả lời CHỈ một mảng JSON \`[{"item_id": "...", "score": 1-5, "reason": "một câu tiếng Việt ngắn"}]\`, đủ mọi mục, đúng item_id.`;
 
-export function codex(date, { run = execFileSync, now = vnNow, nowMs = Date.now } = {}) {
+export function codex(date, { run = execFileSync, now = vnNow, nowMs = Date.now, agentsFile = agentsPath() } = {}) {
   const state = readState(date);
   const dir = dayDir(date);
   if (!state.codexItems?.length) return { status: 'skipped', reason: 'không có nội dung mới để Codex chấm đối chiếu' };
@@ -404,8 +406,13 @@ export function codex(date, { run = execFileSync, now = vnNow, nowMs = Date.now 
     const dayPath = dayStatePath(now().date);
     const day = readJson(dayPath, { codexRuns: 0, failures: 0 });
     if ((day.codexRuns ?? 0) >= dayCap(day) - auditReserve) return { status: 'skipped', reason: 'hết lượt Codex trong ngày' };
-    // Count the call before it starts: a timeout or crash still spent it.
-    writeJson(dayPath, { ...day, codexRuns: (day.codexRuns ?? 0) + 1, personasNightlyRuns: (day.personasNightlyRuns ?? 0) + 1 });
+    // #949 r1 (C4): the slot is reserved under the agents lock; a kept limit calls nothing.
+    const slot = reserveCall('codex', { path: agentsFile, nowMs: nowMs() });
+    if (!slot.ok) return { status: 'limited', reason: slot.reason };
+    // Count the call before it starts: a timeout or crash still spent it. #949 r1 (C2): through the
+    // host writer, keyed by the night, so it never races the tick's own day-file writes.
+    const counted = applyOnce(dayPath, `personas:${date}`, cur => ({ ...cur, codexRuns: (cur.codexRuns ?? 0) + 1, personasNightlyRuns: (cur.personasNightlyRuns ?? 0) + 1 }), { fallback: day, waitMs: 60000 });
+    if (!['applied', 'duplicate'].includes(counted.status)) return { status: 'busy', reason: 'chưa ghi được lượt Codex vào trạng thái ngày' };
     state.codexAttempt = { startedAt: new Date(nowMs()).toISOString(), sha: state.end };
     recordAttempt(date, state.codexAttempt);
     writeState(date, state);
@@ -414,11 +421,13 @@ export function codex(date, { run = execFileSync, now = vnNow, nowMs = Date.now 
       run(codexBin, ['exec', '--skip-git-repo-check', '-s', 'read-only', '--ephemeral', '-m', codexModel, '-c', 'model_reasoning_effort="high"',
         '-C', dir, '-o', outPath, '--color', 'never', '-'], { input: codexPrompt, encoding: 'utf8', timeout: Math.min(20 * 60000, leftMs), maxBuffer: 16 * 1024 * 1024 });
     } catch (error) {
+      noteCallResult('codex', { limited: isLimit(`${error?.stdout ?? ''}\n${error?.stderr ?? ''}\n${error?.message ?? ''}`), reason: String(error?.message ?? error).slice(0, 200), path: agentsFile, nowMs: nowMs() });
       state.codexAttempt.error = String(error?.message ?? error).slice(0, 300);
       recordAttempt(date, state.codexAttempt);
       writeState(date, state);
       return { status: 'failed', reason: state.codexAttempt.error };
     }
+    noteCallResult('codex', { path: agentsFile, nowMs: nowMs() });
     const text = readFileSync(outPath, 'utf8');
     const parsed = JSON.parse(text.slice(text.indexOf('['), text.lastIndexOf(']') + 1));
     const problems = checkJudgeOutput(readFileSync(join(dir, 'codex-sample.jsonl'), 'utf8').split('\n'), parsed);

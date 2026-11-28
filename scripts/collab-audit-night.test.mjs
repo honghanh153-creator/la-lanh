@@ -7,6 +7,8 @@ import { join } from 'node:path';
 import test from 'node:test';
 // Incident 18.11.2026: a merge reservation written by one tick test must not steer the next.
 test.beforeEach(async () => (await import('./collab-reservation.mjs'))._resetReservation());
+// #949 r1: Codex limits are host state; one test's limit must not stop the next test's audit.
+test.beforeEach(async () => (await import('node:fs')).rmSync((await import('./collab-agents.mjs')).agentsPath(), { force: true }));
 import { auditReserve, collectFacts, keepDayM4, saveFacts } from './collab-audit.mjs';
 import { alertLimit, auditMarker, auditWindow, baselineMarker, baselinePath, buildPrompt, datesIn, evidenceDigest, gatherEvidence, readRecord, runAuditCodex, runBaseline, runNightAudit, upsertAudit, validateJudgement } from './collab-audit-night.mjs';
 import { agentMarker, codexDailyCap, dayStatePath, readJson, writeJson } from './collab-trust.mjs';
@@ -138,7 +140,7 @@ test('cap spent: M1 is "chưa đo được" and Codex is not called', () => {
   assert.equal(readRecord(date, dir).judgement.retry, true, 'a cap stop is retried, it does not lock the record');
 });
 
-test('busy review lock or a usage limit: nothing counted, retried on the next tick', () => {
+test('busy review lock or a usage limit: nothing counted, retried on the next tick', async () => {
   const date = '2026-11-14';
   writeJson(dayStatePath(date), { codexRuns: 3 });
   const dir = fresh();
@@ -149,6 +151,10 @@ test('busy review lock or a usage limit: nothing counted, retried on the next ti
   assert.equal(runNightAudit({ gh: fakeGh(), now: at('2026-11-14T16:10:00Z'), dir, codex: limited, ...deps() }).status, 'limit');
   assert.equal(readJson(dayStatePath(date), {}).codexRuns, 3);
   assert.equal(readRecord(date, dir), null);
+  // #949 r1 (C4): the limit is kept; the next tick before the reset calls no Codex.
+  assert.equal(runNightAudit({ gh: fakeGh(), now: at('2026-11-14T16:15:00Z'), dir, codex, ...deps() }).status, 'limit');
+  assert.equal(codex.calls.length, 0);
+  (await import('node:fs')).rmSync((await import('./collab-agents.mjs')).agentsPath(), { force: true }); // the reset passed
   assert.equal(runNightAudit({ gh: fakeGh(), now: at('2026-11-14T16:20:00Z'), dir, codex, ...deps() }).status, 'judged');
 });
 
@@ -642,4 +648,16 @@ test('#828: a final judgement writes the disagreement it found into the log once
   assert.equal(readLog(path).length, 1);
   const facts = collectFacts({ date, gh, now: at('2026-11-15T03:00:00Z'), outputs: () => outputs, day: () => null, disagreements: () => readLog(path) });
   assert.deepEqual([facts.metrics.M8.value, facts.metrics.M8.audit], [1, 1], 'M8 counts it, marked as written by the audit');
+});
+
+// #949 r1 (C4): a Codex limit kept until a later reset: the audit calls nothing and counts nothing.
+test('a kept Codex limit stops the night audit before Codex', () => {
+  const agentsFile = join(mkdtempSync(join(tmpdir(), 'agents-')), 'agents.json');
+  writeJson(agentsFile, { codex: { status: 'limited', untilMs: Date.parse('2026-11-14T17:05:00Z') } });
+  writeJson(dayStatePath('2026-11-14'), { codexRuns: 5 });
+  const codex = fakeCodex();
+  const result = runNightAudit({ gh: fakeGh(), now: at('2026-11-14T16:05:00Z'), dir: fresh(), codex, agentsFile, ...deps() });
+  assert.equal(result.status, 'limit');
+  assert.equal(codex.calls.length, 0);
+  assert.equal(readJson(dayStatePath('2026-11-14'), {}).codexRuns, 5);
 });

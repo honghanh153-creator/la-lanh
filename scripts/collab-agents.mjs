@@ -159,3 +159,39 @@ export function reviewPlan({ author, available }) {
   const soleAgent = available.length === 1 ? available[0] : null;
   return { status: 'wait', reason: waitIndependent, soleAgent, mayWork: available.filter(a => a !== 'anti') };
 }
+
+// #949 r1 (C4): every model call reserves its slot first. The check and the probe note are one
+// critical section, so two callers cannot both spend the one probe after a reset. Returns
+// { ok: true } or { ok: false, status: 'limited' | 'busy', reason, until }.
+export function reserveCall(agent, { path = agentsPath(), nowMs = Date.now() } = {}) {
+  mkdirSync(dirname(path), { recursive: true });
+  return withFileLock(`${path}.lock`, { staleMs: 60000, waitMs: 5000, busy: { ok: false, status: 'busy', reason: 'trạng thái agent đang được ghi' } }, () => {
+    const state = readJson(path, {});
+    if (!mayCall(state, agent, nowMs)) {
+      const until = state?.[agent]?.until ?? null;
+      return { ok: false, status: 'limited', reason: `${agent} chưa dùng được${until ? ` tới ${until}` : ''}`, until };
+    }
+    writeJson(path, noteProbe(state, agent, nowMs));
+    return { ok: true };
+  });
+}
+// The call's outcome: a limit keeps its reset time; any other answer means the agent is back.
+export function noteCallResult(agent, { limited = false, reason = '', path = agentsPath(), nowMs = Date.now() } = {}) {
+  try {
+    return updateAgents(state => (limited ? markLimited(state, agent, { reason, nowMs })
+      : state?.[agent] && state[agent].status !== 'available' ? markAvailable(state, agent, nowMs) : state), { path });
+  } catch { return null; }
+}
+
+// #949 r1 (C3): who implemented a PR. The PR template line "Agent thực hiện:" and the branch
+// prefix must agree; a PR that names nobody, or two different agents, has no known author and
+// no one may approve it.
+const agentNames = { claude: 'claude', codex: 'codex', anti: 'anti', antigravity: 'anti' };
+export function implementerOf(pr) {
+  const line = /^\s*Agent thực hiện:\s*([A-Za-z]+)/mi.exec(String(pr?.body ?? ''))?.[1]?.toLowerCase();
+  const fromBody = line ? agentNames[line] ?? null : null;
+  const fromBranch = /^agent\/(claude|codex|anti)\//.exec(String(pr?.headRefName ?? ''))?.[1] ?? null;
+  if (line && !fromBody) return null;
+  if (fromBody && fromBranch && fromBody !== fromBranch) return null;
+  return fromBody ?? fromBranch;
+}

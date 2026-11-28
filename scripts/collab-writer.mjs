@@ -5,7 +5,8 @@
 //   in one atomic rename, so a restart or a retry of the same step never counts it twice.
 // - Backpressure: at most 3 tasks in progress, 2 waiting for review, 2 heavy jobs (R10) on the host.
 //   A full queue opens nothing new; work already started continues.
-import { join } from 'node:path';
+import { mkdirSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { readJson, stateDir, writeJson } from './collab-trust.mjs';
 import { withFileLock } from './collab-lock.mjs';
 import { leasePath } from './collab-agents.mjs';
@@ -15,24 +16,46 @@ export const writerLockPath = () => join(stateDir, 'state', 'writer.lock');
 export const opsKeep = 500;
 export const hostLimits = { inProgress: 3, inReview: 2, heavy: heavySlots };
 
-// Returns { status: 'applied' | 'duplicate' | 'fenced' | 'busy', value }.
-// `epoch`: when given, the write happens only while the coordinator lease still has that epoch.
-export function applyOnce(path, key, mutate, { epoch = null, lease = leasePath(), lock = writerLockPath(), nowMs = Date.now(), waitMs = 10000 } = {}) {
-  if (!key) throw new Error('applyOnce needs an idempotency key');
-  return withFileLock(lock, { staleMs: 60000, waitMs, busy: { status: 'busy' } }, () => {
+// Returns { status: 'applied' | 'fenced' | 'busy', value }: one read-modify-write under the host
+// lock. `epoch`: when given, the write happens only while the coordinator lease still has that
+// epoch, so a coordinator that lost the lease cannot write. `fallback`: the value of a missing file.
+// A busy or fenced write changes nothing; the caller stops or retries, never writes around the lock.
+export function fencedWrite(path, mutate, { epoch = null, lease = leasePath(), lock = writerLockPath(), waitMs = 10000, fallback = {} } = {}) {
+  mkdirSync(dirname(lock), { recursive: true });
+  return withFileLock(lock, { staleMs: 60000, waitMs, busy: { status: 'busy', value: null } }, () => {
     if (epoch !== null) {
       const current = readJson(lease, null);
       if (!current || current.epoch !== epoch || current.released) return { status: 'fenced', value: null };
     }
-    const before = readJson(path, {});
-    const ops = before._ops ?? {};
-    if (ops[key]) return { status: 'duplicate', value: before };
-    const next = mutate(before);
-    const kept = Object.entries({ ...ops, [key]: nowMs }).sort((a, b) => a[1] - b[1]).slice(-opsKeep);
-    const value = { ...next, _ops: Object.fromEntries(kept) };
+    const value = mutate(readJson(path, fallback));
     writeJson(path, value);
     return { status: 'applied', value };
   });
+}
+
+// Returns { status: 'applied' | 'duplicate' | 'fenced' | 'busy', value }: fencedWrite plus an
+// idempotency key kept inside the same file.
+export function applyOnce(path, key, mutate, { epoch = null, lease = leasePath(), lock = writerLockPath(), nowMs = Date.now(), waitMs = 10000, fallback = {} } = {}) {
+  if (!key) throw new Error('applyOnce needs an idempotency key');
+  let duplicate = null;
+  const result = fencedWrite(path, before => {
+    const ops = before._ops ?? {};
+    if (ops[key]) { duplicate = before; return before; }
+    const next = mutate(before);
+    const kept = Object.entries({ ...ops, [key]: nowMs }).sort((a, b) => a[1] - b[1]).slice(-opsKeep);
+    return { ...next, _ops: Object.fromEntries(kept) };
+  }, { epoch, lease, lock, waitMs, fallback });
+  return duplicate && result.status === 'applied' ? { status: 'duplicate', value: duplicate } : result;
+}
+
+// A tick write that did not land stops the round: fenced means another coordinator holds the
+// lease now; busy means the lock stayed taken. The next round starts from the file as it is.
+export class StateWriteError extends Error {
+  constructor(status, path) { super(`ghi trạng thái ${status === 'fenced' ? 'bị chặn (mất lease điều phối)' : 'chưa được (khóa đang bận)'}: ${path}`); this.status = status; }
+}
+export function mustWrite(result, path) {
+  if (!['applied', 'duplicate'].includes(result?.status)) throw new StateWriteError(result?.status ?? 'busy', path);
+  return result.value;
 }
 
 // How many new tasks the host may open now. `counts`: { inProgress, inReview, heavy }.

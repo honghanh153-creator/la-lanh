@@ -94,3 +94,17 @@ test('trial 18–19.11 (owner 17.11): a daily-lane PR runs in its own lane, afte
   assert.deepEqual(count.lanes, { plan7w: { inProgress: 0, inReview: 1 }, daily: { inProgress: 1, inReview: 0 }, process: { inProgress: 0, inReview: 0 } }, 'the 7-week label wins over daily');
   assert.deepEqual(queueTopUp(count).topUpLanes, ['plan7w', 'process'], 'the Daily lane is busy; the others may start');
 });
+
+// #949 r1 (C5): --status and --report show the admitted view the tick uses: lanes never say
+// "có thể mở" past the host limits, and the reason is one plain line.
+test('bufferStatus shows the admitted lanes and why the host opens nothing', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'flow-'));
+  const nowMs = Date.parse('2026-11-05T03:00:00Z');
+  const late = bufferStatus([pr(1)], [{ number: 1, turn: 'claude-fix' }], { dir, nowMs, late: true });
+  assert.deepEqual([late.queue.topUp, late.queue.topUpCount, late.queue.topUpLanes], [false, 0, []]);
+  assert.ok(late.lines.slice(0, 3).every(l => /chưa mở việc mới\.$/.test(l)), 'no lane opens after lastStartAt');
+  assert.ok(late.lines.some(l => /^Máy đang đầy, chưa mở việc mới: .*đã qua giờ mở việc mới/.test(l)));
+  const full = bufferStatus([pr(1), pr(2)], [{ number: 1, turn: 'codex-review' }, { number: 2, turn: 'codex-review' }], { dir, nowMs });
+  assert.equal(full.queue.topUp, false);
+  assert.ok(full.lines.some(l => /^Máy đang đầy, chưa mở việc mới: .*chờ review 2\/2/.test(l)));
+});

@@ -24,6 +24,8 @@ import { groupExec } from './collab-heal.mjs';
 import { auditReserve, collectFacts, keepDayM4, dayRange, experimentDir, logsStart, readOutputs, receipt, unmeasured, withJudgement } from './collab-audit.mjs';
 import { agentMarker, assertAgentBody, clean, codexDailyCap, dayCap, dayStatePath, integration, makeGh, readJson, repo, reviewState, stateDir, vnNow, writeJson } from './collab-trust.mjs';
 import { isMain } from './is-main.mjs';
+import { agentsPath, noteCallResult, reserveCall } from './collab-agents.mjs';
+import { applyOnce } from './collab-writer.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const root = join(here, '..');
@@ -356,7 +358,7 @@ const defaultLock = () => { mkdirSync(stateDir, { recursive: true }); return acq
 // The tick's entry. Returns { status } and never throws for an expected stop.
 export function runNightAudit({ gh = makeGh(), now = new Date(), window = auditWindow(now), dir = experimentDir, lock = defaultLock,
   codex = prompt => runAuditCodex(prompt), outputs = () => readOutputs(), lessons = null, disagreements = null, issue = null, post = true,
-  clock = () => new Date(), cap = codexDailyCap, purpose = 'audit', recordFound = recordFoundDefault } = {}) {
+  clock = () => new Date(), cap = codexDailyCap, purpose = 'audit', recordFound = recordFoundDefault, agentsFile = agentsPath() } = {}) {
   if (!window) return { status: 'idle' };
   const { date, final } = window;
   const existing = readRecord(date, dir);
@@ -400,13 +402,18 @@ export function runNightAudit({ gh = makeGh(), now = new Date(), window = auditW
         // An owner grant for the day raises every cap by the same amount (the reserve stays).
         else if ((counts.codexRuns ?? 0) >= cap + dayCap(counts) - codexDailyCap) judgement = { final, retry: true, inputDigest: digest, judgedAt: clock().toISOString(), missing: `hết lượt Codex (${counts.codexRuns ?? 0}/${dayCap(counts)}${cap < codexDailyCap ? `, ${codexDailyCap - cap} lượt giữ cho soát đêm` : ''})` };
         else {
+          // #949 r1 (C4): the slot is reserved under the agents lock; a kept limit calls nothing.
+          const slot = reserveCall('codex', { path: agentsFile, nowMs: clock().getTime() });
+          if (!slot.ok) return { status: 'limit', date, reason: slot.reason };
           const result = codex(buildPrompt(evidence));
+          noteCallResult('codex', { limited: result?.status === 'limit', reason: result?.error ?? '', path: agentsFile, nowMs: clock().getTime() });
           if (result?.status === 'limit') return { status: 'limit', date };
           ran = true;
           codexFailed = result?.status !== 'ok';
-          const fresh = readJson(dayStatePath(countDay), counts);
-          const tag = purpose === 'baseline' ? { baselineRuns: (fresh.baselineRuns ?? 0) + 1 } : countDay === date ? { auditRuns: (fresh.auditRuns ?? 0) + 1 } : {};
-          writeJson(dayStatePath(countDay), { ...fresh, codexRuns: (fresh.codexRuns ?? 0) + 1, ...tag });
+          // #949 r1 (C2): counted through the host writer, keyed so a re-run never counts it twice.
+          const bump = fresh => ({ ...fresh, codexRuns: (fresh.codexRuns ?? 0) + 1, ...(purpose === 'baseline' ? { baselineRuns: (fresh.baselineRuns ?? 0) + 1 } : countDay === date ? { auditRuns: (fresh.auditRuns ?? 0) + 1 } : {}) });
+          const counted = applyOnce(dayStatePath(countDay), `audit:${purpose}:${date}:${digest}`, bump, { fallback: counts, waitMs: 60000 });
+          if (!['applied', 'duplicate'].includes(counted.status)) return { status: 'busy', date, reason: 'chưa ghi được lượt Codex vào trạng thái ngày' };
           judgement = result?.status === 'ok'
             ? { final, inputDigest: digest, judgedAt: clock().toISOString(), result: validateJudgement(result.out, evidence), notes: clean(result.out?.notes, 300) }
             : { final, inputDigest: digest, judgedAt: clock().toISOString(), missing: `Codex lỗi: ${clean(result?.error, 200)}` };

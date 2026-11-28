@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 // Incident 18.11.2026: a merge reservation written by one tick test must not steer the next.
 test.beforeEach(async () => (await import('./collab-reservation.mjs'))._resetReservation());
+// #949 r1: a Codex limit noted by one test must not leave Codex limited for the next one.
+test.beforeEach(async () => rmSync((await import('./collab-agents.mjs')).agentsPath(), { force: true }));
 import { execFileSync, spawnSync } from 'node:child_process';
 
 process.env.LA_LANH_COLLAB_HOME = mkdtempSync(join(tmpdir(), 'collab-loop-'));
@@ -253,6 +255,11 @@ test('review refuses without an author check, stops on limits, and escalates to 
   assert.equal(review.runReview(7, { gh: limitedGh, run: limited.run, now }).status, 'limit');
   assert.equal(limitedGh.calls.filter(c => c[0] === 'comment').length, 0);
   assert.equal(trust.readJson(trust.dayStatePath(now.date), {}).codexRuns ?? 0, 0, 'limits do not use a daily run');
+  // #949 r1 (C4): the limit is kept, so the next review does not call Codex again before the reset.
+  const again = fakeRun();
+  assert.equal(review.runReview(7, { gh: fakeGh({ pr: pr({ comments: [check(A)] }) }), run: again.run, now }).status, 'limited');
+  assert.equal(again.calls.filter(c => c[0] === review.codexBin).length, 0, 'no Codex call while limited');
+  rmSync(join(trust.stateDir, 'state', 'agents.json'), { force: true });
 
   const blocking = JSON.stringify(output({ verdict: 'REQUEST_CHANGES', findings: [finding('P1', 'correctness')] }));
   const state = { pr: pr({ headRefOid: B, comments: [check(A), logReview(requestChanges(A)), check(B)] }) };
@@ -1174,6 +1181,7 @@ test('#292: the launchd tick hands tick() a stderr logger, so a failed delivery 
 
 // ---- Loop fixes A–E (owner 04.11.2026) ----
 const goodBody = [
+  'Agent thực hiện: Claude',
   '- Mức: M — script vòng tự động',
   ...['G1 Tài liệu: plan §3', 'G2 UI/UX: không áp dụng, không đụng giao diện', 'G3 Câu chữ: không có câu mới', 'G4 BE: không áp dụng', 'G5 FE: không áp dụng',
     'G6 QC: node --test', 'G7 Bảo mật: không đụng phiên, quyền, dữ liệu cá nhân hay log', 'G8 Data privacy: không thu dữ liệu', 'G9 Release: không áp dụng cho PR vào integration', 'G10 Chi phí / license: không'].map(l => `- ${l}`),
@@ -2418,4 +2426,69 @@ test('L53: a PR ready to merge is never held by an earlier PR on a shared file; 
   // Not yet approved: the earlier group still goes first, as before.
   const checkedOnly = { ...p729, comments: [check(head(729))] };
   assert.equal(fileBlocker(checkedOnly, [p753, checkedOnly]), 753);
+});
+
+// #949 r1, through the real callers (Codex REQUEST_CHANGES on 2289a085).
+const futureLimit = () => trust.writeJson(join(trust.stateDir, 'state', 'agents.json'), { codex: { status: 'limited', untilMs: Date.now() + 3600000, reason: 'usage limit' } });
+
+test('#949 r1 (C3): Codex never reviews a PR Codex implemented, nor one whose author is unknown', () => {
+  const now = { date: '2026-10-31', hour: 11, minute: 0 };
+  const codexBody = goodBody.replace('Agent thực hiện: Claude', 'Agent thực hiện: Codex');
+  const nobody = goodBody.replace('Agent thực hiện: Claude\n', '');
+  for (const extra of [{ headRefName: 'agent/codex/x' }, { body: codexBody }, { body: nobody }, { body: `${goodBody.replace('Claude', 'Somebody')}` }]) {
+    const runner = fakeRun();
+    const gh = fakeGh({ pr: pr({ comments: [check(A)], ...extra }) });
+    const result = review.runReview(7, { gh, run: runner.run, now });
+    assert.equal(result.status, 'refused', JSON.stringify(extra));
+    assert.equal(runner.calls.filter(c => c[0] === review.codexBin).length, 0, 'no Codex call');
+    assert.equal(gh.calls.filter(c => c[0] === 'comment').length, 0, 'no verdict');
+  }
+});
+
+test('#949 r1 (C4): a limit kept until a later reset calls no Codex, in review and in the tick', () => {
+  futureLimit();
+  const runner = fakeRun();
+  assert.equal(review.runReview(7, { gh: fakeGh({ pr: pr({ comments: [check(A)] }) }), run: runner.run, now: { date: '2026-10-31', hour: 11, minute: 0 } }).status, 'limited');
+  assert.equal(runner.calls.filter(c => c[0] === review.codexBin).length, 0);
+  // The tick asks who reviews before calling: with Codex limited it starts no review at all.
+  const date = '2026-12-11';
+  const started = [];
+  tick({ gh: plannedGh([pr({ number: 1, comments: [check(A)] })], date), now: { date, hour: 11, minute: 5 }, merge: () => ({}), review: n => { started.push(n); return { status: 'posted' }; } });
+  assert.deepEqual(started, [], 'no review while Codex is limited');
+  assert.equal(trust.readJson(trust.dayStatePath(date), {}).codexRuns ?? 0, 0);
+});
+
+test('#949 r1 (B): the tick dispatches by author and availability across the 7 agent sets', () => {
+  const sets = [['claude'], ['codex'], ['anti'], ['claude', 'codex'], ['claude', 'anti'], ['codex', 'anti'], ['claude', 'codex', 'anti']];
+  const stateFor = set => Object.fromEntries(['claude', 'codex', 'anti'].map(a => [a, set.includes(a) ? { status: 'available' } : { status: 'limited', untilMs: Date.now() + 3600000 }]));
+  let day = 0;
+  for (const set of sets) for (const branch of ['agent/claude/x', 'agent/codex/x']) {
+    const date = `2026-12-${String(12 + day++).padStart(2, '0')}`;
+    const started = [];
+    const body = goodBody.replace('Claude', branch.includes('codex') ? 'Codex' : 'Claude');
+    tick({ gh: plannedGh([pr({ number: 1, headRefName: branch, body, comments: [check(A)] })], date), now: { date, hour: 11, minute: 5 }, merge: () => ({}),
+      review: n => { started.push(n); return { status: 'posted' }; }, agents: () => stateFor(set), lease: () => ({ action: 'renew', lease: { holder: set[0], epoch: null } }) });
+    const expected = set.includes('codex') && !branch.includes('codex');
+    assert.deepEqual(started, expected ? [1] : [], `${branch} with ${set}`);
+  }
+});
+
+test('#949 r1 (C2): a round that lost the lease, or found the writer lock taken, writes nothing and stops', () => {
+  const date = '2031-07-19';
+  rmSync(trust.dayStatePath(date), { force: true });
+  const open = [pr({ number: 81, body: `${goodBody}\nViệc: #12` })];
+  const ghFor = () => ({ ...fakeGh({ pr: open[0], open }), json: args => args[0] === 'issue' && args[1] === 'list' ? [{ number: 50, title: 'Kế hoạch chạy tự động hằng ngày' }] : { comments: [] }, comment: () => {} });
+  const d = mkdtempSync(join(tmpdir(), 'fence-'));
+  const otherLease = join(d, 'lease.json');
+  trust.writeJson(otherLease, { holder: 'codex', epoch: 999 });
+  const before = existsSync(trust.dayStatePath(date)) ? readFileSync(trust.dayStatePath(date), 'utf8') : null;
+  const dayNow = () => existsSync(trust.dayStatePath(date)) ? readFileSync(trust.dayStatePath(date), 'utf8') : null;
+  const fenced = tick({ gh: ghFor(), now: { date, hour: 8, minute: 52 }, merge: () => ({}), review: () => ({}), lease: () => ({ action: 'renew', lease: { holder: 'claude', epoch: 5 } }), fence: { lease: otherLease } });
+  assert.equal(fenced.status, 'fenced');
+  assert.equal(dayNow(), before, 'nothing written after the lease moved');
+  const lock = join(d, 'writer.lock');
+  writeFileSync(lock, `${process.pid} live-holder`);
+  const busy = tick({ gh: ghFor(), now: { date, hour: 8, minute: 52 }, merge: () => ({}), review: () => ({}), fence: { lock, waitMs: 50 } });
+  assert.equal(busy.status, 'busy');
+  assert.equal(dayNow(), before, 'a taken lock is never written around');
 });
