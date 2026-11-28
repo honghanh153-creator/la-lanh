@@ -1,0 +1,8 @@
+{
+ "id": "L89",
+ "title": "Một kiểm tra hỏng lặp lại (6 lần chặn liền ngày 26.11) phải mở đúng một sự cố ở lần thứ 3 và đóng khi đạt lại; tác vụ ops-watch phải ghi kết quả mỗi lần chạy",
+ "from": "#948 phần E: kiểm tra trong server bị chặn 6 lần liền ngày 26.11 mà không có sự cố nào",
+ "who": "claude",
+ "due": "2026-11-29",
+ "status": "open"
+}
