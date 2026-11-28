@@ -164,6 +164,26 @@ def test_approved_rules_widen_the_self_judgment_group(monkeypatch: pytest.Monkey
     )
 
 
+def test_approved_rules_widen_the_thin_overload_situations(monkeypatch: pytest.MonkeyPatch) -> None:
+    thin = {"decision-fatigue", "capacity-before-agreement"}
+    before = [issues for chart in CHARTS for issues in _pool_issues(chart, 14)]
+    _approve_all(monkeypatch)
+    after = [issues for chart in CHARTS for issues in _pool_issues(chart, 14)]
+    assert sum(bool(thin & issues) for issues in after) > sum(
+        bool(thin & issues) for issues in before
+    )
+
+
+def test_approved_rules_widen_the_friction_group(monkeypatch: pytest.MonkeyPatch) -> None:
+    group = {"changed-plan", "defend-old-choice", "avoid-small-conflict"}
+    before = [issues for chart in CHARTS for issues in _pool_issues(chart, 14)]
+    _approve_all(monkeypatch)
+    after = [issues for chart in CHARTS for issues in _pool_issues(chart, 14)]
+    assert sum(len(group & issues) for issues in after) > sum(
+        len(group & issues) for issues in before
+    )
+
+
 def test_the_content_fingerprint_moves_only_when_a_pair_sentence_is_approved_or_revised(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
