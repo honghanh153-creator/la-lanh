@@ -35,6 +35,9 @@ export const profiles = {
   // Claude Code sub-agents (collab-agent-gate.mjs): their own worktree, on an agent branch or the
   // branch the Agent tool's worktree isolation creates.
   subagent: { tools: ['git', 'node'], hook: true, branch: /^(?:agent\/claude\/[\w./-]+|worktree-agent-[\w-]+)$/ },
+  // An Anti job worktree (collab-anti-job.mjs): the host writes there itself, with trusted git
+  // and no hooks; nothing is pushed from it.
+  anti: { tools: ['git'], hook: false, branch: /^agent\/anti\/[\w./-]+$/ },
 };
 
 const real = path => { try { return realpathSync(path); } catch { return null; } };
