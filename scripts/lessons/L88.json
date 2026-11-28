@@ -1,0 +1,19 @@
+{
+ "id": "L88",
+ "title": "Planner không mở lại việc đã có PR merge; đọc thiếu lịch sử PR đã merge thì coi là chưa đọc được, không mở việc mới",
+ "from": "#948 phần D (28.11): việc 7 tuần đã merge vẫn được xếp làm lại; Codex r1 trên #954: chỉ đọc 300 PR khi đã có 517",
+ "who": "claude",
+ "due": "2026-11-28",
+ "status": "done",
+ "test": {
+  "file": "scripts/collab-quota.test.mjs",
+  "name": "planner: a merged-PR page that reaches the limit is unread, not complete (Codex r1 on #954)"
+ },
+ "caller": {
+  "file": "scripts/collab-quota.mjs",
+  "contains": "startBlock: startBlock(i, { merged, hold, mergedKnown })"
+ },
+ "closedBy": {
+  "pr": 954
+ }
+}

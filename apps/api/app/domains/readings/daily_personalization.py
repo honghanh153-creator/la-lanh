@@ -249,6 +249,49 @@ REGISTRY_PAIR_RULES: tuple[RegistryPairRule, ...] = (
         "perfect-before-start",
         "situation.pair.mercury-pluto.tense",
     ),
+    # Group "overload": decision-fatigue (8%) and capacity-before-agreement (7%) were thin. Tense
+    # Mars contacts with Uranus, Neptune and the Sun read as drive pulled in too many directions.
+    RegistryPairRule(
+        frozenset({"mars", "uranus"}),
+        "tense",
+        "too-many-open-loops",
+        "situation.pair.mars-uranus.tense",
+    ),
+    RegistryPairRule(
+        frozenset({"mars", "neptune"}),
+        "tense",
+        "decision-fatigue",
+        "situation.pair.mars-neptune.tense",
+    ),
+    RegistryPairRule(
+        frozenset({"mars", "sun"}),
+        "tense",
+        "capacity-before-agreement",
+        "situation.pair.mars-sun.tense",
+    ),
+    # Group "friction": changed-plan (8%) was thin. Tense contacts of Uranus and Pluto with the
+    # Sun and Venus read as changing or holding on to a plan, and Sun-Venus as giving way.
+    RegistryPairRule(
+        frozenset({"sun", "uranus"}), "tense", "changed-plan", "situation.pair.sun-uranus.tense"
+    ),
+    RegistryPairRule(
+        frozenset({"uranus", "venus"}),
+        "tense",
+        "changed-plan",
+        "situation.pair.uranus-venus.tense",
+    ),
+    RegistryPairRule(
+        frozenset({"pluto", "venus"}),
+        "tense",
+        "defend-old-choice",
+        "situation.pair.pluto-venus.tense",
+    ),
+    RegistryPairRule(
+        frozenset({"sun", "venus"}),
+        "tense",
+        "avoid-small-conflict",
+        "situation.pair.sun-venus.tense",
+    ),
 )
 
 
