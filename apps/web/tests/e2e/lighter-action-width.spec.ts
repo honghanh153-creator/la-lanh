@@ -122,13 +122,13 @@ async function expectFits(page: Page, width: number, label: string, text: string
 
 for (const { mood, key, text, label } of MOODS) {
   for (const [name, path] of [["home", "/home"], ["note", "/note/today"]] as const) {
-    test(`${name}: on a ${mood} day the ${key} action and its switch fit at 360 and 390px and work from the keyboard (#627, #701)`, async ({ page }) => {
+    test(`${name}: on a ${mood} day the ${key} action and its switch fit at 360 and 390px and work from the keyboard (#627, #701)`, async ({ page }, testInfo) => {
       savedMood = mood;
       for (const width of [360, 390]) {
         await page.setViewportSize({ width, height: 800 });
         await page.goto(path);
         await expectFits(page, width, "Xem việc ban đầu", text);
-        await page.screenshot({ path: resolve(OUT_DIR, `${name}-${width}-${key}.png`), fullPage: true, animations: "disabled", scale: "css" });
+        await page.screenshot({ path: resolve(OUT_DIR, testInfo.project.name, `${name}-${width}-${key}.png`), fullPage: true, animations: "disabled", scale: "css" });
 
         // Keyboard: focus the switch, Enter shows the card's own action, Enter again the mood's one.
         await page.getByRole("button", { name: "Xem việc ban đầu" }).focus();
@@ -136,7 +136,7 @@ for (const { mood, key, text, label } of MOODS) {
         await expectFits(page, width, label, OWN);
         await expect(page.getByRole("button", { name: label })).toBeFocused();
         await expect(page.getByText(text, { exact: true })).toHaveCount(0);
-        await page.screenshot({ path: resolve(OUT_DIR, `${name}-${width}-${key}-original.png`), fullPage: true, animations: "disabled", scale: "css" });
+        await page.screenshot({ path: resolve(OUT_DIR, testInfo.project.name, `${name}-${width}-${key}-original.png`), fullPage: true, animations: "disabled", scale: "css" });
         await page.keyboard.press("Enter");
         await expect(page.getByText(text, { exact: true })).toBeVisible();
       }

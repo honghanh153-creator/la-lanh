@@ -29,7 +29,7 @@ test.afterEach(() => {
 });
 
 for (const width of [360, 390]) {
-  test(`companion lab: every Lá pixel move plays once and the page fits at ${width}px (#898, #909)`, async ({ page }) => {
+  test(`companion lab: every Lá pixel move plays once and the page fits at ${width}px (#898, #909)`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width, height: 800 });
     await page.goto("/companion-lab");
 
@@ -63,11 +63,11 @@ for (const width of [360, 390]) {
     expect(box!.x + box!.width, `Lá right edge at ${width}px`).toBeLessThanOrEqual(width);
 
     await section.scrollIntoViewIfNeeded();
-    await page.screenshot({ path: resolve(OUT_DIR, `pixel-${width}.png`), fullPage: true, animations: "disabled", scale: "css" });
+    await page.screenshot({ path: resolve(OUT_DIR, testInfo.project.name, `pixel-${width}.png`), fullPage: true, animations: "disabled", scale: "css" });
   });
 }
 
-test("companion lab: with 'Xem tĩnh' on, pressing Lá or a move changes nothing on screen (#898)", async ({ page }) => {
+test("companion lab: with 'Xem tĩnh' on, pressing Lá or a move changes nothing on screen (#898)", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 800 });
   await page.goto("/companion-lab");
 
@@ -88,5 +88,5 @@ test("companion lab: with 'Xem tĩnh' on, pressing Lá or a move changes nothing
   await page.keyboard.press("Enter");
   await expect(la).toHaveAttribute("data-motion", "still");
   await expect(la).toHaveAttribute("data-frame", "rest");
-  await page.screenshot({ path: resolve(OUT_DIR, "pixel-390-still.png"), fullPage: true, animations: "disabled", scale: "css" });
+  await page.screenshot({ path: resolve(OUT_DIR, testInfo.project.name, "pixel-390-still.png"), fullPage: true, animations: "disabled", scale: "css" });
 });
