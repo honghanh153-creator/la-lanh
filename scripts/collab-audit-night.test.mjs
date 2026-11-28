@@ -358,6 +358,25 @@ test('tick: Codex out of quota is not called before its reset; the PR waits for 
   assert.deepEqual(started, [7], 'after the reset one probe call goes out');
 });
 
+test('tick: every round asks for the coordinator lease; without it no turn runs and an expired lease alerts (#948 b)', () => {
+  const date = '2026-12-06';
+  writeJson(dayStatePath(date), { codexRuns: 0 });
+  const started = [];
+  const alerts = [];
+  const asked = [];
+  const review = number => { started.push(number); return { status: 'posted' }; };
+  const wait = { action: 'wait', lease: null, reason: 'hết hạn nhưng chưa có bằng chứng việc cũ đã dừng', alert: 'Lease điều phối của codex đã hết hạn' };
+  const r = tick({ gh: plannedGh(date), now: { date, hour: 12, minute: 0 }, merge: () => ({}), review, alert: a => alerts.push(a), lease: args => { asked.push(args.available); return wait; } });
+  assert.equal(r.status, 'lease-wait');
+  assert.deepEqual(started, [], 'no review without the lease');
+  assert.deepEqual(alerts, [wait.alert]);
+  assert.deepEqual(asked, [['claude', 'codex', 'anti']]);
+  const held = tick({ gh: plannedGh(date), now: { date, hour: 12, minute: 10 }, merge: () => ({}), review, lease: () => ({ action: 'renew', lease: { holder: 'claude', epoch: 3 }, reason: 'gia hạn' }) });
+  assert.notEqual(held.status, 'lease-wait');
+  assert.deepEqual(started, [7], 'with the lease the round runs');
+  assert.ok(readFileSync(new URL('./collab-turn.mjs', import.meta.url), 'utf8').includes('lease = tickLease'), 'the launchd tick uses the real lease by default');
+});
+
 // L23: the 11–13.11 baseline with the same collector.
 const baseReports = () => ['11', '12', '13'].map((d, i) => report(i + 1, `2026-11-${d}T07:00:00Z`, `agent: Claude — báo cáo ${d}.11`));
 

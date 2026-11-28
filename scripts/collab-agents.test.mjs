@@ -5,7 +5,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { acquireLease, agentOrder, agentStatus, availableAgents, coordinatorFor, decideLease, leaseMs, markAvailable, markLimited, mayApprove, mayCall, noteProbe, parseResetAt, probeEveryMs, readAgents, recordStop, releaseLease, reviewPlan, updateAgents, waitIndependent } from './collab-agents.mjs';
+import { acquireLease, agentOrder, agentStatus, availableAgents, coordinatorFor, decideLease, leaseMs, markAvailable, markLimited, mayApprove, mayCall, noteProbe, parseResetAt, probeEveryMs, readAgents, recordStop, releaseLease, reviewPlan, tickJobId, tickLease, updateAgents, waitIndependent } from './collab-agents.mjs';
 import { readJson } from './collab-trust.mjs';
 
 const T0 = Date.UTC(2026, 10, 28, 3, 0);
@@ -123,4 +123,28 @@ test('lease: the file round trip (acquire, release, stop record) on the host', (
   assert.equal(readJson(path).holder, 'codex');
   assert.ok(releaseLease({ me: 'codex', jobId: 'j2', path }));
   assert.equal(readJson(path).released, true);
+});
+
+test('tick lease (#948 b): every round renews with its own pid; a new coordinator takes over only after the old round ended', () => {
+  const path = join(dir(), 'lease.json');
+  const live = new Set([101]);
+  const alive = pid => live.has(pid);
+  const round = (pid, available, nowMs) => tickLease({ available, nowMs, path, alive, host: 'h', pid });
+  const first = round(101, ['claude', 'codex'], T0);
+  assert.equal(first.action, 'acquire');
+  assert.equal(first.lease.jobId, tickJobId('h'));
+  live.delete(101); live.add(102);
+  const second = round(102, ['claude', 'codex'], T0 + 600000);
+  assert.equal(second.action, 'renew', 'the same job on the next round renews, it does not wait on itself');
+  assert.equal(readJson(path).pid, 102, 'the renew records the running round');
+  assert.equal(readJson(path).epoch, 1);
+  // Claude is limited while round 102 is still running: Codex waits (no proof yet).
+  assert.equal(round(103, ['codex'], T0 + 700000).action, 'wait');
+  live.delete(102);
+  const handover = round(103, ['codex'], T0 + 1200000);
+  assert.equal(handover.action, 'takeover');
+  assert.equal(handover.reason, 'pid-gone');
+  assert.equal(readJson(path).holder, 'codex');
+  assert.equal(readJson(path).epoch, 2);
+  assert.equal(round(104, [], T0 + 1300000).action, 'wait', 'no agent available: nobody coordinates');
 });

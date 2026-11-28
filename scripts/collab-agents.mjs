@@ -13,7 +13,8 @@
 // - Hand back: when a higher agent comes back, it asks; the holder releases at its next renew.
 // - A sole agent (B) may do, test and push work, never approve it. R1: Codex approves; Anti reviews
 //   only (part F) and never approves. With no independent approver available the PR waits.
-import { join } from 'node:path';
+import { mkdirSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { hostname } from 'node:os';
 import { clean, readJson, stateDir, writeJson } from './collab-trust.mjs';
 import { pidAlive, withFileLock } from './collab-lock.mjs';
@@ -96,7 +97,8 @@ export function decideLease({ lease, me, jobId, pid = process.pid, host = hostna
     if (lease.handback && rank(lease.handback) < rank(me) && available.includes(lease.handback)) {
       return { action: 'release', lease: { ...lease, released: true, releasedAtMs: nowMs, releaseReason: `trả lại cho ${lease.handback}` }, reason: `trả lại cho ${lease.handback}` };
     }
-    return { action: 'renew', lease: { ...lease, renewedAtMs: nowMs, expiresAtMs: nowMs + leaseMs }, reason: 'gia hạn' };
+    // A renew records the current process: a stable job (the tick) runs in a new process each round.
+    return { action: 'renew', lease: { ...lease, pid, host, renewedAtMs: nowMs, expiresAtMs: nowMs + leaseMs }, reason: 'gia hạn' };
   }
   if (top !== me) return { action: 'wait', lease: null, reason: `${top} đứng trước ${me}` };
   const epoch = (lease?.epoch ?? 0) + 1;
@@ -112,11 +114,23 @@ export function decideLease({ lease, me, jobId, pid = process.pid, host = hostna
 }
 
 export function acquireLease({ me, jobId, available, path = leasePath(), nowMs = Date.now(), alive = pidAlive, host = hostname(), pid = process.pid }) {
+  // A fresh host has no state folder yet; the tick asks for the lease before anything else writes there.
+  mkdirSync(dirname(path), { recursive: true });
   return withFileLock(`${path}.lock`, { staleMs: 60000, waitMs: 5000, busy: { action: 'wait', reason: 'lease đang được ghi' } }, () => {
     const decision = decideLease({ lease: readJson(path, null), me, jobId, pid, host, available, nowMs, alive });
     if (decision.lease) writeJson(path, decision.lease);
     return decision;
   });
+}
+
+// #948 (b): the tick asks for the lease on every round. Its job id is stable per host, so the next
+// round renews the lease instead of waiting on its own previous round; the coordinator is the first
+// available agent in agentOrder.
+export const tickJobId = (host = hostname()) => `collab-tick@${host}`;
+export function tickLease({ available, nowMs = Date.now(), path = leasePath(), alive = pidAlive, host = hostname(), pid = process.pid } = {}) {
+  const me = coordinatorFor(available);
+  if (!me) return { action: 'wait', lease: null, reason: 'không agent nào sẵn sàng' };
+  return acquireLease({ me, jobId: tickJobId(host), available, path, nowMs, alive, host, pid });
 }
 
 // The holder's clean exit, and a stop record written by whoever confirmed the job ended.

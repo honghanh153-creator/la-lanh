@@ -13,7 +13,7 @@ import { gateValue, preflightFailure, readPreflight, recordPreflight, userSees }
 import { syncStatusLabels } from './collab-labels.mjs';
 import { deletionProblem, sizeProblem, withRepeatNote } from './collab-size.mjs';
 import { withFileLock } from './collab-lock.mjs';
-import { agentStatus, readAgents, waitIndependent } from './collab-agents.mjs';
+import { agentStatus, availableAgents, readAgents, tickLease, waitIndependent } from './collab-agents.mjs';
 import { admit } from './collab-writer.mjs';
 import { bufferStatus, dailyLaneLabel, queueTopUp, wipCount } from './collab-buffer.mjs';
 import { afterDecision, disputeView, settleDisputes } from './collab-disagree.mjs';
@@ -356,7 +356,7 @@ export function independentWait(agents, nowMs) {
   return { reason: `${waitIndependent}: Codex chưa dùng được${state.codex?.until ? ` tới ${state.codex.until}` : ''}`, until: state.codex?.until ?? null };
 }
 
-export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], prPreflight: preflight = () => ({ status: 'PASS' }), heavyFree = () => true, nowMs = Date.now, check = () => ({ status: 'skipped' }), review, merge, alert, board = () => {}, log = () => {}, watchdog = () => {}, health = () => [], copyPending = () => 0, copyBatch = null, copySaved = () => false, notify = () => {}, metrics = () => null, audit = null, incidents = null, ciStatus = null, settle = defaultSettle, mergeAudit = null, reservations = defaultReservations, agents = readAgents } = {}) {
+export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], prPreflight: preflight = () => ({ status: 'PASS' }), heavyFree = () => true, nowMs = Date.now, check = () => ({ status: 'skipped' }), review, merge, alert, board = () => {}, log = () => {}, watchdog = () => {}, health = () => [], copyPending = () => 0, copyBatch = null, copySaved = () => false, notify = () => {}, metrics = () => null, audit = null, incidents = null, ciStatus = null, settle = defaultSettle, mergeAudit = null, reservations = defaultReservations, agents = readAgents, lease = tickLease } = {}) {
   // The clock is read again before each action, so a long review cannot push the next one past lastStartAt.
   const time = clock ?? (now ? () => now : () => vnNow());
   now = time();
@@ -371,6 +371,22 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
     const seq = (seqNow.date === now.date ? seqNow.seq ?? 0 : 0) + 1;
     writeJson(seqPath, { date: now.date, seq });
     const heartbeat = status => writeJson(join(stateDir, 'heartbeat.json'), { at: new Date().toISOString(), vn: now, status });
+    // #948 (b): every round asks for the coordinator lease first. Without it the round writes no
+    // shared state: it only beats the heartbeat and, for an expired lease with no proof that the old
+    // job stopped, raises an alert (collab-agents.mjs decideLease).
+    let held;
+    try {
+      let state = {};
+      try { state = agents() ?? {}; } catch {}
+      held = lease({ available: availableAgents(state, nowMs()), nowMs: nowMs() });
+    } catch (error) { held = { action: 'wait', reason: `lease lỗi: ${clean(error.message, 200)}` }; }
+    if (!['acquire', 'renew', 'takeover'].includes(held?.action)) {
+      heartbeat('lease-wait');
+      if (held?.alert && alert) { try { alert(held.alert); } catch {} }
+      log(`lease: ${held?.action ?? 'wait'} (${clean(held?.reason ?? '', 200)})`);
+      return { status: 'lease-wait', reason: held?.reason ?? null, alert: held?.alert ?? null };
+    }
+    if (held.action !== 'renew') log(`lease: ${held.action} ${held.lease?.holder} epoch ${held.lease?.epoch} (${held.reason})`);
     // The phone-visible board must never break a tick.
     // Outcome numbers (collab-metrics.mjs) are read once per tick, never at night.
     let metricLines = null;
