@@ -3,7 +3,7 @@
 import './collab-test-home.mjs';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -118,4 +118,107 @@ test('anti job: the brief and the answer check are text only', () => {
   assert.match(brief, /===== FILE docs\/a\.md =====/);
   assert.equal(checkAnswer(null, []).ok, false);
   assert.equal(checkAnswer({ done: true, text: ev(patchEv('docs/a.md', 'x', 'y')) }, ['docs/a.md']).ok, true);
+});
+
+// Codex on #955 @a1920174, P2 1: an answer shaped by Anti must not crash the trusted host.
+test('anti job: an answer with inherited keys or wrong types is dropped, never thrown', () => {
+  for (const answer of [
+    { done: true, tools: 'x', text: '' },
+    { done: true, text: ev({ type: 'constructor' }) },
+    { done: true, text: ev({ type: 'tool_call', name: 'toString' }) },
+    { done: true, text: 42 },
+    null, 'x', [],
+  ]) {
+    let r;
+    assert.doesNotThrow(() => { r = checkAnswer(answer, { shown: ['docs/product/a.md'] }); }, JSON.stringify(answer));
+    assert.equal(r.ok, false, JSON.stringify(answer));
+  }
+  const s = setup();
+  const t = fake({ done: false, text: '' });
+  assert.equal(openJob(opts(s, t)).status, 'started');
+  t.answer = { done: true, text: ev({ type: 'constructor' }, { type: 'tool_call', name: 'hasOwnProperty' }) };
+  let r;
+  assert.doesNotThrow(() => { r = stepJob({ transport: t, home: s.home, nowMs: 2000 }); });
+  assert.equal(r.status, 'dropped', JSON.stringify(r));
+  assert.equal(existsSync(join(s.home, 'anti-jobs', '950-copy-fix')), false);
+});
+
+// P2 2: every file a CI gate runs is outside what Anti may be shown, not only scripts/collab-*.
+test('anti job: a scope on any gate or tool-config file is refused before any worktree', () => {
+  const s = setup({ 'docs/product/a.md': 'x\n', 'scripts/research-sources.mjs': 'x\n', 'apps/api/scripts/audit.py': 'x\n', 'apps/web/vite.config.ts': 'x\n' });
+  const t = fake();
+  for (const scope of [['scripts/research-sources.mjs'], ['scripts/'], ['apps/api/scripts/audit.py'], ['apps/web/vite.config.ts'], ['vendor/'], ['apps/api/pyproject.toml']]) {
+    const r = openJob(opts(s, t, { scope }));
+    assert.equal(r.status, 'refused', JSON.stringify(scope));
+  }
+  assert.equal(t.briefs.length, 0, 'Anti is never shown a gate file');
+});
+
+// P2 3: the patch lands only on the exact files and head Anti was shown.
+test('anti job: a branch that moved after the snapshot drops the patch', () => {
+  const s = setup();
+  const t = fake({ done: false, text: '' });
+  assert.equal(openJob(opts(s, t)).status, 'started');
+  const dir = join(s.home, 'anti-jobs', '950-copy-fix');
+  writeFileSync(join(dir, 'docs/product/a.md'), 'Dòng cũ.\nThêm.\n');
+  plainGit(dir, ['commit', '-q', '-am', 'moved']);
+  t.answer = { done: true, text: ev(patchEv('docs/product/a.md', 'Dòng cũ.', 'Dòng mới.')) };
+  const r = stepJob({ transport: t, home: s.home, nowMs: 2000 });
+  assert.equal(r.status, 'dropped', JSON.stringify(r));
+  assert.match(r.reasons.join(' | '), /head-moved/);
+  assert.equal(existsSync(dir), false, 'the worktree is removed');
+  assert.doesNotMatch(plainGit(s.repoRoot, ['log', '--all', '--format=%B']), new RegExp(trailer.replace(/[()]/g, '\\$&')), 'no Anti commit anywhere');
+});
+
+test('anti job: a file edited after the snapshot drops the patch (hash differs)', () => {
+  const s = setup();
+  const t = fake({ done: false, text: '' });
+  assert.equal(openJob(opts(s, t)).status, 'started');
+  const job = JSON.parse(readFileSync(jobPath(s.home), 'utf8'));
+  assert.match(job.hashes['docs/product/a.md'], /^[0-9a-f]{64}$/, 'the job pins what Anti saw');
+  writeFileSync(jobPath(s.home), JSON.stringify({ ...job, hashes: { 'docs/product/a.md': '0'.repeat(64) } }));
+  t.answer = { done: true, text: ev(patchEv('docs/product/a.md', 'Dòng cũ.', 'Dòng mới.')) };
+  const r = stepJob({ transport: t, home: s.home, nowMs: 2000 });
+  assert.equal(r.status, 'dropped', JSON.stringify(r));
+  assert.match(r.reasons.join(' | '), /khác bản Anti đã xem/);
+});
+
+// P2 4: one job lock across open and step, so a transport that re-enters cannot start a second job.
+test('anti job: a re-entrant open or step while a job is opening is busy', () => {
+  const s = setup();
+  const inner = [];
+  const t = fake({ done: false, text: '' });
+  const start = t.start;
+  t.start = brief => {
+    inner.push(openJob(opts(s, fake(), { slug: 'other' })).status);
+    inner.push(stepJob({ transport: t, home: s.home, nowMs: 1500 }).status);
+    return start(brief);
+  };
+  const r = openJob(opts(s, t));
+  assert.equal(r.status, 'started', JSON.stringify(r));
+  assert.deepEqual(inner, ['busy', 'busy']);
+  assert.equal(existsSync(join(s.home, 'anti-jobs', '950-other')), false);
+  assert.equal(JSON.parse(readFileSync(jobPath(s.home), 'utf8')).status, 'asked', 'the first job state is intact');
+});
+
+test('anti job: a corrupt state file blocks open and step; a left-over opening is cleaned first', () => {
+  const s = setup();
+  mkdirSync(join(jobPath(s.home), '..'), { recursive: true });
+  writeFileSync(jobPath(s.home), '{not json');
+  assert.equal(openJob(opts(s, fake())).status, 'busy');
+  assert.equal(stepJob({ transport: fake(), home: s.home, nowMs: 2000 }).status, 'busy');
+  // A crash between "opening" and "asked" leaves a worktree; the next open removes it and starts.
+  rmSync(jobPath(s.home));
+  assert.equal(openJob(opts(s, fake({ done: false, text: '' }))).status, 'started');
+  const left = JSON.parse(readFileSync(jobPath(s.home), 'utf8'));
+  writeFileSync(jobPath(s.home), JSON.stringify({ ...left, status: 'opening' }));
+  assert.equal(existsSync(left.dir), true);
+  const t2 = fake({ done: false, text: '' });
+  assert.equal(stepJob({ transport: t2, home: s.home, nowMs: 2000 }).status, 'dropped', 'step cleans a half-open job too');
+  assert.equal(existsSync(left.dir), false, 'the left-over worktree is removed');
+  writeFileSync(jobPath(s.home), JSON.stringify({ ...left, status: 'opening' }));
+  plainGit(s.repoRoot, ['worktree', 'add', '-q', '-b', 'tmp-left', left.dir, s.base]);
+  assert.equal(openJob(opts(s, t2, { slug: 'next' })).status, 'started', 'open recovers, then starts');
+  assert.equal(existsSync(left.dir), false);
+  assert.equal(t2.briefs.length, 1);
 });

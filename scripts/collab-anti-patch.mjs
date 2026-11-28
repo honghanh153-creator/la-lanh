@@ -9,8 +9,8 @@
 //   a failure part way puts every file back (all or nothing, Codex r1 on #955).
 // - Paths (one policy for patches and snapshots): repo-relative, NFC, exact case on disk, inside an
 //   explicit scope; never under `.git`, `.github`, `.claude`, `node_modules`, tool config or `.env*`
-//   at any depth; never a loop gate file (scripts/collab-*, codex-*, lessons) or owner rules/process
-//   docs. Duplicates are found on the NFC + lower-case key (macOS folds both). No symlink on the path.
+//   at any depth; never a gate file (all of scripts/, apps/*/scripts/, vendor/, infra/) or owner
+//   rules/process docs. Duplicates are found on the NFC + lower-case key (macOS folds both). No symlink on the path.
 // - What goes to Anti (buildSnapshot): the host reads tracked regular files from its own git index
 //   with trusted git (no repo hooks, fsmonitor or user config), checks each blob hash, strict UTF-8
 //   and byte limits, then publicPayload: no home paths, private state paths, emails or secret-like
@@ -48,10 +48,18 @@ export const trustedGit = (args, { cwd, timeout = 20000 } = {}) => execFileSync(
 export const canonPath = p => String(p).normalize('NFC').toLowerCase();
 const deniedDirs = new Set(['.git', '.github', '.claude', '.codex', '.gemini', '.husky', '.vscode', '.idea', '.ssh', '.gnupg', '.aws', '.config', '.cache', 'node_modules']);
 const deniedFiles = new Set(['package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', '.npmrc', '.yarnrc', '.yarnrc.yml', '.nvmrc', '.gitattributes', '.gitignore', '.gitmodules', '.mailmap', 'codeowners', 'agents.md', 'claude.md']);
+// Gate inventory (Codex on #955 @a1920174, P2): whole trees that CI, `pnpm check` or the loop run,
+// not a list of chosen prefixes. collab-anti-patch.test.mjs walks .github/workflows and every
+// package.json script and fails when a file they run is not covered here.
 const deniedTrees = [
-  [/^scripts\/(collab-|codex-|private-guard|is-main\.|lessons\/)/, 'file cổng của vòng tự động'],
-  [/^docs\/operations\//, 'luật và quy trình chỉ đổi bằng PR riêng'],
+  [/^scripts(\/|$)/, 'file cổng hoặc công cụ của repo (CI, pnpm check, vòng tự động)'],
+  [/^(apps|packages)\/[^/]+\/scripts(\/|$)/, 'script kiểm tra của app hoặc gói (pnpm check)'],
+  [/^vendor(\/|$)/, 'mã ngoài và checksum (qa:test)'],
+  [/^infra(\/|$)/, 'hạ tầng'],
+  [/^docs\/operations(\/|$)/, 'luật và quy trình chỉ đổi bằng PR riêng'],
 ];
+// Tool and test-runner config at any depth: these decide what a gate runs and how.
+const toolConfig = /^(pyproject\.toml|uv\.lock|poetry\.lock|requirements[^/]*\.txt|setup\.(cfg|py)|tox\.ini|pytest\.ini|mypy\.ini|\.?ruff\.toml|conftest\.py|makefile|gnumakefile|checksums\.txt|tsconfig[^/]*\.json|[^/]*\.config\.[cm]?[jt]sx?|\.eslintrc[^/]*|\.prettierrc[^/]*|\.editorconfig|dockerfile|compose\.ya?ml|docker-compose\.ya?ml)$/;
 
 // Why a canonical path is protected (shared by patches and snapshots), or null.
 export function protectedReason(p) {
@@ -60,6 +68,7 @@ export function protectedReason(p) {
   if (segs.some(s => deniedDirs.has(s))) return 'thư mục bị cấm';
   if (segs.some(s => s.startsWith('.env'))) return 'file .env bị cấm';
   if (deniedFiles.has(segs.at(-1))) return 'file cấu hình công cụ hoặc chỉ dẫn agent bị cấm';
+  if (toolConfig.test(segs.at(-1))) return 'file cấu hình công cụ hoặc bộ chạy kiểm tra bị cấm';
   for (const [re, why] of deniedTrees) if (re.test(c)) return why;
   return null;
 }
@@ -207,10 +216,17 @@ const strict = new TextDecoder('utf-8', { fatal: true });
 
 // Checks the patch, then writes every file or none. Returns { ok, written, reasons, rolledBack?, invalid? }.
 // `invalid`: a failure part way could not be undone; the caller must never use this checkout again.
-export function applyPatch({ root, patch, scope = [], home = stateDir, io = fsIo }) {
-  if (!isFixtureRoot(root) && !isJobRoot(root, home)) return { ok: false, written: [], reasons: ['Anti chỉ review: máy chỉ áp patch trong fixture tạm hoặc worktree việc Anti do máy tạo'] };
+// `expect` ({ path: sha256 }): the whole-file hashes of the snapshot Anti was shown. Required in a
+// job worktree (Codex on #955 @a1920174): a file that is not exactly what Anti saw is never written.
+export function applyPatch({ root, patch, scope = [], home = stateDir, io = fsIo, expect = null }) {
+  const fixture = isFixtureRoot(root);
+  if (!fixture && !isJobRoot(root, home)) return { ok: false, written: [], reasons: ['Anti chỉ review: máy chỉ áp patch trong fixture tạm hoặc worktree việc Anti do máy tạo'] };
   // Text only (Anti r1 on #955): a pre-parsed object skipped the FIND, path and size checks.
   if (typeof patch !== 'string') return { ok: false, written: [], reasons: ['patch phải là văn bản'] };
+  if (expect !== null && !isPlain(expect)) return { ok: false, written: [], reasons: ['mã băm bản Anti đã xem không hợp lệ'] };
+  if (!fixture && !expect) return { ok: false, written: [], reasons: ['thiếu mã băm bản Anti đã xem'] };
+  // A copy taken now: the caller cannot change what counts as the seen bytes part way.
+  const pinned = expect ? Object.freeze(Object.fromEntries(Object.entries(expect))) : null;
   const parsed = parsePatch(patch);
   if (!parsed?.ok) return { ok: false, written: [], reasons: parsed?.reasons ?? ['patch không hợp lệ'] };
   if (!scope.length) return { ok: false, written: [], reasons: ['chưa có phạm vi file'] };
@@ -228,13 +244,15 @@ export function applyPatch({ root, patch, scope = [], home = stateDir, io = fsIo
     const before = io.readFileSync(full);
     let text;
     try { text = strict.decode(before); } catch { reasons.push(`${shown}: không phải UTF-8 hợp lệ`); continue; }
+    const hash = sha256(before);
+    if (pinned && (!Object.hasOwn(pinned, f.path) || pinned[f.path] !== hash)) { reasons.push(`${shown}: khác bản Anti đã xem`); continue; }
     let ok = true;
     f.edits.forEach((e, k) => {
       const n = count(text, e.find);
       if (n !== 1) { reasons.push(`${shown} khối ${k + 1}: FIND gặp ${n} lần, cần đúng 1`); ok = false; return; }
       text = text.replace(e.find, () => e.replace);
     });
-    if (ok) out.push({ path: f.path, full, text, before, hash: sha256(before), mode: statSync(full).mode & 0o777 });
+    if (ok) out.push({ path: f.path, full, text, before, hash, mode: statSync(full).mode & 0o777 });
   }
   if (reasons.length) return { ok: false, written: [], reasons };
   const tag = `${process.pid}-${randomBytes(6).toString('hex')}`;
@@ -335,7 +353,7 @@ export function buildSnapshot({ root, allow = [], git = trustedGit, max = snapsh
     if (buf.includes(0)) { reasons.push(`${shown}: file nhị phân`); continue; }
     let text;
     try { text = strict.decode(buf); } catch { reasons.push(`${shown}: không phải UTF-8 hợp lệ`); continue; }
-    items.push({ path: e.path, text });
+    items.push({ path: e.path, text, sha256: sha256(buf) });
   }
   if (total > max.totalBytes) reasons.push(`tổng quá ${max.totalBytes} byte`);
   if (!reasons.length) reasons.push(...publicPayload(items, { tracked: new Set(entries.map(e => e.path)) }).reasons);
