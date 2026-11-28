@@ -37,7 +37,7 @@ await page.getByPlaceholder("DD").fill("15");
 await page.getByPlaceholder("MM").fill("03");
 await page.getByPlaceholder("YYYY").fill("1990");
 await page.screenshot({ path: fileURLToPath(new URL("04-birth.png", outputDir)), fullPage: true });
-await page.getByRole("button", { name: "Khớp tín hiệu" }).click();
+await page.getByRole("button", { name: "Tiếp tục" }).click();
 await page.waitForURL("**/reveal", { timeout: 30_000 });
 await page.screenshot({ path: fileURLToPath(new URL("05-reveal.png", outputDir)), fullPage: true });
 await page.getByRole("button", { name: "Mở Note hôm nay" }).click();

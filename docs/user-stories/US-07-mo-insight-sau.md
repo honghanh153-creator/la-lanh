@@ -6,7 +6,7 @@
 
 ## 1. User story
 
-Là người đã bổ sung giờ và nơi sinh chính xác, tôi muốn mở **Bản đọc Natal** tổng hòa từ toàn bộ natal chart và bầu trời hiện tại, đồng thời chuyển được giữa Western Tropical và Jyotish Sidereal, để hiểu vì sao một kiểu tình huống hay chạm đúng mình, pattern nào thường lặp lại và mình đang học cách phản ứng khác đi ở đâu — không bị biến thành một danh sách Sun/Moon/Venus/Mars rời rạc.
+Là người đã bổ sung giờ và nơi sinh chính xác, tôi muốn mở **Bản đọc lá số** tổng hòa từ toàn bộ natal chart và bầu trời hiện tại, đồng thời chuyển được giữa Western Tropical và Jyotish Sidereal, để hiểu vì sao một kiểu tình huống hay chạm đúng mình, pattern nào thường lặp lại và mình đang học cách phản ứng khác đi ở đâu — không bị biến thành một danh sách Sun/Moon/Venus/Mars rời rạc.
 
 ## 2. Mục tiêu và ranh giới
 
@@ -67,7 +67,7 @@ flowchart TD
 
 | Thành phần | Loại | Nội dung/hành vi |
 |---|---|---|
-| Header | Native navigation | Back, “Bản đọc Natal”, Save/Share chỉ khi artifact an toàn đã có. |
+| Header | Native navigation | Back, “Bản đọc lá số”, Save/Share chỉ khi artifact an toàn đã có. |
 | Promise | Hero copy | `Bạn có muốn hiểu mình hơn?` + pattern/tình huống/bài học có thể đối chiếu; không nói chart gây ra sự kiện hay viết sẵn số phận. |
 | Hệ đọc | Segmented control | `Western` / `Jyotish`; 44px; giữ vị trí scroll/domain tương đương khi switch. |
 | Cách tính | Compact chip | `Khuyên dùng` hoặc tên custom; mở S34, không nhồi option ở overview. |

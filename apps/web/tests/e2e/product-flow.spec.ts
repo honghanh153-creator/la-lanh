@@ -160,7 +160,7 @@ test("guest can reveal, save mood, and create a share card", async ({ page }) =>
   await page.getByRole("textbox", { name: "Ngày" }).fill("01");
   await page.getByRole("textbox", { name: "Tháng" }).fill("01");
   await page.getByRole("textbox", { name: "Năm" }).fill("1990");
-  await page.getByRole("button", { name: "Khớp tín hiệu" }).click();
+  await page.getByRole("button", { name: "Tiếp tục" }).click();
 
   await expect(page.getByRole("heading", { name: "Mềm", exact: true })).toBeVisible();
   await expect(page.getByText("Mặt Trời Ma Kết", { exact: false })).toBeVisible();
@@ -198,7 +198,7 @@ test("guest can reveal, save mood, and create a share card", async ({ page }) =>
 
   await page.goto("/card");
   await expect(page.getByRole("heading", { name: "Đừng biến mình thành deadline." })).toBeVisible();
-  await page.getByRole("button", { name: /safe link/i }).click();
+  await page.getByRole("button", { name: /Tạo link riêng/i }).click();
   await expect(page.getByRole("status")).toContainText("Không kèm ngày/giờ/nơi sinh");
   expect(sharedRevisionId).toBe("00000000-0000-4000-8000-000000000010");
 });
@@ -215,7 +215,7 @@ test("under-18 birth date is stopped before any personal data is sent", async ({
   await page.getByRole("textbox", { name: "Ngày" }).fill("01");
   await page.getByRole("textbox", { name: "Tháng" }).fill("01");
   await page.getByRole("textbox", { name: "Năm" }).fill("2020");
-  await page.getByRole("button", { name: "Khớp tín hiệu" }).click();
+  await page.getByRole("button", { name: "Tiếp tục" }).click();
 
   await expect(page.getByRole("alert")).toContainText("từ 18 tuổi");
   expect(birthProfileRequests).toBe(0);
@@ -443,7 +443,7 @@ test("guest can add exact birth time and place only after explicit deep-data con
 
   await expect(page).toHaveURL(/\/aura-cutover$/);
   await expect(page.getByRole("heading", { name: "Aura không tự thay Note của bạn." })).toBeFocused();
-  await expect(page.getByText("Các House và lĩnh vực đời sống")).toBeVisible();
+  await expect(page.getByText("Các nhà và lĩnh vực đời sống")).toBeVisible();
   await page.getByRole("button", { name: "Dùng Aura hôm nay" }).click();
 
   await expect(page).toHaveURL(/\/home$/);

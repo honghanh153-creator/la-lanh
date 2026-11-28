@@ -16,6 +16,7 @@ import { renderCheck } from './collab-check.mjs';
 import { tick } from './collab-turn.mjs';
 import { append, entry, read as readLog, recordFound } from './collab-disagree.mjs';
 import { nightAudit } from './collab-tick.mjs';
+import { auditReceiptResult } from './collab-run-receipt.mjs';
 
 const head = 'e'.repeat(40);
 // A full approving review output (the receipt check validates it, Codex r1 on #486).
@@ -155,9 +156,14 @@ test('a Codex error still counts one run and leaves M1 unmeasured', () => {
   const date = '2026-11-14';
   writeJson(dayStatePath(date), { codexRuns: 0 });
   const dir = fresh();
-  runNightAudit({ gh: fakeGh(), now: at('2026-11-14T16:05:00Z'), dir, codex: fakeCodex(null, 'error'), ...deps() });
+  const failed = runNightAudit({ gh: fakeGh(), now: at('2026-11-14T16:05:00Z'), dir, codex: fakeCodex(null, 'error'), ...deps() });
   assert.equal(readJson(dayStatePath(date), {}).codexRuns, 1);
   assert.match(readRecord(date, dir).metrics.M1.missing, /Codex lỗi/);
+  // #858: the record is saved (`judged`), but the run receipt must say the Codex run failed.
+  assert.deepEqual([failed.status, failed.codexError], ['judged', true]);
+  assert.equal(auditReceiptResult(failed), 'error');
+  const fine = runNightAudit({ gh: fakeGh(), now: at('2026-11-14T16:05:00Z'), dir: fresh(), codex: fakeCodex(), ...deps() });
+  assert.deepEqual([fine.status, fine.codexError, auditReceiptResult(fine)], ['judged', undefined, 'ok']);
 });
 
 test('after midnight: same evidence reuses the 23:00 judgement, new evidence is judged again', () => {

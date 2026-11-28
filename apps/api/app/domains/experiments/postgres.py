@@ -25,7 +25,11 @@ from app.domains.experiments.models import (
 )
 from app.domains.experiments.tables import DailyExperimentRow
 from app.domains.guest.tables import ConsentRow, GuestSessionRow
-from app.domains.readings.lighter_action import lighter_action_for, lighter_experiment_for
+from app.domains.readings.lighter_action import (
+    lighter_action_for,
+    lighter_experiment_for,
+    mood_action_for,
+)
 from app.domains.readings.models import (
     LIGHTER_ACTION_MAX_CHARS,
     BackgroundLens,
@@ -36,6 +40,7 @@ from app.domains.readings.models import (
     experiment_projection_for,
 )
 from app.domains.readings.postgres import _plan_record, _revision_record
+from app.domains.readings.student_support import alone_offer_for
 from app.domains.readings.tables import ReadingPlanRow, ReadingProjectionRow, ReadingRevisionRow
 from app.infrastructure.crypto import EnvelopeCipher
 
@@ -285,14 +290,25 @@ class PostgresExperimentRepository:
             return projection, None
         # The lighter action offered with this same revision (#627) may be kept instead.
         # Same sentence the card showed: the light action of the card's own Daily issue (#699).
-        lighter_action = lighter_action_for(
-            revision.id,
-            candidate.semantic_blueprint.mechanism_key if candidate.semantic_blueprint else None,
+        mechanism_key = (
+            candidate.semantic_blueprint.mechanism_key if candidate.semantic_blueprint else None
         )
-        if lighter_action is not None:
-            lighter = lighter_experiment_for(revision.id, lighter_action)
-            if lighter.action_key == draft.action_key:
-                return lighter, lighter_action
+        # So may the slow (Căng) and clear (Lạc trôi) actions of the same card (#701). Their text
+        # is stored like the lighter one's, so a kept action reads back after the registry moves.
+        # And the no-contact action (#703), only when the card offers it: one of its actions
+        # asks to reach someone.
+        alone = alone_offer_for(revision.id, mechanism_key, candidate.micro_action)
+        offered = (
+            lighter_action_for(revision.id, mechanism_key),
+            mood_action_for("slow", revision.id, mechanism_key),
+            mood_action_for("clear", revision.id, mechanism_key),
+            alone[0] if alone is not None else None,
+        )
+        for text in offered:
+            if text is not None:
+                alternative = lighter_experiment_for(revision.id, text)
+                if alternative.action_key == draft.action_key:
+                    return alternative, text
         raise ExperimentTargetNotFound
 
     async def _record(self, session: AsyncSession, row: DailyExperimentRow) -> DailyExperiment:
