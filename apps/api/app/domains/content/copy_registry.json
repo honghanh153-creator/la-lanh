@@ -12637,6 +12637,24 @@
    "status": "pending"
   },
   {
+   "id": "situation.pair.mars-uranus.tense",
+   "category": "reading",
+   "text": "Bạn dễ bị cuốn sang việc mới ngay khi vừa nghĩ ra.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.mars-neptune.tense",
+   "category": "reading",
+   "text": "Bạn dễ thấy mệt vì chưa rõ nên dồn sức vào việc nào trước.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.mars-sun.tense",
+   "category": "reading",
+   "text": "Bạn dễ nhận thêm việc vì muốn chứng tỏ mình làm được.",
+   "status": "pending"
+  },
+  {
    "id": "daily.bundle.perfect-before-start.13.headline",
    "category": "reading",
    "text": "Khi gần hạn nộp mà bạn vẫn sửa hồ sơ.",
@@ -12706,6 +12724,30 @@
    "id": "daily.bundle.decision-fatigue.13.action",
    "category": "reading",
    "text": "Chọn phần bài gần hạn nộp nhất để làm trước, gác lại các phần chưa gấp.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.sun-uranus.tense",
+   "category": "reading",
+   "text": "Bạn dễ muốn đổi kế hoạch ngay khi thấy một cách khác hay hơn.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.uranus-venus.tense",
+   "category": "reading",
+   "text": "Bạn dễ muốn đổi một lời hẹn khi thấy mình bị gò bó.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.pluto-venus.tense",
+   "category": "reading",
+   "text": "Bạn dễ giữ chặt điều mình đã chọn, khó buông dù thấy chưa ổn.",
+   "status": "pending"
+  },
+  {
+   "id": "situation.pair.sun-venus.tense",
+   "category": "reading",
+   "text": "Bạn dễ nhường cho êm chuyện dù trong lòng chưa thật đồng ý.",
    "status": "pending"
   }
  ],
