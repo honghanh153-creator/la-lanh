@@ -65,7 +65,18 @@ checkout: Chromium at 390 px, one synthetic person with date, time and place, 22
     Daily action sentences.
   - P3: "Mình & người ấy" wraps to three lines at 360; three tap targets under 44 px; the Tarot card label is in
     English; "căn cứ riêng" on the share page is unclear.
-- Codex review: chờ lượt. Codex is out of runs today; no Codex receipt exists for this release yet.
+- Codex review: run on 28.11.2026 in the evening, after the owner approved it ("BR1"). `codex exec -s read-only`
+  on copies of `journey/` and the 360/390 shots only (synthetic data, no owner files). `VERDICT: GO-WITH-FOLLOWUPS`.
+  No P0/P1: 22/22 steps, no 5xx, no horizontal overflow, guest deleted; the date-only keep button renders at both
+  widths (what happens after the tap is not shown in these shots).
+  - P2: say what "Giữ để thử hôm nay" does next to "Lưu note", and confirm after the tap; Aura page copy describes
+    processing ("MỘT LỚP ĐỌC MỚI ĐÃ ĐƯỢC TÍNH"); onboarding explanations are long; small tap targets (privacy link,
+    dismiss button, dark-mode switch); the bottom bar may cover the end of the Home message; the sky timestamp is
+    unclear; Profile says "Nhóm test có tối đa 20 phiên đã đồng ý".
+  - P3: poetic lines on Khám phá, Aura, birth card and saved notes; mechanism words (deck locking, encryption,
+    "Chi tiết kỹ thuật"); English words ("Note", "Chart", "natal", "PNG", "OpenAI", Tarot card name); the Mood answer
+    is announced three times; direct note ready at 2.0 s.
+  - Follow-ups are tracked in #964.
 - Owner report: sent to the coordinator session right after the checks, for the owner's next report.
 
 ## Rollback
