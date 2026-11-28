@@ -31,7 +31,7 @@ from app.domains.month_answer.facts import (
     month_fact,
     month_key,
 )
-from app.domains.month_answer.presets import PresetId
+from app.domains.month_answer.presets import PresetId, presets_for
 
 # The Khám phá card: one line and one small thing per area, no dates (S21). "Bản thân" uses the
 # mind topic's copy.
@@ -106,6 +106,26 @@ class MonthAnswerService:
         if answer is None:
             raise MonthAnswerUnavailable
         return answer
+
+    async def answer_for_key(
+        self, guest_id: UUID, topic: Topic, answer_key: str, *, today: date | None = None
+    ) -> MonthAnswer | None:
+        """The answer the person is looking at, recomputed; ``None`` if it no longer matches.
+
+        Saving never takes text from the client: the server recomputes the answer from the chart,
+        the topic and this month, tries the plain topic answer and each of the topic's preset
+        questions, and keeps the one whose key matches.
+        """
+
+        engine = self._engine_or_raise()
+        chart = await self._chart(guest_id)
+        month = month_key(today or today_in_vietnam())
+        fact = await to_thread(month_fact, engine, chart, topic, month)
+        for preset in (None, *presets_for(topic)):
+            answer = compose(fact, preset, self._copy)
+            if answer is not None and answer.answer_key == answer_key:
+                return answer
+        return None
 
     async def window(
         self, guest_id: UUID, topic: Topic, *, today: date | None = None

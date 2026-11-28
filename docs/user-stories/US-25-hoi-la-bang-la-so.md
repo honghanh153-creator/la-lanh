@@ -44,7 +44,7 @@ thêm, gửi câu hỏi cho AI ngoài.
 | AC09 | Câu làm sẵn phải thuộc đúng mảng đã chọn; sai thì từ chối (422). | `test_api.py::test_preset_must_match_its_topic` |
 | AC10 | Không có ô gõ: yêu cầu kèm chữ tự do bị từ chối ở bước kiểm tra dữ liệu, không đọc, không lặp lại. Không có câu đồng ý, câu khủng hoảng hay công tắc cho câu gõ. | `test_api.py::test_free_text_is_not_accepted`, `test_copy.py::test_month_copy_is_pending_user_copy_and_no_typed_question_copy_ships` |
 | AC11 | Tính năng chỉ hiện khi mọi câu chữ đã được duyệt (`/v1/month/status.available`); chưa duyệt thì trả "chưa sẵn sàng", không trả nửa câu. | `test_api.py::test_status_*`, `test_pending_copy_answers_unavailable_not_half` |
-| AC12 | Lưu chủ động, mục riêng, xóa được. | PR 2 |
+| AC12 | Lưu chủ động, mục riêng, xóa được; máy chủ tự tính lại câu trả lời, không nhận chữ từ máy khách; có trong xuất dữ liệu; xóa có nhật ký; xóa giờ/nơi sinh thì xóa theo. | `test_saved.py` |
 | AC13 | Nút trên Trang chủ cạnh "Rút Tarot"; nút ngày thu gọn sẵn; không nhắc, không đếm; không hiện câu trả lời trên Trang chủ; lời nhắc đầu tuần tắt sẵn. | PR 3 |
 | AC14 | 1000 người giả: mọi mảng và câu làm sẵn đều trả lời, không lẫn dữ liệu giữa người. | PR 4 |
 
