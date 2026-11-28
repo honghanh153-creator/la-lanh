@@ -5,7 +5,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { issueBody, issueTitle, record, recordCheck, streakN } from './collab-check-streak.mjs';
+import { findLimit, ghStreakIssues, issueBody, issueTitle, record, recordCheck, streakN } from './collab-check-streak.mjs';
 import { pickPlan, serious, workUnits } from './collab-quota.mjs';
 import { readJson } from './collab-trust.mjs';
 
@@ -79,8 +79,51 @@ test('streak: a failed GitHub call is retried at the next record; a crash after 
   issues.failClose = true;
   assert.equal(record('db-backup', 'ok', { issues, path, nowMs: at(5) }).status, 'pending');
   issues.failClose = false;
-  assert.equal(record('db-backup', 'ok', { issues, path, nowMs: at(6) }).action, 'none');
+  assert.equal(record('db-backup', 'ok', { issues, path, nowMs: at(6) }).action, 'resolve');
   assert.equal(issues.open.size, 0, 'the close is retried at the next pass');
+});
+
+// Codex r1 on #954: GitHub did the work but the answer or the state write was lost.
+test('streak: a close whose answer is lost does not hide the next incident', () => {
+  const path = tmp();
+  const issues = fakeIssues();
+  for (const k of [0, 1, 2]) record('server-inside', 'blocked', { issues, path, nowMs: at(k) });
+  const first = [...issues.open][0][0];
+  const close = issues.close.bind(issues);
+  issues.close = (n, body) => { close(n, body); throw new Error('gh: response lost'); };
+  assert.equal(record('server-inside', 'ok', { issues, path, nowMs: at(3) }).status, 'pending');
+  issues.close = close;
+  assert.equal(issues.open.size, 0, 'GitHub closed it');
+  const runs = [4, 5, 6, 7].map(k => record('server-inside', 'blocked', { issues, path, nowMs: at(k) }));
+  assert.deepEqual(runs.map(r => r.action), ['none', 'none', 'open', 'none']);
+  assert.ok(runs.every(r => r.status === 'recorded'));
+  assert.equal(issues.open.size, 1, 'a new incident is open');
+  assert.notEqual([...issues.open][0][0], first, 'not the closed one');
+  assert.equal(readJson(path)['server-inside'].issue, [...issues.open][0][0]);
+});
+
+test('streak: a create whose answer is lost is found and closed by the next pass', () => {
+  const path = tmp();
+  const issues = fakeIssues();
+  const create = issues.create.bind(issues);
+  issues.create = (title, body) => { create(title, body); throw new Error('gh: response lost'); };
+  const runs = [0, 1, 2].map(k => record('db-backup', 'fail', { issues, path, nowMs: at(k) }));
+  assert.equal(runs[2].status, 'pending');
+  issues.create = create;
+  assert.equal(issues.open.size, 1, 'GitHub has the issue the state never saw');
+  assert.equal(readJson(path)['db-backup'].issue ?? null, null);
+  const ok = record('db-backup', 'ok', { issues, path, nowMs: at(3) });
+  assert.deepEqual([ok.status, ok.action], ['recorded', 'resolve']);
+  assert.equal(issues.open.size, 0, 'the created issue is closed');
+  assert.equal(issues.calls.filter(c => c[0] === 'create').length, 1, 'never opened twice');
+});
+
+test('streak: the GitHub reader lists open ops-alert issues without the search index and refuses a full page', () => {
+  const seen = [];
+  const run = (rows) => argv => { seen.push(argv); return JSON.stringify(rows); };
+  assert.equal(ghStreakIssues(run([{ number: 5, title: issueTitle('x') }, { number: 6, title: `${issueTitle('x')} cũ` }])).find(issueTitle('x')), 5);
+  assert.ok(!seen[0].includes('--search'), 'no search index: it can lag behind a fresh create');
+  assert.throws(() => ghStreakIssues(run(Array.from({ length: findLimit }, (_, i) => ({ number: i, title: 't' })))).find('t'), /chưa đọc hết/);
 });
 
 test('streak: the incident goes first in the day list (no severity: serious, L60)', () => {

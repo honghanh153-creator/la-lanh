@@ -6,8 +6,11 @@
 // `blocked` (the check could not run: network, SSH refused) counts like a failure: a check that
 // cannot run is not a passing check. At `streakN` failures in a row one incident issue opens
 // (labels `incident` + `ops-alert`, no severity, so the planner puts it first: L60). A pass closes it
-// with a comment. One issue per check while it is open; a retry or a crash between the GitHub call
-// and the state write finds the open issue by its exact title instead of opening a second one.
+// with a comment. One issue per check while it is open. GitHub, not the local state, says whether
+// that issue is open (Codex r1 on #954): each record that must act lists the open ops-alert issues and
+// matches the exact title, so a lost response or a crash between the GitHub call and the state write
+// never opens a second issue, never leaves a created issue unclosed after a pass, and never reuses
+// an issue that GitHub already closed.
 // Privacy: the repo is public. The issue holds only the check name, outcome kind, count and times;
 // any detail text (hosts, error output) stays in the local state file.
 import { execFileSync } from 'node:child_process';
@@ -39,27 +42,32 @@ export function issueBody(check, s) {
   ].join('\n');
 }
 
-// Pure step. Returns { state, action: 'open' | 'resolve' | 'none', entry }.
+// Pure step: the new local entry. `action` is the transition this run makes ('open' at the Nth
+// failure in a row, 'resolve' at a pass while an issue is known, else 'none'); record() acts on GitHub.
 export function recordCheck(state, check, outcome, { nowMs = Date.now(), detail = '', n = streakN } = {}) {
   if (!validCheck(check)) throw new Error(`tên kiểm tra không hợp lệ: ${clean(check, 60)}`);
   if (!outcomes.includes(outcome)) throw new Error(`kết quả không hợp lệ: ${clean(outcome, 20)}`);
   const prev = state?.[check] ?? { fails: 0, issue: null, recent: [] };
   const recent = [...(prev.recent ?? []), { outcome, atMs: nowMs, detail: clean(detail, 300) }].slice(-10);
   if (outcome === 'ok') {
-    const entry = { fails: 0, issue: null, firstFailAtMs: null, lastAtMs: nowMs, lastOutcome: 'ok', recent, resolving: prev.issue ?? prev.resolving ?? null };
+    const entry = { fails: 0, issue: prev.issue ?? null, firstFailAtMs: null, lastAtMs: nowMs, lastOutcome: 'ok', recent };
     return { state: { ...state, [check]: entry }, action: prev.issue ? 'resolve' : 'none', entry };
   }
   const fails = (prev.fails ?? 0) + 1;
-  // A failure while a close is still pending keeps that issue open and counts on it.
-  const issue = prev.issue ?? prev.resolving ?? null;
-  const entry = { ...prev, fails, issue, firstFailAtMs: prev.fails ? prev.firstFailAtMs : nowMs, lastAtMs: nowMs, lastOutcome: outcome, recent, resolving: null };
-  return { state: { ...state, [check]: entry }, action: fails >= n && !issue ? 'open' : 'none', entry };
+  const entry = { ...prev, fails, firstFailAtMs: prev.fails ? prev.firstFailAtMs : nowMs, lastAtMs: nowMs, lastOutcome: outcome, recent };
+  return { state: { ...state, [check]: entry }, action: fails === n ? 'open' : 'none', entry };
 }
 
-// gh with fixed argv; `run(args, input)` returns stdout.
+// gh with fixed argv; `run(args, input)` returns stdout. `find` lists open ops-alert issues (no search
+// index, which can lag behind a fresh create) and refuses a full page: it must see them all.
+export const findLimit = 100;
 export function ghStreakIssues(run) {
   return {
-    find: title => JSON.parse(run(['issue', 'list', '--repo', repo, '--label', 'ops-alert', '--state', 'open', '--search', `"${title}" in:title`, '--json', 'number,title', '--limit', '20']) || '[]').find(i => i.title === title)?.number ?? null,
+    find: title => {
+      const open = JSON.parse(run(['issue', 'list', '--repo', repo, '--label', 'ops-alert', '--state', 'open', '--json', 'number,title', '--limit', String(findLimit)]) || '[]');
+      if (open.length >= findLimit) throw new Error(`có từ ${findLimit} issue ops-alert mở, chưa đọc hết`);
+      return open.find(i => i.title === title)?.number ?? null;
+    },
     create: (title, body) => {
       const url = run(['issue', 'create', '--repo', repo, '--title', title, '--label', 'ops-alert', '--label', 'incident', '--body-file', '-'], body);
       return Number(String(url).trim().split('/').pop()) || null;
@@ -68,27 +76,35 @@ export function ghStreakIssues(run) {
   };
 }
 
-// Record one run, then act. The state is written before the GitHub call; a failed call is retried
-// at the next record (open: the entry has no issue yet; resolve: `resolving` stays set).
+// Record one run, then make GitHub match it. The state is written first. A pass closes the open
+// issue for the check, if GitHub has one; the Nth failure in a row and every later one make sure one
+// is open (the open one, else a new one). A failed GitHub call leaves status 'pending'; the next
+// record of the same kind does the same check again, so nothing waits on a remembered issue id.
 export function record(check, outcome, { issues, path = streakPath(), nowMs = Date.now(), detail = '', n = streakN } = {}) {
   return withFileLock(`${path}.lock`, { staleMs: 60000, waitMs: 10000, busy: { status: 'busy' } }, () => {
     const step = recordCheck(readJson(path, {}), check, outcome, { nowMs, detail, n });
     writeJson(path, step.state);
     const entry = step.state[check];
+    const title = issueTitle(check);
+    const save = issue => writeJson(path, { ...readJson(path, {}), [check]: { ...entry, issue } });
     let issue = null;
+    let action = 'none';
     let error = null;
     try {
-      if (step.action === 'open' || (entry.fails >= n && !entry.issue)) {
-        const title = issueTitle(check);
-        issue = issues.find(title) ?? issues.create(title, issueBody(check, entry));
-        if (issue) writeJson(path, { ...readJson(path, {}), [check]: { ...entry, issue } });
-      } else if (entry.resolving) {
-        issue = entry.resolving;
-        issues.close(issue, `Kiểm tra \`${check}\` đạt lại lúc ${hhmm(nowMs)}. Máy đóng sự cố này.`);
-        writeJson(path, { ...readJson(path, {}), [check]: { ...entry, resolving: null } });
+      if (outcome === 'ok') {
+        issue = issues.find(title);
+        if (issue) {
+          issues.close(issue, `Kiểm tra \`${check}\` đạt lại lúc ${hhmm(nowMs)}. Máy đóng sự cố này.`);
+          action = 'resolve';
+        }
+        save(null);
+      } else if (entry.fails >= n) {
+        issue = issues.find(title);
+        if (!issue) { issue = issues.create(title, issueBody(check, entry)); action = 'open'; }
+        if (issue) save(issue);
       }
     } catch (e) { error = clean(e.message, 200); }
-    return { status: error ? 'pending' : 'recorded', action: step.action, fails: entry.fails, issue, error };
+    return { status: error ? 'pending' : 'recorded', action, fails: entry.fails, issue, error };
   });
 }
 

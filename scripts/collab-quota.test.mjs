@@ -7,7 +7,7 @@ import { agentMarker } from './collab-trust.mjs';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { checkPrep, dayList, label7w, mergedItems, pickPlan, plannedEntry, prepRefs, quotaIssues, serious, startBlock, uiHold, workUnits } from './collab-quota.mjs';
+import { checkPrep, dayList, mergedLimit, label7w, mergedItems, pickPlan, plannedEntry, prepRefs, quotaIssues, serious, startBlock, uiHold, workUnits } from './collab-quota.mjs';
 import { writeJson } from './collab-trust.mjs';
 import { renderProgress, workProgress } from './collab-work.mjs';
 
@@ -193,4 +193,22 @@ test('planner: a failed merged-PR read blocks fresh starts, never incidents; the
   assert.equal(uiHold({ path }), true);
   writeJson(path, { status: 'approved' });
   assert.equal(uiHold({ path }), false);
+});
+
+test('planner: a merged-PR page that reaches the limit is unread, not complete (Codex r1 on #954)', () => {
+  const asked = [];
+  const gh = rows => ({ json: args => { if (args[0] === 'pr') asked.push(args[args.indexOf('--limit') + 1]); return fakeGh({ issues: d7w, merged: rows }).json(args); } });
+  const full = Array.from({ length: 3 }, (_, i) => ({ number: 2000 + i, body: 'không có việc' }));
+  const units = workUnits({ turns: [], prs: [], issues: quotaIssues(gh(full), { hold: false, limit: 3 }) });
+  assert.equal(units.find(u => u.item === 713).skip, 'chưa đọc được PR đã merge', 'a full page may hide the PR that named #713');
+  assert.deepEqual(units.filter(u => u.ready).map(u => u.item), [960], 'incidents still go');
+  assert.equal(quotaIssues(gh(full.slice(0, 2)), { hold: false, limit: 3 }).find(i => i.number === 713).startBlock, null);
+  quotaIssues(gh([]), { hold: false });
+  assert.equal(asked.at(-1), String(mergedLimit));
+  assert.ok(mergedLimit >= 1000, 'well above the 517 merged PRs of 28.11');
+  // The tick's incident refresh skips the merged read; incidents are never blocked by it.
+  const before = asked.length;
+  const live = workUnits({ turns: [], prs: [], issues: quotaIssues(gh([]), { hold: false, readMerged: false }) });
+  assert.equal(asked.length, before);
+  assert.deepEqual(live.filter(u => u.ready && u.incident).map(u => u.item), [960]);
 });

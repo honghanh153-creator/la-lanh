@@ -83,13 +83,23 @@ export function startBlock(issue, { merged = new Map(), hold = false, mergedKnow
 
 // Open issues that matter to the quota: 7-week items and serious incidents. Throws on a failed issue
 // read. Each issue carries `startBlock` (part D); a failed merged-PR read blocks every non-incident start.
-export function quotaIssues(gh, { hold = uiHold() } = {}) {
+// Codex r1 on #954: the merged history must be read whole (517 PRs on 28.11, past the old 300). A page
+// that reaches `mergedLimit` may hide older PRs, so it counts as unread (fail safe), never as complete.
+// `readMerged: false` skips that read for a caller that only keeps incidents, which it never blocks.
+export const mergedLimit = 5000;
+export function readMergedItems(gh, { limit = mergedLimit } = {}) {
+  const prs = gh.json(['pr', 'list', '--repo', repo, '--state', 'merged', '--base', mergedBase, '--limit', String(limit), '--json', 'number,body']);
+  if (!Array.isArray(prs)) throw new Error('danh sách PR đã merge không đọc được');
+  if (prs.length >= limit) throw new Error(`có từ ${limit} PR đã merge, chưa đọc hết`);
+  return mergedItems(prs);
+}
+export function quotaIssues(gh, { hold = uiHold(), readMerged = true, limit = mergedLimit } = {}) {
   const read = label => gh.json(['issue', 'list', '--repo', repo, '--state', 'open', '--label', label, '--limit', '200', '--json', 'number,title,labels,body']);
   const byNumber = new Map();
   for (const label of [label7w, 'incident']) for (const i of read(label) ?? []) byNumber.set(i.number, i);
   let merged = new Map();
   let mergedKnown = true;
-  try { merged = mergedItems(gh.json(['pr', 'list', '--repo', repo, '--state', 'merged', '--base', mergedBase, '--limit', '300', '--json', 'number,body'])); } catch { mergedKnown = false; }
+  if (readMerged) { try { merged = readMergedItems(gh, { limit }); } catch { mergedKnown = false; } } else mergedKnown = false;
   return [...byNumber.values()].map(i => ({ ...i, startBlock: startBlock(i, { merged, hold, mergedKnown }) }));
 }
 
