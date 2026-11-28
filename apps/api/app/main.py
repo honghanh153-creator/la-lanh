@@ -314,6 +314,11 @@ def create_app(
                         resolved_settings.guest_hash_key.get_secret_value().encode()
                     ),
                     daily_variety_from=resolved_settings.daily_variety_from,
+                    birth_timezone_lookup=(
+                        app.state.birth_chart_service.birth_timezone
+                        if app.state.birth_chart_service is not None
+                        else None
+                    ),
                     daily_topic_schedule_from=resolved_settings.daily_topic_schedule_from,
                     keep_action_all_profiles=resolved_settings.keep_action_all_profiles,
                 )

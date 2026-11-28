@@ -11,6 +11,10 @@ ASPECTS: tuple[tuple[str, float, float], ...] = (
 )
 
 TRANSIT_ORB_VERSION = "transit-orbs-v1"
+# Transit contacts proven over an approximate birth-time window (Daily step 2): the stored orb is
+# the worst case over the window, an upper bound (``daily.interval_transits``).
+INTERVAL_TRANSIT_ORB_VERSION = f"{TRANSIT_ORB_VERSION}+interval-v1"
+SUPPORTED_INTERVAL_TRANSIT_ORB_VERSIONS = frozenset({INTERVAL_TRANSIT_ORB_VERSION})
 SYNASTRY_ORB_VERSION = "synastry-orbs-v2"
 RELATIONSHIP_CHART_ORB_VERSION = "relationship-chart-orbs-v1"
 

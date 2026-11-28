@@ -33,7 +33,7 @@ from app.domains.readings.models import (
     canonical_gate_policy_version,
     canonical_reading_revision_key,
 )
-from app.domains.readings.renderers import DeterministicVietnameseRenderer, canonical_evidence_claim
+from app.domains.readings.renderers import DeterministicVietnameseRenderer, plan_evidence_claim
 
 GENERATED_COMPANION_SCHEMA_VERSION = "reading-candidate/v2"
 DAILY_REWRITE_RENDERER_VERSION = "gpt-6-luna-daily-v1"
@@ -214,7 +214,7 @@ def compile_reading_rewrite_request(
     evidence: list[dict[str, JsonValue]] = []
     for factor_id, label in factor_labels.items():
         factor = factors[factor_id]
-        claim = canonical_evidence_claim(factor)
+        claim = plan_evidence_claim(plan_record.plan, factor)
         labels: list[dict[str, JsonValue]] = []
         for slot in claim.slots:
             # PV-28: house and angle slots stay local; both follow from the birth time.
