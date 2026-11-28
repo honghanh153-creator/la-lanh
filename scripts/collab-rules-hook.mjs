@@ -121,7 +121,9 @@ export function reload(input, { home = stateDir, now = () => new Date() } = {}) 
 // Claude Code keeps at most 10,000 characters of a hook's additionalContext and turns longer text into
 // a file with a short preview, which would hide the rules. Past maxContext the sheet is sent compact:
 // id, scope, rule and state of every row (sources and replaced wording stay in the file).
-export const maxContext = 9000;
+// 9600 leaves room for the longest head line (every row changed), so the whole context stays under
+// 10,000 (L81: at 9000 the sheet went compact on 23.11 once two PRs each added a few words).
+export const maxContext = 9600;
 export function fitContext(text) {
   if (text.length <= maxContext) return text;
   const rows = parseRules(text).rows.map(r => `- ${r.id} (${r.scope}): ${r.rule} [${r.state}]`);

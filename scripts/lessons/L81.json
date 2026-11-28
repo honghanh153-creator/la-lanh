@@ -1,0 +1,19 @@
+{
+ "id": "L81",
+ "title": "Bảng luật owner còn được gửi nguyên bảng khi gần chạm giới hạn: ngưỡng rút gọn chừa đủ chỗ cho dòng đầu dài nhất mà tổng vẫn dưới 10.000 ký tự (23.11: hai PR mỗi bên thêm vài chữ làm bảng vượt 9.000, hook gửi bản rút gọn và 5 test của #903 đỏ)",
+ "from": "CI của #903 đỏ sau khi tự đồng bộ integration (23.11)",
+ "who": "claude",
+ "due": "2026-11-24",
+ "status": "done",
+ "test": {
+  "file": "scripts/collab-rules-hook.test.mjs",
+  "name": "L81: a sheet just under the compact limit goes whole with the longest head line and stays under 10,000"
+ },
+ "caller": {
+  "file": "scripts/collab-rules-hook.mjs",
+  "contains": "export const maxContext = 9600;"
+ },
+ "closedBy": {
+  "pr": 903
+ }
+}

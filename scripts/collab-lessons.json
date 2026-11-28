@@ -236,7 +236,7 @@
    },
    "caller": {
     "file": "scripts/collab-merge.mjs",
-    "contains": "mergeGate(pr, { baseFiles: gh.compareFiles })"
+    "contains": "mergeGate(pr, { baseFiles: gh.compareFiles, mode })"
    },
    "closedBy": {
     "pr": 456
@@ -1215,6 +1215,158 @@
    },
    "closedBy": {
     "pr": 893
+   }
+  },
+  {
+   "id": "L68",
+   "title": "Codex fallback: in fallback mode the merge gate holds risky PRs for Claude and Codex fixes claude-fix turns",
+   "from": "owner 22.11.2026 (usage plan), item 1: chuyển qua codex khi claude gần hết, giữ 5% claude",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "done",
+   "test": {
+    "file": "scripts/codex-fallback.test.mjs",
+    "name": "L68: in fallback the merge gate holds a risky PR for Claude; normal mode does not"
+   },
+   "caller": {
+    "file": "scripts/collab-tick.mjs",
+    "contains": "fallbackStep({ gh, mode: usageNow()?.mode ?? currentMode(), turns, prs, log })"
+   },
+   "closedBy": {
+    "pr": 894
+   }
+  },
+  {
+   "id": "L69",
+   "title": "Codex must not fix and approve alone: a PR Codex fixed in Claude's place needs a second critic (Claude or Gemini web) on the same head",
+   "from": "owner 22.11.2026: tôi cần có phản biện nên ko muốn codex làm 1 mình",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-second-review.test.mjs",
+    "name": "L69: a PR Codex fixed waits for a second critic that is not Codex; the gate refuses until then"
+   },
+   "caller": {
+    "file": "scripts/collab-merge.mjs",
+    "contains": "const second = secondReviewProblem(pr);"
+   },
+   "closedBy": {
+    "pr": 894
+   }
+  },
+  {
+   "id": "L70",
+   "title": "Antigravity first as the second critic: the loop runs it without Claude, and an answer counts only when no tool was used",
+   "from": "owner 22.11.2026: tôi vừa bật antigravity trên máy cũng có thể sử dụng để phản biện và làm các PR, ưu tiên anti hơn gemini",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-antigravity.test.mjs",
+    "name": "L70: one step per tick: start, wait, then post a signed second review that the gate counts"
+   },
+   "caller": {
+    "file": "scripts/collab-tick.mjs",
+    "contains": "second = runAntigravity({ gh, prs, turns, log });"
+   },
+   "closedBy": {
+    "pr": 894
+   }
+  },
+  {
+   "id": "L71",
+   "title": "Shift work early: from 75% of the Claude week Codex fixes and Antigravity critiques every ready PR; 85% Claude does incidents only; 95% no Claude",
+   "from": "owner 22.11.2026: okie 1-2-3 (plan from the coordinator: shift at 75/85/95, Antigravity critiques every PR)",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "done",
+   "test": {
+    "file": "scripts/codex-fallback.test.mjs",
+    "name": "L71: from 75% Codex takes fix turns; below 95% a PR labelled incident stays with Claude"
+   },
+   "caller": {
+    "file": "scripts/collab-antigravity.mjs",
+    "contains": "const waiting = secondTargets(prs, turns);"
+   },
+   "closedBy": {
+    "pr": 899
+   }
+  },
+  {
+   "id": "L72",
+   "title": "Throughput board: Claude today vs the daily budget, merges per day and Claude per merge, Gỡ Vướng streams, first-pass rates, and spend by trigger",
+   "from": "owner 22.11.2026: okie 1-2-3 (plan item 3 from the coordinator: a throughput board for both projects)",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-throughput.test.mjs",
+    "name": "L72: the tick adds the throughput lines to the board numbers, and a failure never hides the other numbers"
+   },
+   "caller": {
+    "file": "scripts/collab-tick.mjs",
+    "contains": "...throughputTick({ gh, prs, usageNote: usageNow(), log })"
+   },
+   "closedBy": {
+    "pr": 900
+   }
+  },
+  {
+   "id": "L73",
+   "title": "Spend split by what started the turn (owner, schedule, Autofix, background task, other session, subagent) × context size; scheduled tasks no longer count as background wake-ups; per-PR and per-lot cost use each project's share",
+   "from": "owner 22.11.2026: okie bạn làm đi và báo cáo nhé (plan: cut self-wake and session relays, item 1 measure)",
+   "who": "claude",
+   "due": "2026-11-23",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-throughput.test.mjs",
+    "name": "L73: spend is split by what started the turn × the context each call carried"
+   },
+   "caller": {
+    "file": "scripts/collab-throughput.mjs",
+    "contains": "split: usageNote?.today?.measured ? usageNote.today : null"
+   },
+   "closedBy": {
+    "pr": 901
+   }
+  },
+  {
+   "id": "L74",
+   "title": "A conflict only in the lessons list is merged by the machine (union by id) and pushed, in the author check sync and in a tick step before the queue routes the PR to a Claude fix; any other conflict still goes to Claude, Autofix stays on as fallback",
+   "from": "owner 22.11.2026: okie bạn làm đi và báo cáo nhé (plan: cut self-wake and session relays, item 2 Autofix wake-ups on lessons conflicts)",
+   "who": "claude",
+   "due": "2026-11-23",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-conflict-heal.test.mjs",
+    "name": "L74: a branch that only clashes on the lessons file is merged by the machine and pushed, not sent to Claude"
+   },
+   "caller": {
+    "file": "scripts/collab-tick.mjs",
+    "contains": "conflictHeal({ gh, log })"
+   },
+   "closedBy": {
+    "pr": 902
+   }
+  },
+  {
+   "id": "L75",
+   "title": "Sessions write item progress to one shared board on the Mac (state/progress) instead of messaging the coordinator; the scheduled reports read it through ops-run.sh report; an immediate message only for a blocked item or a decision",
+   "from": "owner 22.11.2026: okie bạn làm đi và báo cáo nhé (plan: cut self-wake and session relays, item 4 no relaying through Claude)",
+   "who": "claude",
+   "due": "2026-11-23",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-progress.test.mjs",
+    "name": "L75: sessions write progress to one shared board; the report reads it; only blocked or decision asks for a message"
+   },
+   "caller": {
+    "file": "scripts/collab-turn.mjs",
+    "contains": "progressLines(readProgress())"
+   },
+   "closedBy": {
+    "pr": 903
    }
   },
   {

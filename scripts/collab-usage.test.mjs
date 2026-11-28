@@ -15,8 +15,10 @@ const NOW = new Date('2026-11-22T08:00:00Z'); // 15:00 in Vietnam
 const ago = minutes => new Date(NOW.getTime() - minutes * 60000).toISOString();
 const line = (id, model, usage, timestamp = NOW.toISOString()) => `${JSON.stringify({ type: 'assistant', timestamp, message: { id, model, usage } })}\n`;
 
-test('owner 22.11: below 85% normal, 85–94% saving, 95% or more fallback', () => {
-  assert.equal(modeFor(84.9), 'normal');
+test('L71 owner 22.11: below 75% normal, 75–84% shift, 85–94% saving, 95% or more fallback', () => {
+  assert.equal(modeFor(74.9), 'normal');
+  assert.equal(modeFor(75), 'shift');
+  assert.equal(modeFor(84.9), 'shift');
   assert.equal(modeFor(85), 'saving');
   assert.equal(modeFor(94.9), 'saving');
   assert.equal(modeFor(95), 'fallback');
@@ -99,9 +101,9 @@ test('the board line and warnings show shares and percents only: no amounts, no 
   const text = usageLine(usage, { measured: true, shares: [{ project: 'la-lanh', share: 0.7 }, { project: 'dự án khác', share: 0.3 }] });
   assert.equal(text, 'Claude tuần: 88% · chế độ: tiết kiệm · hôm nay theo dự án: la-lanh 70%, dự án khác 30%');
   assert.doesNotMatch(text, /\$|USD|Users|scratch/);
-  assert.match(usageHealth(usage).join('\n'), /⚠️ Claude đã dùng 88% tuần: chỉ dùng Claude cho sự cố/);
+  assert.match(usageHealth(usage).join('\n'), /⚠️ Claude đã dùng 88% tuần: Claude chỉ làm sự cố/);
   reading(h, 97, ago(5));
-  assert.match(usageHealth(readUsage({ home: h, now: NOW })).join('\n'), /chuyển sang Codex, giữ 5%/);
+  assert.match(usageHealth(readUsage({ home: h, now: NOW })).join('\n'), /không dùng Claude; Codex, Antigravity và máy chạy tiếp, giữ 5%/);
   reading(h, 97, ago(5 * 60));
   assert.match(usageHealth(readUsage({ home: h, now: NOW })).join('\n'), /⚠️ Số lượt Claude cũ hơn 3 giờ: giữ chế độ chuyển sang Codex/);
 });
@@ -151,7 +153,7 @@ test('Codex #893: a null, empty or false percent is no reading; a drop across mi
     assert.deepEqual([u.fresh, u.mode], [false, 'fallback'], `${JSON.stringify(bad)} keeps the saved mode`);
     const warn = usageHealth(u).join('\n');
     assert.doesNotMatch(warn, /null|undefined|NaN/, `${JSON.stringify(bad)}: no unknown percent in the warnings`);
-    assert.match(warn, /Theo số cuối đã biết: lượt sửa của Claude chuyển sang Codex/);
+    assert.match(warn, /Theo số cuối đã biết: /);
   }
   const r = home();
   mkdirSync(join(r, 'state'), { recursive: true });
