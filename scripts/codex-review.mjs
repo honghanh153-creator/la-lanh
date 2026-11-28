@@ -14,6 +14,8 @@ import { applyPolicy, isBlocking, ownerHolds, validateOutput } from './collab-re
 import { answerStillHolds, coveredKinds, sealedAnswers } from './collab-owner-answer.mjs';
 import { isMain } from './is-main.mjs';
 import { auditReserve } from './collab-audit.mjs';
+import { agentsPath, implementerOf, mayApprove, noteCallResult, parseResetAt, reserveCall, waitIndependent } from './collab-agents.mjs';
+import { applyOnce } from './collab-writer.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const promptPath = join(here, '..', 'docs', 'operations', 'codex-review-prompt.md');
@@ -94,7 +96,7 @@ export function prepareClone(number, head, run = execFileSync, left = () => Infi
   return dir;
 }
 
-const isLimit = text => /usage limit|rate limit|quota|too many requests|\b429\b/i.test(text);
+export const isLimit = text => /usage limit|rate limit|quota|too many requests|\b429\b/i.test(text);
 
 export function runCodex({ dir, prompt, outPath, timeoutMs, run = execFileSync }) {
   // The real run is a process group: the timeout kills Codex and everything it started (05.11.2026).
@@ -105,7 +107,8 @@ export function runCodex({ dir, prompt, outPath, timeoutMs, run = execFileSync }
     { input: prompt, encoding: 'utf8', timeout: timeoutMs, maxBuffer: 64 * 1024 * 1024 });
   } catch (error) {
     const text = `${error.stdout ?? ''}\n${error.stderr ?? ''}\n${error.message ?? ''}`;
-    return { status: isLimit(text) ? 'limit' : 'error', error: clean(text.trim().split('\n').slice(-5).join(' '), 400) };
+    // #949 r2 (N2): the reset time is read from the whole output before the error is cut short.
+    return { status: isLimit(text) ? 'limit' : 'error', error: clean(text.trim().split('\n').slice(-5).join(' '), 400), untilMs: parseResetAt(text) };
   }
   return { status: 'ok' };
 }
@@ -162,7 +165,7 @@ function readReviewLogs(dir = join(stateDir, 'logs')) {
 // Time kept after Codex for the git check and up to five gh calls (60 s each) that publish the result.
 export const reviewFinalizeReserveMs = 5 * 60000;
 
-function reviewOnce(number, { auto = false, overCap = null, gh: ghIn = makeGh(), run = execFileSync, now = vnNow(), clock = vnNow, readOut, nowMs = Date.now, onCodexStart = () => {} } = {}) {
+function reviewOnce(number, { auto = false, overCap = null, gh: ghIn = makeGh(), run = execFileSync, now = vnNow(), clock = vnNow, readOut, nowMs = Date.now, onCodexStart = () => {}, agentsFile = agentsPath(), epoch = null, writer = {} } = {}) {
   // Scheduled runs: every gh and git call ends by cutoffAt (minus 15 s cleanup); direct runs keep fixed caps.
   const cutoff = cutoffMs(now.date) - 15000;
   const left = auto && Number.isFinite(cutoff) ? () => cutoff - nowMs() : () => Infinity;
@@ -176,6 +179,11 @@ function reviewOnce(number, { auto = false, overCap = null, gh: ghIn = makeGh(),
   if (!isSha(reviewedBase)) return { status: 'refused', reason: `không đọc được SHA hiện tại của ${integration}` };
   // prTurn holds fork/outside PRs; checked here too so a direct call never reviews one.
   if (!isOwnPr(pr)) return { status: 'refused', reason: 'PR không phải của owner hoặc từ fork' };
+  // #949 r1 (C3): Codex is the approver (R1) and never approves its own work. The implementing
+  // agent comes from the PR itself, so the tick, a manual run and the CLI all hit this check.
+  const author = implementerOf(pr);
+  if (!author) return { status: 'refused', reason: `${waitIndependent}: PR không ghi rõ agent thực hiện (dòng "Agent thực hiện" và tên branch phải khớp)` };
+  if (!mayApprove('codex', author)) return { status: 'refused', reason: `${waitIndependent}: PR do ${author} làm, Codex không duyệt việc của chính mình` };
   const turn = prTurn(pr);
   if (turn.turn !== 'codex-review') return { status: 'refused', reason: `lượt hiện tại là ${turn.turn}: ${turn.reason}` };
   const dayPath = dayStatePath(now.date);
@@ -187,8 +195,9 @@ function reviewOnce(number, { auto = false, overCap = null, gh: ghIn = makeGh(),
   if (day.codexRuns >= cap) {
     const words = auto ? '' : overCapWords(overCap);
     if (!words) return { status: 'refused', reason: auto ? `hết ${cap} lượt Codex tự động hôm nay (1 lượt giữ cho soát đêm)` : `hết ${cap} lượt Codex hôm nay (1 lượt giữ cho soát đêm); chạy tay vượt trần cần --over-cap "<lời owner>"` };
-    const cur = readJson(dayPath, day);
-    writeJson(dayPath, { ...cur, overCapLog: [...(cur.overCapLog ?? []), { at: new Date(nowMs()).toISOString(), pr: number, codexRuns: cur.codexRuns ?? 0, quote: words }] });
+    // C2: through the host writer; a busy lock stops the run before Codex is called.
+    const logged = applyOnce(dayPath, `over-cap:${number}:${nowMs()}`, cur => ({ ...cur, overCapLog: [...(cur.overCapLog ?? []), { at: new Date(nowMs()).toISOString(), pr: number, codexRuns: cur.codexRuns ?? 0, quote: words }] }), { ...writer, epoch, fallback: day });
+    if (!['applied', 'duplicate'].includes(logged.status)) return { status: logged.status, reason: 'không ghi được lời owner cho lượt vượt trần' };
   }
 
   const trusted = trustedComments(pr.comments);
@@ -238,10 +247,28 @@ function reviewOnce(number, { auto = false, overCap = null, gh: ghIn = makeGh(),
   // the Git/GitHub cutoff (#243); without that room, it does not start.
   const untilCutoff = Math.min((cutoffAt - startMinute) * 60000, left()) - reviewFinalizeReserveMs;
   if (auto && untilCutoff < 60000) return { status: 'refused', reason: `không đủ thời gian để đăng kết quả trước ${hhmmOf(cutoffAt)}` };
+  // Three-agent dispatch A (28.11): a Codex limit is kept with its reset time, so the tick does
+  // not call Codex again before it; after the reset one probe call is noted.
+  // #949 r1 (C4): the availability check and the probe note are one step under the agents lock.
+  const slot = reserveCall('codex', { path: agentsFile, nowMs: nowMs() });
+  if (!slot.ok) return { status: slot.status, reason: `${waitIndependent}: ${slot.reason}` };
   onCodexStart();
   const result = runCodex({ dir, prompt, outPath, timeoutMs: auto ? Math.min(30 * 60000, untilCutoff) : 30 * 60000, run });
-  if (result.status === 'limit') return { status: 'limit', reason: result.error };
-  writeJson(dayPath, { ...readJson(dayPath, day), codexRuns: (readJson(dayPath, day).codexRuns ?? 0) + 1 });
+  if (result.status === 'limit') { noteCallResult('codex', { limited: true, reason: result.error, untilMs: result.untilMs, path: agentsFile, nowMs: nowMs() }); return { status: 'limit', reason: result.error }; }
+  // #949 r2 (A1): only a run that finished says Codex is back; an error keeps the probe's backoff.
+  noteCallResult('codex', { ok: result.status === 'ok', path: agentsFile, nowMs: nowMs() });
+  // C2: the run is counted through the host writer; its stamp is the key, so a retry never counts
+  // it twice. There is no write around the lock: a busy lock is retried, and a count that still
+  // does not land stops the verdict. A coordinator fenced out of the lease posts nothing; the Codex
+  // run still happened, so it is counted (locked, unfenced: a fact, not a coordinator decision).
+  const bump = d => ({ ...day, ...d, codexRuns: (d.codexRuns ?? 0) + 1 });
+  let counted = { status: 'busy' };
+  for (let i = 0; i < 3 && counted.status === 'busy'; i++) counted = applyOnce(dayPath, `codex-run:${stamp}`, bump, { ...writer, epoch, fallback: day, waitMs: 20000 });
+  if (counted.status === 'fenced') {
+    applyOnce(dayPath, `codex-run:${stamp}`, bump, { ...writer, epoch: null, fallback: day, waitMs: 60000 });
+    return { status: 'fenced', reason: 'mất lease điều phối trong lúc Codex đọc; không đăng verdict' };
+  }
+  if (counted.status === 'busy') throw new Error('Codex run not counted (writer lock busy); verdict not posted.');
   if (result.status !== 'ok') return { status: 'error', reason: result.error };
   // The verdict must describe what Codex actually read.
   if (git(['rev-parse', 'HEAD'], dir, run, left) !== head) throw new Error('Review clone moved while Codex was reading; verdict not posted.');
@@ -295,6 +322,8 @@ function reviewOnce(number, { auto = false, overCap = null, gh: ghIn = makeGh(),
     gh.raw(['pr', 'edit', String(pr.number), '--repo', repo, '--add-label', releaseLabel]);
   }
 
+  // C3 at signing: the identity checked before Codex ran is checked again on the fresh copy.
+  if (implementerOf(after) !== author) return { status: 'refused', reason: `${waitIndependent}: agent thực hiện của PR đổi trong lúc review` };
   const round = trusted.filter(c => c.auto && c.verdict).length + 1;
   // P1-B: the receipt is written before the comment, so every posted verdict has one.
   const receipt = signReceipt({ kind: 'verdict', pr: pr.number, head, base: reviewedBase, result: policy.verdict, p2: policy.fixForward.length });

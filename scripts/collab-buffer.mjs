@@ -5,6 +5,7 @@
 import { join } from 'node:path';
 import { label7w } from './collab-quota.mjs';
 import { integration, isOwnPr, readJson, stateDir, vnNow, writeJson } from './collab-trust.mjs';
+import { admit } from './collab-writer.mjs';
 
 // Owner 16.11.2026 (5-fix package item 5, "tại sao ko chạy song song?"): two lanes run in parallel,
 // the 7-week plan and the process work, each with its own WIP 1 + 1. Where they share the Codex review
@@ -76,9 +77,36 @@ export const renderFlow = day => `Hàng chờ trống hôm nay: ${day?.emptyMinu
 // The one call collab-turn makes for the tick (#253), --status and --report: WIP, top-up and today's flow metric.
 // `actionable` counts PRs the machine can work on now (check, review, merge).
 const laneName = { plan7w: 'Làn kế hoạch 7 tuần', daily: 'Làn Daily (thử 18–19.11)', process: 'Làn quy trình' };
+// #949 r2 (C6): the host gate counts live implementation jobs, not the PR inventory. A PR is a live
+// job while a session holds its claim (collab-pr-claim.mjs: one session per PR, taken under the PR's
+// lock) and the machine does not have its next move. Twenty unclaimed fix PRs are a backlog that the
+// lanes' WIP 1 + 1 already sees; they do not fill the three developer slots.
+export function liveJobs(prs = [], turns = [], claimed = []) {
+  const next = new Map(turns.map(t => [t.number, t.turn]));
+  const held = new Set(claimed.map(Number));
+  const work = prs.filter(agentWork);
+  const reviewing = pr => !pr.isDraft && machine.has(next.get(pr.number));
+  return { inProgress: work.filter(pr => held.has(pr.number) && !reviewing(pr)).length, inReview: work.filter(reviewing).length };
+}
+
+// #949 r1 (C5): one admitted view of the queue for every reader (the tick's saved queue, --status,
+// the lane lines). Host backpressure (collab-writer.mjs admit: 3 in progress, 2 waiting for review)
+// caps what the lanes would open, and nothing opens from lastStartAt on (`late`). `live` is
+// liveJobs(); without it nothing is counted as a live job.
+export function admittedView(queue, { late = false, live = { inProgress: 0, inReview: queue.inReview ?? 0 } } = {}) {
+  const gate = admit(live);
+  const room = late ? 0 : gate.room;
+  const topUpLanes = (queue.topUpLanes ?? []).slice(0, room);
+  const lanesNow = queue.lanes ? Object.fromEntries(Object.entries(queue.lanes).map(([k, c]) => [k, { ...c, topUp: Boolean(c.topUp) && topUpLanes.includes(k) }])) : null;
+  const topUp = Boolean(queue.topUp) && room > 0 && (queue.lanes ? topUpLanes.length > 0 : true);
+  return { ...queue, topUp, topUpCount: topUp ? Math.min(queue.topUpCount ?? 0, room) : 0, topUpLanes, lanes: lanesNow, liveJobs: live.inProgress, backpressure: late ? [...gate.reasons, 'đã qua giờ mở việc mới'] : gate.reasons };
+}
+export const admittedQueue = (prs, turns, { plan7wPrs = [], late = false, claimed = [] } = {}) => admittedView(queueTopUp(wipCount(prs, turns, { plan7wPrs })), { late, live: liveJobs(prs, turns, claimed) });
+
 export function bufferStatus(prs, turns = [], options = {}) {
-  const queue = queueTopUp(wipCount(prs, turns, { plan7wPrs: options.plan7wPrs ?? [] }));
+  const queue = admittedQueue(prs, turns, { plan7wPrs: options.plan7wPrs ?? [], late: options.late ?? false, claimed: options.claimed ?? [] });
   const day = recordFlow(turns.filter(t => machine.has(t.turn)).length, options);
-  const laneLines = lanes.map(lane => { const c = queue.lanes[lane]; return `${laneName[lane]}: đang làm ${c.inProgress}/${wipLimit.inProgress}, chờ review ${c.inReview}/${wipLimit.inReview}; ${c.topUp ? 'có thể mở 1 việc mới' : 'chưa mở việc mới'}.`; });
-  return { queue, day, lines: [...laneLines, renderFlow(day)] };
+  const laneLines = lanes.map(lane => { const c = queue.lanes?.[lane] ?? { inProgress: 0, inReview: 0, topUp: false }; return `${laneName[lane]}: đang làm ${c.inProgress}/${wipLimit.inProgress}, chờ review ${c.inReview}/${wipLimit.inReview}; ${c.topUp ? 'có thể mở 1 việc mới' : 'chưa mở việc mới'}.`; });
+  const gate = queue.backpressure?.length ? [`Máy đang đầy, chưa mở việc mới: ${queue.backpressure.join(', ')}.`] : [];
+  return { queue, day, lines: [...laneLines, ...gate, renderFlow(day)] };
 }

@@ -1,0 +1,209 @@
+// Three-agent dispatch 28.11.2026, parts A and B: availability, one coordinator lease, sole agent.
+import './collab-test-home.mjs';
+import assert from 'node:assert/strict';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import test from 'node:test';
+import { acquireLease, agentOrder, agentStatus, availableAgents, callOutput, coordinatorFor, decideLease, leaseMs, limitOf, markAvailable, markLimited, mayApprove, mayCall, nextAgentState, noteCallResult, noteProbe, parseResetAt, probeEveryMs, readAgents, recordStop, releaseLease, reviewPlan, tickJobId, tickLease, updateAgents, waitIndependent } from './collab-agents.mjs';
+import { readJson } from './collab-trust.mjs';
+
+const T0 = Date.UTC(2026, 10, 28, 3, 0);
+const subsets = [['claude'], ['codex'], ['anti'], ['claude', 'codex'], ['claude', 'anti'], ['codex', 'anti'], ['claude', 'codex', 'anti']];
+const stateFor = set => Object.fromEntries(agentOrder.map(a => [a, set.includes(a) ? { status: 'available' } : { status: 'limited', untilMs: T0 + 3600000 }]));
+const dir = () => mkdtempSync(join(tmpdir(), 'agents-'));
+
+test('agents: the Codex message gives the reset time, read as Vietnam time', () => {
+  const text = 'ERROR: You’ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Dec 4th, 2026 7:35 AM.';
+  assert.equal(new Date(parseResetAt(text)).toISOString(), '2026-12-04T00:35:00.000Z');
+  assert.equal(new Date(parseResetAt('try again at Nov 30th, 2026 11:05 PM')).toISOString(), '2026-11-30T16:05:00.000Z');
+  assert.equal(parseResetAt('rate limit, no time given'), null);
+});
+
+test('agents: all 7 combinations: coordinator order, who approves, a sole agent never approves', () => {
+  for (const set of subsets) {
+    const state = stateFor(set);
+    const available = availableAgents(state, T0);
+    assert.deepEqual(available, set, `available ${set}`);
+    assert.equal(coordinatorFor(available), agentOrder.find(a => set.includes(a)), `coordinator for ${set}`);
+    for (const author of ['claude', 'codex']) {
+      const plan = reviewPlan({ author, available });
+      const expected = set.includes('codex') && author !== 'codex';
+      assert.equal(plan.status, expected ? 'review' : 'wait', `${author} PR with ${set}`);
+      if (expected) assert.equal(plan.approver, 'codex');
+      else assert.equal(plan.reason, waitIndependent);
+      if (set.length === 1) {
+        assert.equal(plan.soleAgent ?? set[0], set[0]);
+        assert.ok(plan.status === 'wait' || plan.approver !== author, 'a sole agent never approves its own work');
+      }
+    }
+    assert.equal(reviewPlan({ author: 'anti', available }).status, set.includes('codex') ? 'review' : 'wait');
+  }
+  assert.equal(mayApprove('codex', 'codex'), false);
+  assert.equal(mayApprove('anti', 'claude'), false, 'Anti is review-only (part F)');
+  assert.equal(mayApprove('claude', 'codex'), false, 'R1: Codex approves');
+  assert.deepEqual(reviewPlan({ author: 'claude', available: ['claude'] }).mayWork, ['claude'], 'alone, Claude may still do, test and push');
+  assert.deepEqual(reviewPlan({ author: 'claude', available: ['anti'] }).mayWork, [], 'Anti alone writes nothing');
+});
+
+test('agents: no probe before the reset; one probe after it; a new limit sets a new reset', () => {
+  const until = T0 + 6 * 24 * 3600000;
+  let s = markLimited({}, 'codex', { reason: 'try again at Dec 4th, 2026 7:35 AM', nowMs: T0 });
+  assert.equal(s.codex.untilMs, parseResetAt('try again at Dec 4th, 2026 7:35 AM'));
+  for (const t of [T0, T0 + 600000, T0 + 24 * 3600000, s.codex.untilMs - 1]) assert.equal(mayCall(s, 'codex', t), false, 'no call before the reset');
+  const after = s.codex.untilMs + 1;
+  assert.equal(agentStatus(s, 'codex', after), 'probe');
+  s = noteProbe(s, 'codex', after);
+  assert.equal(agentStatus(s, 'codex', after + 600000), 'limited', 'one probe, then wait probeEveryMs');
+  assert.equal(agentStatus(s, 'codex', after + probeEveryMs), 'probe');
+  s = markLimited(s, 'codex', { reason: 'usage limit', nowMs: after });
+  assert.equal(s.codex.untilMs, after + probeEveryMs, 'no readable reset: wait one probe interval');
+  s = markAvailable(s, 'codex', after + 2 * probeEveryMs);
+  assert.equal(agentStatus(s, 'codex', after + 2 * probeEveryMs), 'available', 'an agent comes back after its limit');
+  assert.equal(agentStatus({ codex: { status: 'limited', untilMs: until } }, 'codex', T0), 'limited');
+  assert.equal(agentStatus({ anti: { status: 'off' } }, 'anti', T0), 'off');
+});
+
+test('agents: the host file keeps the limit across processes', () => {
+  const path = join(dir(), 'agents.json');
+  updateAgents(s => markLimited(s, 'codex', { reason: 'try again at Dec 4th, 2026 7:35 AM', nowMs: T0 }), { path });
+  assert.equal(mayCall(readAgents({ path }), 'codex', T0 + 3600000), false);
+});
+
+test('lease: first available agent takes it; others wait; renew keeps the epoch', () => {
+  const all = ['claude', 'codex', 'anti'];
+  const a = decideLease({ lease: null, me: 'claude', jobId: 'j1', pid: 11, host: 'h', available: all, nowMs: T0, alive: () => true });
+  assert.equal(a.action, 'acquire');
+  assert.equal(a.lease.epoch, 1);
+  assert.equal(decideLease({ lease: a.lease, me: 'codex', jobId: 'j2', pid: 12, host: 'h', available: all, nowMs: T0, alive: () => true }).action, 'wait');
+  const r = decideLease({ lease: a.lease, me: 'claude', jobId: 'j1', pid: 11, host: 'h', available: all, nowMs: T0 + 60000, alive: () => true });
+  assert.equal(r.action, 'renew');
+  assert.equal(r.lease.epoch, 1);
+  assert.equal(r.lease.expiresAtMs, T0 + 60000 + leaseMs);
+});
+
+test('lease: handover only with proof the old job stopped; expired without proof raises an alert', () => {
+  const lease = decideLease({ lease: null, me: 'claude', jobId: 'j1', pid: 11, host: 'h', available: ['claude', 'codex'], nowMs: T0, alive: () => true }).lease;
+  const later = T0 + 2 * leaseMs;
+  const noProof = decideLease({ lease, me: 'codex', jobId: 'j2', pid: 12, host: 'h', available: ['codex'], nowMs: later, alive: () => true });
+  assert.equal(noProof.action, 'wait');
+  assert.match(noProof.alert, /chưa có bằng chứng/);
+  assert.equal(noProof.lease, null, 'nothing is written');
+  for (const [proof, old] of [['pid-gone', lease], ['released', { ...lease, released: true }], ['stop-record', { ...lease, stops: ['j1'] }]]) {
+    const t = decideLease({ lease: old, me: 'codex', jobId: 'j2', pid: 12, host: 'h', available: ['codex'], nowMs: later, alive: () => proof !== 'pid-gone' });
+    assert.equal(t.action, 'takeover', proof);
+    assert.equal(t.reason, proof);
+    assert.equal(t.lease.epoch, 2, 'every acquire raises the epoch');
+  }
+  const otherHost = decideLease({ lease, me: 'codex', jobId: 'j2', pid: 12, host: 'other', available: ['codex'], nowMs: later, alive: () => false });
+  assert.equal(otherHost.action, 'wait', 'a PID on another host proves nothing');
+});
+
+test('lease: a higher agent back after its limit asks; the holder hands back at its next renew', () => {
+  const held = decideLease({ lease: null, me: 'codex', jobId: 'c1', pid: 21, host: 'h', available: ['codex', 'anti'], nowMs: T0, alive: () => true }).lease;
+  const ask = decideLease({ lease: held, me: 'claude', jobId: 'k1', pid: 22, host: 'h', available: agentOrder, nowMs: T0 + 1000, alive: () => true });
+  assert.equal(ask.action, 'wait');
+  assert.equal(ask.lease.handback, 'claude');
+  const back = decideLease({ lease: ask.lease, me: 'codex', jobId: 'c1', pid: 21, host: 'h', available: agentOrder, nowMs: T0 + 2000, alive: () => true });
+  assert.equal(back.action, 'release');
+  const take = decideLease({ lease: back.lease, me: 'claude', jobId: 'k1', pid: 22, host: 'h', available: agentOrder, nowMs: T0 + 3000, alive: () => true });
+  assert.equal(take.action, 'takeover');
+  assert.equal(take.lease.epoch, 2);
+});
+
+test('lease: the file round trip (acquire, release, stop record) on the host', () => {
+  const path = join(dir(), 'lease.json');
+  assert.equal(acquireLease({ me: 'claude', jobId: 'j1', available: ['claude'], path, nowMs: T0 }).action, 'acquire');
+  assert.equal(acquireLease({ me: 'claude', jobId: 'j1', available: ['claude'], path, nowMs: T0 + 1 }).action, 'renew');
+  assert.equal(releaseLease({ me: 'codex', jobId: 'j1', path }), false, 'only the holder releases');
+  assert.equal(acquireLease({ me: 'codex', jobId: 'j2', available: ['codex'], path, nowMs: T0 + 2 * leaseMs }).action, 'wait', 'this process is alive: no proof');
+  assert.ok(recordStop({ jobId: 'j1', path }));
+  const t = acquireLease({ me: 'codex', jobId: 'j2', available: ['codex'], path, nowMs: T0 + 2 * leaseMs });
+  assert.equal(t.action, 'takeover');
+  assert.equal(readJson(path).holder, 'codex');
+  assert.ok(releaseLease({ me: 'codex', jobId: 'j2', path }));
+  assert.equal(readJson(path).released, true);
+});
+
+test('tick lease (#948 b): every round renews with its own pid; a new coordinator takes over only after the old round ended', () => {
+  const path = join(dir(), 'lease.json');
+  const live = new Set([101]);
+  const alive = pid => live.has(pid);
+  const round = (pid, available, nowMs) => tickLease({ available, nowMs, path, alive, host: 'h', pid });
+  const first = round(101, ['claude', 'codex'], T0);
+  assert.equal(first.action, 'acquire');
+  assert.equal(first.lease.jobId, tickJobId('h'));
+  live.delete(101); live.add(102);
+  const second = round(102, ['claude', 'codex'], T0 + 600000);
+  assert.equal(second.action, 'renew', 'the same job on the next round renews, it does not wait on itself');
+  assert.equal(readJson(path).pid, 102, 'the renew records the running round');
+  assert.equal(readJson(path).epoch, 1);
+  // Claude is limited while round 102 is still running: Codex waits (no proof yet).
+  assert.equal(round(103, ['codex'], T0 + 700000).action, 'wait');
+  live.delete(102);
+  const handover = round(103, ['codex'], T0 + 1200000);
+  assert.equal(handover.action, 'takeover');
+  assert.equal(handover.reason, 'pid-gone');
+  assert.equal(readJson(path).holder, 'codex');
+  assert.equal(readJson(path).epoch, 2);
+  assert.equal(round(104, [], T0 + 1300000).action, 'wait', 'no agent available: nobody coordinates');
+});
+
+test('agents r2 (A1): only a usable answer brings an agent back; a failed probe keeps its backoff; off stays off', () => {
+  const after = T0 + 2 * 3600000;
+  let s = noteProbe(markLimited({}, 'codex', { reason: 'usage limit', nowMs: T0 }), 'codex', after);
+  for (const failure of [{}, { reason: 'network error' }, { reason: 'ETIMEDOUT' }, { ok: false }]) {
+    const next = nextAgentState(s, 'codex', { ...failure, nowMs: after + 1000 });
+    assert.deepEqual(next, s, 'a failure that is not a limit leaves the state');
+    assert.equal(agentStatus(next, 'codex', after + 600000), 'limited', 'the probe hour still holds');
+  }
+  assert.equal(agentStatus(nextAgentState(s, 'codex', { ok: true, nowMs: after + 1000 }), 'codex', after + 1000), 'available');
+  const off = { anti: { status: 'off' } };
+  assert.deepEqual(nextAgentState(off, 'anti', { ok: true, nowMs: T0 }), off, 'an agent switched off is never re-enabled');
+  // Through the host file, as the callers write it.
+  const path = join(dir(), 'agents.json');
+  updateAgents(() => s, { path });
+  noteCallResult('codex', { reason: 'connect ECONNREFUSED', path, nowMs: after + 1000 });
+  assert.equal(agentStatus(readAgents({ path }), 'codex', after + 600000), 'limited');
+  noteCallResult('codex', { ok: true, path, nowMs: after + 2000 });
+  assert.equal(agentStatus(readAgents({ path }), 'codex', after + 2000), 'available');
+});
+
+test('agents r2 (A2): a fresh short reset is not held by the previous probe hour', () => {
+  let s = markLimited({}, 'codex', { reason: 'usage limit', nowMs: T0 });
+  s = noteProbe(s, 'codex', T0 + probeEveryMs + 1);
+  const t = T0 + probeEveryMs + 2;
+  s = markLimited(s, 'codex', { reason: 'limit', untilMs: t + 5 * 60000, nowMs: t });
+  assert.equal(s.codex.probedAtMs, null, 'a new limit generation');
+  assert.equal(agentStatus(s, 'codex', t + 5 * 60000 - 1), 'limited');
+  assert.equal(agentStatus(s, 'codex', t + 5 * 60000 + 1), 'probe', 'one probe right after the new 5-minute reset');
+});
+
+test('agents r2 (N2): the reset is read from stderr even when the message says nothing', () => {
+  const error = Object.assign(new Error('Command failed'), { stdout: '', stderr: 'ERROR: usage limit; try again at Dec 4th, 2026 7:35 AM' });
+  const isLimit = text => /usage limit/i.test(text);
+  assert.match(callOutput(error), /Dec 4th/);
+  const seen = limitOf(error, isLimit);
+  assert.equal(seen.limited, true);
+  assert.equal(new Date(seen.untilMs).toISOString(), '2026-12-04T00:35:00.000Z');
+  assert.equal(seen.reason, 'Command failed', 'the stored reason stays short');
+  const path = join(dir(), 'agents.json');
+  noteCallResult('codex', { ...seen, path, nowMs: T0 });
+  assert.equal(readAgents({ path }).codex.until, '2026-12-04T00:35:00.000Z', 'not one hour from now');
+  assert.deepEqual(limitOf(new Error('boom'), isLimit).limited, false);
+});
+
+test('lease r2 (A3): an expired lower holder asked to hand back still raises the alert; nobody takes over', () => {
+  const held = decideLease({ lease: null, me: 'codex', jobId: 'c1', pid: 21, host: 'h', available: ['codex', 'anti'], nowMs: T0, alive: () => true }).lease;
+  const late = T0 + leaseMs + 60000;
+  const ask = decideLease({ lease: held, me: 'claude', jobId: 'k1', pid: 22, host: 'h', available: agentOrder, nowMs: late, alive: () => true });
+  assert.equal(ask.action, 'wait');
+  assert.equal(ask.lease.handback, 'claude', 'the handback request is kept');
+  assert.match(ask.alert, /đã hết hạn nhưng chưa có bằng chứng/);
+  const again = decideLease({ lease: ask.lease, me: 'claude', jobId: 'k1', pid: 22, host: 'h', available: agentOrder, nowMs: late + 600000, alive: () => true });
+  assert.equal(again.action, 'wait');
+  assert.equal(again.lease, null);
+  assert.match(again.alert, /đã hết hạn/, 'every round while it stays expired');
+  const fresh = decideLease({ lease: held, me: 'claude', jobId: 'k1', pid: 22, host: 'h', available: agentOrder, nowMs: T0 + 1000, alive: () => true });
+  assert.equal(fresh.alert, undefined, 'no alert before the lease expires');
+});

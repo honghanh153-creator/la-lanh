@@ -4,7 +4,7 @@ import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { bufferStatus, flowPath, queueTopUp, readyBuffer, recordFlow, renderFlow, wipCount, wipLimit } from './collab-buffer.mjs';
+import { admittedQueue, bufferStatus, flowPath, liveJobs, queueTopUp, readyBuffer, recordFlow, renderFlow, wipCount, wipLimit } from './collab-buffer.mjs';
 
 const pr = (n, extra = {}) => ({ number: n, author: { login: 'honghanh153-creator' }, isCrossRepository: false, baseRefName: 'collab/integration', headRefName: `agent/claude/t${n}`, isDraft: false, labels: [], ...extra });
 
@@ -93,4 +93,38 @@ test('trial 18–19.11 (owner 17.11): a daily-lane PR runs in its own lane, afte
   const count = wipCount([pr(41, { labels: daily }), pr(42, { labels: [{ name: 'ke-hoach-7-tuan' }, { name: 'daily-lane' }] })], [{ number: 41, turn: 'claude-fix' }, { number: 42, turn: 'codex-review' }]);
   assert.deepEqual(count.lanes, { plan7w: { inProgress: 0, inReview: 1 }, daily: { inProgress: 1, inReview: 0 }, process: { inProgress: 0, inReview: 0 } }, 'the 7-week label wins over daily');
   assert.deepEqual(queueTopUp(count).topUpLanes, ['plan7w', 'process'], 'the Daily lane is busy; the others may start');
+});
+
+// #949 r1 (C5): --status and --report show the admitted view the tick uses: lanes never say
+// "có thể mở" past the host limits, and the reason is one plain line.
+test('bufferStatus shows the admitted lanes and why the host opens nothing', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'flow-'));
+  const nowMs = Date.parse('2026-11-05T03:00:00Z');
+  const late = bufferStatus([pr(1)], [{ number: 1, turn: 'claude-fix' }], { dir, nowMs, late: true });
+  assert.deepEqual([late.queue.topUp, late.queue.topUpCount, late.queue.topUpLanes], [false, 0, []]);
+  assert.ok(late.lines.slice(0, 3).every(l => /chưa mở việc mới\.$/.test(l)), 'no lane opens after lastStartAt');
+  assert.ok(late.lines.some(l => /^Máy đang đầy, chưa mở việc mới: .*đã qua giờ mở việc mới/.test(l)));
+  const full = bufferStatus([pr(1), pr(2)], [{ number: 1, turn: 'codex-review' }, { number: 2, turn: 'codex-review' }], { dir, nowMs });
+  assert.equal(full.queue.topUp, false);
+  assert.ok(full.lines.some(l => /^Máy đang đầy, chưa mở việc mới: .*chờ review 2\/2/.test(l)));
+});
+
+// #949 r2 (C6): host backpressure counts live jobs (a claimed PR not in machine review), not every
+// open PR. A large unclaimed backlog with idle workers must still let the empty plan lane open.
+test('C6: a big unclaimed backlog does not fill the host gate; claimed PRs do', () => {
+  const daily = Array.from({ length: 6 }, (_, i) => pr(100 + i, { labels: [{ name: 'daily-lane' }] }));
+  const proc = Array.from({ length: 14 }, (_, i) => pr(200 + i));
+  const prs = [...daily, ...proc];
+  const turns = prs.map(p => ({ number: p.number, turn: 'claude-fix' }));
+  assert.deepEqual(liveJobs(prs, turns, []), { inProgress: 0, inReview: 0 });
+  const idle = admittedQueue(prs, turns, { claimed: [] });
+  assert.equal(idle.lanes.plan7w.topUp, true, 'plan lane is empty: it may open one');
+  assert.deepEqual(idle.backpressure, [], 'no live job: no host backpressure');
+  assert.equal(idle.liveJobs, 0);
+  const busy = admittedQueue(prs, turns, { claimed: ['100', '200', '201'] });
+  assert.equal(busy.liveJobs, 3, 'claimed PRs count as live jobs');
+  assert.equal(busy.topUp, false, '3 live jobs fill the host gate');
+  assert.ok(busy.backpressure.length > 0);
+  const reviewing = liveJobs(prs, prs.map(p => ({ number: p.number, turn: p.number === 100 ? 'codex-review' : 'claude-fix' })), ['100']);
+  assert.deepEqual(reviewing, { inProgress: 0, inReview: 1 }, 'a claimed PR in machine review counts once, as review');
 });
