@@ -11,7 +11,7 @@
  },
  "caller": {
   "file": "scripts/collab-anti-job.mjs",
-  "contains": "const applied = applyPatch({ root: job.dir, patch: checked.patch, scope: job.scope, home"
+  "contains": "const applied = applyPatch({ root: job.dir, patch: checked.text, scope: job.scope, home"
  },
  "closedBy": {
   "pr": 955

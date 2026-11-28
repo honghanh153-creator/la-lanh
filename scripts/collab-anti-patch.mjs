@@ -85,7 +85,8 @@ export function inScope(p, scope = []) {
 }
 
 function argReasons(name, args, at) {
-  const want = readTools[name];
+  // Own keys only (Anti r1 on #955): `constructor`/`toString` must be an unknown tool, not a crash.
+  const want = typeof name === 'string' && Object.hasOwn(readTools, name) ? readTools[name] : null;
   if (!want) return [`dòng ${at}: công cụ lạ ${clean(name, 40)}`];
   if (!isPlain(args)) return [`dòng ${at}: args phải là object`];
   const extra = Object.keys(args).filter(k => !want.includes(k));
@@ -109,7 +110,7 @@ export function parseEvents(text) {
     let e;
     try { e = JSON.parse(line); } catch { reasons.push(`dòng ${at}: không phải JSON`); return; }
     if (!isPlain(e)) { reasons.push(`dòng ${at}: không phải object`); return; }
-    const fields = eventFields[e.type];
+    const fields = typeof e.type === 'string' && Object.hasOwn(eventFields, e.type) ? eventFields[e.type] : null;
     if (!fields) { reasons.push(`dòng ${at}: loại sự kiện lạ ${clean(e.type, 40)}`); return; }
     const extra = Object.keys(e).filter(k => !fields.includes(k));
     if (extra.length) { reasons.push(`dòng ${at}: trường lạ ${clean(extra.join(','), 60)}`); return; }
@@ -198,7 +199,8 @@ function onDisk(base, path) {
   return lstatSync(dir).isFile() ? null : 'không phải file thường';
 }
 
-const count = (hay, needle) => { let n = 0; let i = hay.indexOf(needle); while (i !== -1) { n++; i = hay.indexOf(needle, i + needle.length); } return n; };
+// An empty needle never counts (Anti r1 on #955: it used to loop forever).
+const count = (hay, needle) => { if (!needle) return 0; let n = 0; let i = hay.indexOf(needle); while (i !== -1) { n++; i = hay.indexOf(needle, i + needle.length); } return n; };
 const sha256 = buf => createHash('sha256').update(buf).digest('hex');
 export const fsIo = { readFileSync, writeFileSync, renameSync, unlinkSync };
 const strict = new TextDecoder('utf-8', { fatal: true });
@@ -207,7 +209,9 @@ const strict = new TextDecoder('utf-8', { fatal: true });
 // `invalid`: a failure part way could not be undone; the caller must never use this checkout again.
 export function applyPatch({ root, patch, scope = [], home = stateDir, io = fsIo }) {
   if (!isFixtureRoot(root) && !isJobRoot(root, home)) return { ok: false, written: [], reasons: ['Anti chỉ review: máy chỉ áp patch trong fixture tạm hoặc worktree việc Anti do máy tạo'] };
-  const parsed = typeof patch === 'string' ? parsePatch(patch) : patch;
+  // Text only (Anti r1 on #955): a pre-parsed object skipped the FIND, path and size checks.
+  if (typeof patch !== 'string') return { ok: false, written: [], reasons: ['patch phải là văn bản'] };
+  const parsed = parsePatch(patch);
   if (!parsed?.ok) return { ok: false, written: [], reasons: parsed?.reasons ?? ['patch không hợp lệ'] };
   if (!scope.length) return { ok: false, written: [], reasons: ['chưa có phạm vi file'] };
   const base = realpathSync(root);
@@ -266,15 +270,16 @@ export function applyPatch({ root, patch, scope = [], home = stateDir, io = fsIo
 
 // Private markers that must never reach Anti, by kind. The matched text is never echoed.
 const privateKinds = [
-  ['đường dẫn máy riêng', text => [homedir(), stateDir].filter(p => p && p.length > 1).some(p => text.includes(p)) || /\/Users\/[A-Za-z0-9._-]+\//.test(text)],
-  ['file riêng của agent', text => /~\/\.claude\b|\.claude\/projects\/|\.cache\/la-lanh-collab|side-session-notes/.test(text)],
+  ['đường dẫn máy riêng', text => [homedir(), stateDir].filter(p => p && p.length > 1).some(p => text.includes(p)) || /\/Users\/[A-Za-z0-9._-]+\/|\/home\/[A-Za-z0-9._-]+\/|[A-Za-z]:\\Users\\[^\\\s]+/i.test(text)],
+  ['file riêng của agent', text => /~\/\.(claude|codex|gemini)\b|\.claude\/projects\/|\.codex\/(sessions|auth)|\.gemini\/|\.cache\/la-lanh-collab|side-session-notes/.test(text)],
   ['email', text => [...text.matchAll(/[A-Za-z0-9._%+-]+@([A-Za-z0-9-]+\.)+[A-Za-z]{2,}/g)].some(m => !/^noreply@anthropic\.com$|@(example\.(com|org|net)|[A-Za-z0-9.-]+\.(test|invalid))$/i.test(m[0]))],
-  ['chuỗi giống secret', text => /\b(sk-[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{20,}|AKIA[0-9A-Z]{16})\b|-----BEGIN [A-Z ]*PRIVATE KEY-----/.test(text)],
+  ['chuỗi giống secret', text => /\b(sk-[A-Za-z0-9_-]{20,}|gh[pousr]_[A-Za-z0-9]{30,}|AIza[0-9A-Za-z_-]{35}|xox[abprs]-[A-Za-z0-9-]{10,}|github_pat_[A-Za-z0-9_]{20,}|AKIA[0-9A-Z]{16})\b|-----BEGIN [A-Z ]*PRIVATE KEY-----/.test(text)],
+  ['URL có mật khẩu', text => /\b[a-z][a-z0-9+.-]*:\/\/[^\s/:@]+:[^\s/@]+@/i.test(text)],
 ];
 export const privateReasons = (text, shown) => privateKinds.filter(([, hit]) => hit(String(text ?? ''))).map(([kind]) => `${shown}: có ${kind}`);
 
 // items: [{ path, text }]; tracked: Set of `git ls-files` paths. Returns { ok, reasons }.
-export function publicPayload(items, { tracked }) {
+export function publicPayload(items, { tracked } = {}) {
   const reasons = [];
   for (const it of items ?? []) {
     const bad = pathReasons(it?.path);

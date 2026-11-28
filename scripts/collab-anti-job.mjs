@@ -57,7 +57,8 @@ export function checkAnswer(answer, shown) {
   const patch = parsePatch(patches[0].text);
   if (!patch.ok) return { ok: false, reasons: patch.reasons };
   const unseen = patch.files.filter(f => !shown.includes(f.path)).map(f => `${clean(f.path, 80)}: Anti không được xem file này`);
-  return unseen.length ? { ok: false, reasons: unseen } : { ok: true, patch, reasons: [] };
+  // `text` goes to applyPatch, which parses and checks it again on its own.
+  return unseen.length ? { ok: false, reasons: unseen } : { ok: true, patch, text: patches[0].text, reasons: [] };
 }
 
 // A directory scope is allowed; the snapshot then refuses it whole if it holds a protected file.
@@ -121,7 +122,7 @@ export function stepJob({ transport, home = stateDir, nowMs = Date.now(), git = 
   if (!checked.ok) return drop(checked.reasons);
   const pre = preflight({ dir: job.dir, branch: job.branch, profile: 'anti', path: '/usr/bin:/bin', git: args => git(args, { cwd: job.dir }).trim() });
   if (pre.status !== 'PASS') return drop(pre.reasons.map(r => `preflight: ${r}`));
-  const applied = applyPatch({ root: job.dir, patch: checked.patch, scope: job.scope, home, ...(io ? { io } : {}) });
+  const applied = applyPatch({ root: job.dir, patch: checked.text, scope: job.scope, home, ...(io ? { io } : {}) });
   if (applied.invalid) return save('invalid', { reasons: applied.reasons });
   if (!applied.ok) return drop(applied.reasons);
   try {

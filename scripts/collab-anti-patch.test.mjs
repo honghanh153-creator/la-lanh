@@ -286,3 +286,44 @@ test('anti: the host builds the snapshot from its own index; anything odd refuse
   }
   assert.equal(buildSnapshot({ root: join(root, 'docs'), allow: ['docs/'] }).ok, false, 'only the checkout root');
 });
+
+test('anti: names from Object.prototype are unknown, never a crash (Anti r1 on #955)', () => {
+  for (const name of ['constructor', 'toString', '__proto__', 'hasOwnProperty']) {
+    const a = parseEvents(JSON.stringify({ type: name, text: 'x' }));
+    assert.equal(a.ok, false); assert.match(a.reasons.join(' '), /loại sự kiện lạ/);
+    const b = parseEvents(JSON.stringify({ type: 'tool_call', name, args: { path: 'a.txt' } }));
+    assert.equal(b.ok, false); assert.match(b.reasons.join(' '), /công cụ lạ/);
+  }
+  assert.equal(parseEvents(JSON.stringify({ type: 'tool_call', name: 7, args: {} })).ok, false);
+  assert.deepEqual(publicPayload([]), { ok: false, reasons: ['không có gì để gửi'] }, 'no options object is fine');
+});
+
+test('anti: applyPatch takes only patch text, so an empty FIND can never spin (Anti r1 on #955)', () => {
+  const root = fixture({ 'scripts/a.mjs': 'old\n' });
+  const t0 = Date.now();
+  const r = applyPatch({ root, patch: { ok: true, files: [{ path: 'scripts/a.mjs', edits: [{ find: '', replace: 'x' }] }], reasons: [] }, scope: ['scripts/'] });
+  assert.equal(r.ok, false); assert.deepEqual(r.reasons, ['patch phải là văn bản']);
+  assert.ok(Date.now() - t0 < 500, 'returns at once');
+  assert.equal(readFileSync(join(root, 'scripts/a.mjs'), 'utf8'), 'old\n');
+  const empty = parsePatch(`*** Edit: scripts/a.mjs\n${block('', 'x')}`);
+  assert.equal(empty.ok, false); assert.match(empty.reasons.join(' '), /FIND rỗng/);
+});
+
+test('anti: more private markers stay on the machine (Anti r1 on #955)', () => {
+  const tracked = new Set(['a.txt']);
+  const cases = [
+    ['/home/someone/notes', /đường dẫn máy riêng/],
+    ['C:\\Users\\someone\\notes', /đường dẫn máy riêng/],
+    ['~/.codex/auth.json', /file riêng của agent/],
+    ['~/.gemini/settings', /file riêng của agent/],
+    [`AIza${'A'.repeat(35)}`, /chuỗi giống secret/],
+    [`gho_${'a'.repeat(30)}`, /chuỗi giống secret/],
+    ['https://user:secret@example.org/x', /URL có mật khẩu/],
+  ];
+  for (const [text, why] of cases) {
+    const r = publicPayload([{ path: 'a.txt', text }], { tracked });
+    assert.equal(r.ok, false, text.slice(0, 12)); assert.match(r.reasons.join(' '), why);
+    assert.ok(!r.reasons.join(' ').includes(text), 'never echoes the match');
+  }
+  assert.equal(publicPayload([{ path: 'a.txt', text: 'https://example.org/x and /usr/bin/git' }], { tracked }).ok, true);
+});
