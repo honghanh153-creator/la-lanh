@@ -58,7 +58,7 @@ diff rỗng).
 | Cờ đổi | AE1: `LA_LANH_KEEP_ACTION_ALL_PROFILES=true` (chỉ production; staging để tắt). Lịch chủ đề chống lặp và Lá pixel vẫn tắt |
 | PR | #953: ứng viên `a3a12222` merge với `main`; 71 PR kể từ ứng viên 20.11 (`059d3c35`) |
 | Quay lại | `la-lanh:42b678c13a93` (cùng schema). Chỉ tắt AE1: đặt cờ thành `false` |
-| Biên nhận | [production-release-2026-11-28](../reviews/production-release-2026-11-28/receipt.md) (trong #961, chưa merge lúc ghi) |
+| Biên nhận | [production-release-2026-11-28](../reviews/production-release-2026-11-28/receipt.md) (#961) |
 
 Người dùng sẽ thấy:
 - Người chỉ có ngày sinh hoặc giờ sinh ước chừng cũng giữ được việc nhỏ của Note hôm nay (#740). Home hiện việc đang
@@ -73,6 +73,7 @@ Người dùng sẽ thấy:
 
 Kiểm: `smoke.sh` đạt; `qa-public-smoke` 9/9; kiểm nút giữ trên production với người chỉ có ngày sinh đạt; ảnh 360 và
 390 px đạt (ảnh nằm trên máy owner); journey 22/22. Claude review: được phát hành, có việc sửa tiếp, không có P0/P1.
+Codex review (tối 28.11, owner cho "BR1"): được phát hành, có việc sửa tiếp, không có P0/P1; việc sửa ghi ở #964.
 Codex review: chờ lượt.
 
 ### 21.11.2026 — bản vá `42b678c13a93`
