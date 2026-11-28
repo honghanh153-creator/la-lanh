@@ -165,7 +165,7 @@ Chọn **composite numeric field DD/MM/YYYY** thay cho native date picker làm U
 
 | Field/control | Loại | Default | Validation/hành vi |
 |---|---|---|---|
-| Format | Segmented control | Story 9:16 | `story` hoặc `square`; đổi format rerender cùng content snapshot. |
+| Format | Segmented control | Khung dọc | `story` hoặc `square`; đổi format rerender cùng content snapshot. |
 | Card preview | Image preview | Ẩn tên và ngày sinh | Gồm 4 phần: Kiểu người, Điểm mạnh, Điểm dễ mệt, Lời nhắn; watermark nhỏ. |
 | Hiện tên | Toggle | OFF | Chỉ hiển thị nếu profile có `display_name`; nếu chưa có tên thì ẩn toàn bộ row, không hỏi thêm trong onboarding. |
 | Ngày sinh trên card | Không có control | Luôn OFF | MVP không cho hiển thị ngày sinh trên share artifact. |

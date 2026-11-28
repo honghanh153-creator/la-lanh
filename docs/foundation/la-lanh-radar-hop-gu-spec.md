@@ -31,14 +31,14 @@ Không được tự động chuyển từ mode này sang mode kia. CTA chính l
 | `/radar/continue` | Pair consent | B consent riêng và chạy hai chart | Derived pair result |
 | `/radar/receipt` | Kết quả phía người nhận | B mở lại trong 30 ngày (bằng hạn kết quả) hoặc rút chart khỏi kết quả | HttpOnly receipt-bound read/withdraw |
 
-Ba bước `Bắt đầu → Thông tin → Bản đọc` phải xuất hiện nhất quán trên flow chính và flow lời mời. Màn kết quả không được là ngõ cụt: owner luôn có đường `Check thêm một người`, `Xem các lần check` và điều hướng chính; recipient mở lại bằng receipt trên đúng thiết bị trong 30 ngày (bằng hạn kết quả), có thể rút chart và luôn có đường về Radar. Kết quả hết hạn/đã xóa phải hiển thị terminal state có CTA quay lại thay vì một trang trống.
+Ba bước `Bắt đầu → Thông tin → Bản đọc` phải xuất hiện nhất quán trên flow chính và flow lời mời. Màn kết quả không được là ngõ cụt: owner luôn có đường `Xem thêm một người`, `Xem lại kết quả cũ` (trước 20/11/2026: `Check thêm một người`, `Xem các lần check`) và điều hướng chính; recipient mở lại bằng receipt trên đúng thiết bị trong 30 ngày (bằng hạn kết quả), có thể rút chart và luôn có đường về Radar. Kết quả hết hạn/đã xóa phải hiển thị terminal state có CTA quay lại thay vì một trang trống.
 
 ## 4. Primary user flow
 
 ```mermaid
 flowchart TD
   A["Tap Hợp gu"] --> B["Intro Radar"]
-  B --> C["Check kín một người"]
+  B --> C["Xem hợp gu với một người"]
   C --> D{"Chart A đủ ngày + giờ + nơi sinh?"}
   D -->|Không| E["Hoàn thiện chart A"] --> C
   D -->|Có| F["Nickname + loại quan hệ"]
