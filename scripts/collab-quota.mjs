@@ -44,6 +44,13 @@ export function uiHold({ path = uiApprovalPath() } = {}) {
   return !/^approved/i.test(String(s.status ?? ''));
 }
 export const mergedBase = 'collab/integration';
+// BT1 step 0 (owner 28.11.2026, 3-agent coordination): while `drainAt` or more PRs are open, the plan
+// holds only work already in progress (units with an open PR) plus incidents and safety issues. No
+// issue-only unit starts, so the open queue drains before new work opens.
+export const drainAt = 15;
+export const drainState = prs => { const open = Array.isArray(prs) ? prs.length : 0; return { on: open >= drainAt, open, at: drainAt }; };
+export const drainReason = d => `đang dọn PR mở (${d.open} ≥ ${d.at})`;
+const drainExempt = labels => { const n = names(labels); return serious(labels) || n.includes('incident') || n.includes('safety'); };
 // The criteria a PR claims, ranges included ("#714 AC1–AC5" names AC1 to AC5).
 export function claimedIds(body) {
   const ids = new Set(claimedCriteria(body));
@@ -108,6 +115,7 @@ export function quotaIssues(gh, { hold = uiHold(), readMerged = true, limit = me
 // Issue-only units (7-week task issues with criteria, no open PR, not needs-owner) come after PRs;
 // one with a `startBlock` (part D) is listed as not ready, with the reason, so it is never picked.
 export function workUnits({ turns, prs, issues }) {
+  const drain = drainState(prs);
   const prLabels = new Map((prs ?? []).map(p => [p.number, names(p.labels)]));
   const issueBy = new Map((issues ?? []).map(i => [i.number, i]));
   const units = new Map();
@@ -127,7 +135,7 @@ export function workUnits({ turns, prs, issues }) {
     const n = names(i.labels);
     if (named.has(i.number) || n.includes('needs-owner') || !issueCriteria(i.body).length) continue;
     if (!n.includes(label7w) && !serious(i.labels)) continue;
-    const block = i.startBlock ?? null;
+    const block = i.startBlock ?? (drain.on && !drainExempt(i.labels) ? drainReason(drain) : null);
     out.push({ key: `item:${i.number}`, item: i.number, prs: [], turns: [], plan7w: n.includes(label7w), incident: serious(i.labels), area: 'feature', title: i.title, ready: !block, start: !block, ...(block ? { skip: block } : {}) });
   }
   return out;
@@ -198,15 +206,16 @@ export const skipNote = units => {
   const shown = skipped.slice(0, 5).map(u => `#${u.item} (${u.skip})`).join(', ');
   return ` Không mở việc mới: ${shown}${skipped.length > 5 ? ` và ${skipped.length - 5} việc khác` : ''}.`;
 };
-export function dayList({ units, comments, date }) {
+export function dayList({ units, comments, date, drain = null }) {
   const prep = prepRefs(comments, date);
   const skipped = skipNote(units);
+  const d = drain ? { drain } : {};
   if (prep) {
     const c = checkPrep(prep.refs, units);
-    if (c.ok) return { source: 'prep', note: `Theo danh sách chuẩn bị buổi sáng.${skipped}`, ...c };
-    return { source: 'machine', note: `Máy chọn lại vì danh sách buổi sáng chưa đạt: ${c.reasons.join('; ')}.${skipped}`, ...pickPlan(units) };
+    if (c.ok) return { source: 'prep', note: `Theo danh sách chuẩn bị buổi sáng.${skipped}`, ...c, ...d };
+    return { source: 'machine', note: `Máy chọn lại vì danh sách buổi sáng chưa đạt: ${c.reasons.join('; ')}.${skipped}`, ...pickPlan(units), ...d };
   }
-  return { source: 'machine', note: `Chưa có danh sách buổi sáng; máy chọn theo cùng luật.${skipped}`, ...pickPlan(units) };
+  return { source: 'machine', note: `Chưa có danh sách buổi sáng; máy chọn theo cùng luật.${skipped}`, ...pickPlan(units), ...d };
 }
 
 // What is recorded in the day state (L11: fixed at plan time).

@@ -86,6 +86,8 @@ export function renderPlan(now, turns, { codexLeft, cap = codexDailyCap, gap = n
     `   - Người dùng thấy gì: ${clean(t.userSees ?? 'chưa ghi', 160)}`,
   ].join('\n'));
   const have7w = list ? list.items.filter(u => u.plan7w).length : 0;
+  // BT1 step 0: while the open queue drains, the plan says so and never asks for new backlog work.
+  const drain = list?.drain?.on ? list.drain : null;
   const quota = !list ? [] : [
     list.note,
     list.unknown ? '**Kế hoạch 7 tuần:** chưa xác định được (không đọc được nhãn), cần xem lại.'
@@ -106,9 +108,10 @@ export function renderPlan(now, turns, { codexLeft, cap = codexDailyCap, gap = n
     ...(health.length ? ['', '**Tác vụ hẹn giờ:**', ...health] : []),
     '',
     ...quota,
+    ...(drain ? [`**Đang dọn PR mở:** ${drain.open} PR (từ ${drain.at} trở lên). Hôm nay không mở việc mới; chỉ làm việc đang dở, sự cố và an toàn.`, ''] : []),
     `**Việc chọn hôm nay (${planMin}–${planMax} việc):**`,
     ...(items.length ? items : ['Chưa có việc nào sẵn sàng.']),
-    ...(short > 0 ? [`Còn thiếu ${short} việc so với mức ${planMin}: Claude chọn tiếp từ backlog \`auto: yes\` khi có chỗ (mỗi lúc 1 việc đang làm + 1 việc đang review), và ghi nguồn / AC cùng dòng "Người dùng thấy gì" vào issue này.`] : []),
+    ...(short > 0 && !drain ? [`Còn thiếu ${short} việc so với mức ${planMin}: Claude chọn tiếp từ backlog \`auto: yes\` khi có chỗ (mỗi lúc 1 việc đang làm + 1 việc đang review), và ghi nguồn / AC cùng dòng "Người dùng thấy gì" vào issue này.`] : []),
     ...copyLines(committed),
     'Tiến độ hôm nay = việc xong / việc đã chọn (xong là đã merge vào integration). PR khác trong bảng làm nếu kịp.',
     '',
@@ -116,7 +119,8 @@ export function renderPlan(now, turns, { codexLeft, cap = codexDailyCap, gap = n
     '|---|---|---|---|---|',
     ...(rows.length ? rows : ['| — | — | — | Không có PR mở | — |']),
     '',
-    'Khi hàng đợi review trống, Claude làm tiếp việc `auto: yes` trong backlog theo cùng thứ tự ưu tiên.',
+    drain ? 'Khi hàng đợi review trống, Claude sửa tiếp PR đang mở, không mở việc mới cho tới khi còn dưới ' + drain.at + ' PR.'
+      : 'Khi hàng đợi review trống, Claude làm tiếp việc `auto: yes` trong backlog theo cùng thứ tự ưu tiên.',
     '',
     'Plan này chạy ngay khi đăng, không cần chị duyệt. Muốn dừng hay bỏ việc thì trả lời bằng một comment mới, bất cứ lúc nào trong ngày:',
     '- chữ `Giữ` để dừng chạy tự động hôm nay;',
