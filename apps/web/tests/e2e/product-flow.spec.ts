@@ -160,7 +160,7 @@ test("guest can reveal, save mood, and create a share card", async ({ page }) =>
   await page.getByRole("textbox", { name: "Ngày" }).fill("01");
   await page.getByRole("textbox", { name: "Tháng" }).fill("01");
   await page.getByRole("textbox", { name: "Năm" }).fill("1990");
-  await page.getByRole("button", { name: "Khớp tín hiệu" }).click();
+  await page.getByRole("button", { name: "Tiếp tục" }).click();
 
   await expect(page.getByRole("heading", { name: "Mềm", exact: true })).toBeVisible();
   await expect(page.getByText("Mặt Trời Ma Kết", { exact: false })).toBeVisible();
@@ -215,7 +215,7 @@ test("under-18 birth date is stopped before any personal data is sent", async ({
   await page.getByRole("textbox", { name: "Ngày" }).fill("01");
   await page.getByRole("textbox", { name: "Tháng" }).fill("01");
   await page.getByRole("textbox", { name: "Năm" }).fill("2020");
-  await page.getByRole("button", { name: "Khớp tín hiệu" }).click();
+  await page.getByRole("button", { name: "Tiếp tục" }).click();
 
   await expect(page.getByRole("alert")).toContainText("từ 18 tuổi");
   expect(birthProfileRequests).toBe(0);

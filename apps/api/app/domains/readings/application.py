@@ -76,6 +76,7 @@ from app.domains.readings.rewrite import (
     compile_daily_rewrite_request,
     compile_reading_rewrite_request,
 )
+from app.domains.readings.student_support import alone_action_projection, common_line_for
 from app.domains.readings.voice import ReadingVoice, voice_from_baseline
 
 logger = logging.getLogger(__name__)
@@ -1136,7 +1137,28 @@ def _content_projection(
             if projection.purpose is ReadingPurpose.DAILY_NOTE
             else {}
         ),
+        # #703: a no-contact action next to an action that asks to reach someone, and the
+        # "others meet this too" line. Picked by the card's issue only, never by the reader.
+        alone_action=(
+            alone_action_projection(
+                revision.id,
+                keepable=experiment is not None,
+                mechanism_key=_mechanism_key(candidate),
+                card_action=candidate.micro_action,
+            )
+            if projection.purpose is ReadingPurpose.DAILY_NOTE
+            else None
+        ),
+        common_line=(
+            common_line_for(revision.id, _mechanism_key(candidate))
+            if projection.purpose is ReadingPurpose.DAILY_NOTE
+            else None
+        ),
     )
+
+
+def _mechanism_key(candidate: ReadingCandidate) -> str | None:
+    return candidate.semantic_blueprint.mechanism_key if candidate.semantic_blueprint else None
 
 
 def _voiced_content(

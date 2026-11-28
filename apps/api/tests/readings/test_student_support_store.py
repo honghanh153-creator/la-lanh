@@ -43,6 +43,8 @@ from app.domains.readings.student_support import (
     COMMON_LINE_ISSUES,
     COMMON_LINE_PREFIX,
     alone_action_for,
+    alone_action_projection,
+    alone_offer_for,
     alone_slots,
     alone_store_gaps,
     common_line_for,
@@ -184,6 +186,47 @@ def test_alone_action_is_the_issue_sentence_once_approved(
         assert served == ALONE[f"{ALONE_PREFIX}{issue}.01"].text
     assert alone_action_for(REVISION, None) is None
     assert alone_action_for(REVISION, "transit:any") is None
+
+
+def test_alone_action_is_offered_only_next_to_a_contact_action(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """AC1. The offer names which of the card's actions ask to reach someone."""
+
+    _approve(monkeypatch, ALONE)
+    key = "psychology:missing-context"
+    alone = ALONE[f"{ALONE_PREFIX}missing-context.01"].text
+    contact = "Nhắn một câu hỏi về đúng chỗ bạn chưa hiểu."
+    quiet = "Đọc lại tin nhắn một lần thật chậm."
+
+    assert alone_offer_for(REVISION, key, contact) == (alone, ("card",))
+    assert alone_offer_for(REVISION, key, quiet) is None
+    assert alone_offer_for(REVISION, "transit:any", contact) is None
+
+    kept = alone_action_projection(REVISION, keepable=True, mechanism_key=key, card_action=contact)
+    assert kept is not None and kept.action == alone and kept.replaces == ("card",)
+    assert kept.experiment is not None and kept.experiment.action == alone
+    shown = alone_action_projection(
+        REVISION, keepable=False, mechanism_key=key, card_action=contact
+    )
+    assert shown is not None and shown.experiment is None
+    assert (
+        alone_action_projection(REVISION, keepable=True, mechanism_key=key, card_action=quiet)
+        is None
+    )
+
+
+def test_alone_offer_names_every_contact_action(monkeypatch: pytest.MonkeyPatch) -> None:
+    _approve(monkeypatch, ALONE)
+    quiet = "Đọc lại tin nhắn một lần thật chậm."
+    monkeypatch.setattr(student_support, "lighter_action_for", lambda *_: "Nhắn một người bạn.")
+    monkeypatch.setattr(
+        student_support,
+        "mood_action_for",
+        lambda kind, *_: "Gọi một người bạn tin." if kind == "clear" else quiet,
+    )
+    offer = alone_offer_for(REVISION, "psychology:quick-reply", quiet)
+    assert offer is not None and offer[1] == ("light", "clear")
 
 
 def test_common_line_shows_only_with_fitting_issues(monkeypatch: pytest.MonkeyPatch) -> None:
