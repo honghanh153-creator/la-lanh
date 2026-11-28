@@ -2154,6 +2154,7 @@ function w7Gh({ comments, open, issues = [w7Issue], failLabels = false }) {
         if (args.includes('incident')) return [];
         return [{ number: 50, title: 'Kế hoạch chạy tự động hằng ngày' }];
       }
+      if (args[0] === 'pr' && args[1] === 'list' && args.includes('merged')) return [];
       return { comments };
     },
     comment: (kind, number, body) => { trust.assertAgentBody(body); comments.push({ authorAssociation: 'OWNER', createdAt: `${comments.date}T01:5${comments.length}:00Z`, body }); } };
