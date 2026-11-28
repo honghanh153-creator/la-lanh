@@ -154,24 +154,48 @@ def test_approved_rules_widen_the_needs_group_and_render_accepted_cards(
     assert sum(map(len, after)) > sum(map(len, before))
 
 
-def test_approved_rules_widen_the_self_judgment_group(monkeypatch: pytest.MonkeyPatch) -> None:
-    group = {"comparison-loop", "perfect-before-start"}
+def _group_days(monkeypatch: pytest.MonkeyPatch, group: set[str]) -> tuple[int, int]:
+    """Days whose pool holds one of ``group``: all sentences pending, then all approved.
+
+    Both sides are explicit fixtures. Measuring "before" on the checked-in statuses would make
+    the two sides equal on the day the copy batch approves these entries (Codex P2 on #849).
+    """
+
+    _pending(monkeypatch)
     before = [issues for chart in CHARTS for issues in _pool_issues(chart, 14)]
     _approve_all(monkeypatch)
     after = [issues for chart in CHARTS for issues in _pool_issues(chart, 14)]
-    assert sum(bool(group & issues) for issues in after) > sum(
-        bool(group & issues) for issues in before
+    return (
+        sum(bool(group & issues) for issues in before),
+        sum(bool(group & issues) for issues in after),
     )
+
+
+def test_approved_rules_widen_the_self_judgment_group(monkeypatch: pytest.MonkeyPatch) -> None:
+    before, after = _group_days(monkeypatch, {"comparison-loop", "perfect-before-start"})
+    assert after > before, (before, after)
 
 
 def test_approved_rules_widen_the_thin_overload_situations(monkeypatch: pytest.MonkeyPatch) -> None:
-    thin = {"decision-fatigue", "capacity-before-agreement"}
-    before = [issues for chart in CHARTS for issues in _pool_issues(chart, 14)]
-    _approve_all(monkeypatch)
-    after = [issues for chart in CHARTS for issues in _pool_issues(chart, 14)]
-    assert sum(bool(thin & issues) for issues in after) > sum(
-        bool(thin & issues) for issues in before
-    )
+    before, after = _group_days(monkeypatch, {"decision-fatigue", "capacity-before-agreement"})
+    assert after > before, (before, after)
+
+
+@pytest.mark.parametrize(
+    "group",
+    [
+        {"comparison-loop", "perfect-before-start"},
+        {"decision-fatigue", "capacity-before-agreement"},
+    ],
+)
+def test_the_widening_measure_holds_once_the_copy_batch_has_approved_everything(
+    monkeypatch: pytest.MonkeyPatch, group: set[str]
+) -> None:
+    """The day every pair sentence is approved for real, the widening tests must stay green."""
+
+    _approve_all(monkeypatch)  # what the runtime sees after the copy batch approved them all
+    before, after = _group_days(monkeypatch, group)
+    assert after > before, (before, after)
 
 
 def test_the_content_fingerprint_moves_only_when_a_pair_sentence_is_approved_or_revised(
