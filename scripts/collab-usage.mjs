@@ -3,8 +3,9 @@
 // when Claude is nearly used up ("chuyển qua codex khi claude gần hết. giữ 5% claude để duy trì nếu cần").
 // - Weekly %: the autopilot scheduled task writes {"percent","at"} to state/claude-usage.json each run
 //   (from the desktop app's "Weekly · all models" number). The loop cannot read that number itself.
-// - Mode: below 85% normal, 85–94% saving (Claude only for incident or safety work), 95% or more
-//   fallback (Claude-fix turns go to Codex; 5% stays in reserve). A reading older than 3 hours is
+// - Mode (owner 22.11 "okie 1-2-3", L71): below 75% normal; 75–84% shift (no Claude sample reviews,
+//   fixes go to Codex, reviews to Antigravity); 85–94% saving (Claude only for incidents); 95% or more
+//   fallback (no Claude: Codex, Antigravity and machine checks keep the queues moving; 5% reserve). A reading older than 3 hours is
 //   unknown: the last mode is kept, never a guess.
 // - Today's share per project: local transcripts (~/.claude/projects) priced at the public per-model
 //   API prices. Only a share is shown on the public board (no amounts, R14); other projects are one
@@ -17,6 +18,7 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { readJson, stateDir, vnNow, writeJson } from './collab-trust.mjs';
 
+export const shiftAt = 75;
 export const savingAt = 85;
 export const fallbackAt = 95;
 export const staleMs = 3 * 3600 * 1000;
@@ -32,10 +34,12 @@ export const projectsRoot = (user = homedir()) => join(user, '.claude', 'project
 export const scanFlagPath = (home = stateDir) => join(home, 'state', 'claude-usage-scan-on');
 export const scanEnabled = (home = stateDir) => existsSync(scanFlagPath(home));
 
-export const MODES = { normal: 'bình thường', saving: 'tiết kiệm', fallback: 'chuyển sang Codex' };
+export const MODES = { normal: 'bình thường', shift: 'chuyển bớt', saving: 'tiết kiệm', fallback: 'chuyển sang Codex' };
+// Modes in which Codex takes Claude's fix turns (L71). Below fallback, incidents stay with Claude.
+export const codexFixModes = ['shift', 'saving', 'fallback'];
 export function modeFor(percent) {
   if (!Number.isFinite(percent)) return null;
-  return percent >= fallbackAt ? 'fallback' : percent >= savingAt ? 'saving' : 'normal';
+  return percent >= fallbackAt ? 'fallback' : percent >= savingAt ? 'saving' : percent >= shiftAt ? 'shift' : 'normal';
 }
 
 // The current mode, from the latest reading. Writes the mode file only on a fresh reading, so a stale
@@ -87,9 +91,24 @@ export const projectOf = dir => (/-la-lanh(?:$|-|--)/.test(dir) ? 'la-lanh' : 'd
 // one-way hashes, next to cost numbers per day (Codex P2 on #893, data minimization).
 export const hashed = x => createHash('sha256').update(String(x)).digest('hex').slice(0, 16);
 export const chunkBytes = 8 * 1024 * 1024;
+// What started the turn a spend belongs to (owner plan 22.11 item 3, L72): a background-task
+// completion, a message from another session, or anything else (the owner, a schedule).
+export function triggerOf(entry) {
+  const kind = entry?.origin?.kind;
+  if (kind === 'task-notification') return 'task';
+  if (kind === 'peer') return 'session';
+  if (kind) return 'other';
+  const c = entry?.message?.content;
+  const text = typeof c === 'string' ? c : Array.isArray(c) && c[0]?.type === 'text' ? String(c[0].text ?? '') : null;
+  // A reminder the app adds inside a turn does not start a new one.
+  if (text === null || entry?.isMeta || text.startsWith('<system-reminder')) return null;
+  if (text.startsWith('<task-notification')) return 'task';
+  if (text.startsWith('<cross-session-message')) return 'session';
+  return 'other';
+}
 export function scanFile(path, prev = null, { stat = statSync(path), chunk = chunkBytes } = {}) {
   const fresh = !prev || stat.size < prev.offset || stat.ino !== prev.ino;
-  const rec = fresh ? { ino: stat.ino, offset: 0, days: {}, ids: [] } : { ...prev, days: { ...prev.days }, ids: [...prev.ids] };
+  const rec = fresh ? { ino: stat.ino, offset: 0, days: {}, ids: [], trigger: 'other', byTrigger: {} } : { trigger: 'other', ...prev, days: { ...prev.days }, ids: [...prev.ids], byTrigger: { ...(prev.byTrigger ?? {}) } };
   if (stat.size <= rec.offset) return rec;
   const seen = new Set(rec.ids);
   const fd = openSync(path, 'r');
@@ -105,16 +124,21 @@ export function scanFile(path, prev = null, { stat = statSync(path), chunk = chu
       const end = data.lastIndexOf(10);
       if (end < 0) { carry = data; continue; }
       for (const line of data.subarray(0, end).toString('utf8').split('\n')) {
-        if (!line.includes('"usage"')) continue;
+        const user = line.startsWith('{"') && line.includes('"type":"user"');
+        if (!user && !line.includes('"usage"')) continue;
         let e;
         try { e = JSON.parse(line); } catch { continue; }
+        // A tool result is part of the running turn; only a new prompt changes the trigger.
+        if (e?.type === 'user') { const t = triggerOf(e); if (t) rec.trigger = t; continue; }
         const m = e?.message;
         if (e?.type !== 'assistant' || !m?.usage) continue;
         if (m.id) { const h = hashed(m.id); if (seen.has(h)) continue; seen.add(h); rec.ids.push(h); }
         const t = Date.parse(e.timestamp ?? '');
         if (!Number.isFinite(t)) continue;
         const day = vnNow(new Date(t)).date;
-        rec.days[day] = (rec.days[day] ?? 0) + costOf(m.model, m.usage);
+        const cost = costOf(m.model, m.usage);
+        rec.days[day] = (rec.days[day] ?? 0) + cost;
+        if (rec.trigger !== 'other') rec.byTrigger[day] = { ...rec.byTrigger[day], [rec.trigger]: (rec.byTrigger[day]?.[rec.trigger] ?? 0) + cost };
       }
       rec.offset += end + 1;
       carry = data.subarray(end + 1);
@@ -123,6 +147,7 @@ export function scanFile(path, prev = null, { stat = statSync(path), chunk = chu
   rec.ids = rec.ids.slice(-50);
   // Only the last week of days is kept per file.
   rec.days = Object.fromEntries(Object.entries(rec.days).sort().slice(-8));
+  rec.byTrigger = Object.fromEntries(Object.entries(rec.byTrigger).sort().slice(-8));
   return rec;
 }
 
@@ -151,6 +176,7 @@ export function todayShares({ home = stateDir, root = projectsRoot(), now = new 
   const cache = readJson(scanPath(home), {});
   const next = {};
   const cost = {};
+  const triggers = { task: 0, session: 0 };
   for (const { project, path } of transcripts(root)) {
     let stat;
     try { stat = statSync(path); } catch { continue; }
@@ -160,11 +186,13 @@ export function todayShares({ home = stateDir, root = projectsRoot(), now = new 
     try { rec = scanFile(path, cache[key], { stat }); } catch { continue; }
     next[key] = rec;
     if (rec.days[today]) cost[project] = (cost[project] ?? 0) + rec.days[today];
+    for (const k of Object.keys(triggers)) triggers[k] += rec.byTrigger?.[today]?.[k] ?? 0;
   }
   try { writeJson(scanPath(home), next); } catch {}
   const total = Object.values(cost).reduce((a, b) => a + b, 0);
   const shares = Object.entries(cost).sort((a, b) => (b[0] === 'la-lanh') - (a[0] === 'la-lanh')).map(([project, c]) => ({ project, share: total ? c / total : 0 }));
-  return { day: today, shares, measured: total > 0 };
+  const triggerShares = Object.fromEntries(Object.entries(triggers).map(([k, c]) => [k, total ? c / total : 0]));
+  return { day: today, shares, measured: total > 0, triggerShares };
 }
 
 // One board line, and warnings for the "Cần xem" block.
@@ -178,8 +206,9 @@ export function usageHealth(usage) {
   if (!usage.fresh) out.push(`⚠️ Số lượt Claude ${usage.at ? 'cũ hơn 3 giờ' : 'chưa có'}: giữ chế độ ${MODES[usage.mode]}. Tác vụ autopilot ghi số mỗi lượt chạy.`);
   // Codex #893 round 2: a kept mode has no current percent; never show "null%".
   const used = usage.fresh && Number.isFinite(usage.percent) ? `Claude đã dùng ${usage.percent}% tuần` : 'Theo số cuối đã biết';
-  if (usage.mode === 'saving') out.push(`⚠️ ${used}: chỉ dùng Claude cho sự cố và việc an toàn.`);
-  if (usage.mode === 'fallback') out.push(`⚠️ ${used}: lượt sửa của Claude chuyển sang Codex, giữ 5% cho việc gấp.`);
+  if (usage.mode === 'shift') out.push(`⚠️ ${used}: lượt sửa sang Codex, phản biện sang Antigravity, bỏ lượt Claude kiểm mẫu.`);
+  if (usage.mode === 'saving') out.push(`⚠️ ${used}: Claude chỉ làm sự cố; lượt sửa khác sang Codex.`);
+  if (usage.mode === 'fallback') out.push(`⚠️ ${used}: không dùng Claude; Codex, Antigravity và máy chạy tiếp, giữ 5% cho việc gấp.`);
   return out;
 }
 
@@ -195,7 +224,7 @@ export function paceWatch({ usage, alert, home = stateDir }) {
   if (!over) return null;
   const sent = readJson(join(home, 'state', 'claude-pace-alert.json'), {});
   if (sent.day === over.day) return null;
-  alert(`Hôm nay Claude đã dùng thêm ${Math.round(over.gained)}% giới hạn tuần (tuần đang ở ${usage.percent}%). Nhịp đều là ${Math.round(100 / 7)}% mỗi ngày; mức báo là ${Math.round(paceLimit)}%. Từ ${savingAt}% vòng chỉ dùng Claude cho sự cố, từ ${fallbackAt}% chuyển việc sửa sang Codex.`);
+  alert(`Hôm nay Claude đã dùng thêm ${Math.round(over.gained)}% giới hạn tuần (tuần đang ở ${usage.percent}%). Nhịp đều là ${Math.round(100 / 7)}% mỗi ngày; mức báo là ${Math.round(paceLimit)}%. Từ ${shiftAt}% việc sửa sang Codex, phản biện sang Antigravity; từ ${savingAt}% Claude chỉ làm sự cố; từ ${fallbackAt}% không dùng Claude.`);
   writeJson(join(home, 'state', 'claude-pace-alert.json'), { day: over.day, gained: over.gained });
   return over;
 }
@@ -208,5 +237,5 @@ export function usageTick({ alert, home = stateDir, root = projectsRoot(), now =
   let today = 'off';
   if (scanEnabled(home)) { today = null; try { today = todayShares({ home, root, now }); } catch {} }
   if (alert) paceWatch({ usage, alert, home });
-  return { line: usageLine(usage, today), health: usageHealth(usage), mode: usage.mode };
+  return { line: usageLine(usage, today), health: usageHealth(usage), mode: usage.mode, usage, today };
 }

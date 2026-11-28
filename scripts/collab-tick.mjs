@@ -22,7 +22,10 @@ import { loadAuditDeps } from './collab-audit.mjs';
 import { runNightAudit } from './collab-audit-night.mjs';
 import { noteTickGap, tickGapSubject } from './collab-tick-gap.mjs';
 import { areaWatch, areaWatchSubject } from './collab-area-label.mjs';
+import { throughputTick } from './collab-throughput.mjs';
 import { paceSubject, usageTick } from './collab-usage.mjs';
+import { currentMode, fallbackStep } from './codex-fallback.mjs';
+import { runAntigravity } from './collab-antigravity.mjs';
 import { probeHolds } from './collab-merge-probe.mjs';
 import { auditReceiptResult, readReceipts, receiptSummary, renderReceipts, tickReceiptResult, writeRunReceipt } from './collab-run-receipt.mjs';
 import { nightlyProofs, proofSummary, proofsPath, renderProofs } from './collab-lesson-proof.mjs';
@@ -71,7 +74,7 @@ export function runTick(gh = makeGh(), preflight = () => missingTools(), { run =
       const result = runPreflight(pr);
       try { incidentAlert(pr, result, text => opsAlert(gh, text, incidentPreflightSubject)); } catch {}
       return result;
-    }, heavyFree: () => heavyJobFree(), board, check: (n, o) => runCheckInClone(n, { ...o, gh }), ciStatus: head => ciCheck(gh, head), review: (n, o) => runReview(n, { ...o, gh }), merge: n => runMerge(n, { gh }), alert: text => opsAlert(gh, text),
+    }, heavyFree: () => heavyJobFree(), board, check: (n, o) => runCheckInClone(n, { ...o, gh }), ciStatus: head => ciCheck(gh, head), review: (n, o) => runReview(n, { ...o, gh }), merge: n => runMerge(n, { gh, mode: usageNow()?.mode ?? currentMode() }), alert: text => opsAlert(gh, text),
     watchdog: () => {
       try { alertMissed({ beats: readBeats(), issues: ghIssues(gh.raw) }); } catch {}
       // P1-B: once a day, any merge of the last 24 hours without signed evidence opens an ops alert.
@@ -83,7 +86,8 @@ export function runTick(gh = makeGh(), preflight = () => missingTools(), { run =
       return watch({ alert: text => opsAlert(gh, text, watchdogSubject), resolve: text => resolveOpsAlert(gh, text, watchdogSubject) });
     }, health: () => [...healthLines(readBeats()), ...(() => { try { return [receipts()]; } catch { return []; } })(), ...(() => { try { return [proofLine()]; } catch { return []; } })(), ...hookHealth(), ...wrapperHealth(), ...skillRuleHealth(), ...rulesSheetHealth(), ...rulesHookHealth(), ...(usageNow()?.health ?? [])], copyPending: () => pendingCount(), copyBatch: () => runCopyBatch(), copySaved: () => Boolean(readSaved(savedPath, vnNow().date)),
     notify: (notes, comments) => postOwnerNotes(gh, planIssue(gh), notes, comments),
-    metrics: ({ prs, turns }) => renderMetrics(collectMetrics({ gh, prs, turns })),
+    // L72: throughput lines (Claude budget, merges, Gỡ Vướng, first-pass rates, triggers) join the outcome metrics.
+    metrics: ({ prs, turns }) => [...renderMetrics(collectMetrics({ gh, prs, turns })), ...throughputTick({ gh, prs, usageNote: usageNow(), log })],
     // Research item 3: a night audit that read or judged anything leaves a receipt.
     audit: () => {
       const r = nightAudit(gh);
@@ -94,7 +98,14 @@ export function runTick(gh = makeGh(), preflight = () => missingTools(), { run =
       return r;
     },
     incidents: () => realSources(gh, vnNow().date).alerts(),
-    mergeAudit: options => runMergeAudit(options) });
+    mergeAudit: options => runMergeAudit(options),
+    // L70: Antigravity reviews PRs Codex fixed (any mode: it costs no Claude); then the Codex fix step.
+    fallback: ({ turns, prs }) => {
+      let second = null;
+      try { second = runAntigravity({ gh, prs, turns, log }); } catch (error) { log(`antigravity failed: ${clean(error.message, 200)}`); }
+      const fix = fallbackStep({ gh, mode: usageNow()?.mode ?? currentMode(), turns, prs, log });
+      return second || fix ? { second, fix } : null;
+    } });
   // Research item 2 (owner 21.11): once an hour, a trial merge of every pair held only for a shared
   // file, recorded next to the hold. Observe only; it never changes a turn.
   try { probe({ list: () => planTurns(gh, vnNow()), log }); } catch (error) { log(`merge probe failed: ${clean(error.message, 200)}`); }
