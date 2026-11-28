@@ -2,7 +2,7 @@ import './collab-test-home.mjs';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import { promptPath } from './codex-review.mjs';
+import { promptPath, runCodex } from './codex-review.mjs';
 
 test('retro S2: the review prompt asks for every place of the same class in one round', () => {
   const fixed = readFileSync(promptPath, 'utf8');
@@ -34,4 +34,14 @@ test('owner 13.11: the review checks that a closed workflow lesson has a test th
   assert.match(fixed, /would fail on the code before the fix/);
   assert.match(fixed, /closed without\s+that proof is a P1 `test` finding/);
   assert.match(fixed, /Removing a lesson, moving its due date later, or changing it to `waiting-owner` is a P1 `docs` finding/);
+});
+
+// #949 r2 (N2): the reset time comes from the whole output, also when only stderr has it.
+test('runCodex keeps the reset time from stderr; another failure is an error, not a limit', () => {
+  const limit = runCodex({ dir: '.', prompt: 'p', outPath: '/dev/null', timeoutMs: 1000, run: () => { throw Object.assign(new Error('Command failed: codex exec'), { stdout: '', stderr: 'ERROR: You have hit your usage limit. try again at Dec 4th, 2026 7:35 AM' }); } });
+  assert.equal(limit.status, 'limit');
+  assert.equal(new Date(limit.untilMs).toISOString(), '2026-12-04T00:35:00.000Z');
+  const net = runCodex({ dir: '.', prompt: 'p', outPath: '/dev/null', timeoutMs: 1000, run: () => { throw Object.assign(new Error('spawnSync codex ETIMEDOUT'), { stderr: '' }); } });
+  assert.equal(net.status, 'error');
+  assert.equal(net.untilMs, null);
 });

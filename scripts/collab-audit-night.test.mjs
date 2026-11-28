@@ -661,3 +661,30 @@ test('a kept Codex limit stops the night audit before Codex', () => {
   assert.equal(codex.calls.length, 0);
   assert.equal(readJson(dayStatePath('2026-11-14'), {}).codexRuns, 5);
 });
+
+// #949 r2 (N1): a record that fails to save after the run was counted. The retry calls Codex again
+// on the same evidence; both real calls are counted.
+test('night audit: a retry after a failed save counts the second real call too', () => {
+  const day = '2026-11-14';
+  writeJson(dayStatePath(day), { codexRuns: 5 });
+  const agentsFile = join(mkdtempSync(join(tmpdir(), 'agents-')), 'agents.json');
+  const codex = fakeCodex();
+  const dir = fresh();
+  let saves = 0;
+  const save = (record, d) => { saves++; if (saves === 1) throw new Error('disk full'); writeJson(join(d, `${record.date}.json`), record); return record; };
+  const opts = { gh: fakeGh(), now: at('2026-11-14T16:05:00Z'), dir, codex, agentsFile, post: false, save, ...deps() };
+  const first = runNightAudit(opts);
+  assert.equal(first.status, 'error');
+  runNightAudit({ ...opts, gh: fakeGh() });
+  assert.equal(codex.calls.length, 2, 'Codex was called twice');
+  assert.equal(readJson(dayStatePath(day), {}).codexRuns, 7, 'and both calls are counted');
+});
+
+// #949 r2 (A1): a Codex error after a probe is not a recovery.
+test('night audit: a Codex error leaves Codex limited after the probe', () => {
+  writeJson(dayStatePath('2026-11-14'), { codexRuns: 5 });
+  const agentsFile = join(mkdtempSync(join(tmpdir(), 'agents-')), 'agents.json');
+  writeJson(agentsFile, { codex: { status: 'limited', untilMs: Date.parse('2026-11-14T15:00:00Z') } });
+  runNightAudit({ gh: fakeGh(), now: at('2026-11-14T16:05:00Z'), dir: fresh(), codex: fakeCodex(undefined, 'error'), agentsFile, post: false, ...deps() });
+  assert.equal(readJson(agentsFile, {}).codex.status, 'limited');
+});

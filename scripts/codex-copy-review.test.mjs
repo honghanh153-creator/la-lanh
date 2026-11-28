@@ -1,7 +1,7 @@
 import './collab-test-home.mjs';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, realpathSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -359,4 +359,22 @@ test('a kept Codex limit stops the copy batch before Codex', () => {
   const result = main([], { run: (...args) => { calls.push(args); return ''; }, out: { write() {} }, registryPath: join(dir, 'reg.json'), agentsFile });
   assert.equal(result.status, 'limited');
   assert.equal(calls.filter(c => c[0] === codexBin).length, 0);
+});
+
+// #949 r2 (N2, A1): through the real caller. The reset only in stderr is kept; a failed probe that
+// is not a limit leaves Codex limited, so the batch does not call again at once.
+test('copy batch: a limit reset found only in stderr is kept; a network failure keeps the probe backoff', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'copy-n2-'));
+  const agentsFile = join(dir, 'agents.json');
+  writeFileSync(join(dir, 'reg.json'), JSON.stringify(registry));
+  const opts = (run) => ({ run, out: { write() {} }, registryPath: join(dir, 'reg.json'), agentsFile });
+  const fail = error => (bin, ...rest) => { if (bin === codexBin) throw error; return ''; };
+  writeFileSync(agentsFile, JSON.stringify({ codex: { status: 'limited', untilMs: Date.now() - 1000 } }));
+  assert.throws(() => main([], opts(fail(Object.assign(new Error('Command failed: codex exec'), { stdout: '', stderr: 'ERROR: You have hit your usage limit. try again at Dec 4th, 2026 7:35 AM' })))));
+  assert.equal(JSON.parse(readFileSync(agentsFile, 'utf8')).codex.until, '2026-12-04T00:35:00.000Z');
+  writeFileSync(agentsFile, JSON.stringify({ codex: { status: 'limited', untilMs: Date.now() - 1000 } }));
+  assert.throws(() => main([], opts(fail(Object.assign(new Error('connect ECONNREFUSED'), { stderr: '' })))));
+  const after = JSON.parse(readFileSync(agentsFile, 'utf8')).codex;
+  assert.equal(after.status, 'limited', 'not marked available by a failure');
+  assert.ok(after.probedAtMs, 'the probe is noted, so the next call waits an hour');
 });

@@ -544,3 +544,25 @@ test('a kept Codex limit stops the nightly Codex call before it is counted', () 
   assert.equal(result.status, 'limited');
   assert.equal(readJson(dayStatePath(date), {}).codexRuns, 3, 'nothing counted');
 });
+
+// #949 r2 (N2, A1): the nightly caller keeps a reset found only in stderr; a timeout is not a recovery.
+test('personas night: a reset in stderr is kept; a timeout keeps Codex limited', () => {
+  const date = '2026-11-18';
+  const at = { now: () => ({ date, hour: 23, minute: 10 }), nowMs: () => Date.parse(`${date}T23:10:00+07:00`) };
+  const setup = () => {
+    const agentsFile = join(mkdtempSync(join(tmpdir(), 'agents-')), 'agents.json');
+    writeJson(agentsFile, { codex: { status: 'limited', untilMs: at.nowMs() - 1000 } });
+    rmSync(dayDir(date), { recursive: true, force: true });
+    mkdirSync(dayDir(date), { recursive: true });
+    writeJson(join(dayDir(date), 'state.json'), { date, start: 'a'.repeat(40), end: 'b'.repeat(40), codexItems: ['x'] });
+    writeJson(dayStatePath(date), { codexRuns: 3, failures: 0 });
+    return agentsFile;
+  };
+  let agentsFile = setup();
+  const limited = codex(date, { run: () => { throw Object.assign(new Error('Command failed: codex exec'), { stdout: '', stderr: 'ERROR: You have hit your usage limit. try again at Dec 4th, 2026 7:35 AM' }); }, ...at, agentsFile });
+  assert.equal(limited.status, 'failed');
+  assert.equal(readJson(agentsFile, {}).codex.until, '2026-12-04T00:35:00.000Z');
+  agentsFile = setup();
+  codex(date, { run: () => { throw Object.assign(new Error('spawnSync codex ETIMEDOUT'), { stderr: '' }); }, ...at, agentsFile });
+  assert.equal(readJson(agentsFile, {}).codex.status, 'limited', 'a timeout does not bring Codex back');
+});

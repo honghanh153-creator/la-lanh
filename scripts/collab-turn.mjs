@@ -497,7 +497,7 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       try { if (gh.raw) syncStatusLabels(gh, prs, turns); } catch (error) { log(`status labels: ${String(error.message ?? error).slice(0, 200)}`); }
       // #253: the scheduled tick samples the flow metric and owns the buffer top-up, so the
       // persisted queue and --status agree and the metric does not depend on report reads.
-      const { queue: startBuffer } = bufferStatus(prs, turns, { plan7wPrs: plan7wPrNumbers(turns, now.date) });
+      const { queue: startBuffer } = bufferStatus(prs, turns, { plan7wPrs: plan7wPrNumbers(turns, now.date), claimed: Object.keys(claimsByPr()) });
       measure(prs, turns);
       let area = activeArea(turns);
       // Owner 15.11: the kept 7-week items are worked first, or the seats are empty words. Since 21.11 (R7) the
@@ -696,7 +696,8 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       const left = done.length ? gh.openPrs() : prs;
       const leftTurns = done.length ? applyDrops(turnsFor(left, { dropped: dropSet(plan, left, null, readJson(dayPath, day)).prs, baseFiles: gh.compareFiles }), gone) : turns;
       // C5: the saved queue is the same admitted view --status and the lane lines show.
-      const buffer = admittedQueue(left, leftTurns, { plan7wPrs: plan7wPrNumbers(leftTurns, now.date), late: late() });
+      // C6: live jobs are the claimed PRs; the unclaimed backlog does not take developer slots.
+      const buffer = admittedQueue(left, leftTurns, { plan7wPrs: plan7wPrNumbers(leftTurns, now.date), late: late(), claimed: Object.keys(claimsByPr()) });
       write(join(stateDir, 'claude-queue.json'), () => ({
         // One session per PR (owner 16.11): the hourly autopilot (session id `autopilot`) gets only
         // fix items no other session holds; the held ones are listed apart.
@@ -706,7 +707,7 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
         // only when nothing is in progress and review has room, and never from lastStartAt on.
         // C: host backpressure on top of the lanes: 3 in progress, 2 waiting for review at most.
         topUp: buffer.topUp, topUpCount: buffer.topUpCount, buffer: buffer.buffer, inProgress: buffer.inProgress, inReview: buffer.inReview,
-        backpressure: buffer.backpressure, independentReview: independentWait(agents, nowMs()),
+        backpressure: buffer.backpressure, liveJobs: buffer.liveJobs, independentReview: independentWait(agents, nowMs()),
         // Two lanes (owner 16.11): where a new task may open, 7-week first, and each lane's counts.
         topUpLanes: buffer.topUpLanes, lanes: buffer.lanes,
         idleRuns,
@@ -834,12 +835,12 @@ if (isMain(import.meta.url)) {
       const { plan, prs, turns } = planTurns(gh);
       // C5: the live admitted view wins over the saved queue's counts; the saved file adds only its items.
       const t = vnNow();
-      const { queue: buffer } = bufferStatus(prs, turns, { plan7wPrs: plan7wPrNumbers(turns, t.date), late: t.hour * 60 + t.minute >= lastStartAt });
+      const { queue: buffer } = bufferStatus(prs, turns, { plan7wPrs: plan7wPrNumbers(turns, t.date), late: t.hour * 60 + t.minute >= lastStartAt, claimed: Object.keys(claimsByPr()) });
       process.stdout.write(`${JSON.stringify({ plan: plan.state, reason: plan.reason, dropped: plan.dropped, queue: { ...readJson(join(stateDir, 'claude-queue.json'), null), ...buffer } })}\n`);
     } else {
       const { prs, turns } = planTurns(gh);
       const t = vnNow();
-      const { lines } = bufferStatus(prs, turns, { plan7wPrs: plan7wPrNumbers(turns, t.date), late: t.hour * 60 + t.minute >= lastStartAt });
+      const { lines } = bufferStatus(prs, turns, { plan7wPrs: plan7wPrNumbers(turns, t.date), late: t.hour * 60 + t.minute >= lastStartAt, claimed: Object.keys(claimsByPr()) });
       process.stdout.write(`${args.includes('--json') ? JSON.stringify(turns, null, 2) : [renderReport(turns), ...lines].join('\n')}\n`);
     }
   } catch (error) { process.stderr.write(`collab-turn failed: ${clean(error.message, 500)}\n`); process.exitCode = 1; }

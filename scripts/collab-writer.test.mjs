@@ -56,8 +56,9 @@ test('writer: backpressure 3 in progress, 2 waiting for review, 2 heavy jobs', (
   assert.equal(admit({ heavy: 2 }).heavyRoom, 0);
   assert.equal(admit({ heavy: 1 }).heavyRoom, 1);
   // #949 r1 (C5): one admitted view; the lanes never open more than the host admits.
+  // #949 r2 (C6): the host counts live jobs (`live`, from liveJobs), not the lane WIP count.
   const lanes = { plan7w: { inProgress: 0, inReview: 0, topUp: true }, daily: { inProgress: 0, inReview: 0, topUp: true }, process: { inProgress: 0, inReview: 0, topUp: true } };
-  const open = admittedView({ topUp: true, topUpCount: 3, topUpLanes: ['plan7w', 'daily', 'process'], inProgress: 2, inReview: 0, lanes });
+  const open = admittedView({ topUp: true, topUpCount: 3, topUpLanes: ['plan7w', 'daily', 'process'], inProgress: 2, inReview: 0, lanes }, { live: { inProgress: 2, inReview: 0 } });
   assert.deepEqual([open.topUp, open.topUpCount, open.topUpLanes, open.lanes.daily.topUp], [true, 1, ['plan7w'], false], 'room 1: only the first lane opens');
   const full = admittedView({ topUp: true, topUpCount: 3, topUpLanes: ['plan7w', 'daily', 'process'], inProgress: 0, inReview: 2, lanes });
   assert.deepEqual([full.topUp, full.topUpCount, full.topUpLanes, full.lanes.plan7w.topUp], [false, 0, [], false]);

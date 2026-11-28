@@ -15,7 +15,7 @@ import { acquireLock } from './collab-lock.mjs';
 import { dispatch } from './collab-dispatch.mjs';
 import { agentMarker, assertAgentBody, clean, integration, repo, stateDir, vnNow } from './collab-trust.mjs';
 import { isMain } from './is-main.mjs';
-import { agentsPath, noteCallResult, reserveCall } from './collab-agents.mjs';
+import { agentsPath, limitOf, noteCallResult, reserveCall } from './collab-agents.mjs';
 import { isLimit } from './codex-review.mjs';
 import { calibrationExamples, judgeLogPath, recordJudgements, renderExamples } from './codex-copy-calibration.mjs';
 
@@ -275,10 +275,12 @@ export function main(argv, { run = execFileSync, out = process.stdout, registryP
         ? JSON.parse(readFileSync(argv[fakeAt + 1], 'utf8'))
         : runCodex(buildPrompt(pending, calibrationExamples(registry)), join(mkdtempSync(join(tmpdir(), 'copy-codex-')), 'out.json'), run);
     } catch (error) {
-      if (fakeAt < 0) noteCallResult('codex', { limited: isLimit(`${error?.stdout ?? ''}\n${error?.stderr ?? ''}\n${error?.message ?? ''}`), reason: String(error?.message ?? '').slice(0, 200), path: agentsFile });
+      // #949 r2 (N2, A1): limit and reset come from stdout, stderr and message together; a failure
+      // that is not a limit leaves the agent state alone.
+      if (fakeAt < 0) noteCallResult('codex', { ...limitOf(error, isLimit), path: agentsFile });
       throw error;
     }
-    if (fakeAt < 0) noteCallResult('codex', { path: agentsFile });
+    if (fakeAt < 0) noteCallResult('codex', { ok: true, path: agentsFile });
     decisions = validateDecisions(result, pending);
     reviewed = new Map(pending.map(e => [e.id, digest(e.text)]));
     if (!dryRun && savedFile) writeSaved(savedFile, { date, decisions, reviewed: [...reviewed] });

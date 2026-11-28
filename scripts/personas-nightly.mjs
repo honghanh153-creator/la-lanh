@@ -22,7 +22,7 @@ import { acquireLock } from './collab-lock.mjs';
 import { machineBusy } from './collab-check.mjs';
 import { auditReserve } from './collab-audit.mjs';
 import { codexBin, codexModel, isLimit } from './codex-review.mjs';
-import { agentsPath, noteCallResult, reserveCall } from './collab-agents.mjs';
+import { agentsPath, limitOf, noteCallResult, reserveCall } from './collab-agents.mjs';
 import { applyOnce } from './collab-writer.mjs';
 import { opsAlert } from './collab-turn.mjs';
 import { cutoffMs, dayCap, dayStatePath, hhmmOf, integration, lastStartAt, makeGh, readJson, repo, stateDir, vnNow, writeJson } from './collab-trust.mjs';
@@ -421,13 +421,14 @@ export function codex(date, { run = execFileSync, now = vnNow, nowMs = Date.now,
       run(codexBin, ['exec', '--skip-git-repo-check', '-s', 'read-only', '--ephemeral', '-m', codexModel, '-c', 'model_reasoning_effort="high"',
         '-C', dir, '-o', outPath, '--color', 'never', '-'], { input: codexPrompt, encoding: 'utf8', timeout: Math.min(20 * 60000, leftMs), maxBuffer: 16 * 1024 * 1024 });
     } catch (error) {
-      noteCallResult('codex', { limited: isLimit(`${error?.stdout ?? ''}\n${error?.stderr ?? ''}\n${error?.message ?? ''}`), reason: String(error?.message ?? error).slice(0, 200), path: agentsFile, nowMs: nowMs() });
+      // #949 r2 (N2, A1): limit and reset from the whole output; another failure keeps the state.
+      noteCallResult('codex', { ...limitOf(error, isLimit), path: agentsFile, nowMs: nowMs() });
       state.codexAttempt.error = String(error?.message ?? error).slice(0, 300);
       recordAttempt(date, state.codexAttempt);
       writeState(date, state);
       return { status: 'failed', reason: state.codexAttempt.error };
     }
-    noteCallResult('codex', { path: agentsFile, nowMs: nowMs() });
+    noteCallResult('codex', { ok: true, path: agentsFile, nowMs: nowMs() });
     const text = readFileSync(outPath, 'utf8');
     const parsed = JSON.parse(text.slice(text.indexOf('['), text.lastIndexOf(']') + 1));
     const problems = checkJudgeOutput(readFileSync(join(dir, 'codex-sample.jsonl'), 'utf8').split('\n'), parsed);

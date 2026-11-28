@@ -4,7 +4,7 @@ import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { bufferStatus, flowPath, queueTopUp, readyBuffer, recordFlow, renderFlow, wipCount, wipLimit } from './collab-buffer.mjs';
+import { admittedQueue, bufferStatus, flowPath, liveJobs, queueTopUp, readyBuffer, recordFlow, renderFlow, wipCount, wipLimit } from './collab-buffer.mjs';
 
 const pr = (n, extra = {}) => ({ number: n, author: { login: 'honghanh153-creator' }, isCrossRepository: false, baseRefName: 'collab/integration', headRefName: `agent/claude/t${n}`, isDraft: false, labels: [], ...extra });
 
@@ -107,4 +107,24 @@ test('bufferStatus shows the admitted lanes and why the host opens nothing', () 
   const full = bufferStatus([pr(1), pr(2)], [{ number: 1, turn: 'codex-review' }, { number: 2, turn: 'codex-review' }], { dir, nowMs });
   assert.equal(full.queue.topUp, false);
   assert.ok(full.lines.some(l => /^Máy đang đầy, chưa mở việc mới: .*chờ review 2\/2/.test(l)));
+});
+
+// #949 r2 (C6): host backpressure counts live jobs (a claimed PR not in machine review), not every
+// open PR. A large unclaimed backlog with idle workers must still let the empty plan lane open.
+test('C6: a big unclaimed backlog does not fill the host gate; claimed PRs do', () => {
+  const daily = Array.from({ length: 6 }, (_, i) => pr(100 + i, { labels: [{ name: 'daily-lane' }] }));
+  const proc = Array.from({ length: 14 }, (_, i) => pr(200 + i));
+  const prs = [...daily, ...proc];
+  const turns = prs.map(p => ({ number: p.number, turn: 'claude-fix' }));
+  assert.deepEqual(liveJobs(prs, turns, []), { inProgress: 0, inReview: 0 });
+  const idle = admittedQueue(prs, turns, { claimed: [] });
+  assert.equal(idle.lanes.plan7w.topUp, true, 'plan lane is empty: it may open one');
+  assert.deepEqual(idle.backpressure, [], 'no live job: no host backpressure');
+  assert.equal(idle.liveJobs, 0);
+  const busy = admittedQueue(prs, turns, { claimed: ['100', '200', '201'] });
+  assert.equal(busy.liveJobs, 3, 'claimed PRs count as live jobs');
+  assert.equal(busy.topUp, false, '3 live jobs fill the host gate');
+  assert.ok(busy.backpressure.length > 0);
+  const reviewing = liveJobs(prs, prs.map(p => ({ number: p.number, turn: p.number === 100 ? 'codex-review' : 'claude-fix' })), ['100']);
+  assert.deepEqual(reviewing, { inProgress: 0, inReview: 1 }, 'a claimed PR in machine review counts once, as review');
 });

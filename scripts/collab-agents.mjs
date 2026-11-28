@@ -56,9 +56,11 @@ export function agentStatus(state, agent, nowMs = Date.now()) {
 export const mayCall = (state, agent, nowMs = Date.now()) => ['available', 'probe'].includes(agentStatus(state, agent, nowMs));
 export const availableAgents = (state, nowMs = Date.now()) => agentOrder.filter(a => mayCall(state, a, nowMs));
 
+// #949 r2 (A2): a fresh limit starts a new generation. The previous probe's time is dropped, so a
+// short reset (5 minutes) is not held for the rest of the old probe's hour.
 export function markLimited(state, agent, { reason = '', nowMs = Date.now(), untilMs = parseResetAt(reason) } = {}) {
   const until = Number.isFinite(untilMs) && untilMs > nowMs ? untilMs : nowMs + probeEveryMs;
-  return { ...state, [agent]: { status: 'limited', untilMs: until, until: new Date(until).toISOString(), reason: clean(reason, 300), atMs: nowMs, probedAtMs: state?.[agent]?.probedAtMs ?? null } };
+  return { ...state, [agent]: { status: 'limited', untilMs: until, until: new Date(until).toISOString(), reason: clean(reason, 300), atMs: nowMs, probedAtMs: null } };
 }
 export const markAvailable = (state, agent, nowMs = Date.now()) => ({ ...state, [agent]: { status: 'available', atMs: nowMs } });
 export const noteProbe = (state, agent, nowMs = Date.now()) => (state?.[agent]?.status === 'limited' ? { ...state, [agent]: { ...state[agent], probedAtMs: nowMs } } : state);
@@ -104,13 +106,15 @@ export function decideLease({ lease, me, jobId, pid = process.pid, host = hostna
   const epoch = (lease?.epoch ?? 0) + 1;
   const proof = stopProof(lease, { alive, host });
   if (proof) return { action: lease ? 'takeover' : 'acquire', lease: fresh(epoch), reason: proof };
-  // The holder is still running. A lower holder is asked to hand back.
+  // The holder is still running. Nobody takes over without stop proof; an expired lease raises the
+  // alert on every branch (#949 r2 A3), including while a lower holder is asked to hand back.
+  const expired = nowMs > (lease.expiresAtMs ?? 0);
+  const alert = expired ? `Lease điều phối của ${lease.holder} (job ${lease.jobId}) đã hết hạn nhưng chưa có bằng chứng việc cũ đã dừng; không ai nhận thay.` : undefined;
   if (rank(lease.holder) > rank(me)) {
     const asked = lease.handback === me ? null : { ...lease, handback: me };
-    return { action: 'wait', lease: asked, reason: `đã xin ${lease.holder} trả lại` };
+    return { action: 'wait', lease: asked, reason: expired ? `đã xin ${lease.holder} trả lại; lease hết hạn nhưng chưa có bằng chứng việc cũ đã dừng` : `đã xin ${lease.holder} trả lại`, alert };
   }
-  const expired = nowMs > (lease.expiresAtMs ?? 0);
-  return { action: 'wait', lease: null, reason: expired ? 'hết hạn nhưng chưa có bằng chứng việc cũ đã dừng' : `${lease.holder} đang giữ`, alert: expired ? `Lease điều phối của ${lease.holder} (job ${lease.jobId}) đã hết hạn nhưng chưa có bằng chứng việc cũ đã dừng; không ai nhận thay.` : undefined };
+  return { action: 'wait', lease: null, reason: expired ? 'hết hạn nhưng chưa có bằng chứng việc cũ đã dừng' : `${lease.holder} đang giữ`, alert };
 }
 
 export function acquireLease({ me, jobId, available, path = leasePath(), nowMs = Date.now(), alive = pidAlive, host = hostname(), pid = process.pid }) {
@@ -175,13 +179,24 @@ export function reserveCall(agent, { path = agentsPath(), nowMs = Date.now() } =
     return { ok: true };
   });
 }
-// The call's outcome: a limit keeps its reset time; any other answer means the agent is back.
-export function noteCallResult(agent, { limited = false, reason = '', path = agentsPath(), nowMs = Date.now() } = {}) {
+// The call's outcome (#949 r2 A1, N2). A limit keeps its reset time: the caller parses it from the
+// whole captured output (`untilMs`) before the stored reason is cut short. Only a usable answer
+// (`ok`) says the agent is back, and never for an agent switched off on this host. Any other failure
+// (network, auth, timeout) leaves the state as it is, so a failed probe keeps its hour of backoff.
+export function nextAgentState(state, agent, { ok = false, limited = false, reason = '', untilMs, nowMs = Date.now() } = {}) {
+  if (limited) return markLimited(state, agent, { reason, nowMs, untilMs: Number.isFinite(untilMs) ? untilMs : parseResetAt(reason) });
+  if (!ok) return state;
+  const now = state?.[agent]?.status;
+  return now && now !== 'available' && now !== 'off' ? markAvailable(state, agent, nowMs) : state;
+}
+export function noteCallResult(agent, { ok = false, limited = false, reason = '', untilMs, path = agentsPath(), nowMs = Date.now() } = {}) {
   try {
-    return updateAgents(state => (limited ? markLimited(state, agent, { reason, nowMs })
-      : state?.[agent] && state[agent].status !== 'available' ? markAvailable(state, agent, nowMs) : state), { path });
+    return updateAgents(state => nextAgentState(state, agent, { ok, limited, reason, untilMs, nowMs }), { path });
   } catch { return null; }
 }
+// What a failed subprocess call said, for the limit check and the reset time (stdout, stderr, message).
+export const callOutput = error => [error?.stdout, error?.stderr, error?.message].map(x => String(x ?? '')).join('\n');
+export const limitOf = (error, isLimit) => { const full = callOutput(error); return { limited: Boolean(isLimit(full)), untilMs: parseResetAt(full), reason: clean(String(error?.message ?? ''), 200) }; };
 
 // #949 r1 (C3): who implemented a PR. The PR template line "Agent thực hiện:" and the branch
 // prefix must agree; a PR that names nobody, or two different agents, has no known author and

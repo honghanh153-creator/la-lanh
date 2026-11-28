@@ -5,7 +5,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { acquireLease, agentOrder, agentStatus, availableAgents, coordinatorFor, decideLease, leaseMs, markAvailable, markLimited, mayApprove, mayCall, noteProbe, parseResetAt, probeEveryMs, readAgents, recordStop, releaseLease, reviewPlan, tickJobId, tickLease, updateAgents, waitIndependent } from './collab-agents.mjs';
+import { acquireLease, agentOrder, agentStatus, availableAgents, callOutput, coordinatorFor, decideLease, leaseMs, limitOf, markAvailable, markLimited, mayApprove, mayCall, nextAgentState, noteCallResult, noteProbe, parseResetAt, probeEveryMs, readAgents, recordStop, releaseLease, reviewPlan, tickJobId, tickLease, updateAgents, waitIndependent } from './collab-agents.mjs';
 import { readJson } from './collab-trust.mjs';
 
 const T0 = Date.UTC(2026, 10, 28, 3, 0);
@@ -147,4 +147,63 @@ test('tick lease (#948 b): every round renews with its own pid; a new coordinato
   assert.equal(readJson(path).holder, 'codex');
   assert.equal(readJson(path).epoch, 2);
   assert.equal(round(104, [], T0 + 1300000).action, 'wait', 'no agent available: nobody coordinates');
+});
+
+test('agents r2 (A1): only a usable answer brings an agent back; a failed probe keeps its backoff; off stays off', () => {
+  const after = T0 + 2 * 3600000;
+  let s = noteProbe(markLimited({}, 'codex', { reason: 'usage limit', nowMs: T0 }), 'codex', after);
+  for (const failure of [{}, { reason: 'network error' }, { reason: 'ETIMEDOUT' }, { ok: false }]) {
+    const next = nextAgentState(s, 'codex', { ...failure, nowMs: after + 1000 });
+    assert.deepEqual(next, s, 'a failure that is not a limit leaves the state');
+    assert.equal(agentStatus(next, 'codex', after + 600000), 'limited', 'the probe hour still holds');
+  }
+  assert.equal(agentStatus(nextAgentState(s, 'codex', { ok: true, nowMs: after + 1000 }), 'codex', after + 1000), 'available');
+  const off = { anti: { status: 'off' } };
+  assert.deepEqual(nextAgentState(off, 'anti', { ok: true, nowMs: T0 }), off, 'an agent switched off is never re-enabled');
+  // Through the host file, as the callers write it.
+  const path = join(dir(), 'agents.json');
+  updateAgents(() => s, { path });
+  noteCallResult('codex', { reason: 'connect ECONNREFUSED', path, nowMs: after + 1000 });
+  assert.equal(agentStatus(readAgents({ path }), 'codex', after + 600000), 'limited');
+  noteCallResult('codex', { ok: true, path, nowMs: after + 2000 });
+  assert.equal(agentStatus(readAgents({ path }), 'codex', after + 2000), 'available');
+});
+
+test('agents r2 (A2): a fresh short reset is not held by the previous probe hour', () => {
+  let s = markLimited({}, 'codex', { reason: 'usage limit', nowMs: T0 });
+  s = noteProbe(s, 'codex', T0 + probeEveryMs + 1);
+  const t = T0 + probeEveryMs + 2;
+  s = markLimited(s, 'codex', { reason: 'limit', untilMs: t + 5 * 60000, nowMs: t });
+  assert.equal(s.codex.probedAtMs, null, 'a new limit generation');
+  assert.equal(agentStatus(s, 'codex', t + 5 * 60000 - 1), 'limited');
+  assert.equal(agentStatus(s, 'codex', t + 5 * 60000 + 1), 'probe', 'one probe right after the new 5-minute reset');
+});
+
+test('agents r2 (N2): the reset is read from stderr even when the message says nothing', () => {
+  const error = Object.assign(new Error('Command failed'), { stdout: '', stderr: 'ERROR: usage limit; try again at Dec 4th, 2026 7:35 AM' });
+  const isLimit = text => /usage limit/i.test(text);
+  assert.match(callOutput(error), /Dec 4th/);
+  const seen = limitOf(error, isLimit);
+  assert.equal(seen.limited, true);
+  assert.equal(new Date(seen.untilMs).toISOString(), '2026-12-04T00:35:00.000Z');
+  assert.equal(seen.reason, 'Command failed', 'the stored reason stays short');
+  const path = join(dir(), 'agents.json');
+  noteCallResult('codex', { ...seen, path, nowMs: T0 });
+  assert.equal(readAgents({ path }).codex.until, '2026-12-04T00:35:00.000Z', 'not one hour from now');
+  assert.deepEqual(limitOf(new Error('boom'), isLimit).limited, false);
+});
+
+test('lease r2 (A3): an expired lower holder asked to hand back still raises the alert; nobody takes over', () => {
+  const held = decideLease({ lease: null, me: 'codex', jobId: 'c1', pid: 21, host: 'h', available: ['codex', 'anti'], nowMs: T0, alive: () => true }).lease;
+  const late = T0 + leaseMs + 60000;
+  const ask = decideLease({ lease: held, me: 'claude', jobId: 'k1', pid: 22, host: 'h', available: agentOrder, nowMs: late, alive: () => true });
+  assert.equal(ask.action, 'wait');
+  assert.equal(ask.lease.handback, 'claude', 'the handback request is kept');
+  assert.match(ask.alert, /đã hết hạn nhưng chưa có bằng chứng/);
+  const again = decideLease({ lease: ask.lease, me: 'claude', jobId: 'k1', pid: 22, host: 'h', available: agentOrder, nowMs: late + 600000, alive: () => true });
+  assert.equal(again.action, 'wait');
+  assert.equal(again.lease, null);
+  assert.match(again.alert, /đã hết hạn/, 'every round while it stays expired');
+  const fresh = decideLease({ lease: held, me: 'claude', jobId: 'k1', pid: 22, host: 'h', available: agentOrder, nowMs: T0 + 1000, alive: () => true });
+  assert.equal(fresh.alert, undefined, 'no alert before the lease expires');
 });

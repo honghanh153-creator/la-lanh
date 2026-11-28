@@ -14,7 +14,7 @@ import { applyPolicy, isBlocking, ownerHolds, validateOutput } from './collab-re
 import { answerStillHolds, coveredKinds, sealedAnswers } from './collab-owner-answer.mjs';
 import { isMain } from './is-main.mjs';
 import { auditReserve } from './collab-audit.mjs';
-import { agentsPath, implementerOf, mayApprove, noteCallResult, reserveCall, waitIndependent } from './collab-agents.mjs';
+import { agentsPath, implementerOf, mayApprove, noteCallResult, parseResetAt, reserveCall, waitIndependent } from './collab-agents.mjs';
 import { applyOnce } from './collab-writer.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -107,7 +107,8 @@ export function runCodex({ dir, prompt, outPath, timeoutMs, run = execFileSync }
     { input: prompt, encoding: 'utf8', timeout: timeoutMs, maxBuffer: 64 * 1024 * 1024 });
   } catch (error) {
     const text = `${error.stdout ?? ''}\n${error.stderr ?? ''}\n${error.message ?? ''}`;
-    return { status: isLimit(text) ? 'limit' : 'error', error: clean(text.trim().split('\n').slice(-5).join(' '), 400) };
+    // #949 r2 (N2): the reset time is read from the whole output before the error is cut short.
+    return { status: isLimit(text) ? 'limit' : 'error', error: clean(text.trim().split('\n').slice(-5).join(' '), 400), untilMs: parseResetAt(text) };
   }
   return { status: 'ok' };
 }
@@ -253,8 +254,9 @@ function reviewOnce(number, { auto = false, overCap = null, gh: ghIn = makeGh(),
   if (!slot.ok) return { status: slot.status, reason: `${waitIndependent}: ${slot.reason}` };
   onCodexStart();
   const result = runCodex({ dir, prompt, outPath, timeoutMs: auto ? Math.min(30 * 60000, untilCutoff) : 30 * 60000, run });
-  if (result.status === 'limit') { noteCallResult('codex', { limited: true, reason: result.error, path: agentsFile, nowMs: nowMs() }); return { status: 'limit', reason: result.error }; }
-  noteCallResult('codex', { path: agentsFile, nowMs: nowMs() });
+  if (result.status === 'limit') { noteCallResult('codex', { limited: true, reason: result.error, untilMs: result.untilMs, path: agentsFile, nowMs: nowMs() }); return { status: 'limit', reason: result.error }; }
+  // #949 r2 (A1): only a run that finished says Codex is back; an error keeps the probe's backoff.
+  noteCallResult('codex', { ok: result.status === 'ok', path: agentsFile, nowMs: nowMs() });
   // C2: the run is counted through the host writer; its stamp is the key, so a retry never counts
   // it twice. There is no write around the lock: a busy lock is retried, and a count that still
   // does not land stops the verdict. A coordinator fenced out of the lease posts nothing; the Codex
