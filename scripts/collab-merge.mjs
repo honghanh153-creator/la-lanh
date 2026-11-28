@@ -6,13 +6,14 @@ import { agentMarker, clean, dayStatePath, fixForwardIssue, integration, isOwnPr
 import { afterDecision, disputeView } from './collab-disagree.mjs';
 import { isMain } from './is-main.mjs';
 import { mergeAllowed, releaseReservation, withMergeLock } from './collab-reservation.mjs';
+import { currentMode, fallbackHoldReason, holdForClaude, secondReviewProblem } from './codex-fallback.mjs';
 
 // Merge-queue rules (P1-A/P1-B, 12.11.2026): the latest signed PASS must be for the live tip of
 // collab/integration, and the latest signed APPROVE must be for the head and still valid for that tip
 // (see approvalDrift). `baseFiles(from, to)` lists files changed on the base; without it any base
 // move needs a new review. L25: an open dispute holds the merge; after a decision only a newer
 // check and review count.
-export function mergeGate(pr, { baseFiles, disputes = disputeView() } = {}) {
+export function mergeGate(pr, { baseFiles, disputes = disputeView(), mode = 'normal' } = {}) {
   const reasons = [];
   const head = pr.headRefOid;
   const labels = (pr.labels ?? []).map(l => l.name ?? l);
@@ -22,6 +23,12 @@ export function mergeGate(pr, { baseFiles, disputes = disputeView() } = {}) {
   if (pr.baseRefName !== integration) reasons.push(`base là ${pr.baseRefName}, chỉ merge vào ${integration}`);
   if (pr.isDraft) reasons.push('draft');
   if (labels.includes('needs-owner')) reasons.push('needs-owner');
+  // L68: in Codex fallback only a small low-risk PR merges; the rest waits for Claude.
+  const fallbackHold = mode === 'fallback' ? fallbackHoldReason(pr) : null;
+  if (fallbackHold) reasons.push(fallbackHold);
+  // L69: Codex never fixes and approves alone.
+  const second = secondReviewProblem(pr);
+  if (second) reasons.push(second.reason);
   const deletion = deletionProblem(pr);
   if (deletion) reasons.push(deletion);
   if (pr.mergeable !== 'MERGEABLE') reasons.push(`GitHub báo mergeable=${pr.mergeable}`);
@@ -34,7 +41,7 @@ export function mergeGate(pr, { baseFiles, disputes = disputeView() } = {}) {
   if (check?.status !== 'PASS') reasons.push(`Author check mới nhất @ head không phải PASS có biên nhận trên base hiện tại ${String(pr.baseTipOid ?? '?').slice(0, 7)}`);
   // Automatic approvals with non-blocking P2 must link their fix-forward issue; P2 comes from the signed seal.
   if (last?.seal && last.seal.p2 > 0 && !fixForwardIssue(last.body)) reasons.push('APPROVE có P2 nhưng thiếu issue fix-forward');
-  return { ok: reasons.length === 0, head, base: pr.baseTipOid ?? null, reasons };
+  return { ok: reasons.length === 0, head, base: pr.baseTipOid ?? null, reasons, ...(fallbackHold ? { fallbackHold } : {}) };
 }
 
 // Every merge, by the tick or by the direct command, lands in the day's list, so owner notes and
@@ -48,13 +55,16 @@ export function recordMerged(pr, date = vnNow().date) {
 // Incident 18.11.2026: every merge, from the tick, a direct call or a driver, runs under one merge
 // lock and respects the merge reservation (collab-reservation.mjs), so the reserved PR's window
 // for CI, check, review and merge is not broken by another merge.
-export function runMerge(number, { gh = makeGh(), dryRun = false, date, nowMs = Date.now } = {}) {
+export function runMerge(number, { gh = makeGh(), dryRun = false, date, nowMs = Date.now, mode = 'normal' } = {}) {
   return withMergeLock(() => {
     const allowed = mergeAllowed(number, nowMs());
     if (!allowed.ok) return { status: 'refused', reasons: [allowed.reason] };
     const pr = gh.pr(number);
-    const gate = mergeGate(pr, { baseFiles: gh.compareFiles });
-    if (!gate.ok) return { status: 'refused', reasons: gate.reasons };
+    const gate = mergeGate(pr, { baseFiles: gh.compareFiles, mode });
+    if (!gate.ok) {
+      if (gate.fallbackHold && !dryRun) try { holdForClaude(gh, pr.number); } catch {}
+      return { status: 'refused', reasons: gate.reasons };
+    }
     if (dryRun) return { status: 'would-merge', head: gate.head };
     // --match-head-commit fails the merge if the head moved after the check above.
     gh.raw(['pr', 'merge', String(pr.number), '--repo', repo, '--merge', '--match-head-commit', gate.head]);
@@ -115,7 +125,7 @@ if (isMain(import.meta.url)) {
     process.stderr.write('Usage: node scripts/collab-merge.mjs --pr N [--dry-run]\n'); process.exit(2);
   }
   try {
-    const result = runMerge(number, { dryRun: args.includes('--dry-run') });
+    const result = runMerge(number, { dryRun: args.includes('--dry-run'), mode: currentMode() });
     process.stdout.write(`${JSON.stringify(result)}\n`);
     if (!['merged', 'would-merge'].includes(result.status)) process.exitCode = 3;
   } catch (error) { process.stderr.write(`collab-merge failed: ${clean(error.message, 500)}\n`); process.exitCode = 1; }

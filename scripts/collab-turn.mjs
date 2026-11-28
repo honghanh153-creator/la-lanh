@@ -1,4 +1,5 @@
 // Whose turn is it on each open PR? `--report` replaces the registry PRs; `--tick` is the launchd safety net.
+import { progressLines, readProgress } from './collab-progress.mjs';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { agentMarker, areaOrder, copyBatchAt, classifyArea, clean, codexDailyCap, dayCap, dayStatePath, integration, isOwnPr, makeGh, readJson, repo, reviewState, sortByPriority, stateDir, trustedComments, vnNow, writeJson, isSha } from './collab-trust.mjs';
@@ -16,6 +17,7 @@ import { withFileLock } from './collab-lock.mjs';
 import { bufferStatus, dailyLaneLabel, queueTopUp, wipCount } from './collab-buffer.mjs';
 import { afterDecision, disputeView, settleDisputes } from './collab-disagree.mjs';
 import { isMain } from './is-main.mjs';
+import { secondReviewProblem } from './codex-fallback.mjs';
 import { activeReservation, followHead, releaseReservation, reserve } from './collab-reservation.mjs';
 import { cleanRelease, probeView } from './collab-merge-probe.mjs';
 
@@ -84,6 +86,8 @@ export function prTurn(pr, { dropped = [], open = [], preflight = {}, baseFiles,
   if (pr.baseRefName === 'main') return out('hold', 'base là main: chỉ owner');
   if (pr.isDraft) return out('hold', 'draft');
   if (labels.includes('needs-owner')) return out('hold', 'needs-owner');
+  // L68: held during Codex fallback; the tick removes the label when Claude is back.
+  if (labels.includes('cho-claude')) return out('hold', 'chờ Claude quay lại (chế độ chuyển sang Codex)');
   const deletion = deletionProblem(pr);
   if (deletion) return out('hold', deletion);
   // L25: an open dispute holds the PR; after a decision only a newer check and review count.
@@ -112,6 +116,9 @@ export function prTurn(pr, { dropped = [], open = [], preflight = {}, baseFiles,
   if (!last || last.sha !== head) return out('codex-review', last ? `verdict cuối cho ${last.sha.slice(0, 7)}` : 'chưa có verdict');
   if (last.verdict === 'REQUEST_CHANGES') return out('claude-fix', 'REQUEST_CHANGES @ head');
   if (state.stale) return out('codex-review', `review lại: ${clean(state.stale, 200)}`);
+  // L69: a PR Codex fixed needs a second critic that is not Codex before it merges.
+  const second = secondReviewProblem(pr);
+  if (second) return out(second.turn, second.reason);
   return out('merge', 'APPROVE @ head');
 }
 
@@ -346,7 +353,7 @@ const defaultReservations = {
   release: (pr, why) => releaseReservation(pr, why),
 };
 
-export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], prPreflight: preflight = () => ({ status: 'PASS' }), heavyFree = () => true, nowMs = Date.now, check = () => ({ status: 'skipped' }), review, merge, alert, board = () => {}, log = () => {}, watchdog = () => {}, health = () => [], copyPending = () => 0, copyBatch = null, copySaved = () => false, notify = () => {}, metrics = () => null, audit = null, incidents = null, ciStatus = null, settle = defaultSettle, mergeAudit = null, reservations = defaultReservations } = {}) {
+export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], prPreflight: preflight = () => ({ status: 'PASS' }), heavyFree = () => true, nowMs = Date.now, check = () => ({ status: 'skipped' }), review, merge, alert, board = () => {}, log = () => {}, watchdog = () => {}, health = () => [], copyPending = () => 0, copyBatch = null, copySaved = () => false, notify = () => {}, metrics = () => null, audit = null, incidents = null, ciStatus = null, settle = defaultSettle, mergeAudit = null, reservations = defaultReservations, fallback = null } = {}) {
   // The clock is read again before each action, so a long review cannot push the next one past lastStartAt.
   const time = clock ?? (now ? () => now : () => vnNow());
   now = time();
@@ -652,6 +659,11 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
         topUpLanes: late() ? [] : buffer.topUpLanes ?? [], lanes: buffer.lanes ?? null,
         idleRuns,
       });
+      // L68: in Codex fallback one claude-fix turn goes to Codex; outside it the hold labels come off.
+      if (fallback && !late()) {
+        try { const r = fallback({ turns: leftTurns, prs: left }); if (r) log(`fallback: ${JSON.stringify(r)}`); }
+        catch (error) { log(`fallback failed: ${clean(error.message, 200)}`); }
+      }
       if (idleRuns >= idleAlertRuns && !idleAlerted && alert) {
         try {
           alert(`collab tick chạy không ${idleRuns} lượt liền (${now.date} ${now.hour}:${String(now.minute).padStart(2, '0')}): plan không còn PR nào để làm, cần bổ sung việc từ backlog`);
@@ -771,7 +783,8 @@ if (isMain(import.meta.url)) {
     } else {
       const { prs, turns } = planTurns(gh);
       const { lines } = bufferStatus(prs, turns, { plan7wPrs: plan7wPrNumbers(turns, vnNow().date) });
-      process.stdout.write(`${args.includes('--json') ? JSON.stringify(turns, null, 2) : [renderReport(turns), ...lines].join('\n')}\n`);
+      // L75: the reports read the shared progress board (sessions write there instead of messaging).
+      process.stdout.write(`${args.includes('--json') ? JSON.stringify(turns, null, 2) : [renderReport(turns), ...lines, ...progressLines(readProgress())].join('\n')}\n`);
     }
   } catch (error) { process.stderr.write(`collab-turn failed: ${clean(error.message, 500)}\n`); process.exitCode = 1; }
 }

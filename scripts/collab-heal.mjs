@@ -103,25 +103,33 @@ export const syncableBranch = name => /^agent\/(claude|codex)\/[\w./-]+$/.test(S
 // Returns null when there is nothing to do (up to date, or not an agent branch). Every git and gh
 // step is bounded by left() (time to the absolute deadline minus the cleanup reserve); nothing
 // starts once it is spent. A merge cut off by the deadline is aborted and nothing is pushed.
-export function syncWithIntegration(pr, { git, gh, left = () => 600000 }) {
+// resolve() (optional, collab-conflict-heal.mjs) is tried on a conflicted merge before the abort: it
+// returns the files a rule merged and committed, or null when the conflict needs judgment (L74).
+export function syncWithIntegration(pr, { git, gh, left = () => 600000, resolve = null }) {
   if (!syncableBranch(pr.headRefName)) return null;
   const expired = { status: 'refused', reason: 'hết giờ trước khi đồng bộ với integration' };
   const ms = cap => boundedTimeout(cap, left);
   const base = `origin/${integration}`;
+  let resolved = null;
   try {
     try { git(['merge-base', '--is-ancestor', base, 'HEAD'], ms(60000)); return null; } catch (error) { if (error instanceof DeadlineError) throw error; }
     try {
       git(['-c', 'user.name=la-lanh-agent', '-c', 'user.email=la-lanh-agent@users.noreply.github.com', 'merge', '--no-edit', '--no-ff', '-m', `Merge ${integration} into ${pr.headRefName} (auto-sync before author check)`, base], ms(120000));
     } catch (error) {
-      try { git(['merge', '--abort'], 10000); } catch {} // cleanup fits inside the reserve
-      if (error instanceof DeadlineError || left() <= 0) return expired;
-      return { status: 'conflict', turn: 'claude-fix', reason: 'xung đột với collab/integration' };
+      let fixed = null;
+      if (resolve && !(error instanceof DeadlineError) && left() > 0) { try { fixed = resolve(); } catch (e) { if (e instanceof DeadlineError) throw e; fixed = null; } }
+      if (fixed?.length) resolved = fixed;
+      else {
+        try { git(['merge', '--abort'], 10000); } catch {} // cleanup fits inside the reserve
+        if (error instanceof DeadlineError || left() <= 0) return expired;
+        return { status: 'conflict', turn: 'claude-fix', reason: 'xung đột với collab/integration' };
+      }
     }
     const head = git(['rev-parse', 'HEAD'], ms(60000));
     git(['push', 'origin', `HEAD:refs/heads/${pr.headRefName}`], ms(120000));
     // gh has a fixed 60 s timeout: post only when that fits; the push alone already heals the PR.
-    if (left() >= 60000) (gh.withDeadline?.(left) ?? gh).comment('pr', pr.number, `Tự đồng bộ: nhánh đi sau ${integration} và merge sạch, nên đã merge ${integration} vào nhánh và push thường (không force). Head mới ${head.slice(0, 12)} cần author check riêng ở tick sau.\n\n${agentMarker} handoff -->`);
-    return { status: 'synced', head, reason: 'đã đồng bộ với integration, check lại ở tick sau' };
+    if (left() >= 60000) (gh.withDeadline?.(left) ?? gh).comment('pr', pr.number, `Tự đồng bộ: nhánh đi sau ${integration} và ${resolved ? `chỉ xung đột ở ${resolved.join(', ')} (gộp theo luật: giữ bài học của cả hai bên)` : 'merge sạch'}, nên đã merge ${integration} vào nhánh và push thường (không force). Head mới ${head.slice(0, 12)} cần author check riêng ở tick sau.\n\n${agentMarker} handoff -->`);
+    return { status: 'synced', head, ...(resolved ? { resolved } : {}), reason: 'đã đồng bộ với integration, check lại ở tick sau' };
   } catch (error) {
     if (error instanceof DeadlineError) return expired;
     throw error;
