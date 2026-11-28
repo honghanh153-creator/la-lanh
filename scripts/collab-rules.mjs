@@ -12,7 +12,8 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { codexDailyCap, cutoffAt, hhmmOf, lastStartAt, planOpensAt } from './collab-trust.mjs';
+import { codexDailyCap, codexFallbackCap, cutoffAt, hhmmOf, lastStartAt, planOpensAt } from './collab-trust.mjs';
+import { fallbackAt, savingAt } from './collab-usage.mjs';
 import { ownerKinds } from './collab-review-policy.mjs';
 import { isMain } from './is-main.mjs';
 
@@ -43,6 +44,9 @@ export const codeFacts = () => ({
   lastStartAt: hhmmOf(lastStartAt),
   cutoffAt: hhmmOf(cutoffAt),
   ownerKinds: [...ownerKinds],
+  claudeSavingAt: savingAt,
+  claudeFallbackAt: fallbackAt,
+  codexFallbackCap,
 });
 
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
@@ -70,6 +74,8 @@ export function problems(text, code = codeFacts()) {
   const row = id => rows.find(r => r.id === id)?.rule ?? '';
   const mentions = [
     ['R8', String(facts.codexDailyCap)],
+    // L68: the Claude usage thresholds and the fallback sub-cap.
+    ['R1', `${facts.claudeSavingAt}%`], ['R1', `${facts.claudeFallbackAt}%`], ['R8', `${facts.codexFallbackCap} lần`],
     ['R9', facts.cutoffAt], ['R9', facts.lastStartAt],
     ...(Array.isArray(facts.reportSlots) ? facts.reportSlots.map(s => ['R5', s]) : []),
   ];

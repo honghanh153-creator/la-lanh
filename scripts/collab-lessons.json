@@ -236,7 +236,7 @@
    },
    "caller": {
     "file": "scripts/collab-merge.mjs",
-    "contains": "mergeGate(pr, { baseFiles: gh.compareFiles })"
+    "contains": "mergeGate(pr, { baseFiles: gh.compareFiles, mode })"
    },
    "closedBy": {
     "pr": 456
@@ -1218,6 +1218,63 @@
    }
   },
   {
+   "id": "L68",
+   "title": "Codex fallback: in fallback mode the merge gate holds risky PRs for Claude and Codex fixes claude-fix turns",
+   "from": "owner 22.11.2026 (usage plan), item 1: chuyển qua codex khi claude gần hết, giữ 5% claude",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "done",
+   "test": {
+    "file": "scripts/codex-fallback.test.mjs",
+    "name": "L82: in fallback the merge gate holds only owner-only and gate PRs; normal mode holds nothing"
+   },
+   "caller": {
+    "file": "scripts/collab-tick.mjs",
+    "contains": "fallbackFix({ gh, mode: usageNow()?.mode ?? currentMode(), turns, prs, log, left })"
+   },
+   "closedBy": {
+    "pr": 894
+   }
+  },
+  {
+   "id": "L69",
+   "title": "Codex must not fix and approve alone: a PR Codex fixed in Claude's place needs a second critic (Claude or Gemini web) on the same head",
+   "from": "owner 22.11.2026: tôi cần có phản biện nên ko muốn codex làm 1 mình",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-second-review.test.mjs",
+    "name": "L69: a PR Codex fixed waits for a second critic that is not Codex; the gate refuses until then"
+   },
+   "caller": {
+    "file": "scripts/collab-merge.mjs",
+    "contains": "const second = secondReviewProblem(pr);"
+   },
+   "closedBy": {
+    "pr": 894
+   }
+  },
+  {
+   "id": "L70",
+   "title": "Antigravity first as the second critic: the loop runs it without Claude, and an answer counts only when no tool was used",
+   "from": "owner 22.11.2026: tôi vừa bật antigravity trên máy cũng có thể sử dụng để phản biện và làm các PR, ưu tiên anti hơn gemini",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-antigravity.test.mjs",
+    "name": "L70 (Codex r1 on #894): the production tick runs Antigravity, then the Codex fix, both bounded by one deadline; from 23:35 no fix starts"
+   },
+   "caller": {
+    "file": "scripts/collab-tick.mjs",
+    "contains": "second = antigravity({ gh, prs, log, left });"
+   },
+   "closedBy": {
+    "pr": 894
+   }
+  },
+  {
    "id": "L77",
    "title": "A new read of local transcripts shipped on by default; R2(4) says new personal-data collection is built and left off",
    "from": "Codex review #893 (data_collection hold), 22.11.2026",
@@ -1234,6 +1291,25 @@
    },
    "closedBy": {
     "pr": 893
+   }
+  },
+  {
+   "id": "L79",
+   "title": "Fallback giữ ranh giới bằng writer chỉ sinh JSON, áp bản vá kiểm hash/path và kiểm bằng CI; không chạy mã nhánh trên Mac. Thay sandbox-exec sau canary native26.11 chứng minh PROCARGS lộ env.",
+   "from": "Codex auto review on #894 (23.11.2026): REQUEST_CHANGES, 8 P1 + 1 P2 security/privacy in the fallback path",
+   "who": "claude",
+   "due": "2026-11-23",
+   "status": "open",
+   "test": {
+    "file": "scripts/codex-fallback.test.mjs",
+    "name": "L79: text-only fallback never runs branch tests on the host and records pending CI"
+   },
+   "caller": {
+    "file": "scripts/codex-fallback.mjs",
+    "contains": "const tested = test ?? (() => g(['diff', '--check'], dir));"
+   },
+   "closedBy": {
+    "pr": 894
    }
   },
   {
