@@ -1,0 +1,29 @@
+{
+  "base": "collab/integration @ 95c058c",
+  "scope": "standalone research prototype and author handoff only",
+  "model_tests": 33,
+  "model_tests_pass": true,
+  "ui_dom_emulation": {
+    "actual_model_and_app_scripts": true,
+    "playable_cases": 6,
+    "earned_and_pinned_challenges": 14,
+    "profile_dialogue_roundtrips": 6,
+    "wrong_guess_missing_source_and_missing_pin_gates": true,
+    "level_unlock_and_reset": true,
+    "art_directions": 2
+  },
+  "coffee_dom_emulation": {
+    "look_search_close_roundtrips": 22,
+    "private_content_boundaries": true,
+    "keyboard_focus_and_escape": true
+  },
+  "four_new_generated_images_visually_inspected": true,
+  "browser_render_verified": false,
+  "animation_timing_verified": false,
+  "mobile_visual_qa": false,
+  "player_test_or_viral_evidence": false,
+  "production_apps_or_infra_changed": false,
+  "personal_data_or_external_api_added": false,
+  "final_art_selected_by_user": false,
+  "multiplayer_or_production_approval": false
+}
