@@ -27,10 +27,34 @@ export function workRef(body) {
   return m ? Number(m[1]) : null;
 }
 
-// The criteria ids a PR says it meets.
+// A range of criteria in one entry: "AC1–AC5", "AC1–5", "AC1..AC5", "TC1 — TC3", "AC1-AC5" (#948).
+// An en/em dash or ".." may drop the second prefix; a plain hyphen needs it, because "AC1-5" can be
+// one id ([\w-]* allows hyphens). Both ends share one prefix, the start is not above the end, and a
+// range wider than rangeLimit claims nothing: a typo must not mark a whole issue met.
+export const rangeLimit = 30;
+const rangeRe = /^(TC|AC[\w-]*?)(\d+)\s*(?:(?:[–—]|\.\.)\s*(?:(TC|AC[\w-]*?))?|-\s*(TC|AC[\w-]*?))(\d+)$/;
+function expandRange(entry) {
+  const m = rangeRe.exec(entry);
+  if (!m) return null;
+  const [, prefix, from, dashPrefix, hyphenPrefix, to] = m;
+  const end = dashPrefix ?? hyphenPrefix ?? prefix;
+  if (end !== prefix) return [];
+  const a = Number(from), b = Number(to);
+  if (a > b || b - a + 1 > rangeLimit) return [];
+  const width = from.startsWith('0') ? from.length : 0;
+  return Array.from({ length: b - a + 1 }, (_, i) => `${prefix}${String(a + i).padStart(width, '0')}`);
+}
+
+// The criteria ids a PR says it meets: a list split by commas or semicolons, each entry one id
+// (its last word, so "xong AC2" counts) or one range.
 export function claimedCriteria(body) {
   const value = labelled(body, 'Tiêu chí đạt') ?? '';
-  return new Set(value.split(/[,;]/).map(s => s.trim().split(/\s+/).at(-1)?.toUpperCase()).filter(id => /^(TC\d+|AC[\w-]*\d+)$/.test(id ?? '')));
+  const ids = value.split(/[,;]/).flatMap(s => {
+    const entry = s.trim().toUpperCase();
+    const range = expandRange(entry.replace(/^.*\s(?=(TC|AC)[\w-]*?\d+\s*(?:[–—]|\.\.|-))/u, ''));
+    return range ?? [entry.split(/\s+/).at(-1)];
+  });
+  return new Set(ids.filter(id => /^(TC\d+|AC[\w-]*\d+)$/.test(id ?? '')));
 }
 
 // The criteria of a task issue: each list item under "## Tiêu chí đạt". An item that names an id

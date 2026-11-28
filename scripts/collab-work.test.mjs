@@ -4,7 +4,7 @@ import { join } from 'node:path';
 process.env.LA_LANH_COLLAB_HOME = mkdtempSync(join(tmpdir(), 'collab-work-'));
 const assert = (await import('node:assert/strict')).default;
 const test = (await import('node:test')).default;
-const { claimedCriteria, ghFetch, issueCriteria, itemStatus, plannedWork, renderProgress, workHistoryLimit, workProgress, workRef } = await import('./collab-work.mjs');
+const { claimedCriteria, ghFetch, rangeLimit, issueCriteria, itemStatus, plannedWork, renderProgress, workHistoryLimit, workProgress, workRef } = await import('./collab-work.mjs');
 
 // Synthetic issue and PRs only.
 const sha = n => String(n).repeat(40).slice(0, 40);
@@ -24,6 +24,24 @@ test('a PR names its item and the criteria it meets; the issue lists its criteri
   assert.deepEqual([...claimedCriteria('Tiêu chí đạt: <mã tiêu chí trong mục "Tiêu chí đạt" của issue mà PR này làm xong, cách nhau dấu phẩy; để trống nếu chưa xong>')], [], 'the template placeholder claims nothing');
   assert.deepEqual(issueCriteria(issue), ['TC1', 'AC07'], 'an empty template line is not a criterion; a ticked box proves nothing either');
   assert.deepEqual(issueCriteria('## Tiêu chí đạt\n\n- [ ]\n'), []);
+});
+
+test('a PR may claim a range of criteria (#948): AC1–AC5 means AC1 to AC5', () => {
+  const ids = body => [...claimedCriteria(`Tiêu chí đạt: ${body}`)];
+  assert.deepEqual(ids('AC1–AC5'), ['AC1', 'AC2', 'AC3', 'AC4', 'AC5']);
+  assert.deepEqual(ids('AC1–3, TC7'), ['AC1', 'AC2', 'AC3', 'TC7'], 'an en dash may drop the second prefix');
+  assert.deepEqual(ids('ac1..ac2; AC4 — AC5'), ['AC1', 'AC2', 'AC4', 'AC5']);
+  assert.deepEqual(ids('AC1-AC3'), ['AC1', 'AC2', 'AC3'], 'a hyphen with both prefixes is a range');
+  assert.deepEqual(ids('AC1-5'), ['AC1-5'], 'a hyphen without the second prefix stays one id');
+  assert.deepEqual(ids('xong AC2 – AC3'), ['AC2', 'AC3'], 'words before the range are ignored');
+  assert.deepEqual(ids('AC01–AC03'), ['AC01', 'AC02', 'AC03'], 'zero padding is kept');
+  assert.deepEqual(ids('TC1–TC2'), ['TC1', 'TC2']);
+  assert.deepEqual(ids('AC5–AC1'), [], 'a reversed range claims nothing');
+  assert.deepEqual(ids('AC1–TC3'), [], 'two prefixes claim nothing');
+  assert.deepEqual(ids(`AC1–AC${rangeLimit + 1}`), [], 'a range wider than the limit claims nothing');
+  assert.equal(ids(`AC1–AC${rangeLimit}`).length, rangeLimit);
+  const issue5 = '## Tiêu chí đạt\n\n- AC1 a\n- AC2 b\n- AC3 c\n- AC4 d\n- AC5 e\n';
+  assert.deepEqual(itemStatus(issue5, [merged(9, 'Việc: #948\nTiêu chí đạt: AC1–AC5', '2026-11-28T03:00:00Z')]).missing, [], 'a range completes the item');
 });
 
 test('two PRs for one item count once; a merge without all criteria is not a finished item', () => {
