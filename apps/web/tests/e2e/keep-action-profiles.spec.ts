@@ -121,6 +121,8 @@ class FakeServer {
         return { status: 200, json: { consented: false, feedback_count: 0, last_choice: null } };
       case "GET /v1/saved-notes":
         return { status: 200, json: [] };
+      case "GET /v1/month/status":
+        return { status: 200, json: { available: false, month: "2026-09", presets: [] } };
       case "GET /v1/birth-profile/supplement":
         return { status: 200, json: { profile_id: "profile-test", place_display_name: null, timezone_id: null, ...this.profile.supplement } };
       case "GET /v1/daily-note/experiment":

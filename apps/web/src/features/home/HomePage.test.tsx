@@ -17,6 +17,7 @@ import {
   getCurrentDailyExperiment,
   getCurrentMood,
   getDailyNote,
+  getMonthStatus,
   getResonanceStatus,
   listSavedNotes,
   recordResonance,
@@ -46,6 +47,7 @@ vi.mock("../../shared/api/client", async (original) => {
     getCurrentDailyExperiment: vi.fn(),
     getCurrentMood: vi.fn(),
     getDailyNote: vi.fn(),
+    getMonthStatus: vi.fn(),
     getResonanceStatus: vi.fn(),
     listSavedNotes: vi.fn(),
     recordResonance: vi.fn(),
@@ -89,6 +91,7 @@ const aura = content("00000000-0000-4000-8000-000000000011", "full_synthesis", "
 
 describe("HomePage rich reading", () => {
   beforeEach(() => {
+    vi.mocked(getMonthStatus).mockResolvedValue({ available: false, month: "2026-11", presets: [] });
     vi.clearAllMocks();
     localStorage.clear();
     clearCachedDailyNote();
@@ -229,6 +232,29 @@ describe("HomePage rich reading", () => {
     expect(within(noteRegion).getByRole("complementary", { name: "Việc có thể thử hôm nay" })).toBeInTheDocument();
     expect(within(noteRegion).queryByText("Vì sao dành cho bạn?")).not.toBeInTheDocument();
     expect(within(noteRegion).queryByText(/Đọc từ (dữ liệu ngày sinh|lá số đầy đủ)/)).not.toBeInTheDocument();
+  });
+
+  it("puts \"Hỏi về tháng này\" next to Tarot once the month copy is approved, never an answer or a date", async () => {
+    vi.mocked(getMonthStatus).mockResolvedValue({ available: true, month: "2026-11", presets: [] });
+    vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(vibe)));
+    renderPage();
+
+    expect(await screen.findByRole("link", { name: "Hỏi về tháng này" })).toHaveAttribute("href", "/hoi-thang");
+    const discoveryRegion = screen.getByRole("region", { name: "Khám phá thêm" });
+    expect(within(discoveryRegion).getByRole("link", { name: "Hỏi về tháng này" })).toBeInTheDocument();
+    expect(within(discoveryRegion).getByRole("link", { name: "Rút Tarot" })).toBeInTheDocument();
+    expect(screen.queryByText("Xem lúc nào dễ hơn")).toBeNull();
+    expect(screen.queryByText(/Đầu tuần rồi/)).toBeNull(); // the weekly line is off by default
+  });
+
+  it("hides the month entry while its copy is pending", async () => {
+    vi.mocked(getMonthStatus).mockResolvedValue({ available: false, month: "2026-11", presets: [] });
+    vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(vibe)));
+    renderPage();
+
+    const discoveryRegion = await screen.findByRole("region", { name: "Khám phá thêm" });
+    await waitFor(() => expect(getMonthStatus).toHaveBeenCalled());
+    expect(within(discoveryRegion).queryByRole("link", { name: "Hỏi về tháng này" })).toBeNull();
   });
 
   it("lets Lá say the card's own line from the content matrix", async () => {
