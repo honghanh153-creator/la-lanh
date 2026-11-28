@@ -114,13 +114,13 @@ async function expectFits(page: Page, width: number, label: string) {
 const stored = (page: Page) => page.evaluate(() => JSON.stringify([Object.entries(localStorage).sort(), Object.entries(sessionStorage).sort()]));
 
 for (const [name, path] of [["home", "/home"], ["note", "/note/today"]] as const) {
-  test(`${name}: "Hôm nay chỉ muốn đọc" folds the action box at 360 and 390px, from the keyboard, with nothing sent or stored (#700)`, async ({ page }) => {
+  test(`${name}: "Hôm nay chỉ muốn đọc" folds the action box at 360 and 390px, from the keyboard, with nothing sent or stored (#700)`, async ({ page }, testInfo) => {
     for (const width of [360, 390]) {
       await page.setViewportSize({ width, height: 800 });
       await page.goto(path);
       await expect(page.getByText(LIGHT, { exact: true })).toBeVisible();
       await expectFits(page, width, FOLD);
-      await page.screenshot({ path: resolve(OUT_DIR, `${name}-${width}-open.png`), fullPage: true, animations: "disabled", scale: "css" });
+      await page.screenshot({ path: resolve(OUT_DIR, testInfo.project.name, `${name}-${width}-open.png`), fullPage: true, animations: "disabled", scale: "css" });
 
       const url = page.url();
       const storedBefore = await stored(page);
@@ -137,7 +137,7 @@ for (const [name, path] of [["home", "/home"], ["note", "/note/today"]] as const
       await expect(page.getByText(OWN, { exact: true })).toHaveCount(0);
       await expect(page.getByRole("button", { name: "Giữ để thử hôm nay" })).toHaveCount(0);
       await expect(page.getByRole("heading", { name: HOOK })).toBeVisible();
-      await page.screenshot({ path: resolve(OUT_DIR, `${name}-${width}-folded.png`), fullPage: true, animations: "disabled", scale: "css" });
+      await page.screenshot({ path: resolve(OUT_DIR, testInfo.project.name, `${name}-${width}-folded.png`), fullPage: true, animations: "disabled", scale: "css" });
 
       // Enter again opens it as it was.
       await page.keyboard.press("Enter");
