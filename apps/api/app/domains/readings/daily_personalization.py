@@ -249,6 +249,26 @@ REGISTRY_PAIR_RULES: tuple[RegistryPairRule, ...] = (
         "perfect-before-start",
         "situation.pair.mercury-pluto.tense",
     ),
+    # Group "overload": decision-fatigue (8%) and capacity-before-agreement (7%) were thin. Tense
+    # Mars contacts with Uranus, Neptune and the Sun read as drive pulled in too many directions.
+    RegistryPairRule(
+        frozenset({"mars", "uranus"}),
+        "tense",
+        "too-many-open-loops",
+        "situation.pair.mars-uranus.tense",
+    ),
+    RegistryPairRule(
+        frozenset({"mars", "neptune"}),
+        "tense",
+        "decision-fatigue",
+        "situation.pair.mars-neptune.tense",
+    ),
+    RegistryPairRule(
+        frozenset({"mars", "sun"}),
+        "tense",
+        "capacity-before-agreement",
+        "situation.pair.mars-sun.tense",
+    ),
 )
 
 
