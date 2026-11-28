@@ -4,7 +4,11 @@ import './collab-test-home.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { agentMarker } from './collab-trust.mjs';
-import { checkPrep, dayList, label7w, pickPlan, plannedEntry, prepRefs, serious, workUnits } from './collab-quota.mjs';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { checkPrep, dayList, label7w, mergedItems, pickPlan, plannedEntry, prepRefs, quotaIssues, serious, startBlock, uiHold, workUnits } from './collab-quota.mjs';
+import { writeJson } from './collab-trust.mjs';
 import { renderProgress, workProgress } from './collab-work.mjs';
 
 // Turns arrive priority-sorted (ops → content → privacy → feature); 7-week work is feature.
@@ -125,4 +129,68 @@ test('7-week: a morning list shorter than 3 is refused when 3 are ready', () => 
   const units = workUnits(base());
   assert.match(checkPrep(['pr:10', 'pr:12'], units).reasons.join(), /chỉ có 2 việc, cần 3/);
   assert.equal(checkPrep(['pr:1', 'pr:10', 'pr:12'], units).ok, true);
+});
+
+// Three-agent dispatch 28.11.2026, part D. Synthetic numbers shaped like the real case: two 7-week
+// feature issues stayed open after their PRs merged, and the planner kept starting them.
+const fakeGh = ({ issues, merged, mergedFails = false }) => ({
+  json: args => {
+    if (args[0] === 'issue') { const label = args[args.indexOf('--label') + 1]; return issues.filter(i => i.labels.some(l => l.name === label)); }
+    if (args[0] === 'pr' && args.includes('merged')) { if (mergedFails) throw new Error('gh: network'); return merged; }
+    throw new Error(`unexpected ${args.join(' ')}`);
+  },
+});
+const d7w = [task(714, [label7w, 'area:feature']), task(715, [label7w, 'area:feature']), task(713, [label7w, 'area:content']), task(935, [label7w]), task(711, [label7w, 'area:feature']), task(960, ['incident'])];
+const mergedPrs = [{ number: 875, body: 'Việc: #714\nTiêu chí đạt: #714 AC1–AC5' }, { number: 876, body: 'Việc: #715' }, { number: 880, body: 'Việc: #714' }, { number: 881, body: 'không có việc' }];
+
+test('planner: an item with a merged PR does not start again; the note says why (part D)', () => {
+  assert.deepEqual([...mergedItems(mergedPrs)].map(([n, e]) => [n, e.pr, [...e.claimed].sort()]), [[714, 875, ['AC1', 'AC2', 'AC3', 'AC4', 'AC5']], [715, 876, []]]);
+  const issues = quotaIssues(fakeGh({ issues: d7w, merged: mergedPrs }), { hold: false });
+  const units = workUnits({ turns: [], prs: [], issues });
+  const by = n => units.find(u => u.item === n);
+  assert.equal(by(714).ready, false);
+  assert.equal(by(714).skip, 'đã có PR #875 merge, đủ tiêu chí; cần đóng issue');
+  assert.equal(by(715).skip, 'đã có PR #876 merge, còn AC1 chưa có PR nhận; cần mở việc tiếp');
+  assert.equal(by(715).ready, false);
+  for (const n of [713, 935, 711]) assert.equal(by(n).ready, true, `#${n} starts`);
+  assert.equal(by(960).ready, true, 'an incident is never blocked');
+  const picked = pickPlan(units).items.map(u => u.item);
+  assert.ok(!picked.includes(714) && !picked.includes(715));
+  const list = dayList({ units, comments: [], date: '2026-11-28' });
+  assert.match(list.note, /Không mở việc mới: #714 \(đã có PR #875 merge, đủ tiêu chí; cần đóng issue\), #715/);
+  assert.match(checkPrep(['item:714', 'item:713', 'item:711'], units).reasons.join(';'), /item:714 đang giữ \(đã có PR #875/);
+});
+
+test('planner: an item with an open PR is still worked; the merged rule only stops fresh starts', () => {
+  const issues = quotaIssues(fakeGh({ issues: d7w, merged: mergedPrs }), { hold: true });
+  const units = workUnits({ turns: [turn(990, { area: 'feature', item: 714 })], prs: [prOf(990)], issues });
+  const u = units.find(x => x.key === 'item:714');
+  assert.equal(u.ready, true);
+  assert.equal(u.plan7w, true, 'the label still comes from the issue');
+  assert.equal(units.filter(x => x.key === 'item:714').length, 1);
+});
+
+test('planner: while the UI hold stands, only ops, content, privacy and process issues start (part D)', () => {
+  const issues = quotaIssues(fakeGh({ issues: d7w, merged: [] }), { hold: true });
+  const units = workUnits({ turns: [], prs: [], issues });
+  const ready = units.filter(u => u.ready).map(u => u.item).sort();
+  assert.deepEqual(ready, [713, 960], 'content and the incident start; feature and unlabelled wait');
+  assert.equal(units.find(u => u.item === 711).skip, 'đang giữ UI và tính năng mới');
+  assert.equal(units.find(u => u.item === 935).skip, 'đang giữ UI và tính năng mới', 'unlabelled counts as held');
+  const free = workUnits({ turns: [], prs: [], issues: quotaIssues(fakeGh({ issues: d7w, merged: [] }), { hold: false }) });
+  assert.equal(free.filter(u => u.ready).length, d7w.length);
+});
+
+test('planner: a failed merged-PR read blocks fresh starts, never incidents; the hold file is read by status only', () => {
+  const units = workUnits({ turns: [], prs: [], issues: quotaIssues(fakeGh({ issues: d7w, merged: [], mergedFails: true }), { hold: false }) });
+  assert.deepEqual(units.filter(u => u.ready).map(u => u.item), [960]);
+  assert.equal(units.find(u => u.item === 713).skip, 'chưa đọc được PR đã merge');
+  assert.equal(startBlock(task(5, ['incident', 'severity:P1']), { mergedKnown: false, hold: true }), null);
+  const dir = mkdtempSync(join(tmpdir(), 'uihold-'));
+  const path = join(dir, 'ui.json');
+  assert.equal(uiHold({ path }), false, 'no file: no hold on this host');
+  writeJson(path, { status: 'awaiting_owner_master_ui_approval' });
+  assert.equal(uiHold({ path }), true);
+  writeJson(path, { status: 'approved' });
+  assert.equal(uiHold({ path }), false);
 });
