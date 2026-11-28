@@ -5,13 +5,14 @@
 // One check on the machine at a time: two checks share the API and e2e ports and give false receipts.
 import { guardListState } from './collab-hooks.mjs';
 import { spawnSync, execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { bindReceipt, boundedTimeout, checkSeal, clean, cutoffAt, cutoffMs, hhmmOf, integration, isOwnPr, isSha, lastStartAt, makeGh, planOpensAt, repo, signReceipt, stateDir, vnNow } from './collab-trust.mjs';
 import { withFileLock } from './collab-lock.mjs';
 import { mayTouch, readClaim, sessionId, withPrLock } from './collab-pr-claim.mjs';
 import { preflightFailure, readPreflight, recordPreflight, runPreflight } from './collab-preflight.mjs';
 import { runGroup, syncWithIntegration } from './collab-heal.mjs';
+import { resolveRuleConflicts } from './collab-conflict-heal.mjs';
 import { checkSteps, failDetails, guardWaitMs, openCheckLog, waitForGuard } from './collab-check-log.mjs';
 import { isMain } from './is-main.mjs';
 
@@ -430,7 +431,7 @@ export function runCheckInClone(number, { gh = makeGh(), run = execFileSync, aut
     // PR's lock, so no session takes the PR while its branch is written; a busy lock means wait.
     let synced = null;
     if (rest.sync !== false) {
-      const held = withPrLock(number, () => (mayTouch(number, rest.session ?? sessionId()).ok ? { synced: syncWithIntegration(pr, { git: (args, ms) => git(args, cwd, run, ms), gh: ghD, left: leftMs }) } : { claimed: true }), { waitMs: 0 });
+      const held = withPrLock(number, () => (mayTouch(number, rest.session ?? sessionId()).ok ? { synced: syncWithIntegration(pr, { git: (args, ms) => git(args, cwd, run, ms), gh: ghD, left: leftMs, resolve: () => resolveRuleConflicts({ git: (args, ms) => git(args, cwd, run, ms), write: (f, t) => writeFileSync(join(cwd, f), t) }) }) } : { claimed: true }), { waitMs: 0 });
       if (held.ok === false || held.claimed) rest.sync = false;
       else synced = held.synced;
     }
