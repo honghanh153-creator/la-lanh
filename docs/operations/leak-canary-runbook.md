@@ -101,7 +101,12 @@ Bảng ca thử cho thông tin kèm trong ảnh PNG (#691 AC3). Khi thêm một 
 | sPLT | tên bảng màu | ngày sinh |
 | tIME | giờ sửa file | ngày sinh |
 | Phần lạ | chữ UTF-8 | mood |
-| Thông tin kèm sạch | EXIF có ngày khác, chữ thường, tên bảng màu thường | không được báo |
+| Thông tin kèm không có dấu | EXIF có ngày khác, chữ thường, tên bảng màu thường | không báo dấu nào; vẫn đỏ vì phần đó không nằm trong danh sách được phép |
+| Phần không nằm trong danh sách được phép | tEXt, eXIf, sPLT, iCCP, tIME, phần riêng, phần mới của chuẩn (cICP), tất cả không có dấu | đỏ, báo tên loại phần |
+
+**Danh sách phần được phép (từ 24.11.2026).** Ảnh app đưa ra chỉ được chứa các phần mô tả điểm ảnh và màu: IHDR, PLTE, IDAT, IEND, tRNS, gAMA, cHRM, sRGB, sBIT, bKGD, pHYs, hIST, acTL, fcTL, fdAT. Phần nào khác là đỏ, kể cả khi không tìm thấy dấu trong đó. Lý do: tìm dấu chỉ thấy những kiểu ghi đã nghĩ tới; danh sách được phép chặn cả kiểu ghi chưa nghĩ tới. Báo cáo chỉ in tên loại phần (bốn chữ cái), không in nội dung.
+
+Danh sách đã được so với bảng loại phần trong chuẩn PNG của W3C (bản nháp của nhóm soạn, mục 4.7.2, https://w3c.github.io/png/, đọc ngày 24.11.2026). Bản đã phát hành trên w3.org không đọc được bằng máy (trả lỗi 403), nên chưa so với bản đó. Các phần mang chữ, tên, ngày hoặc dữ liệu nhúng (tEXt, zTXt, iTXt, eXIf, tIME, sPLT, iCCP) cố ý không có trong danh sách. Hai phần mới của chuẩn (cICP, mDCV) cũng chưa cho vào. Nếu sau này app cần ghi một phần mới vào ảnh, thêm nó vào danh sách trong `scripts/leak-canary-lib.mjs` cùng một ca test, trong cùng PR, và ghi lý do ở đây.
 
 Ghi lại để lần rà sau không sót: vòng review đầu của #768 đã tìm ra chỗ đọc EXIF còn thiếu (chữ hai byte, tên bảng màu) nhưng chưa thử cách EXIF viết ngày (`YYYY:MM:DD`). Vòng sau mới thấy. Từ đó ngày sinh được tìm theo từng phần như mô tả ở trên, và bảng này liệt kê đủ các trường ngày để rà cả nhóm một lần.
 

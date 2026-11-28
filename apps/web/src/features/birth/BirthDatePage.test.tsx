@@ -117,7 +117,7 @@ describe("BirthDatePage", () => {
     await user.type(screen.getByRole("textbox", { name: "Ngày" }), "01");
     await user.type(screen.getByRole("textbox", { name: "Tháng" }), "01");
     await user.type(screen.getByRole("textbox", { name: "Năm" }), "1990");
-    await user.click(screen.getByRole("button", { name: "Khớp tín hiệu" }));
+    await user.click(screen.getByRole("button", { name: "Tiếp tục" }));
 
     expect(await screen.findByRole("heading", { name: "Vững" })).toBeInTheDocument();
     expect(createBirthProfile).toHaveBeenCalledTimes(1);
@@ -133,7 +133,7 @@ describe("BirthDatePage", () => {
     await user.type(screen.getByRole("textbox", { name: "Ngày" }), "31");
     await user.type(screen.getByRole("textbox", { name: "Tháng" }), "02");
     await user.type(screen.getByRole("textbox", { name: "Năm" }), "1990");
-    await user.click(screen.getByRole("button", { name: "Khớp tín hiệu" }));
+    await user.click(screen.getByRole("button", { name: "Tiếp tục" }));
 
     expect(screen.getByRole("alert")).toHaveTextContent("Ngày này chưa đúng");
     expect(screen.getByRole("textbox", { name: "Ngày" })).toHaveFocus();
@@ -146,11 +146,11 @@ describe("BirthDatePage", () => {
     await fillDate(user);
     await fillDetails(user);
     expect(screen.getByRole("checkbox")).not.toBeChecked();
-    await user.click(screen.getByRole("button", { name: "Khớp tín hiệu" }));
+    await user.click(screen.getByRole("button", { name: "Tiếp tục" }));
     expect(screen.getByRole("alert")).toHaveTextContent("Đồng ý dùng giờ/nơi sinh");
     expect(createBirthProfile).not.toHaveBeenCalled();
     await user.click(screen.getByRole("checkbox"));
-    await user.click(screen.getByRole("button", { name: "Khớp tín hiệu" }));
+    await user.click(screen.getByRole("button", { name: "Tiếp tục" }));
     expect(await screen.findByRole("heading", { name: "Vững" })).toBeInTheDocument();
     expect(addBirthSupplement).toHaveBeenCalledWith({ birth_time_mode: "exact", birth_time_local: "00:00", approx_window: null, place_id: "hanoi" });
     expect(vi.mocked(addBirthSupplement).mock.invocationCallOrder[0]).toBeLessThan(vi.mocked(getDailyNote).mock.invocationCallOrder[0]);
@@ -163,7 +163,7 @@ describe("BirthDatePage", () => {
     await fillDetails(user);
     await user.click(screen.getByRole("checkbox"));
     await user.click(screen.getByRole("button", { name: "Bỏ qua giờ & nơi sinh" }));
-    await user.click(screen.getByRole("button", { name: "Khớp tín hiệu" }));
+    await user.click(screen.getByRole("button", { name: "Tiếp tục" }));
     expect(await screen.findByRole("heading", { name: "Vững" })).toBeInTheDocument();
     expect(addBirthSupplement).not.toHaveBeenCalled();
   });
@@ -175,7 +175,7 @@ describe("BirthDatePage", () => {
     await user.click(screen.getByRole("button", { name: /Thêm giờ & nơi sinh/ }));
     await user.click(screen.getByRole("button", { name: "Biết giờ" }));
     await user.selectOptions(screen.getByLabelText("Giờ (0–23)"), "07");
-    await user.click(screen.getByRole("button", { name: "Khớp tín hiệu" }));
+    await user.click(screen.getByRole("button", { name: "Tiếp tục" }));
     expect(screen.getByRole("alert")).toHaveTextContent("Chọn đủ giờ và phút");
     expect(createBirthProfile).not.toHaveBeenCalled();
   });
@@ -187,7 +187,7 @@ describe("BirthDatePage", () => {
     await fillDate(user);
     await fillDetails(user);
     await user.click(screen.getByRole("checkbox"));
-    await user.click(screen.getByRole("button", { name: "Khớp tín hiệu" }));
+    await user.click(screen.getByRole("button", { name: "Tiếp tục" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("giờ/nơi sinh chưa lưu được");
     expect(screen.getByRole("textbox", { name: "Ngày" })).toBeDisabled();
     await user.click(screen.getByRole("button", { name: "Thử tải lại" }));
@@ -203,7 +203,7 @@ describe("BirthDatePage", () => {
     await fillDate(user);
     await fillDetails(user);
     await user.click(screen.getByRole("checkbox"));
-    await user.click(screen.getByRole("button", { name: "Khớp tín hiệu" }));
+    await user.click(screen.getByRole("button", { name: "Tiếp tục" }));
     expect(await screen.findByRole("heading", { name: "Radar tiếp tục" })).toBeInTheDocument();
     expect(updateOnboardingStatus).toHaveBeenCalledWith("completed");
     expect(sessionStorage.getItem("la-lanh-radar-owner-start")).toBeNull();
@@ -216,7 +216,7 @@ describe("BirthDatePage", () => {
     await fillDate(user);
     await fillDetails(user);
     await user.click(screen.getByRole("checkbox"));
-    await user.click(screen.getByRole("button", { name: "Khớp tín hiệu" }));
+    await user.click(screen.getByRole("button", { name: "Tiếp tục" }));
     expect(await screen.findByRole("heading", { name: "Radar mời tiếp" })).toBeInTheDocument();
     expect(sessionStorage.getItem("la-lanh-radar-owner-start")).toBeNull();
   });
@@ -228,7 +228,7 @@ describe("BirthDatePage", () => {
     await fillDate(user);
     await fillDetails(user);
     await user.click(screen.getByRole("checkbox"));
-    await user.click(screen.getByRole("button", { name: "Khớp tín hiệu" }));
+    await user.click(screen.getByRole("button", { name: "Tiếp tục" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Thử tải lại");
     await user.click(screen.getByRole("button", { name: "Thử tải lại" }));
     expect(await screen.findByRole("heading", { name: "Vững" })).toBeInTheDocument();
@@ -244,7 +244,7 @@ describe("BirthDatePage", () => {
     await user.click(screen.getByRole("checkbox"));
     await user.selectOptions(screen.getByLabelText("Phút (0–59)"), "15");
     expect(screen.getByRole("checkbox")).not.toBeChecked();
-    await user.click(screen.getByRole("button", { name: "Khớp tín hiệu" }));
+    await user.click(screen.getByRole("button", { name: "Tiếp tục" }));
     expect(screen.getByRole("alert")).toHaveTextContent("Đồng ý dùng giờ/nơi sinh");
     expect(createBirthProfile).not.toHaveBeenCalled();
   });

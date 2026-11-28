@@ -71,7 +71,7 @@ ISSUE_LIGHT_CATALOG: dict[str, tuple[tuple[str, str, str], ...]] = {
     ),
     "changed-plan": (
         ("01", "9c2e5c6a1d7bd822c11b2ce1f614b49ac60810f58bee975e83272d2cef7f5fd2", "rest"),
-        ("02", "8d74cd03620b603eb7e0f38064cc29e683e117927b0ea6f3eace08e0afb46b3f", "body"),
+        ("02", "314543a0392acae8ca461ed75a629ca2b4b7934b2a1fa01f8fc56b4f5d535827", "body"),
     ),
     "comparison-loop": (
         ("01", "7828dc7663c8c3d4765c90d5321a1c8f061475d1497f1b062ca7c33be50f33b0", "boundary"),

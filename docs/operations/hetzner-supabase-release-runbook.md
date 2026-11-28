@@ -5,7 +5,15 @@ operator or Codex session should be able to use it without relying on chat histo
 status checklist is
 `docs/plans/2026-09-26-hetzner-supabase-public-beta-deployment-plan.md`.
 
-## Current production — 2026-11-20
+## Current production — 2026-11-21 (hotfix)
+
+Release `42b678c13a93` is live (`main` = `42b678c13a9333c68840e5ac65b2ae06dff4be81`, #824: only the #808 crisis-guard
+fix on top of `577a5d0b7a98`; image `sha256:807bdcbcff52…`; Alembic head unchanged at `20261111_0042`). Farewells such
+as "đi xa mãi mãi rồi" now get the crisis notice. Shipped under the owner's standing hotfix permission (R12). Staging
+runs the same image. Rollback anchor: `la-lanh:577a5d0b7a98` (same schema; restores the miss). Receipt:
+[production-release-2026-11-21](../reviews/production-release-2026-11-21/receipt.md).
+
+## Previous production — 2026-11-20
 
 Release `577a5d0b7a98` is live (`main` = `577a5d0b7a9875d0e66c9a780e6f4db5cb77b68c`, #769: `collab/integration`
 `059d3c35` merged with `main`; tree identical to `059d3c35`; image `sha256:a9eb4b1fcb73…`; Alembic head unchanged at
