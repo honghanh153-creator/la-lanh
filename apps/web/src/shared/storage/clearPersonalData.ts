@@ -5,6 +5,7 @@ import {
 } from "../api/client";
 import { setPendingChartQuarantine } from "./chartQuarantineGate";
 import { clearMatchingIntroExposure } from "./matchingIntroExposure";
+import { clearLaLineMemory } from "./laLineMemory";
 import { clearCachedDailyNote } from "./noteCache";
 import { clearLocalSavedNotes } from "./savedNoteCache";
 import { PENDING_MOOD_ACK_KEY, PENDING_MOOD_KEY } from "./pendingMood";
@@ -76,6 +77,14 @@ export async function clearPersonalDataOnDevice(): Promise<void> {
   attempt(() => sessionStorage.removeItem("la-lanh-radar-owner-start"));
   attempt(() => sessionStorage.removeItem("la-lanh-tarot-start"));
   attempt(() => sessionStorage.removeItem("la-lanh-tarot-guest-key"));
+
+  // Which line Lá said last per Daily issue (W1): goes with delete profile, sign-out and any
+  // session change, through the one erase that also fences writers in other tabs (Codex P1, #734).
+  try {
+    if (!(await clearLaLineMemory())) failures.push(new Error("Lá's line memory could not be cleared"));
+  } catch (error) {
+    failures.push(error);
+  }
 
   try {
     await removeOrphanedNativeExport();
