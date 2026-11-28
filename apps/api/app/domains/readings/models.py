@@ -258,6 +258,19 @@ class DailyVariety(BaseModel):
     # Issue keys actually served on D-1 and D-2 (most recent first), used only
     # for the top-K guard. Closed catalog keys, never user text.
     recent_issue_keys: tuple[str, ...] = Field(default=(), max_length=2)
+    # Topic anti-repeat (plan 2026-11-21, US-21 AC05 new): the issue keys this same choice gave on
+    # the earlier days of the reader's 7-day block, oldest first ("" = no situation that day),
+    # recomputed from the chart, never stored apart from this plan. ``None`` = the top-3 rotation
+    # with the AC05 guard pair (plans before the switch, and dates before it).
+    topic_history: tuple[str, ...] | None = Field(default=None, max_length=6)
+
+    @model_serializer(mode="wrap")
+    def _drop_absent_topic_history(self, handler: SerializerFunctionWrapHandler) -> Any:
+        # Plans made before the topic schedule keep their plan hash and identity unchanged.
+        data = handler(self)
+        if isinstance(data, dict) and data.get("topic_history") is None:
+            data.pop("topic_history", None)
+        return data
 
 
 class ReadingPlan(BaseModel):
@@ -779,7 +792,25 @@ class LighterActionProjection(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     action: str = Field(min_length=1, max_length=LIGHTER_ACTION_MAX_CHARS)
-    weight: Literal["light"] = "light"
+    # "light" for Đuối (#627); "slow" for Căng and "clear" for Lạc trôi (#701).
+    weight: Literal["light", "slow", "clear"] = "light"
+    experiment: ExperimentProjection | None = None
+
+
+class AloneActionProjection(BaseModel):
+    """An action that needs no contact with anyone, for a card that asks to reach someone (#703).
+
+    ``replaces`` names which of the card's offered actions ask the reader to contact someone:
+    the card's own ("card"), the lighter ("light"), the slow or the clear one. The reader's
+    device shows this action as another choice only next to one of those.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    action: str = Field(min_length=1, max_length=LIGHTER_ACTION_MAX_CHARS)
+    replaces: tuple[Literal["card", "light", "slow", "clear"], ...] = Field(
+        min_length=1, max_length=4
+    )
     experiment: ExperimentProjection | None = None
 
 
@@ -837,6 +868,14 @@ class ReadingContentProjection(BaseModel):
     experiment: ExperimentProjection | None = None
     # Daily only, and only while approved lighter actions exist.
     lighter_action: LighterActionProjection | None = None
+    # Daily only (#701): shown first on a day saved as Căng (slow) or Lạc trôi (clear). The
+    # server never reads the mood; the reader's device chooses, as for the lighter action.
+    slow_action: LighterActionProjection | None = None
+    clear_action: LighterActionProjection | None = None
+    # Daily only (#703): sent only when one of the actions above asks to contact someone.
+    alone_action: AloneActionProjection | None = None
+    # Daily only (#703): one short "others meet this too" line, for a few everyday issues.
+    common_line: str | None = Field(default=None, min_length=1, max_length=LIGHTER_ACTION_MAX_CHARS)
 
 
 class AvailableReadingUpdate(BaseModel):

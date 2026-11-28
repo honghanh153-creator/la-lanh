@@ -149,6 +149,49 @@
         "title": "ActivateReadingRequest",
         "type": "object"
       },
+      "AloneActionProjection": {
+        "additionalProperties": false,
+        "description": "An action that needs no contact with anyone, for a card that asks to reach someone (#703).\n\n``replaces`` names which of the card's offered actions ask the reader to contact someone:\nthe card's own (\"card\"), the lighter (\"light\"), the slow or the clear one. The reader's\ndevice shows this action as another choice only next to one of those.",
+        "properties": {
+          "action": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Action",
+            "type": "string"
+          },
+          "experiment": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExperimentProjection"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "replaces": {
+            "items": {
+              "enum": [
+                "card",
+                "light",
+                "slow",
+                "clear"
+              ],
+              "type": "string"
+            },
+            "maxItems": 4,
+            "minItems": 1,
+            "title": "Replaces",
+            "type": "array"
+          }
+        },
+        "required": [
+          "action",
+          "replaces"
+        ],
+        "title": "AloneActionProjection",
+        "type": "object"
+      },
       "ApproxWindow": {
         "enum": [
           "dawn",
@@ -3802,8 +3845,12 @@
             ]
           },
           "weight": {
-            "const": "light",
             "default": "light",
+            "enum": [
+              "light",
+              "slow",
+              "clear"
+            ],
             "title": "Weight",
             "type": "string"
           }
@@ -5304,6 +5351,39 @@
         "additionalProperties": false,
         "description": "The single private response contract shared by Daily and Insights.",
         "properties": {
+          "alone_action": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AloneActionProjection"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "clear_action": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LighterActionProjection"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "common_line": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Common Line"
+          },
           "created_at": {
             "format": "date-time",
             "title": "Created At",
@@ -5352,6 +5432,16 @@
           },
           "sections": {
             "$ref": "#/components/schemas/ReadingSectionsProjection"
+          },
+          "slow_action": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LighterActionProjection"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "source": {
             "$ref": "#/components/schemas/ReadingRevisionSource"

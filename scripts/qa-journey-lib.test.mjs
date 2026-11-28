@@ -4,7 +4,7 @@ import { join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { LOADING, PERSONA, RECEIPT_GATE_SINCE, contentExit, contentMode, contentVerdict, receiptGaps, redactRoute } from "./qa-journey-lib.mjs";
+import { LOADING, PERSONA, RECEIPT_GATE_SINCE, contentExit, contentMode, contentVerdict, clientError, receiptGaps, redactRoute } from "./qa-journey-lib.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const O = "https://la-lanh.example";
@@ -93,4 +93,17 @@ test("a JSON null is data, not placeholder text; report mode relaxes content fin
   assert.equal(contentExit(fail, "report"), 0);
   assert.equal(contentExit(fail, "enforce"), 1);
   assert.equal(contentExit([{ status: "PASS", findings: [] }], "enforce"), 0);
+});
+
+test("the first session check of a new visitor is the only expected 4xx (journey 21.11)", () => {
+  const first = { method: "GET", url: `${O}/v1/session`, status: 401, code: "GUEST_SESSION_MISSING" };
+  assert.deepEqual(clientError(first), { request: "GET /v1/session", status: 401, code: "GUEST_SESSION_MISSING", expected: true });
+  // After the guest exists, the same answer means the session was lost: unexpected.
+  assert.equal(clientError(first, { guestCreated: true }).expected, false);
+  assert.equal(clientError({ ...first, code: "GUEST_EXPIRED" }).expected, false);
+  assert.equal(clientError({ ...first, url: `${O}/v1/insights/overview` }).expected, false);
+  assert.equal(clientError({ ...first, method: "POST" }).expected, false);
+  // Routes are redacted and an odd code is dropped, so no token or text reaches the receipt.
+  const odd = clientError({ method: "GET", url: `${O}/v1/tarot/sessions/3f1c2b7e-1111-4a2b-9c3d-0123456789ab?token=x`, status: 404, code: "not a code <b>" });
+  assert.deepEqual(odd, { request: "GET /v1/tarot/:id/:id", status: 404, code: null, expected: false });
 });

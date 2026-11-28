@@ -1,5 +1,6 @@
 from dataclasses import replace
 from datetime import UTC, datetime
+from types import SimpleNamespace
 from typing import cast
 from uuid import UUID
 
@@ -23,6 +24,7 @@ from app.domains.readings.application import (
     ReadingApplicationService,
     ReadingContentRejected,
 )
+from app.domains.readings.knowledge import SYNTHESIS_WORDING_VERSION
 from app.domains.readings.models import (
     AuraUnlockLayer,
     BackgroundLens,
@@ -30,6 +32,7 @@ from app.domains.readings.models import (
     PlanMode,
     ProfileReadiness,
     ReadingPlanRecord,
+    ReadingProjection,
     ReadingProjectionRecord,
     ReadingPurpose,
     ReadingRevisionRecord,
@@ -41,6 +44,7 @@ from app.domains.readings.renderers import (
     JYOTISH_MEANINGS_VERSION,
     DeterministicVietnameseRenderer,
 )
+from app.domains.readings.service import InsightReadingService
 
 NOW = datetime(2026, 9, 7, 4, 30, tzinfo=UTC)
 
@@ -269,9 +273,12 @@ def _exact_snapshot(
 
 
 @pytest.mark.asyncio
-async def test_date_only_daily_creates_stable_private_vibe_projection() -> None:
+@pytest.mark.parametrize("all_profiles", [False, True], ids=["switch-off", "switch-on"])
+async def test_date_only_daily_creates_stable_private_vibe_projection(all_profiles: bool) -> None:
     repository = MemoryReadingRepository()
-    service = ReadingApplicationService(repository, NatalChartEngine())
+    service = ReadingApplicationService(
+        repository, NatalChartEngine(), keep_action_all_profiles=all_profiles
+    )
     guest_id = UUID("20000000-0000-4000-8000-000000000001")
     profile_id = UUID("30000000-0000-4000-8000-000000000001")
     snapshot = _date_only_snapshot(guest_id, profile_id)
@@ -298,7 +305,12 @@ async def test_date_only_daily_creates_stable_private_vibe_projection() -> None:
     assert first.aura_transition.transition_id is None
     assert first.aura_transition.acknowledged is False
     assert first.aura_transition.unlock_layers == ()
-    assert first.active.experiment is None
+    # #716: a date-only Daily note offers its own action to keep only with the switch on.
+    if all_profiles:
+        assert first.active.experiment is not None
+        assert first.active.experiment.action == first.active.sections.micro_action
+    else:
+        assert first.active.experiment is None
     assert first.available_update is None
     assert (
         first.active.model_dump()
@@ -694,7 +706,8 @@ async def test_daily_without_a_meaning_brief_repairs_only_the_active_projection(
 async def test_exact_supplement_waits_as_full_gift_until_explicit_activation() -> None:
     repository = MemoryReadingRepository()
     engine = NatalChartEngine()
-    service = ReadingApplicationService(repository, engine)
+    # The switch is on, so a date-only note could offer its action (#716); this one must not.
+    service = ReadingApplicationService(repository, engine, keep_action_all_profiles=True)
     guest_id = UUID("20000000-0000-4000-8000-000000000002")
     profile_id = UUID("30000000-0000-4000-8000-000000000002")
 
@@ -728,7 +741,11 @@ async def test_exact_supplement_waits_as_full_gift_until_explicit_activation() -
         AuraUnlockLayer.HOUSE_ARENA,
         *((AuraUnlockLayer.CURRENT_SKY,) if has_reason else ()),
     )
+    # Codex P1 on #740: the date-only note left active is on the old chart snapshot, so the
+    # server refuses a keep for it; it offers none, not even the lighter action.
     assert upgraded.active.experiment is None
+    lighter = upgraded.active.lighter_action
+    assert lighter is None or lighter.experiment is None
     assert upgraded.available_update.content.experiment is not None
     experiment = upgraded.available_update.content.experiment
     assert experiment.action == upgraded.available_update.content.sections.micro_action
@@ -809,6 +826,84 @@ async def test_exact_supplement_waits_as_full_gift_until_explicit_activation() -
             expected_revision_id=vibe.active.revision_id,
             updated_at=NOW,
         )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("all_profiles", [True, False], ids=["switch-on", "switch-off"])
+async def test_keep_offer_follows_the_current_snapshot_the_caller_read(all_profiles: bool) -> None:
+    """Codex critique on #740: the offer follows the profile's current snapshot, not a guess.
+
+    A date-only note (snapshot 1) is active and an exact reading (snapshot 2) waits. Which one
+    may offer its action depends only on the snapshot the route read for the profile: the
+    acknowledgement of the waiting reading must not infer it from the waiting plan (the person
+    may have gone back to snapshot 1, or on to a third one), and unknown means no offer.
+    """
+
+    repository = MemoryReadingRepository()
+    engine = NatalChartEngine()
+    service = ReadingApplicationService(repository, engine, keep_action_all_profiles=all_profiles)
+    guest_id = UUID("20000000-0000-4000-8000-000000000071")
+    profile_id = UUID("30000000-0000-4000-8000-000000000071")
+    date_only = _date_only_snapshot(guest_id, profile_id)
+    exact = _exact_snapshot(guest_id, profile_id, engine)
+    await service.project(
+        guest_id=guest_id, snapshot=date_only, purpose=ReadingPurpose.DAILY_NOTE, requested_at=NOW
+    )
+    upgraded = await service.project(
+        guest_id=guest_id, snapshot=exact, purpose=ReadingPurpose.DAILY_NOTE, requested_at=NOW
+    )
+    assert upgraded.available_update is not None
+    assert upgraded.aura_transition.transition_id is not None
+
+    async def acknowledge(current: UUID | None) -> ReadingProjection:
+        return await service.acknowledge_aura_transition(
+            guest_id=guest_id,
+            profile_id=profile_id,
+            scope_key=upgraded.scope_key,
+            transition_id=upgraded.aura_transition.transition_id or "",
+            updated_at=NOW,
+            current_snapshot_id=current,
+        )
+
+    # Back on the date-only snapshot: its note may offer its action (with the switch on).
+    back = await acknowledge(date_only.id)
+    assert (back.active.experiment is not None) is all_profiles
+    assert back.available_update is not None
+    assert back.available_update.content.experiment is None
+    # On the exact snapshot: the old note offers nothing; the waiting exact reading does.
+    on_exact = await acknowledge(exact.id)
+    assert on_exact.active.experiment is None
+    assert on_exact.available_update is not None
+    assert on_exact.available_update.content.experiment is not None
+    # On a third snapshot, or unknown: nothing anywhere (fail closed).
+    for current in (UUID("10000000-0000-4000-8000-000000000077"), None):
+        neither = await acknowledge(current)
+        assert neither.active.experiment is None
+        assert neither.available_update is not None
+        assert neither.available_update.content.experiment is None
+
+    # Activation without a pinned snapshot uses the plan the repository just activated.
+    activated = await service.activate(
+        guest_id=guest_id,
+        profile_id=profile_id,
+        scope_key=upgraded.scope_key,
+        expected_revision_id=upgraded.available_update.revision_id,
+        updated_at=NOW,
+    )
+    assert activated.active.experiment is not None
+
+
+def test_a_plan_without_a_chart_snapshot_never_offers_its_action() -> None:
+    """Historical plans with no snapshot id are refused by the server, so never offered."""
+
+    service = ReadingApplicationService(MemoryReadingRepository(), keep_action_all_profiles=True)
+    current = UUID("10000000-0000-4000-8000-000000000001")
+    no_snapshot = cast(ReadingPlanRecord, SimpleNamespace(chart_snapshot_id=None))
+    on_current = cast(ReadingPlanRecord, SimpleNamespace(chart_snapshot_id=current))
+    assert service._keep_policy(no_snapshot, current).on_current is False
+    assert service._keep_policy(on_current, None).on_current is False
+    assert service._keep_policy(None, current).on_current is False
+    assert service._keep_policy(on_current, current).on_current is True
 
 
 @pytest.mark.asyncio
@@ -1099,3 +1194,86 @@ async def test_stored_jyotish_reading_from_the_old_renderer_is_repaired_not_repl
     assert repaired.active.revision_id != first.active.revision_id
     assert repaired.active.sections.hook != old_hook
     assert repaired.available_update is None
+
+
+@pytest.mark.asyncio
+async def test_stored_synthesis_with_the_old_wording_reopens_as_a_new_revision() -> None:
+    """Codex r1 on #774: the wording fix (one style for two placements in one sign, no circular
+    "khi bạn chủ động") changes accepted text for an unchanged plan. A revision stored with the
+    old wording must not share a revision key with the new text, or reopening it would raise
+    ImmutableReadingConflictError."""
+
+    marker = f"+{SYNTHESIS_WORDING_VERSION}"
+
+    class OldWordingRenderer(DeterministicVietnameseRenderer):
+        def render(self, plan):  # type: ignore[no-untyped-def]
+            candidate = super().render(plan)
+            assert marker in candidate.renderer_version
+            assert candidate.semantic_blueprint is not None
+            old_hook = candidate.hook.replace("hỗ trợ nhau.", "hỗ trợ nhau khi bạn chủ động.")
+            return candidate.model_copy(
+                update={
+                    "hook": old_hook,
+                    "renderer_version": candidate.renderer_version.replace(marker, ""),
+                    "semantic_blueprint": candidate.semantic_blueprint.model_copy(
+                        update={"hook": old_hook}
+                    ),
+                }
+            )
+
+    engine = NatalChartEngine()
+    repository = MemoryReadingRepository()
+    guest_id = UUID("20000000-0000-4000-8000-000000000774")
+    profile_id = UUID("30000000-0000-4000-8000-000000000774")
+    snapshot = _exact_snapshot(guest_id, profile_id, engine)
+    # A synthetic chart whose Aura hero is a sextile with a "giữ quyền chủ động" need.
+    chart = engine.calculate_chart(
+        ChartInput(
+            utc_datetime=datetime(1990, 1, 15, 12, tzinfo=UTC),
+            latitude=10.8231,
+            longitude=106.6297,
+        )
+    )
+
+    first = await ReadingApplicationService(
+        repository, engine, renderer=OldWordingRenderer()
+    ).project(
+        guest_id=guest_id,
+        snapshot=snapshot,
+        purpose=ReadingPurpose.AURA,
+        chart=chart,
+        requested_at=NOW,
+    )
+    reopened = await ReadingApplicationService(repository, engine).project(
+        guest_id=guest_id,
+        snapshot=snapshot,
+        purpose=ReadingPurpose.AURA,
+        chart=chart,
+        requested_at=NOW,
+    )
+
+    assert first.active.sections.hook.endswith("hỗ trợ nhau khi bạn chủ động.")
+    # The new wording gets its own revision identity instead of colliding with the stored one
+    # (the in-memory repository returns the stored record for a known key; postgres would raise).
+    assert len(repository.revision_keys) == 2
+    new_wording = [
+        record
+        for record in repository.revision_keys.values()
+        if record.renderer_version.endswith(marker)
+    ]
+    assert len(new_wording) == 1
+    assert reopened is not None
+
+
+def test_a_reading_the_wording_fix_does_not_touch_keeps_its_revision_identity() -> None:
+    engine = NatalChartEngine()
+    chart = engine.calculate_chart(
+        ChartInput(
+            utc_datetime=datetime(1990, 1, 1, 12, tzinfo=UTC),
+            latitude=10.8231,
+            longitude=106.6297,
+        )
+    )
+    plan = InsightReadingService().plan(chart, purpose=ReadingPurpose.AURA)
+    candidate = DeterministicVietnameseRenderer().render(plan)
+    assert SYNTHESIS_WORDING_VERSION not in candidate.renderer_version

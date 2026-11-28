@@ -10,6 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from app.domains.astro.models import TimePrecision
+from app.domains.content.copy_approval import approved_copy
 from app.domains.readings.house_meanings import HOUSE_MEANINGS, many_doors
 from app.domains.readings.models import (
     DerivedFactor,
@@ -21,7 +22,7 @@ from app.domains.readings.models import (
     SemanticArena,
 )
 
-PERSONALIZATION_VERSION = "daily-semantic-eligibility-v5"
+PERSONALIZATION_VERSION = "daily-semantic-eligibility-v6"
 
 # Sun-only angles follow the existing sign catalog's distinct stresses, not a
 # numeric offset into unrelated situations. They remain general editorial lenses.
@@ -52,6 +53,28 @@ PLACEMENT_ISSUES = {
     "uranus": ("changed-plan",) * 4,
     "neptune": ("missing-context",) * 4,
     "pluto": ("defend-old-choice",) * 4,
+}
+# US-21 AC07 (modality, "tính chất"): a birth date alone also gives the Sun sign's modality, which
+# is coarser than the sign. Cardinal signs start things and change the plan, fixed signs hold on
+# and keep things to themselves, mutable signs spread over many things at once. Ordered cardinal,
+# fixed, mutable. Chosen so that no sign is left with a single situation: the four signs whose own
+# and element situations coincide (aries, taurus, cancer, aquarius) each get a second one from
+# their modality. Mutable is not "decision-fatigue": two of its six headlines say the reader is
+# tired, and the persona run (#777) saw them on more "Rực"/"Chill" days.
+SUN_MODALITY_ISSUES = ("changed-plan", "name-the-need", "too-many-open-loops")
+SIGN_MODALITIES = {
+    "aries": 0,
+    "cancer": 0,
+    "libra": 0,
+    "capricorn": 0,
+    "taurus": 1,
+    "leo": 1,
+    "scorpio": 1,
+    "aquarius": 1,
+    "gemini": 2,
+    "virgo": 2,
+    "sagittarius": 2,
+    "pisces": 2,
 }
 SIGN_ELEMENTS = {
     "aries": 0,
@@ -165,6 +188,100 @@ PAIR_RULES = (
         "Bạn biết mình muốn gì, nhưng không phải lúc nào cũng nói ra.",
     ),
 )
+
+
+@dataclass(frozen=True)
+class RegistryPairRule:
+    """A pair angle whose tendency sentence lives in the copy registry (plan 2026-11-21, #841).
+
+    It applies only once Codex has approved the sentence, so a pending rule never reaches a Daily
+    note. ``kind`` is "tense" (square, opposition), "coop" (trine, sextile) or "conj". Only pairs
+    without a ``PAIR_RULES`` entry are listed, so an approved rule never changes an existing one.
+    """
+
+    bodies: frozenset[str]
+    kind: str
+    issue: str
+    copy_id: str
+
+
+# Daily pool widening (#841 follow-up): most salient transit contacts have no pair rule, so a chart
+# supports two situations on most days. Group "needs" (name-the-need) was the thinnest: eligible on
+# 14% of persona-days. These are the most frequent tense contacts that classically read as an
+# unspoken need; each sentence is pending in the copy registry.
+REGISTRY_PAIR_RULES: tuple[RegistryPairRule, ...] = (
+    RegistryPairRule(
+        frozenset({"moon", "neptune"}),
+        "tense",
+        "name-the-need",
+        "situation.pair.moon-neptune.tense",
+    ),
+    RegistryPairRule(
+        frozenset({"moon", "uranus"}), "tense", "name-the-need", "situation.pair.moon-uranus.tense"
+    ),
+    RegistryPairRule(
+        frozenset({"moon", "saturn"}), "tense", "name-the-need", "situation.pair.moon-saturn.tense"
+    ),
+    RegistryPairRule(
+        frozenset({"moon", "sun"}), "tense", "name-the-need", "situation.pair.moon-sun.tense"
+    ),
+    RegistryPairRule(
+        frozenset({"moon", "venus"}), "tense", "name-the-need", "situation.pair.moon-venus.tense"
+    ),
+    # Group "self-judgment" (comparison-loop, perfect-before-start): eligible on 19% of
+    # persona-days. Frequent tense Sun contacts read as measuring oneself against others, and
+    # Pluto on Mercury as polishing words before letting them go.
+    RegistryPairRule(
+        frozenset({"chiron", "sun"}), "tense", "comparison-loop", "situation.pair.chiron-sun.tense"
+    ),
+    RegistryPairRule(
+        frozenset({"pluto", "sun"}), "tense", "comparison-loop", "situation.pair.pluto-sun.tense"
+    ),
+    RegistryPairRule(
+        frozenset({"jupiter", "sun"}),
+        "tense",
+        "comparison-loop",
+        "situation.pair.jupiter-sun.tense",
+    ),
+    RegistryPairRule(
+        frozenset({"mercury", "pluto"}),
+        "tense",
+        "perfect-before-start",
+        "situation.pair.mercury-pluto.tense",
+    ),
+)
+
+
+def approved_registry_pairs() -> dict[str, dict[str, object]]:
+    """Every registry pair rule whose sentence is approved: its definition and the text served.
+
+    Part of the Daily content fingerprint (Codex P1 on #847): approving or revising one of these
+    sentences changes the renderer version, so a stored note never re-renders with other words
+    under the same revision. Empty while every sentence is pending, so the fingerprint and today's
+    revisions stay as they are."""
+
+    found: dict[str, dict[str, object]] = {}
+    for rule in REGISTRY_PAIR_RULES:
+        text = approved_copy(rule.copy_id)
+        if text:
+            found[rule.copy_id] = {
+                "bodies": sorted(rule.bodies),
+                "kind": rule.kind,
+                "issue": rule.issue,
+                "text": text,
+            }
+    return found
+
+
+def _registry_pair(bodies: frozenset[str], kind: str) -> tuple[str, str] | None:
+    """(issue, approved sentence) of the registry rule for ``bodies`` and ``kind``, if approved."""
+
+    for rule in REGISTRY_PAIR_RULES:
+        if rule.bodies == bodies and rule.kind == kind:
+            text = approved_copy(rule.copy_id)
+            return (rule.issue, text) if text else None
+    return None
+
 
 # Which Daily scene a house door may open (plan 1.1, N-4 under the source rule). Only doors a
 # classical source stands behind and that are not ⚠ are tagged, so a modern-only door (love in
@@ -308,6 +425,19 @@ def eligible_daily_situations(plan: ReadingPlan) -> tuple[SupportedSituation, ..
                         (role_priority, 0, int(factor.strength * 4) - 1),
                     )
                 )
+            # US-21 AC07: the sign's modality is a third situation on the same Sun factor, ranked
+            # below the element's. It is left out when it repeats one already in the pool.
+            modality_key = SUN_MODALITY_ISSUES[SIGN_MODALITIES[sign]]
+            if modality_key not in {key, element_key}:
+                situations.append(
+                    SupportedSituation(
+                        modality_key,
+                        PLACEMENT_MEANINGS[modality_key],
+                        (factor.id,),
+                        f"modality-sun-{sign}",
+                        (role_priority, 0, int(factor.strength * 4) - 2),
+                    )
+                )
 
     for factor in plan.factors:
         if factor.kind not in {FactorKind.NATAL_ASPECT, FactorKind.TRANSIT_CONTACT}:
@@ -322,15 +452,14 @@ def eligible_daily_situations(plan: ReadingPlan) -> tuple[SupportedSituation, ..
         body_a, aspect, body_b = [*parts[1:3], parts[4]] if transit else parts[2:5]
         if set(factor.subjects) != {body_a, body_b}:
             continue
-        rule = next(
-            (rule for rule in PAIR_RULES if rule.bodies == frozenset({body_a, body_b})), None
-        )
-        if rule is None:
+        bodies = frozenset({body_a, body_b})
+        rule = next((rule for rule in PAIR_RULES if rule.bodies == bodies), None)
+        if rule is None and not any(item.bodies == bodies for item in REGISTRY_PAIR_RULES):
             continue
         children = [by_id[ref] for ref in factor.child_refs if ref in by_id]
         if any(child.kind is not FactorKind.PLANET_PLACEMENT for child in children):
             continue
-        if not transit and {child.subjects[0] for child in children} != rule.bodies:
+        if not transit and {child.subjects[0] for child in children} != bodies:
             continue
         if transit and not any(child.subjects[0] == body_b for child in children):
             continue
@@ -340,21 +469,35 @@ def eligible_daily_situations(plan: ReadingPlan) -> tuple[SupportedSituation, ..
         cooperative = aspect in {"trine", "sextile"} and (
             transit or factor.role in {FactorRole.SUPPORTING, FactorRole.REINFORCEMENT}
         )
-        conjunction = (
-            aspect == "conjunction"
-            and rule.conjunction_issue is not None
-            and rule.conjunction_meaning is not None
-            and (transit or factor.role in {FactorRole.SUPPORTING, FactorRole.REINFORCEMENT})
-        )
-        if not tense and not cooperative and not conjunction:
-            continue
-        if conjunction:
-            # Both optional fields are required by the condition above.
-            key = rule.conjunction_issue or rule.cooperative_issue
-            meaning = rule.conjunction_meaning or rule.cooperative_meaning
+        if rule is None:
+            # A registry rule: its own kind, and only with an approved sentence.
+            kind = "tense" if tense else "coop" if cooperative else None
+            if (
+                kind is None
+                and aspect == "conjunction"
+                and (transit or factor.role in {FactorRole.SUPPORTING, FactorRole.REINFORCEMENT})
+            ):
+                kind = "conj"
+            approved = _registry_pair(bodies, kind) if kind else None
+            if approved is None:
+                continue
+            key, meaning = approved
         else:
-            key = rule.tension_issue if tense else rule.cooperative_issue
-            meaning = rule.tension_meaning if tense else rule.cooperative_meaning
+            conjunction = (
+                aspect == "conjunction"
+                and rule.conjunction_issue is not None
+                and rule.conjunction_meaning is not None
+                and (transit or factor.role in {FactorRole.SUPPORTING, FactorRole.REINFORCEMENT})
+            )
+            if not tense and not cooperative and not conjunction:
+                continue
+            if conjunction:
+                # Both optional fields are required by the condition above.
+                key = rule.conjunction_issue or rule.cooperative_issue
+                meaning = rule.conjunction_meaning or rule.cooperative_meaning
+            else:
+                key = rule.tension_issue if tense else rule.cooperative_issue
+                meaning = rule.tension_meaning if tense else rule.cooperative_meaning
         phase = factor.phase.value if factor.phase else _natal_phase(factor)
         if tense and key == "quick-reply" and phase == "separating":
             key = "repair-reply"

@@ -110,12 +110,12 @@ export function CardPage() {
     <main className="flow-page card-page">
       <header className="flow-header uv-topbar">
         <button aria-label="Quay lại" className="icon-button uv-topbar__icon" onClick={() => void navigate(-1)} type="button"><ArrowLeft /></button>
-        <span className="uv-topbar__title">Chia sẻ card</span>
+        <span className="uv-topbar__title">Chia sẻ thẻ</span>
         <span aria-hidden="true" className="uv-topbar__spacer" />
       </header>
-      <section className="format-toggle" aria-label="Định dạng card">
-        <button aria-pressed={format === "story_9_16"} className={format === "story_9_16" ? "is-active" : ""} onClick={() => setFormat("story_9_16")} type="button">Story 9:16</button>
-        <button aria-pressed={format === "square_1_1"} className={format === "square_1_1" ? "is-active" : ""} onClick={() => setFormat("square_1_1")} type="button">Square 1:1</button>
+      <section className="format-toggle" aria-label="Khung thẻ">
+        <button aria-pressed={format === "story_9_16"} className={format === "story_9_16" ? "is-active" : ""} onClick={() => setFormat("story_9_16")} type="button">Khung dọc</button>
+        <button aria-pressed={format === "square_1_1"} className={format === "square_1_1" ? "is-active" : ""} onClick={() => setFormat("square_1_1")} type="button">Khung vuông</button>
       </section>
       {note && copy && spec ? (
         <>
@@ -124,7 +124,7 @@ export function CardPage() {
         </>
       ) : noteQuery.isError ? (
         <section className="empty-state">
-          <p role="alert">Chưa tải được note để tạo card.</p>
+          <p role="alert">Chưa tải được note để tạo thẻ.</p>
           <button className="outline-button" disabled={noteQuery.isFetching} onClick={() => void noteQuery.refetch()} type="button">Thử lại</button>
         </section>
       ) : (
@@ -132,9 +132,9 @@ export function CardPage() {
       )}
       {message ? <p className="success-message" role="status">{message}</p> : null}
       <footer className="flow-actions">
-        <button className="electric-button" disabled={!art.ready} onClick={() => void share()} type="button"><ShareNetwork /> Chia sẻ card</button>
-        <button className="outline-button" disabled={!note} onClick={() => createMutation.mutate()} type="button"><LinkSimple /> Tạo safe link</button>
-        {artifact ? <button className="outline-button" onClick={() => void copyLink()} type="button"><LinkSimple /> Copy link</button> : null}
+        <button className="electric-button" disabled={!art.ready} onClick={() => void share()} type="button"><ShareNetwork /> Chia sẻ thẻ</button>
+        <button className="outline-button" disabled={!note} onClick={() => createMutation.mutate()} type="button"><LinkSimple /> Tạo link riêng</button>
+        {artifact ? <button className="outline-button" onClick={() => void copyLink()} type="button"><LinkSimple /> Chép link</button> : null}
         {artifact && shareUrl(artifact) ? <label>
           <span>Link chia sẻ</span>
           <input aria-label="Link chia sẻ" onFocus={(event) => event.currentTarget.select()} readOnly value={shareUrl(artifact) ?? ""} />

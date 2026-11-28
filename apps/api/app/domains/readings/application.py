@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import re
 from asyncio import to_thread
+from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
 from hashlib import sha256
 from uuid import UUID, uuid4
@@ -28,8 +29,9 @@ from app.domains.readings.daily_rotation import (
     daily_variety_seed,
     day_index,
 )
+from app.domains.readings.daily_topics import TOPIC_WINDOW_DAYS, block_start
 from app.domains.readings.gates import evaluate_candidate
-from app.domains.readings.lighter_action import lighter_action_projection
+from app.domains.readings.lighter_action import lighter_action_projection, mood_action_projection
 from app.domains.readings.models import (
     AuraTransitionProjection,
     AuraUnlockLayer,
@@ -74,6 +76,7 @@ from app.domains.readings.rewrite import (
     compile_daily_rewrite_request,
     compile_reading_rewrite_request,
 )
+from app.domains.readings.student_support import alone_action_projection, common_line_for
 from app.domains.readings.voice import ReadingVoice, voice_from_baseline
 
 logger = logging.getLogger(__name__)
@@ -117,6 +120,8 @@ class ReadingApplicationService:
         content_rewrite_service: ContentRewriteService | None = None,
         daily_variety_key: bytes | None = None,
         daily_variety_from: date | None = None,
+        daily_topic_schedule_from: date | None = None,
+        keep_action_all_profiles: bool = False,
     ) -> None:
         self._repository = repository
         self._engine = engine
@@ -131,6 +136,12 @@ class ReadingApplicationService:
         self._content_rewrite_service = content_rewrite_service
         self._daily_variety_key = daily_variety_key
         self._daily_variety_from = daily_variety_from
+        # Topic anti-repeat (plan 2026-11-21): first Daily date that chooses its situation against
+        # the recomputed 7-day block instead of the top-3 rotation. Unset keeps the old rotation.
+        self._daily_topic_schedule_from = daily_topic_schedule_from
+        # #716: off until the owner turns it on (R2 kind 4, new personal-data collection). Off,
+        # only an exact-time full synthesis offers the Daily action to keep, as before.
+        self._keep_action_all_profiles = keep_action_all_profiles
 
     async def project(
         self,
@@ -260,6 +271,7 @@ class ReadingApplicationService:
             projection,
             voice=voice,
             deterministic_baseline=revision,
+            current_snapshot_id=snapshot.id,
         )
 
     async def _deterministic_revision(
@@ -495,10 +507,86 @@ class ReadingApplicationService:
                 self._daily_variety_key, profile_id, DAILY_PSYCHOLOGY_MATRIX_VERSION
             ),
             day_index=day_index(local_date),
-            recent_issue_keys=await self._guard_issue_keys(
-                profile_id, chart, local_date, background_lens
+            recent_issue_keys=(
+                ()
+                if self._topic_schedule_applies(local_date)
+                else await self._guard_issue_keys(profile_id, chart, local_date, background_lens)
             ),
+            topic_history=await self._topic_history(profile_id, chart, local_date, background_lens),
         )
+
+    def _topic_schedule_applies(self, local_date: date) -> bool:
+        return (
+            self._daily_topic_schedule_from is not None
+            and local_date >= self._daily_topic_schedule_from
+        )
+
+    async def _topic_history(
+        self,
+        profile_id: UUID,
+        chart: DateOnlySunResult | NatalChart,
+        local_date: date,
+        background_lens: BackgroundLens | None,
+    ) -> tuple[str, ...] | None:
+        """The situations this reader's earlier days of the 7-day block were given (plan
+        2026-11-21, US-21 AC05 new), oldest first; ``None`` before the switch date.
+
+        Each earlier day is recomputed with the same choice and the history before it, from the
+        chart, that day's transits and the reader's seed; nothing is read from storage or kept.
+        Day D's history is therefore exactly the one D was served with. A date-only pool is the
+        same every day and walks a fixed order instead, so it needs no history. The block starts
+        empty (``daily_topics``: no estimate of the previous block), so this is exact; at most 11
+        recomputations per new Daily note, and the plan keeps the last six days.
+        """
+
+        if not self._topic_schedule_applies(local_date):
+            return None
+        if (
+            isinstance(chart, DateOnlySunResult)
+            or self._daily_variety_key is None
+            or self._daily_topic_schedule_from is None
+        ):
+            return ()
+        seed = daily_variety_seed(
+            self._daily_variety_key, profile_id, DAILY_PSYCHOLOGY_MATRIX_VERSION
+        )
+        today = day_index(local_date)
+        first = local_date - timedelta(days=today - block_start(seed, today))
+        run = await self._topic_run(
+            profile_id,
+            chart,
+            max(first, self._daily_topic_schedule_from),
+            local_date,
+            background_lens,
+        )
+        return run[-(TOPIC_WINDOW_DAYS - 1) :]
+
+    async def _topic_run(
+        self,
+        profile_id: UUID,
+        chart: DateOnlySunResult | NatalChart,
+        start: date,
+        end: date,
+        background_lens: BackgroundLens | None,
+    ) -> tuple[str, ...]:
+        """Situations of the days ``start`` (inclusive) to ``end`` (exclusive), each chosen
+        against the days before it in the run (the block starts with an empty history)."""
+
+        history: list[str] = []
+        run: list[str] = []
+        day = start
+        while day < end:
+            key = await self._computed_daily_issue(
+                profile_id,
+                chart,
+                day,
+                background_lens,
+                topic_history=tuple(history[-(TOPIC_WINDOW_DAYS - 1) :]),
+            )
+            run.append(key or "")
+            history.append(key or "")
+            day += timedelta(days=1)
+        return tuple(run)
 
     async def _guard_issue_keys(
         self,
@@ -563,6 +651,7 @@ class ReadingApplicationService:
         background_lens: BackgroundLens | None,
         *,
         recent: tuple[str, ...] = (),
+        topic_history: tuple[str, ...] | None = None,
     ) -> str | None:
         """The situation the rotation selects for ``day`` with the guard pair ``recent``,
         recomputed from the chart, that day's transits and the owner's rotation seed, with the
@@ -581,6 +670,7 @@ class ReadingApplicationService:
             ),
             day_index=day_index(day),
             recent_issue_keys=recent,
+            topic_history=topic_history,
         )
         observed_at = datetime.combine(day, time(hour=DAILY_OBSERVED_HOUR_UTC), tzinfo=UTC)
         transits = await self._optional_transits(chart, ReadingPurpose.DAILY_NOTE, observed_at)
@@ -710,7 +800,17 @@ class ReadingApplicationService:
         )
         if projection is None:
             raise ReadingActivationConflict
-        return await self._hydrate(guest_id, profile_id, projection)
+        if expected_chart_snapshot_id is None:
+            # The repository activated only a plan on the profile's current snapshot, checked
+            # in the same transaction; that plan's snapshot is the current one.
+            activated = await self._repository.get_revision(
+                guest_id, profile_id, expected_revision_id
+            )
+            plan = await self._revision_plan(guest_id, profile_id, activated) if activated else None
+            expected_chart_snapshot_id = plan.chart_snapshot_id if plan else None
+        return await self._hydrate(
+            guest_id, profile_id, projection, current_snapshot_id=expected_chart_snapshot_id
+        )
 
     async def acknowledge_aura_transition(
         self,
@@ -720,7 +820,14 @@ class ReadingApplicationService:
         scope_key: str,
         transition_id: str,
         updated_at: datetime | None = None,
+        current_snapshot_id: UUID | None = None,
     ) -> ReadingProjection:
+        """``current_snapshot_id`` is the profile's current chart snapshot, read by the caller.
+
+        Without it the Daily note offers no action to keep: the waiting update or the active
+        reading cannot tell which snapshot is current (Codex critique on #740).
+        """
+
         projection = await self._repository.get_projection(guest_id, profile_id, scope_key)
         if projection is None or projection.available_revision_id is None:
             raise ReadingActivationConflict
@@ -748,7 +855,9 @@ class ReadingApplicationService:
         )
         if acknowledged is None:
             raise ReadingActivationConflict
-        return await self._hydrate(guest_id, profile_id, acknowledged)
+        return await self._hydrate(
+            guest_id, profile_id, acknowledged, current_snapshot_id=current_snapshot_id
+        )
 
     async def _optional_transits(
         self,
@@ -773,13 +882,31 @@ class ReadingApplicationService:
             )
             return None
 
-    async def _plan_precision(
+    async def _revision_plan(
         self, guest_id: UUID, profile_id: UUID, revision: ReadingRevisionRecord
-    ) -> TimePrecision | None:
+    ) -> ReadingPlanRecord | None:
         # The public precision comes from the stored plan; evidence alone cannot tell an
         # approximate-time synthesis (#143 E1) from an exact one.
-        record = await self._repository.get_plan(guest_id, profile_id, revision.plan_id)
-        return record.plan.precision if record is not None else None
+        return await self._repository.get_plan(guest_id, profile_id, revision.plan_id)
+
+    def _keep_policy(
+        self, plan: ReadingPlanRecord | None, current_snapshot_id: UUID | None
+    ) -> _KeepPolicy:
+        """Whether the Daily note may offer its action to keep (#716, Codex P1 on #740).
+
+        The experiment endpoint accepts a keep only for the active revision of a plan on the
+        profile's current chart snapshot. A note left active after a new birth time or place
+        is still shown, but offers nothing it could not keep. ``current_snapshot_id`` is the
+        profile's current snapshot as the caller read it; unknown (``None``), or a plan without
+        a snapshot, offers nothing (fail closed).
+        """
+
+        on_current = (
+            plan is not None
+            and current_snapshot_id is not None
+            and plan.chart_snapshot_id == current_snapshot_id
+        )
+        return _KeepPolicy(all_profiles=self._keep_action_all_profiles, on_current=on_current)
 
     async def _hydrate(
         self,
@@ -789,6 +916,7 @@ class ReadingApplicationService:
         *,
         voice: ReadingVoice = ReadingVoice.DIRECT,
         deterministic_baseline: ReadingRevisionRecord | None = None,
+        current_snapshot_id: UUID | None = None,
     ) -> ReadingProjection:
         if projection.active_revision_id is None:
             raise ReadingApplicationError("reading projection has no active revision")
@@ -797,28 +925,34 @@ class ReadingApplicationService:
         )
         if active_record is None:
             raise ReadingApplicationError("active reading revision is unavailable")
-        active = _voiced_content(
-            active_record,
-            projection,
-            voice,
-            deterministic_baseline,
-            plan_precision=await self._plan_precision(guest_id, profile_id, active_record),
-        )
-
-        available_update = None
+        active_plan = await self._revision_plan(guest_id, profile_id, active_record)
         available_record = None
+        available_plan = None
         if projection.available_revision_id is not None:
             available_record = await self._repository.get_revision(
                 guest_id, profile_id, projection.available_revision_id
             )
             if available_record is None:
                 raise ReadingApplicationError("available reading revision is unavailable")
+            available_plan = await self._revision_plan(guest_id, profile_id, available_record)
+        active = _voiced_content(
+            active_record,
+            projection,
+            voice,
+            deterministic_baseline,
+            plan_precision=active_plan.plan.precision if active_plan else None,
+            keep=self._keep_policy(active_plan, current_snapshot_id),
+        )
+
+        available_update = None
+        if available_record is not None:
             available = _voiced_content(
                 available_record,
                 projection,
                 voice,
                 deterministic_baseline,
-                plan_precision=await self._plan_precision(guest_id, profile_id, available_record),
+                plan_precision=available_plan.plan.precision if available_plan else None,
+                keep=self._keep_policy(available_plan, current_snapshot_id),
             )
             available_update = AvailableReadingUpdate(
                 revision_id=available.revision_id,
@@ -911,18 +1045,37 @@ def _companion_line(candidate: ReadingCandidate, purpose: ReadingPurpose) -> str
     return companion_issue_entry(blueprint.mechanism_key if blueprint else None).line.direct
 
 
+@dataclass(frozen=True)
+class _KeepPolicy:
+    """What decides a Daily note's offer to keep its action (#716)."""
+
+    all_profiles: bool = False
+    on_current: bool = True
+
+
 def _content_projection(
     revision: ReadingRevisionRecord,
     projection: ReadingProjectionRecord,
     *,
     plan_precision: TimePrecision | None = None,
+    keep: _KeepPolicy | None = None,
 ) -> ReadingContentProjection:
     candidate = revision.evaluation.publishable_candidate
     if candidate is None:  # The revision model protects this invariant too.
         raise ReadingApplicationError("accepted reading content is unavailable")
     mode, precision = _public_mode_and_precision(candidate.evidence.claims, plan_precision)
     experiment = None
-    if mode is PlanMode.FULL_SYNTHESIS and precision is TimePrecision.EXACT:
+    keep = keep or _KeepPolicy()
+    exact = mode is PlanMode.FULL_SYNTHESIS and precision is TimePrecision.EXACT
+    # The Daily note offers its action to an exact-time synthesis, and to every kind of profile
+    # (date only, approximate time) once `keep_action_all_profiles` is on (#716). It never
+    # offers it on a note whose plan is no longer on the current chart snapshot: the keep
+    # would be refused. Outside the Daily note the offer stays with the exact synthesis.
+    if (
+        (keep.on_current and (exact or keep.all_profiles))
+        if projection.purpose is ReadingPurpose.DAILY_NOTE
+        else exact
+    ):
         experiment = experiment_projection_for(
             revision.id,
             candidate.micro_action,
@@ -967,7 +1120,45 @@ def _content_projection(
             if projection.purpose is ReadingPurpose.DAILY_NOTE
             else None
         ),
+        **(
+            {
+                f"{kind}_action": mood_action_projection(
+                    kind,
+                    revision.id,
+                    keepable=experiment is not None,
+                    mechanism_key=(
+                        candidate.semantic_blueprint.mechanism_key
+                        if candidate.semantic_blueprint
+                        else None
+                    ),
+                )
+                for kind in ("slow", "clear")
+            }
+            if projection.purpose is ReadingPurpose.DAILY_NOTE
+            else {}
+        ),
+        # #703: a no-contact action next to an action that asks to reach someone, and the
+        # "others meet this too" line. Picked by the card's issue only, never by the reader.
+        alone_action=(
+            alone_action_projection(
+                revision.id,
+                keepable=experiment is not None,
+                mechanism_key=_mechanism_key(candidate),
+                card_action=candidate.micro_action,
+            )
+            if projection.purpose is ReadingPurpose.DAILY_NOTE
+            else None
+        ),
+        common_line=(
+            common_line_for(revision.id, _mechanism_key(candidate))
+            if projection.purpose is ReadingPurpose.DAILY_NOTE
+            else None
+        ),
     )
+
+
+def _mechanism_key(candidate: ReadingCandidate) -> str | None:
+    return candidate.semantic_blueprint.mechanism_key if candidate.semantic_blueprint else None
 
 
 def _voiced_content(
@@ -977,10 +1168,11 @@ def _voiced_content(
     deterministic_baseline: ReadingRevisionRecord | None,
     *,
     plan_precision: TimePrecision | None = None,
+    keep: _KeepPolicy | None = None,
 ) -> ReadingContentProjection:
     """Apply a read-time voice without ever mixing generated and voiced wording."""
 
-    content = _content_projection(revision, projection, plan_precision=plan_precision)
+    content = _content_projection(revision, projection, plan_precision=plan_precision, keep=keep)
     if voice is ReadingVoice.DIRECT:
         return content
     baseline = None
@@ -993,7 +1185,7 @@ def _voiced_content(
         and deterministic_baseline.plan_id == revision.plan_id
     ):
         baseline = _content_projection(
-            deterministic_baseline, projection, plan_precision=plan_precision
+            deterministic_baseline, projection, plan_precision=plan_precision, keep=keep
         )
     return voice_from_baseline(content, baseline, voice)
 
@@ -1025,7 +1217,8 @@ def _public_mode_and_precision(
     if not claims:
         return PlanMode.LIMITED, TimePrecision.APPROXIMATE
     # An approximate-time synthesis reads only time-stable factors (#143 E1); it is never
-    # labelled exact, so exact-only features (the experiment) stay closed for it.
+    # labelled exact, so exact-only features stay closed for it; keeping the Daily action opens
+    # to it only through `keep_action_all_profiles` (#716).
     if plan_precision is TimePrecision.APPROXIMATE:
         return PlanMode.FULL_SYNTHESIS, TimePrecision.APPROXIMATE
     return PlanMode.FULL_SYNTHESIS, TimePrecision.EXACT
