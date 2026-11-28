@@ -184,6 +184,15 @@ def test_approved_rules_widen_the_friction_group(monkeypatch: pytest.MonkeyPatch
     )
 
 
+def test_approved_cooperative_rules_add_situations(monkeypatch: pytest.MonkeyPatch) -> None:
+    coop = [rule for rule in REGISTRY_PAIR_RULES if rule.kind == "coop"]
+    assert coop
+    before = [issues for chart in CHARTS for issues in _pool_issues(chart, 14)]
+    _approve_all(monkeypatch)
+    after = [issues for chart in CHARTS for issues in _pool_issues(chart, 14)]
+    assert sum(map(len, after)) > sum(map(len, before))
+
+
 def test_the_content_fingerprint_moves_only_when_a_pair_sentence_is_approved_or_revised(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

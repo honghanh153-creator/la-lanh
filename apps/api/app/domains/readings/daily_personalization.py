@@ -90,6 +90,44 @@ SIGN_ELEMENTS = {
     "scorpio": 3,
     "pisces": 3,
 }
+# Date-only pool widening (#841 follow-up): a birth date alone gives 2-3 situations (sign, element,
+# modality), so a date-only reader met the same topic within three days on 58% of days. Each sign
+# gets one or two more angles of its own, chosen from groups the sign lacks, so every pool holds 4.
+# Each sentence waits in the copy registry as ``situation.sun.<sign>.<issue>``; pending = not used.
+SUN_EXTRA_ISSUES: dict[str, tuple[str, ...]] = {
+    "aries": (
+        "comparison-loop",
+        "too-many-open-loops",
+    ),
+    "taurus": (
+        "capacity-before-agreement",
+        "decision-fatigue",
+    ),
+    "gemini": (
+        "quick-reply",
+        "missing-context",
+    ),
+    "cancer": (
+        "name-the-need",
+        "avoid-small-conflict",
+    ),
+    "leo": ("comparison-loop",),
+    "virgo": ("decision-fatigue",),
+    "libra": ("decision-fatigue",),
+    "scorpio": (
+        "defend-old-choice",
+        "missing-context",
+    ),
+    "sagittarius": ("repair-reply",),
+    "capricorn": ("comparison-loop",),
+    "aquarius": (
+        "changed-plan",
+        "specific-feedback",
+    ),
+    "pisces": ("avoid-small-conflict",),
+}
+
+
 BODY_DOMAINS = {
     "sun": ReadingDomain.CORE,
     "moon": ReadingDomain.EMOTIONS,
@@ -292,6 +330,62 @@ REGISTRY_PAIR_RULES: tuple[RegistryPairRule, ...] = (
         "avoid-small-conflict",
         "situation.pair.sun-venus.tense",
     ),
+    # Trines and sextiles (#841 follow-up): the most frequent cooperative transit contacts without
+    # a rule. Each reads as a strength that tips into a Daily situation, never as an event.
+    RegistryPairRule(
+        frozenset({"jupiter", "sun"}),
+        "coop",
+        "specific-feedback",
+        "situation.pair.jupiter-sun.coop",
+    ),
+    RegistryPairRule(
+        frozenset({"jupiter", "mercury"}),
+        "coop",
+        "too-many-open-loops",
+        "situation.pair.jupiter-mercury.coop",
+    ),
+    RegistryPairRule(
+        frozenset({"jupiter", "moon"}),
+        "coop",
+        "automatic-caretaking",
+        "situation.pair.jupiter-moon.coop",
+    ),
+    RegistryPairRule(
+        frozenset({"sun", "uranus"}),
+        "coop",
+        "changed-plan",
+        "situation.pair.sun-uranus.coop",
+    ),
+    RegistryPairRule(
+        frozenset({"moon", "pluto"}),
+        "coop",
+        "name-the-need",
+        "situation.pair.moon-pluto.coop",
+    ),
+    RegistryPairRule(
+        frozenset({"moon", "saturn"}),
+        "coop",
+        "capacity-before-agreement",
+        "situation.pair.moon-saturn.coop",
+    ),
+    RegistryPairRule(
+        frozenset({"neptune", "sun"}),
+        "coop",
+        "group-pressure",
+        "situation.pair.neptune-sun.coop",
+    ),
+    RegistryPairRule(
+        frozenset({"neptune", "venus"}),
+        "coop",
+        "missing-context",
+        "situation.pair.neptune-venus.coop",
+    ),
+    RegistryPairRule(
+        frozenset({"mars", "pluto"}),
+        "coop",
+        "defend-old-choice",
+        "situation.pair.mars-pluto.coop",
+    ),
 )
 
 
@@ -481,6 +575,21 @@ def eligible_daily_situations(plan: ReadingPlan) -> tuple[SupportedSituation, ..
                         (role_priority, 0, int(factor.strength * 4) - 2),
                     )
                 )
+            # More angles of the sign, once their sentence is approved, ranked below the modality.
+            shown = {key, element_key, modality_key}
+            for step, extra_key in enumerate(SUN_EXTRA_ISSUES.get(sign, ()), start=3):
+                sentence = approved_copy(f"situation.sun.{sign}.{extra_key}")
+                if sentence and extra_key not in shown:
+                    shown.add(extra_key)
+                    situations.append(
+                        SupportedSituation(
+                            extra_key,
+                            sentence,
+                            (factor.id,),
+                            f"extra-sun-{sign}-{extra_key}",
+                            (role_priority, 0, int(factor.strength * 4) - step),
+                        )
+                    )
 
     for factor in plan.factors:
         if factor.kind not in {FactorKind.NATAL_ASPECT, FactorKind.TRANSIT_CONTACT}:
