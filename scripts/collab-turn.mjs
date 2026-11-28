@@ -3,7 +3,7 @@ import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { agentMarker, areaOrder, copyBatchAt, classifyArea, clean, codexDailyCap, dayCap, dayStatePath, integration, isOwnPr, makeGh, readJson, repo, reviewState, sortByPriority, stateDir, trustedComments, vnNow, writeJson, isSha } from './collab-trust.mjs';
 import { autoStartAt, committedTurns, lastStartAt, makePlan, planIssue, readPlanStatus } from './collab-plan.mjs';
-import { dayList, label7w, min7w, pickPlan, planCap, plannedEntry, quotaIssues, unitKey, workUnits } from './collab-quota.mjs';
+import { dayList, drainState, label7w, min7w, pickPlan, planCap, plannedEntry, quotaIssues, unitKey, workUnits } from './collab-quota.mjs';
 import { auditReserve } from './collab-audit.mjs';
 import { ownerNotes } from './collab-status.mjs';
 import { bodyHash } from './collab-heal.mjs';
@@ -119,10 +119,10 @@ export function prTurn(pr, { dropped = [], open = [], preflight = {}, baseFiles,
 // machine then picks as before, never as if there were no 7-week items.
 export function planList({ gh, turns, prs, comments, date, issues = () => quotaIssues(gh) }) {
   try {
-    return dayList({ units: workUnits({ turns, prs, issues: issues() }), comments, date });
+    return dayList({ units: workUnits({ turns, prs, issues: issues() }), comments, date, drain: drainState(prs) });
   } catch (error) {
     const units = workUnits({ turns, prs, issues: [] });
-    return { source: 'machine', unknown: true, note: `Chưa xác định được chỗ cho kế hoạch 7 tuần (${clean(error.message, 120)}); máy chọn theo thứ tự cũ.`, ...pickPlan(units, { need: 0 }) };
+    return { source: 'machine', unknown: true, note: `Chưa xác định được chỗ cho kế hoạch 7 tuần (${clean(error.message, 120)}); máy chọn theo thứ tự cũ.`, ...pickPlan(units, { need: 0 }), drain: drainState(prs) };
   }
 }
 // Selections are recorded by stable key (item:N or pr:N), so execution follows an item to whatever

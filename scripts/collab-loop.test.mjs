@@ -1041,6 +1041,18 @@ test('owner 12.11: the plan picks 3–5 work items with a source and what the us
   assert.doesNotThrow(() => trust.assertAgentBody(few));
 });
 
+test('plan: while 15+ PRs are open the plan says so and never asks for new backlog work (BT1 step 0)', () => {
+  const list = { items: [], incidents: [], note: 'n', want: 0, available7w: 0, short7w: 0, drain: { on: true, open: 43, at: 15 } };
+  const body = renderPlan({ date: '2026-11-29', hour: 6, minute: 50 }, [], { codexLeft: 12, list });
+  assert.match(body, /Đang dọn PR mở:\*\* 43 PR \(từ 15 trở lên\)/);
+  assert.doesNotMatch(body, /chọn tiếp từ backlog/);
+  assert.doesNotMatch(body, /làm tiếp việc `auto: yes`/);
+  assert.match(body, /không mở việc mới cho tới khi còn dưới 15 PR/);
+  const calm = renderPlan({ date: '2026-11-29', hour: 6, minute: 50 }, [], { codexLeft: 12, list: { ...list, drain: { on: false, open: 9, at: 15 } } });
+  assert.doesNotMatch(calm, /Đang dọn PR mở/);
+  assert.match(calm, /chọn tiếp từ backlog/);
+});
+
 test('owner 12.11: the preflight asks for a "Người dùng thấy gì:" line; ops PRs may say not directly', () => {
   assert.deepEqual(preflightMod.bodyProblems(goodBody), []);
   const without = goodBody.replace(/\nNgười dùng thấy gì:[^\n]*/, '');

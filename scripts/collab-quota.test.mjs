@@ -7,7 +7,7 @@ import { agentMarker } from './collab-trust.mjs';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { checkPrep, dayList, mergedLimit, label7w, mergedItems, pickPlan, plannedEntry, prepRefs, quotaIssues, serious, startBlock, uiHold, workUnits } from './collab-quota.mjs';
+import { checkPrep, dayList, drainAt, drainState, mergedLimit, label7w, mergedItems, pickPlan, plannedEntry, prepRefs, quotaIssues, serious, startBlock, uiHold, workUnits } from './collab-quota.mjs';
 import { writeJson } from './collab-trust.mjs';
 import { renderProgress, workProgress } from './collab-work.mjs';
 
@@ -211,4 +211,30 @@ test('planner: a merged-PR page that reaches the limit is unread, not complete (
   const live = workUnits({ turns: [], prs: [], issues: quotaIssues(gh([]), { hold: false, readMerged: false }) });
   assert.equal(asked.length, before);
   assert.deepEqual(live.filter(u => u.ready && u.incident).map(u => u.item), [960]);
+});
+
+// BT1 step 0 (owner 28.11.2026): while 15 or more PRs are open the plan holds only work in progress,
+// incidents and safety issues; no issue-only unit starts.
+test('drain: at 15 open PRs no new issue-only item starts; in-progress PRs, incidents and safety still go', () => {
+  assert.equal(drainAt, 15);
+  const open = n => Array.from({ length: n }, (_, i) => prOf(300 + i));
+  const turns = [turn(300, { area: 'feature' }), turn(301)];
+  const issues = [task(101), task(960, ['incident']), task(961, [label7w, 'safety']), task(962, [label7w, 'incident', 'severity:P2'])];
+  const busy = workUnits({ turns, prs: open(15), issues });
+  assert.equal(busy.find(u => u.item === 101).skip, 'đang dọn PR mở (15 ≥ 15)');
+  assert.equal(busy.find(u => u.item === 101).ready, false);
+  assert.deepEqual(busy.filter(u => u.ready).map(u => u.key), ['pr:300', 'pr:301', 'item:960', 'item:961', 'item:962']);
+  const list = dayList({ units: busy, comments: [], date: '2026-11-29', drain: drainState(open(15)) });
+  assert.deepEqual(list.drain, { on: true, open: 15, at: 15 });
+  assert.ok(!list.items.some(u => u.item === 101), 'no new item in the plan');
+  assert.match(list.note, /#101 \(đang dọn PR mở/);
+  // A morning list that names the new item does not pass.
+  const prep = checkPrep(['pr:300', 'item:101'], busy);
+  assert.equal(prep.ok, false);
+  assert.match(prep.reasons.join(), /item:101 đang giữ \(đang dọn PR mở/);
+  // Below 15 the item is ready again.
+  const calm = workUnits({ turns, prs: open(14), issues });
+  assert.equal(calm.find(u => u.item === 101).ready, true);
+  assert.equal(drainState(open(14)).on, false);
+  assert.equal(drainState(null).on, false);
 });
