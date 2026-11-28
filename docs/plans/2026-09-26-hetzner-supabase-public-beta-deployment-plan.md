@@ -299,7 +299,7 @@ The frontend never receives a Supabase database password, service-role key, or d
 - Birth date/time/place, coordinates, mood, inferred profiles, relationship inputs, and capability tokens remain sensitive personal data.
 - Hetzner and Supabase are processors/subprocessors whose regions, purposes, retention, and deletion behavior must match the user-facing privacy notice.
 - The temporary beta URL remains `noindex`; the cohort should be small and named.
-- Host firewall SSH restriction is tied to the current operator IP. Network changes require updating UFW through the Hetzner console before SSH will work.
+- ~~Host firewall SSH restriction is tied to the current operator IP.~~ Replaced 2026-11-28 (owner decision BQ2): TCP 22 is public, key-only, with a fail2ban `sshd` jail; see the release runbook network policy.
 - The in-process admission limiter is not a distributed abuse-control layer; this is acceptable only for a small closed beta.
 
 ## Definition of done

@@ -256,7 +256,11 @@ runtime UID/GID `65532:65532`, so the non-root process can read the Compose-moun
 Network policy:
 
 - Hetzner Cloud firewall: ICMP, TCP 22, TCP 80, and TCP 443 only.
-- Host UFW: TCP 22 only from the current operator IP; TCP 80/443 and UDP 443 publicly reachable.
+- Host UFW: TCP 22, 80/443 and UDP 443 publicly reachable. Since 2026-11-28 (owner decision BQ2)
+  SSH is no longer tied to the operator IP: sshd is key-only (`PasswordAuthentication no`,
+  `KbdInteractiveAuthentication no`, `PermitRootLogin prohibit-password`) and fail2ban's `sshd`
+  jail bans repeated failures (`/etc/fail2ban/jail.d/la-lanh-sshd.local`: 5 tries / 10 min,
+  1 h ban, increasing to 1 week).
 - TCP 8080 and PostgreSQL ports are never opened publicly.
 
 ## Phase 0 — resume and preflight
@@ -307,8 +311,10 @@ Verify SSH without weakening the firewall:
 ssh -i ~/.ssh/la_lanh_hetzner_ed25519 root@2.28.136.44
 ```
 
-If SSH times out after the operator's public IP changed, use the Hetzner web console to update the
-host UFW rule before retrying. Do not temporarily expose password SSH.
+SSH works from any network with the operator key. If it times out, check the Hetzner Cloud firewall,
+host UFW and `fail2ban-client status sshd` (an operator address can be banned after repeated failed
+logins; `fail2ban-client set sshd unbanip <ip>` from the Hetzner web console). Never enable password
+SSH, and keep the fail2ban jail active whenever TCP 22 is public.
 
 On the VPS, inspect non-secret state:
 
@@ -318,6 +324,8 @@ docker compose version
 systemctl is-active docker
 systemctl --failed
 ufw status verbose
+fail2ban-client status sshd
+sshd -T | grep -Ei '^(passwordauthentication|kbdinteractiveauthentication|permitrootlogin)'
 find /opt/la-lanh/secrets -maxdepth 1 -type f -printf '%f %m %u:%g\n'
 ```
 
