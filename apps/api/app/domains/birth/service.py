@@ -403,10 +403,10 @@ class BirthChartService:
         config: CalculationConfig,
     ) -> NatalChart | None:
         """Recompute from encrypted private input without exposing that input to the client."""
-        current, supplement = await asyncio.gather(
-            self._repository.find_current(guest_id),
-            self._repository.find_supplement(guest_id),
-        )
+        # One after the other: the two reads share a session pool that SQLite (tests, local QA)
+        # cannot run concurrently ("cannot start a transaction within a transaction").
+        current = await self._repository.find_current(guest_id)
+        supplement = await self._repository.find_supplement(guest_id)
         if current is None:
             raise BirthProfileNotFound
         if supplement is None:
