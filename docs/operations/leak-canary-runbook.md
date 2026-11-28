@@ -17,6 +17,7 @@ Yêu cầu gốc: US-03 AC12 và mục 21 (DoD delta: network, URL, history, log
 | Mood | một lựa chọn cố định | Home |
 | Câu hỏi Tarot | một từ bịa | màn Tarot |
 | Chữ gõ vào lớp an toàn | một từ bịa, kèm câu mà lớp an toàn chặn | màn Tarot (API trả 422) |
+| Tên gọi (biệt danh) của người khác | một từ bịa | màn Radar riêng tư (`/radar/start`), cùng ngày, giờ, nơi sinh giả như trên |
 | Cookie phiên và mã CSRF | đọc lúc chạy | mọi màn |
 
 3. Tìm các dấu đó, ở mọi cách viết (có dấu, không dấu, mã hoá URL một hoặc hai lần, chữ hoa), trong:
@@ -124,9 +125,9 @@ Phần tìm dấu có test riêng, không cần trình duyệt: `node --test scr
 - Chữ đã vẽ thành điểm ảnh trong ảnh PNG: máy không đọc chữ trong ảnh. Nó kiểm bản SVG mà ảnh được vẽ từ đó.
 - File và ảnh chia sẻ trong app di động: lượt chạy dùng trình duyệt với bảng chia sẻ giả. Đường ghi file tạm của app di động chưa được chạy.
 - Ảnh và link của trang chia sẻ công khai (safe link), và ảnh các màn khác ngoài note và Lá Khai Sinh.
-- Tên hoặc biệt danh trong tên file: hành trình này chưa gõ tên nào.
+- Tên hoặc biệt danh trong tên file: từ #691 AC1 hành trình gõ một biệt danh giả ở Radar riêng tư và tìm nó ở mọi chỗ, kể cả tên file. Chỉ ô tên gọi này nhận tên trên các màn app đang mở; Ghép đôi chưa có đường vào trong app.
 - Nhật ký ở mức DEBUG, và nhật ký của máy chủ thật (staging, production): lượt chạy dùng mức nhật ký mặc định trên máy cục bộ với SQLite.
-- Tên, biệt danh gõ ở Ghép đôi, Radar, Lá Chung (cũng đi qua lớp an toàn): lượt chạy mới gõ vào lớp an toàn qua màn Tarot.
+- Tên, biệt danh gõ ở Ghép đôi và Lá Chung: Ghép đôi chưa có đường vào, Lá Chung đã ngừng. Radar riêng tư đã được chạy (xem trên).
 - Trình duyệt WebKit và app di động.
 - IndexedDB, và bộ nhớ của service worker (lượt chạy chặn service worker).
 

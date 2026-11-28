@@ -229,6 +229,25 @@ async function journey(page) {
     await page.getByText("Chưa chọn").waitFor({ state: "detached", timeout: 20_000 });
     await page.waitForTimeout(3_000);
   });
+  // #691 AC1: the one place the app takes a name or nickname of a person. The nickname is a made-up
+  // word; the date, time and place are the same synthetic values as above.
+  await mark("Radar: tên gọi người khác", async () => {
+    await go("/radar/start");
+    await page.getByLabel("Tên gọi để bạn dễ nhớ").fill(CANARY.nicknameMark);
+    await page.getByLabel("Ngày sinh — ngày").fill(CANARY.day);
+    await page.getByLabel("Ngày sinh — tháng").fill(CANARY.month);
+    await page.getByLabel("Ngày sinh — năm").fill(CANARY.year);
+    const selects = page.locator(".radar-time-fieldset select");
+    await selects.nth(0).selectOption(CANARY.hour);
+    await selects.nth(1).selectOption(CANARY.minute);
+    await page.getByPlaceholder("Gõ Hà Nội, Bình Dương…").fill(CANARY.place);
+    await button(page, new RegExp(`^${CANARY.place}`)).click();
+    await page.getByLabel("Xác nhận đã được phép dùng thông tin sinh").check();
+    const created = page.waitForResponse((response) => /\/radar\//.test(new URL(response.url()).pathname) && response.request().method() === "POST", { timeout: 30_000 });
+    await button(page, /Check kín ngay/).click();
+    await created;
+    await page.waitForTimeout(2_000);
+  });
   await mark("các màn đọc lại hồ sơ", async () => {
     for (const path of ["/insights", "/insights/current-sky", "/saved", "/profile"]) {
       await go(path);

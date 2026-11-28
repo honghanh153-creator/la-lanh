@@ -33,6 +33,11 @@ const LEAKS = [
   ["server-log", "mood", "mood Đuối saved"],
   ["server-log", "tarot-question", `question was: ${TAROT_QUESTION}`],
   ["server-log", "safety-text", `crisis guard matched: ${SAFETY_TEXT}`],
+  ["server-log", "nickname", "radar check for recipient zqcanary691nick"],
+  ["request-url", "nickname", "http://127.0.0.1:5180/radar/result?label=ZQCANARY691NICK"],
+  ["file-name", "nickname", "la-lanh-zqcanary691nick.png"],
+  ["file-name", "nickname", "attachment; filename=\"zqcanary691nick.json\""],
+  ["image-metadata", "nickname", "Title zqcanary691nick"],
   ["server-log", "session-secret", "cookie la_lanh_guest=s3cr3t-session-value-0123456789"],
   ["request-url", "birth-date", "http://127.0.0.1:5180/v1/birth-profile?birth_date=1994-02-13"],
   ["request-url", "birth-time", "http://127.0.0.1:5180/v1/chart?time=03%3A47"],
@@ -216,6 +221,7 @@ test("coverage: the bodies that carry each mark are recognised, GET and other pa
   assert.deepEqual(sendsIn("PUT", "/v1/daily-note/abc/mood", "{\"mood\":\"Đuối\"}"), ["mood"]);
   assert.deepEqual(sendsIn("POST", "/v1/tarot/sessions", JSON.stringify({ question: TAROT_QUESTION })), ["tarot-question"]);
   assert.deepEqual(sendsIn("POST", "/v1/tarot/sessions", JSON.stringify({ question: SAFETY_TEXT })), ["safety-text"]);
+  assert.deepEqual(sendsIn("POST", "/v1/radar/private-checks", JSON.stringify({ recipient_label: CANARY.nicknameMark })), ["nickname"]);
   assert.deepEqual(sendsIn("GET", "/v1/daily-note/abc/mood", "{\"mood\":\"Đuối\"}"), []);
   assert.deepEqual(sendsIn("PUT", "/v1/other", "{\"mood\":\"Đuối\"}"), []);
   assert.deepEqual(sendsIn("POST", "/v1/x", "{\"created_at\":\"2026-11-19T03:47:00Z\"}"), []);
