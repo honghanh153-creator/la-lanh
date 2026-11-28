@@ -750,6 +750,10 @@ Append or update the “Known-good deployed release” table in the deployment p
 - current and previous image tags;
 - unresolved checklist items and exact next action.
 
+Then add the release to the top of [lich-su-phat-hanh.md](lich-su-phat-hanh.md) (release history, newest first) and
+move its PRs out of that file's "Chưa phát hành" section. Since 28.11.2026 every release and hotfix runs in the single
+release thread, which keeps that file current.
+
 ## Optional-account release gate — 2026-10-10 local change only
 
 The owner has authorized the consolidated production release. This checklist does not certify
