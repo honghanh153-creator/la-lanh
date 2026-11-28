@@ -14,6 +14,8 @@ import { applyPolicy, isBlocking, ownerHolds, validateOutput } from './collab-re
 import { answerStillHolds, coveredKinds, sealedAnswers } from './collab-owner-answer.mjs';
 import { isMain } from './is-main.mjs';
 import { auditReserve } from './collab-audit.mjs';
+import { agentsPath, markAvailable, markLimited, noteProbe, updateAgents } from './collab-agents.mjs';
+import { applyOnce } from './collab-writer.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const promptPath = join(here, '..', 'docs', 'operations', 'codex-review-prompt.md');
@@ -162,7 +164,7 @@ function readReviewLogs(dir = join(stateDir, 'logs')) {
 // Time kept after Codex for the git check and up to five gh calls (60 s each) that publish the result.
 export const reviewFinalizeReserveMs = 5 * 60000;
 
-function reviewOnce(number, { auto = false, overCap = null, gh: ghIn = makeGh(), run = execFileSync, now = vnNow(), clock = vnNow, readOut, nowMs = Date.now, onCodexStart = () => {} } = {}) {
+function reviewOnce(number, { auto = false, overCap = null, gh: ghIn = makeGh(), run = execFileSync, now = vnNow(), clock = vnNow, readOut, nowMs = Date.now, onCodexStart = () => {}, agentsFile = agentsPath() } = {}) {
   // Scheduled runs: every gh and git call ends by cutoffAt (minus 15 s cleanup); direct runs keep fixed caps.
   const cutoff = cutoffMs(now.date) - 15000;
   const left = auto && Number.isFinite(cutoff) ? () => cutoff - nowMs() : () => Infinity;
@@ -238,10 +240,18 @@ function reviewOnce(number, { auto = false, overCap = null, gh: ghIn = makeGh(),
   // the Git/GitHub cutoff (#243); without that room, it does not start.
   const untilCutoff = Math.min((cutoffAt - startMinute) * 60000, left()) - reviewFinalizeReserveMs;
   if (auto && untilCutoff < 60000) return { status: 'refused', reason: `không đủ thời gian để đăng kết quả trước ${hhmmOf(cutoffAt)}` };
+  // Three-agent dispatch A (28.11): a Codex limit is kept with its reset time, so the tick does
+  // not call Codex again before it; after the reset one probe call is noted.
+  const agentState = change => { try { updateAgents(change, { path: agentsFile }); } catch {} };
+  agentState(state => noteProbe(state, 'codex', nowMs()));
   onCodexStart();
   const result = runCodex({ dir, prompt, outPath, timeoutMs: auto ? Math.min(30 * 60000, untilCutoff) : 30 * 60000, run });
-  if (result.status === 'limit') return { status: 'limit', reason: result.error };
-  writeJson(dayPath, { ...readJson(dayPath, day), codexRuns: (readJson(dayPath, day).codexRuns ?? 0) + 1 });
+  if (result.status === 'limit') { agentState(state => markLimited(state, 'codex', { reason: result.error, nowMs: nowMs() })); return { status: 'limit', reason: result.error }; }
+  agentState(state => (state.codex && state.codex.status !== 'available' ? markAvailable(state, 'codex', nowMs()) : state));
+  // C: one host writer; the run's stamp is its key, so a retry of this step never counts it twice.
+  if (applyOnce(dayPath, `codex-run:${stamp}`, d => ({ ...day, ...d, codexRuns: (d.codexRuns ?? 0) + 1 })).status === 'busy') {
+    writeJson(dayPath, { ...readJson(dayPath, day), codexRuns: (readJson(dayPath, day).codexRuns ?? 0) + 1 });
+  }
   if (result.status !== 'ok') return { status: 'error', reason: result.error };
   // The verdict must describe what Codex actually read.
   if (git(['rev-parse', 'HEAD'], dir, run, left) !== head) throw new Error('Review clone moved while Codex was reading; verdict not posted.');

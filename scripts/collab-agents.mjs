@@ -1,0 +1,147 @@
+// Three agents in parallel with fallback (three-agent dispatch, 28.11.2026, parts A and B).
+// - Availability: Claude, Codex and Anti each have a state on the host (`state/agents.json`). An agent
+//   out of quota is "limited" until the reset time its own error message gives; before that time the
+//   loop does not call it again (28.11: the tick called Codex every 10 minutes for six days of a known
+//   limit). After the reset one probe call is allowed; a new limit sets a new reset time, and with no
+//   readable reset time the next probe waits probeEveryMs.
+// - One coordinator lease (`state/coordinator-lease.json`): the first available agent in the order
+//   Claude → Codex → Anti coordinates. A lease passes to another agent only with proof that the old
+//   job stopped: the holder released it, its process is gone, or a stop record names its job. An
+//   expired lease without that proof is not taken over: the loop raises an alert instead (two
+//   coordinators writing the same queue is worse than one stalled coordinator). Every acquire raises
+//   the epoch; state writers check it (collab-writer.mjs), so a holder that lost the lease cannot write.
+// - Hand back: when a higher agent comes back, it asks; the holder releases at its next renew.
+// - A sole agent (B) may do, test and push work, never approve it. R1: Codex approves; Anti reviews
+//   only (part F) and never approves. With no independent approver available the PR waits.
+import { join } from 'node:path';
+import { hostname } from 'node:os';
+import { clean, readJson, stateDir, writeJson } from './collab-trust.mjs';
+import { pidAlive, withFileLock } from './collab-lock.mjs';
+
+export const agentOrder = ['claude', 'codex', 'anti'];
+// R1: the approver. Anti is review-only (part F); Claude is the implementer.
+export const approvers = ['codex'];
+export const probeEveryMs = 60 * 60000;
+export const leaseMs = 20 * 60000;
+export const waitIndependent = 'chờ review độc lập';
+export const agentsPath = () => join(stateDir, 'state', 'agents.json');
+export const leasePath = () => join(stateDir, 'state', 'coordinator-lease.json');
+
+const months = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
+// "try again at Dec 4th, 2026 7:35 AM" (Codex CLI). The owner's machine runs on Vietnam time (+07:00).
+export function parseResetAt(text, { offsetMinutes = 7 * 60 } = {}) {
+  const m = /try again at\s+([A-Za-z]{3})[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})\s+(\d{1,2}):(\d{2})\s*([AP]M)?/i.exec(String(text ?? ''));
+  if (!m) return null;
+  const month = months[m[1].toLowerCase()];
+  if (month === undefined) return null;
+  let hour = Number(m[4]) % (m[6] ? 12 : 24);
+  if (m[6]?.toUpperCase() === 'PM') hour += 12;
+  const ms = Date.UTC(Number(m[3]), month, Number(m[2]), hour, Number(m[5])) - offsetMinutes * 60000;
+  return Number.isFinite(ms) ? ms : null;
+}
+
+// 'available' | 'probe' (reset passed: one call allowed) | 'limited' | 'off' (not set up on this host).
+export function agentStatus(state, agent, nowMs = Date.now()) {
+  const s = state?.[agent];
+  if (!agentOrder.includes(agent)) return 'off';
+  if (!s || s.status === 'available') return 'available';
+  if (s.status === 'off') return 'off';
+  if (s.status !== 'limited') return 'available';
+  const until = Number(s.untilMs) || 0;
+  if (nowMs < until) return 'limited';
+  if (s.probedAtMs && nowMs - s.probedAtMs < probeEveryMs) return 'limited';
+  return 'probe';
+}
+export const mayCall = (state, agent, nowMs = Date.now()) => ['available', 'probe'].includes(agentStatus(state, agent, nowMs));
+export const availableAgents = (state, nowMs = Date.now()) => agentOrder.filter(a => mayCall(state, a, nowMs));
+
+export function markLimited(state, agent, { reason = '', nowMs = Date.now(), untilMs = parseResetAt(reason) } = {}) {
+  const until = Number.isFinite(untilMs) && untilMs > nowMs ? untilMs : nowMs + probeEveryMs;
+  return { ...state, [agent]: { status: 'limited', untilMs: until, until: new Date(until).toISOString(), reason: clean(reason, 300), atMs: nowMs, probedAtMs: state?.[agent]?.probedAtMs ?? null } };
+}
+export const markAvailable = (state, agent, nowMs = Date.now()) => ({ ...state, [agent]: { status: 'available', atMs: nowMs } });
+export const noteProbe = (state, agent, nowMs = Date.now()) => (state?.[agent]?.status === 'limited' ? { ...state, [agent]: { ...state[agent], probedAtMs: nowMs } } : state);
+
+// The host keeps one agents file; every change is a read-modify-write under its lock.
+export function updateAgents(change, { path = agentsPath() } = {}) {
+  return withFileLock(`${path}.lock`, { staleMs: 60000, waitMs: 5000, busy: null }, () => {
+    const next = change(readJson(path, {}));
+    writeJson(path, next);
+    return next;
+  });
+}
+export const readAgents = ({ path = agentsPath() } = {}) => readJson(path, {});
+
+export const coordinatorFor = available => agentOrder.find(a => available.includes(a)) ?? null;
+const rank = agent => agentOrder.indexOf(agent);
+
+// Proof that the holder's job stopped. `alive` checks a PID on this host only; a lease from another
+// host needs a release or a stop record.
+export function stopProof(lease, { alive = pidAlive, host = hostname() } = {}) {
+  if (!lease) return 'no-lease';
+  if (lease.released) return 'released';
+  if ((lease.stops ?? []).includes(lease.jobId)) return 'stop-record';
+  if (lease.host === host && Number.isInteger(lease.pid) && !alive(lease.pid)) return 'pid-gone';
+  return null;
+}
+
+// Pure decision. Returns { action, lease, reason, alert? }; action is one of acquire, renew,
+// takeover, release, wait. The caller writes `lease` when it is not null.
+export function decideLease({ lease, me, jobId, pid = process.pid, host = hostname(), available, nowMs = Date.now(), alive = pidAlive }) {
+  const top = coordinatorFor(available);
+  const fresh = epoch => ({ holder: me, epoch, jobId, pid, host, acquiredAtMs: nowMs, renewedAtMs: nowMs, expiresAtMs: nowMs + leaseMs, released: false, stops: [] });
+  if (!available.includes(me)) return { action: 'wait', lease: null, reason: `${me} không sẵn sàng` };
+  if (lease && lease.holder === me && lease.jobId === jobId && !lease.released) {
+    // Hand back: a higher agent asked and is available again.
+    if (lease.handback && rank(lease.handback) < rank(me) && available.includes(lease.handback)) {
+      return { action: 'release', lease: { ...lease, released: true, releasedAtMs: nowMs, releaseReason: `trả lại cho ${lease.handback}` }, reason: `trả lại cho ${lease.handback}` };
+    }
+    return { action: 'renew', lease: { ...lease, renewedAtMs: nowMs, expiresAtMs: nowMs + leaseMs }, reason: 'gia hạn' };
+  }
+  if (top !== me) return { action: 'wait', lease: null, reason: `${top} đứng trước ${me}` };
+  const epoch = (lease?.epoch ?? 0) + 1;
+  const proof = stopProof(lease, { alive, host });
+  if (proof) return { action: lease ? 'takeover' : 'acquire', lease: fresh(epoch), reason: proof };
+  // The holder is still running. A lower holder is asked to hand back.
+  if (rank(lease.holder) > rank(me)) {
+    const asked = lease.handback === me ? null : { ...lease, handback: me };
+    return { action: 'wait', lease: asked, reason: `đã xin ${lease.holder} trả lại` };
+  }
+  const expired = nowMs > (lease.expiresAtMs ?? 0);
+  return { action: 'wait', lease: null, reason: expired ? 'hết hạn nhưng chưa có bằng chứng việc cũ đã dừng' : `${lease.holder} đang giữ`, alert: expired ? `Lease điều phối của ${lease.holder} (job ${lease.jobId}) đã hết hạn nhưng chưa có bằng chứng việc cũ đã dừng; không ai nhận thay.` : undefined };
+}
+
+export function acquireLease({ me, jobId, available, path = leasePath(), nowMs = Date.now(), alive = pidAlive, host = hostname(), pid = process.pid }) {
+  return withFileLock(`${path}.lock`, { staleMs: 60000, waitMs: 5000, busy: { action: 'wait', reason: 'lease đang được ghi' } }, () => {
+    const decision = decideLease({ lease: readJson(path, null), me, jobId, pid, host, available, nowMs, alive });
+    if (decision.lease) writeJson(path, decision.lease);
+    return decision;
+  });
+}
+
+// The holder's clean exit, and a stop record written by whoever confirmed the job ended.
+export function releaseLease({ me, jobId, path = leasePath(), nowMs = Date.now() }) {
+  return withFileLock(`${path}.lock`, { staleMs: 60000, waitMs: 5000, busy: false }, () => {
+    const lease = readJson(path, null);
+    if (!lease || lease.holder !== me || lease.jobId !== jobId) return false;
+    writeJson(path, { ...lease, released: true, releasedAtMs: nowMs });
+    return true;
+  });
+}
+export function recordStop({ jobId, path = leasePath() }) {
+  return withFileLock(`${path}.lock`, { staleMs: 60000, waitMs: 5000, busy: false }, () => {
+    const lease = readJson(path, null);
+    if (!lease) return false;
+    writeJson(path, { ...lease, stops: [...new Set([...(lease.stops ?? []), jobId])] });
+    return true;
+  });
+}
+
+// B: who may approve a PR. The approver must be available and not the author.
+export const mayApprove = (agent, author) => approvers.includes(agent) && agent !== author;
+export function reviewPlan({ author, available }) {
+  const approver = approvers.find(a => available.includes(a) && mayApprove(a, author));
+  if (approver) return { status: 'review', approver };
+  const soleAgent = available.length === 1 ? available[0] : null;
+  return { status: 'wait', reason: waitIndependent, soleAgent, mayWork: available.filter(a => a !== 'anti') };
+}

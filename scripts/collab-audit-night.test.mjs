@@ -344,6 +344,20 @@ test('tick: reviews stop one run short of the cap, which is kept for the night a
   assert.ok(readFileSync(new URL('./codex-review.mjs', import.meta.url), 'utf8').includes('dayCap(day) - auditReserve'), 'direct automatic reviews keep the reserve too');
 });
 
+test('tick: Codex out of quota is not called before its reset; the PR waits for an independent review (three-agent A/B)', () => {
+  const date = '2026-12-05';
+  writeJson(dayStatePath(date), { codexRuns: 0 });
+  const started = [];
+  const review = number => { started.push(number); return { status: 'posted' }; };
+  const logs = [];
+  const limited = { codex: { status: 'limited', untilMs: Date.now() + 3600000, until: 'later' } };
+  tick({ gh: plannedGh(date), now: { date, hour: 12, minute: 0 }, merge: () => ({}), review, log: l => logs.push(l), agents: () => limited });
+  assert.deepEqual(started, [], 'no Codex call while limited');
+  assert.ok(logs.some(l => /chờ review độc lập/.test(l)));
+  tick({ gh: plannedGh(date), now: { date, hour: 12, minute: 10 }, merge: () => ({}), review, agents: () => ({ codex: { ...limited.codex, untilMs: Date.now() - 1 } }) });
+  assert.deepEqual(started, [7], 'after the reset one probe call goes out');
+});
+
 // L23: the 11–13.11 baseline with the same collector.
 const baseReports = () => ['11', '12', '13'].map((d, i) => report(i + 1, `2026-11-${d}T07:00:00Z`, `agent: Claude — báo cáo ${d}.11`));
 

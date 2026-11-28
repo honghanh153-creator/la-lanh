@@ -13,6 +13,8 @@ import { gateValue, preflightFailure, readPreflight, recordPreflight, userSees }
 import { syncStatusLabels } from './collab-labels.mjs';
 import { deletionProblem, sizeProblem, withRepeatNote } from './collab-size.mjs';
 import { withFileLock } from './collab-lock.mjs';
+import { agentStatus, readAgents, waitIndependent } from './collab-agents.mjs';
+import { admit } from './collab-writer.mjs';
 import { bufferStatus, dailyLaneLabel, queueTopUp, wipCount } from './collab-buffer.mjs';
 import { afterDecision, disputeView, settleDisputes } from './collab-disagree.mjs';
 import { isMain } from './is-main.mjs';
@@ -346,7 +348,15 @@ const defaultReservations = {
   release: (pr, why) => releaseReservation(pr, why),
 };
 
-export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], prPreflight: preflight = () => ({ status: 'PASS' }), heavyFree = () => true, nowMs = Date.now, check = () => ({ status: 'skipped' }), review, merge, alert, board = () => {}, log = () => {}, watchdog = () => {}, health = () => [], copyPending = () => 0, copyBatch = null, copySaved = () => false, notify = () => {}, metrics = () => null, audit = null, incidents = null, ciStatus = null, settle = defaultSettle, mergeAudit = null, reservations = defaultReservations } = {}) {
+// Null while Codex may be called; otherwise why the reviews wait and until when.
+export function independentWait(agents, nowMs) {
+  let state = {};
+  try { state = agents() ?? {}; } catch { return null; }
+  if (['available', 'probe'].includes(agentStatus(state, 'codex', nowMs))) return null;
+  return { reason: `${waitIndependent}: Codex chưa dùng được${state.codex?.until ? ` tới ${state.codex.until}` : ''}`, until: state.codex?.until ?? null };
+}
+
+export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], prPreflight: preflight = () => ({ status: 'PASS' }), heavyFree = () => true, nowMs = Date.now, check = () => ({ status: 'skipped' }), review, merge, alert, board = () => {}, log = () => {}, watchdog = () => {}, health = () => [], copyPending = () => 0, copyBatch = null, copySaved = () => false, notify = () => {}, metrics = () => null, audit = null, incidents = null, ciStatus = null, settle = defaultSettle, mergeAudit = null, reservations = defaultReservations, agents = readAgents } = {}) {
   // The clock is read again before each action, so a long review cannot push the next one past lastStartAt.
   const time = clock ?? (now ? () => now : () => vnNow());
   now = time();
@@ -567,7 +577,11 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
         // waiting: a PR behind the front is behind integration too; it is synced on its own turn.
         if (!['PASS', 'FAIL', 'ci-pending', 'synced', 'waiting'].includes(result?.status)) break;
       }
-      for (const t of reviewSlots([...checked, ...work.filter(t => t.turn === 'codex-review')], lanePlan.lane)) {
+      // Three-agent dispatch A/B (28.11): Codex out of quota is not called again before its reset;
+      // the PRs wait for an independent review, nobody else approves them.
+      const codexWait = independentWait(agents, nowMs());
+      if (codexWait) log(`codex review: ${codexWait.reason}`);
+      for (const t of codexWait ? [] : reviewSlots([...checked, ...work.filter(t => t.turn === 'codex-review')], lanePlan.lane)) {
         const fresh = readJson(dayPath, day);
         if (done.filter(d => d.review).length >= 2 || fresh.codexRuns >= dayCap(fresh) - auditReserve || late()) break;
         show({ status: 'running', doing: `Codex review #${t.number}`, expectMinutes: 30, area, turns, done });
@@ -646,8 +660,10 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
         claimed: Object.entries(claimsByPr()).map(([n, c]) => ({ pr: Number(n), session: c?.session ?? null, since: c?.at ?? null })),
         // Plan top-up (owner 31.10.2026), WIP 1 + 1 since 12.11: Claude opens the next backlog task
         // only when nothing is in progress and review has room, and never from lastStartAt on.
-        topUp: buffer.topUp && !late(),
-        topUpCount: late() ? 0 : buffer.topUpCount, buffer: buffer.buffer, inProgress: buffer.inProgress, inReview: buffer.inReview,
+        // C: host backpressure on top of the lanes: 3 in progress, 2 waiting for review at most.
+        topUp: buffer.topUp && !late() && admit(buffer).room > 0,
+        topUpCount: late() ? 0 : Math.min(buffer.topUpCount, admit(buffer).room), buffer: buffer.buffer, inProgress: buffer.inProgress, inReview: buffer.inReview,
+        backpressure: admit(buffer).reasons, independentReview: independentWait(agents, nowMs()),
         // Two lanes (owner 16.11): where a new task may open, 7-week first, and each lane's counts.
         topUpLanes: late() ? [] : buffer.topUpLanes ?? [], lanes: buffer.lanes ?? null,
         idleRuns,
