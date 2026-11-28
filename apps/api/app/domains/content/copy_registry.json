@@ -12749,6 +12749,102 @@
    "category": "reading",
    "text": "Bạn dễ nhường cho êm chuyện dù trong lòng chưa thật đồng ý.",
    "status": "pending"
+  },
+  {
+   "id": "lens.money.tuition-or-rent-shortfall.label",
+   "category": "reading",
+   "text": "Chưa đủ học phí hoặc tiền trọ",
+   "status": "pending"
+  },
+  {
+   "id": "lens.money.tuition-or-rent-shortfall.note",
+   "category": "reading",
+   "text": "Khi hạn đóng học phí hoặc tiền trọ tới gần, bạn dễ nghĩ đi nghĩ lại mà chưa biết bắt đầu từ đâu.",
+   "status": "pending"
+  },
+  {
+   "id": "lens.money.tuition-or-rent-shortfall.light",
+   "category": "reading",
+   "text": "Ghi một dòng: khoản nào tới hạn trước.",
+   "status": "pending"
+  },
+  {
+   "id": "lens.money.tuition-or-rent-shortfall.action",
+   "category": "reading",
+   "text": "Kiểm tra thông báo của trường hoặc tin nhắn của chủ trọ, chỉ đọc phần hạn đóng và cách xin gia hạn.",
+   "status": "pending"
+  },
+  {
+   "id": "lens.money.month-end-shortfall.label",
+   "category": "reading",
+   "text": "Cuối tháng còn ít tiền",
+   "status": "pending"
+  },
+  {
+   "id": "lens.money.month-end-shortfall.note",
+   "category": "reading",
+   "text": "Khi cuối tháng tiền còn ít, bạn dễ tính đi tính lại từng khoản nhỏ trước khi mua gì.",
+   "status": "pending"
+  },
+  {
+   "id": "lens.money.month-end-shortfall.light",
+   "category": "reading",
+   "text": "Uống một cốc nước rồi nghỉ ba phút, chuyện chi tiêu tính sau.",
+   "status": "pending"
+  },
+  {
+   "id": "lens.money.month-end-shortfall.action",
+   "category": "reading",
+   "text": "Ghi ra ba khoản phải chi từ giờ tới cuối tháng, khoản nào chưa gấp thì để sang tháng sau.",
+   "status": "pending"
+  },
+  {
+   "id": "lens.money.family-remittance.label",
+   "category": "reading",
+   "text": "Gửi tiền về cho gia đình",
+   "status": "pending"
+  },
+  {
+   "id": "lens.money.family-remittance.note",
+   "category": "reading",
+   "text": "Khi tới kỳ gửi tiền về cho gia đình, bạn dễ lo phần của mọi người trước rồi mới nghĩ tới phần mình.",
+   "status": "pending"
+  },
+  {
+   "id": "lens.money.family-remittance.light",
+   "category": "reading",
+   "text": "Đi bộ vài bước rồi nghỉ, chuyện tiền cho gia đình để tính sau.",
+   "status": "pending"
+  },
+  {
+   "id": "lens.money.family-remittance.action",
+   "category": "reading",
+   "text": "Chọn ngày bạn sẽ gửi tiền tháng này rồi ghi vào lịch, chưa cần báo với ai.",
+   "status": "pending"
+  },
+  {
+   "id": "lens.money.costly-social-invitation.label",
+   "category": "reading",
+   "text": "Được rủ đi chơi tốn tiền",
+   "status": "pending"
+  },
+  {
+   "id": "lens.money.costly-social-invitation.note",
+   "category": "reading",
+   "text": "Khi được rủ đi chơi tốn tiền, bạn dễ gật đầu trước rồi mới nghĩ mình có muốn đi không.",
+   "status": "pending"
+  },
+  {
+   "id": "lens.money.costly-social-invitation.light",
+   "category": "reading",
+   "text": "Tắt điện thoại ba phút rồi nghỉ, lời rủ để đó đã.",
+   "status": "pending"
+  },
+  {
+   "id": "lens.money.costly-social-invitation.action",
+   "category": "reading",
+   "text": "Viết sẵn một câu trả lời cho lời rủ, đi hay không đều được, rồi để tới tối mới gửi.",
+   "status": "pending"
   }
  ],
  "version": "copy-registry/v1"
