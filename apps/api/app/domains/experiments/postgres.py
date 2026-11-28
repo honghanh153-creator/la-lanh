@@ -40,6 +40,7 @@ from app.domains.readings.models import (
     experiment_projection_for,
 )
 from app.domains.readings.postgres import _plan_record, _revision_record
+from app.domains.readings.student_support import alone_offer_for
 from app.domains.readings.tables import ReadingPlanRow, ReadingProjectionRow, ReadingRevisionRow
 from app.infrastructure.crypto import EnvelopeCipher
 
@@ -294,10 +295,14 @@ class PostgresExperimentRepository:
         )
         # So may the slow (Căng) and clear (Lạc trôi) actions of the same card (#701). Their text
         # is stored like the lighter one's, so a kept action reads back after the registry moves.
+        # And the no-contact action (#703), only when the card offers it: one of its actions
+        # asks to reach someone.
+        alone = alone_offer_for(revision.id, mechanism_key, candidate.micro_action)
         offered = (
             lighter_action_for(revision.id, mechanism_key),
             mood_action_for("slow", revision.id, mechanism_key),
             mood_action_for("clear", revision.id, mechanism_key),
+            alone[0] if alone is not None else None,
         )
         for text in offered:
             if text is not None:
