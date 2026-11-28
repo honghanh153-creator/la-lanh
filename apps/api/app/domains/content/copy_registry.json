@@ -12707,6 +12707,78 @@
    "category": "reading",
    "text": "Chọn phần bài gần hạn nộp nhất để làm trước, gác lại các phần chưa gấp.",
    "status": "pending"
+  },
+  {
+   "id": "daily.bundle.comparison-loop.13.headline",
+   "category": "reading",
+   "text": "Khi người khác có máy mới, bạn thấy máy mình cũ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.comparison-loop.13.scene",
+   "category": "reading",
+   "text": "Khi người khác trong lớp khoe máy tính mới, bạn thấy máy mình cũ dù nó vẫn đủ cho bài tập.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.comparison-loop.13.action",
+   "category": "reading",
+   "text": "Ghi hai bài tập bạn đã làm xong trên máy của mình tuần này.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.group-pressure.13.headline",
+   "category": "reading",
+   "text": "Khi nhóm lớp chốt đặt áo lớp, bạn vẫn chưa hiểu.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.group-pressure.13.scene",
+   "category": "reading",
+   "text": "Khi mọi người trong nhóm lớp đồng ý đặt áo lớp rất nhanh, bạn chưa hiểu khoản này có bắt buộc không.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.group-pressure.13.action",
+   "category": "reading",
+   "text": "Hỏi lớp trưởng trong nhóm xem áo lớp có bắt buộc không và hạn chốt là khi nào.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.avoid-small-conflict.13.headline",
+   "category": "reading",
+   "text": "Khi gia đình muốn bạn học thêm, bạn ngại từ chối.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.avoid-small-conflict.13.scene",
+   "category": "reading",
+   "text": "Khi gia đình muốn bạn học thêm mỗi tối, bạn định nhận lời cho êm dù lịch đã kín.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.avoid-small-conflict.13.action",
+   "category": "reading",
+   "text": "Ghi riêng cho mình phần bạn làm được và phần không tiện, chưa cần hứa gì với gia đình lúc này.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.automatic-caretaking.13.headline",
+   "category": "reading",
+   "text": "Khi gia đình nhờ kèm em học giữa tuần thi.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.automatic-caretaking.13.scene",
+   "category": "reading",
+   "text": "Khi gia đình nhờ bạn kèm em học mỗi tối tuần thi, bạn định gật đầu dù bài mình còn dồn.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.automatic-caretaking.13.action",
+   "category": "reading",
+   "text": "Đặt lịch ôn của mình trước rồi mới ghi tối nào còn sức kèm em, chưa cần hứa với gia đình ngay.",
+   "status": "pending"
   }
  ],
  "version": "copy-registry/v1"
