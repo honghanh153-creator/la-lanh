@@ -36,7 +36,7 @@ export const serious = labels => { const n = names(labels); return n.includes('i
 //   `state/ui-master-approval.json`, only its `status` is read), an issue-only unit starts only
 //   when it is labelled ops, content, privacy or process. Unlabelled counts as held (fail safe).
 export const uiApprovalPath = () => join(stateDir, 'state', 'ui-master-approval.json');
-export const uiHoldOpen = ['area:ops', 'area:content', 'area:privacy', 'area:process'];
+export const uiHoldOpen = ['area:ops', 'area:content', 'area:privacy'];
 // A missing file means this host never set the hold; a file with any status other than approved holds.
 export function uiHold({ path = uiApprovalPath() } = {}) {
   const s = readJson(path, null);
